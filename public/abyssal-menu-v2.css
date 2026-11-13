@@ -751,6 +751,121 @@
  width:clamp(96px,18vw,142px)!important;height:clamp(44px,12dvh,66px)!important;
 }
 
+
+/* CABIN ENTRY: make the submarine hatch unmistakably interactive. */
+#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn.abyss-laboratory-hatch{
+ position:absolute!important;
+ z-index:8!important;
+ left:var(--portal-x,50%)!important;
+ top:calc(var(--portal-y,var(--abyss-hatch-y,140px)) - 9px)!important;
+ transform:translate(-50%,-50%)!important;
+ width:clamp(148px,18vw,218px)!important;
+ min-width:148px!important;
+ height:auto!important;
+ min-height:70px!important;
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:center!important;
+ justify-content:center!important;
+ gap:2px!important;
+ padding:9px 22px 10px!important;
+ pointer-events:auto!important;
+ cursor:pointer!important;
+ border:1px solid rgba(255,216,133,.72)!important;
+ border-radius:999px!important;
+ background:
+  radial-gradient(ellipse at 50% 35%,rgba(255,222,143,.22),transparent 48%),
+  linear-gradient(180deg,rgba(26,30,31,.82),rgba(5,12,17,.94))!important;
+ color:#fff8e7!important;
+ box-shadow:
+  0 0 0 5px rgba(216,174,91,.08),
+  0 0 22px rgba(239,199,119,.30),
+  inset 0 0 18px rgba(241,204,133,.10)!important;
+ text-align:center!important;
+ opacity:.96!important;
+ transition:opacity .2s ease,filter .2s ease,box-shadow .2s ease,transform .2s ease!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn.abyss-laboratory-hatch:before{
+ content:""!important;
+ position:absolute!important;
+ left:50%!important;
+ top:100%!important;
+ width:2px!important;
+ height:22px!important;
+ transform:translateX(-50%)!important;
+ background:linear-gradient(#efc77e,transparent)!important;
+ box-shadow:0 0 10px #efc77e!important;
+ pointer-events:none!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn.abyss-laboratory-hatch:after{
+ content:"⌃"!important;
+ position:absolute!important;
+ left:50%!important;
+ top:calc(100% + 10px)!important;
+ transform:translateX(-50%)!important;
+ color:#ffe5a5!important;
+ font:900 18px/1 system-ui,sans-serif!important;
+ text-shadow:0 0 10px #efc77e,0 0 20px rgba(239,199,126,.75)!important;
+ pointer-events:none!important;
+ animation:abyss-cabin-arrow 1.35s ease-in-out infinite!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn .abyss-hatch-kicker{
+ display:block!important;
+ color:#bcae91!important;
+ font:800 clamp(7px,.65vw,9px)/1 'DM Mono',monospace!important;
+ letter-spacing:.18em!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn .abyss-hatch-label{
+ display:block!important;
+ color:#fff8e8!important;
+ font:900 clamp(15px,1.5vw,22px)/1.05 Cinzel,Georgia,serif!important;
+ letter-spacing:.15em!important;
+ text-shadow:0 0 8px rgba(255,226,168,.72),0 0 18px rgba(235,184,86,.42)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn .abyss-hatch-action{
+ display:block!important;
+ margin-top:2px!important;
+ color:#ffd46f!important;
+ font:900 clamp(8px,.72vw,10px)/1 'DM Mono',monospace!important;
+ letter-spacing:.16em!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn:hover,
+#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn:focus-visible,
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-cabin-ready #submarineWorkshopBtn{
+ filter:brightness(1.18)!important;
+ box-shadow:
+  0 0 0 7px rgba(216,174,91,.10),
+  0 0 34px rgba(255,210,116,.48),
+  inset 0 0 22px rgba(241,204,133,.16)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-menu-arrival #submarineWorkshopBtn{
+ opacity:.42!important;
+ filter:saturate(.72)!important;
+ pointer-events:none!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-cabin-ready #submarineWorkshopBtn{
+ animation:abyss-cabin-pulse 2.25s ease-in-out infinite!important;
+}
+@keyframes abyss-cabin-pulse{
+ 0%,100%{transform:translate(-50%,-50%) scale(1);box-shadow:0 0 0 5px rgba(216,174,91,.08),0 0 22px rgba(239,199,119,.30),inset 0 0 18px rgba(241,204,133,.10)}
+ 50%{transform:translate(-50%,-50%) scale(1.035);box-shadow:0 0 0 8px rgba(216,174,91,.11),0 0 39px rgba(255,210,116,.50),inset 0 0 24px rgba(241,204,133,.17)}
+}
+@keyframes abyss-cabin-arrow{
+ 0%,100%{transform:translate(-50%,0);opacity:.58}
+ 50%{transform:translate(-50%,-5px);opacity:1}
+}
+
 #menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-mobile-zoom #submarineWorkshopBtn.abyss-laboratory-hatch{
  min-width:44px!important;min-height:44px!important;
 }
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-mobile-zoom #submarineWorkshopBtn.abyss-laboratory-hatch{
+ width:clamp(126px,42vw,176px)!important;
+ min-width:126px!important;
+ min-height:62px!important;
+ padding:7px 15px 8px!important;
+ top:calc(var(--portal-y,var(--abyss-hatch-y,140px)) - 5px)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-mobile-zoom #submarineWorkshopBtn .abyss-hatch-label{
+ font-size:clamp(14px,5vw,19px)!important;
+}
+
