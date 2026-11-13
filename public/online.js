@@ -180,7 +180,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
  function openMatchHistory(){
   const screen=$('matchHistoryScreen');if(!screen)return;
   if(!authenticated||!serverAccount){openLogin();setMessage('Entre na sua conta para consultar o histórico de partidas.',true);return;}
-  screen.hidden=false;const msg=$('matchHistoryMessage');if(msg)msg.textContent='Carregando partidas…';
+  window.AbyssalCockpitNavigation?.routeScreen?.('matchHistoryScreen',true);screen.hidden=false;const msg=$('matchHistoryMessage');if(msg)msg.textContent='Carregando partidas…';
   if(socket?.connected)socket.emit('get-match-history');else connect();
  }
  function openProfile(){
@@ -528,15 +528,15 @@ queueMicrotask(openAgeTermsIfNeeded);
 let pendingUgcReport=null,viewedProfileReportContext=null;
 function openUgcReport(type,targetId,label){
  if(!authenticated){openLogin();return}
- pendingUgcReport={type,targetId,...(type==='profile'&&viewedProfileReportContext?viewedProfileReportContext:{})};$('ugcReportTarget').textContent='Denunciando: '+String(label||targetId);$('ugcReportDetails').value='';$('ugcReportStatus').textContent='';$('ugcReportScreen').hidden=false;
+ pendingUgcReport={type,targetId,...(type==='profile'&&viewedProfileReportContext?viewedProfileReportContext:{})};$('ugcReportTarget').textContent='Denunciando: '+String(label||targetId);$('ugcReportDetails').value='';$('ugcReportStatus').textContent='';window.AbyssalCockpitNavigation?.routeScreen?.('ugcReportScreen',true);$('ugcReportScreen').hidden=false;
 }
-function closeUgcReport(){$('ugcReportScreen').hidden=true;pendingUgcReport=null}
+function closeUgcReport(){if(window.AbyssalCockpitNavigation?.isEmbedded?.('ugcReportScreen'))window.AbyssalCockpitNavigation.back();else $('ugcReportScreen').hidden=true;pendingUgcReport=null}
 $('reportProfileBtn')?.addEventListener('click',()=>{if(viewedPublicProfile)openUgcReport('profile',viewedPublicProfile,viewedPublicProfile)});
 $('blockProfileBtn')?.addEventListener('click',()=>{if(viewedPublicProfile&&socket?.connected)socket.emit('toggle-user-block',{nickname:viewedPublicProfile});});
 $('ugcReportCloseBtn')?.addEventListener('click',closeUgcReport);$('ugcReportCancelBtn')?.addEventListener('click',closeUgcReport);
 $('ugcReportSendBtn')?.addEventListener('click',()=>{if(!pendingUgcReport)return;const reason=$('ugcReportReason').value,details=$('ugcReportDetails').value.trim(),btn=$('ugcReportSendBtn');btn.disabled=true;$('ugcReportStatus').textContent='Enviando denúncia para análise...';socket.emit('report-ugc',{...pendingUgcReport,reason,details})});
 
-$('supportBtn')?.addEventListener('click',()=>{$('menuScreen').hidden=true;$('supportScreen').hidden=false;$('supportMessageStatus').textContent='';$('supportEmailInput').focus();});
+$('supportBtn')?.addEventListener('click',()=>{if(!window.AbyssalCockpitNavigation?.routeScreen?.('supportScreen',true))$('menuScreen').hidden=true;$('supportScreen').hidden=false;$('supportMessageStatus').textContent='';$('supportEmailInput').focus();});
 $('supportCancelBtn')?.addEventListener('click',()=>{$('supportScreen').hidden=true;$('menuScreen').hidden=false;});
 $('sendSupportBtn')?.addEventListener('click',async()=>{const name=String($('supportNameInput').value||'').trim(),email=String($('supportEmailInput').value||'').trim(),subject=String($('supportSubjectInput').value||''),message=String($('supportMessageInput').value||'').trim(),website=String($('supportWebsiteInput').value||'');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setAuthFlowMessage('supportMessageStatus','Informe um e-mail válido para podermos responder.',true);$('supportEmailInput').focus();return}if(message.length<10){setAuthFlowMessage('supportMessageStatus','Conte um pouco mais: a mensagem precisa ter pelo menos 10 caracteres.',true);$('supportMessageInput').focus();return}const button=$('sendSupportBtn');button.disabled=true;setAuthFlowMessage('supportMessageStatus','Transmitindo mensagem…');try{const response=await fetch(SERVER_URL+'/api/support',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,subject,message,website})});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||'Não foi possível enviar sua mensagem.');setAuthFlowMessage('supportMessageStatus','Mensagem enviada! Nossa equipe recebeu seu contato.');$('supportNameInput').value='';$('supportEmailInput').value='';$('supportMessageInput').value='';$('supportWebsiteInput').value='';}catch(error){setAuthFlowMessage('supportMessageStatus',error.message||'Falha no envio. Tente novamente mais tarde.',true)}finally{button.disabled=false}});
 $('forgotPasswordBtn')?.addEventListener('click',()=>{$('loginScreen').hidden=true;$('passwordResetScreen').hidden=true;window.AbyssalCockpitNavigation?.routeScreen?.('passwordRecoveryScreen',true);$('passwordRecoveryScreen').hidden=false;$('recoveryEmailInput').value=String($('emailInput').value||'').trim();setAuthFlowMessage('recoveryMessage','');$('recoveryEmailInput').focus();});

@@ -5536,8 +5536,9 @@ function openSkinPurchaseConfirm(skin, name, priceFormatted, isBundle = false) {
   if(!skinId||stripeCheckoutBusy)return;
   const modal = $('skinPurchaseConfirmModal');
   if (!modal) { window.AbyssalOnline?.purchaseStripe(skinId,'brl',gameLanguage);return; }
-  // The cockpit is its own stacking context. Put the checkout dialog at the document root.
-  if(modal.parentElement!==document.body)document.body.append(modal);
+  // In the cabin, checkout confirmation belongs in the visor. Outside, retain the existing modal.
+  window.AbyssalCockpitNavigation?.routeScreen?.('skinPurchaseConfirmModal',true);
+  if(!window.AbyssalCockpitNavigation?.isEmbedded?.('skinPurchaseConfirmModal')&&modal.parentElement!==document.body)document.body.append(modal);
   pendingStripePurchase = { skin: { id: skinId, name }, name, priceFormatted, isBundle };
   const desc = $('skinPurchaseConfirmDesc');
   if (desc) {
@@ -5552,7 +5553,7 @@ function openSkinPurchaseConfirm(skin, name, priceFormatted, isBundle = false) {
 function closeSkinPurchaseConfirm() {
   if(stripeCheckoutBusy)return;
   const modal = $('skinPurchaseConfirmModal');
-  if (modal) modal.hidden = true;
+  if(window.AbyssalCockpitNavigation?.isEmbedded?.('skinPurchaseConfirmModal'))window.AbyssalCockpitNavigation.back();else if(modal)modal.hidden=true;
   pendingStripePurchase = null;
 }
 function updateSkinPurchaseBtn() {
@@ -5594,8 +5595,8 @@ $('shopRedeemShortcut')?.addEventListener('click',()=>{
  }else target.scrollIntoView({block:'center',behavior:reduced?'instant':'smooth'});
  target.focus({preventScroll:true});
 });
-function openRedeemCodeModal(){const modal=$('redeemCodeScreen');if(!modal)return;modal.hidden=false;const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),choice=$('redeemSkinChoice');if(input){input.disabled=false;input.value='';}if(choice)choice.hidden=true;if(redeemCodeBtn){redeemCodeBtn.disabled=false;redeemCodeBtn.textContent='RESGATAR CÓDIGO';}if(message)message.textContent='';requestAnimationFrame(()=>input?.focus());}
-function closeRedeemCodeModal(){const modal=$('redeemCodeScreen');if(modal)modal.hidden=true;}
+function openRedeemCodeModal(){const modal=$('redeemCodeScreen');if(!modal)return;window.AbyssalCockpitNavigation?.routeScreen?.('redeemCodeScreen',true);modal.hidden=false;const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),choice=$('redeemSkinChoice');if(input){input.disabled=false;input.value='';}if(choice)choice.hidden=true;if(redeemCodeBtn){redeemCodeBtn.disabled=false;redeemCodeBtn.textContent='RESGATAR CÓDIGO';}if(message)message.textContent='';requestAnimationFrame(()=>input?.focus());}
+function closeRedeemCodeModal(){if(window.AbyssalCockpitNavigation?.isEmbedded?.('redeemCodeScreen')){window.AbyssalCockpitNavigation.back();return;}const modal=$('redeemCodeScreen');if(modal)modal.hidden=true;}
 $('openRedeemCodeBtn')?.addEventListener('click',openRedeemCodeModal);
 $('redeemCodeCloseBtn')?.addEventListener('click',closeRedeemCodeModal);
 $('redeemCodeBackBtn')?.addEventListener('click',closeRedeemCodeModal);

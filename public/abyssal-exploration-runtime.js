@@ -26,12 +26,14 @@
  // Move the original live screens, not copies: purchases, filters, canvases,
  // ownership and catalog discovery retain their existing IDs and listeners.
  let embeddedCatalog=null,skipEmbeddedOpen=false,loginReturn='profile',publicProfileReturn='cardumes';
- const embeddedPages=Object.freeze({shop:'shopScreen',specimens:'catalogScreen',profile:'profileScreen',cardumes:'cardumesScreen',resonance:'resonanceScreen',login:'loginScreen',recovery:'passwordRecoveryScreen',notices:'notifPanel',download:'downloadScreen',wheel:'wheelScreen',ranking:'rankingsScreen',rooms:'roomsScreen'});
- const embeddedTitles=Object.freeze({profile:'PERFIL',cardumes:'CARDUMES',resonance:'RESSONÂNCIA',login:'IDENTIFICAÇÃO DO MERGULHADOR',recovery:'RECUPERAR ACESSO',notices:'CENTRAL DE AVISOS',download:'BAIXAR ABYSSAL',wheel:'ROLETA',ranking:'RANKING',rooms:'MERGULHO ONLINE',language:'IDIOMA',controls:'CONTROLES',zoom:'ZOOM DA CÂMERA',volume:'VOLUME',filter:'GRÁFICOS',fullscreen:'TELA CHEIA'});
- function navigateEmbedded(id,skip=false){if(!workshop||workshop.hidden)return false;const page=Object.keys(embeddedPages).find(key=>embeddedPages[key]===id);if(!page)return false;if(embeddedCatalog?.screen.id===id)return false;if(page==='login'&&activeConsoleSection!=='login'&&activeConsoleSection!=='recovery')loginReturn=activeConsoleSection;if(page==='profile'&&skip&&activeConsoleSection==='cardumes')publicProfileReturn='cardumes';else if(page==='profile'&&!skip)publicProfileReturn='solo';activeConsoleSection=page;skipEmbeddedOpen=skip;renderWorkshop();return true;}
+ const embeddedReturns=new Map();
+ const childPages=new Set(['redeem','purchase','history','report','support']);
+ const embeddedPages=Object.freeze({shop:'shopScreen',specimens:'catalogScreen',profile:'profileScreen',cardumes:'cardumesScreen',resonance:'resonanceScreen',login:'loginScreen',recovery:'passwordRecoveryScreen',notices:'notifPanel',download:'downloadScreen',wheel:'wheelScreen',ranking:'rankingsScreen',rooms:'roomsScreen',redeem:'redeemCodeScreen',purchase:'skinPurchaseConfirmModal',history:'matchHistoryScreen',report:'ugcReportScreen',support:'supportScreen'});
+ const embeddedTitles=Object.freeze({profile:'PERFIL',cardumes:'CARDUMES',resonance:'RESSONÂNCIA',login:'IDENTIFICAÇÃO DO MERGULHADOR',recovery:'RECUPERAR ACESSO',notices:'CENTRAL DE AVISOS',download:'BAIXAR ABYSSAL',wheel:'ROLETA',ranking:'RANKING',rooms:'MERGULHO ONLINE',redeem:'RESGATAR CÓDIGO',purchase:'CONFIRMAR AQUISIÇÃO',history:'HISTÓRICO DE PARTIDAS',report:'DENUNCIAR',support:'SUPORTE',language:'IDIOMA',controls:'CONTROLES',zoom:'ZOOM DA CÂMERA',volume:'VOLUME',filter:'GRÁFICOS',fullscreen:'TELA CHEIA'});
+ function navigateEmbedded(id,skip=false){if(!workshop||workshop.hidden)return false;const page=Object.keys(embeddedPages).find(key=>embeddedPages[key]===id);if(!page)return false;if(embeddedCatalog?.screen.id===id)return false;if(childPages.has(page)&&activeConsoleSection!==page)embeddedReturns.set(page,activeConsoleSection);if(page==='login'&&activeConsoleSection!=='login'&&activeConsoleSection!=='recovery')loginReturn=activeConsoleSection;if(page==='profile'&&skip&&activeConsoleSection==='cardumes')publicProfileReturn='cardumes';else if(page==='profile'&&!skip)publicProfileReturn='solo';activeConsoleSection=page;skipEmbeddedOpen=skip;renderWorkshop();return true;}
  const commandPages=new Set(['language','controls','zoom','volume','filter','fullscreen']);
  function navigateCommand(page){if(!workshop||workshop.hidden)return false;if(page==='notices'||page==='download')return navigateEmbedded(embeddedPages[page]);if(!commandPages.has(page))return false;activeConsoleSection=page;renderWorkshop();return true;}
- function backEmbedded(){const page=activeConsoleSection==='login'?loginReturn:activeConsoleSection==='recovery'?'login':activeConsoleSection==='profile'?publicProfileReturn:'solo';activeConsoleSection=page;renderWorkshop();}
+ function backEmbedded(){const from=activeConsoleSection,page=childPages.has(from)?(embeddedReturns.get(from)||(['redeem','purchase'].includes(from)?'shop':'profile')):from==='login'?loginReturn:from==='recovery'?'login':from==='profile'?publicProfileReturn:'solo';embeddedReturns.delete(from);activeConsoleSection=page;renderWorkshop();}
  function restoreEmbeddedCatalog(){
   if(!embeddedCatalog)return;
   const {screen,anchor,role,modal,modalRole,modalAria,legacyClasses}=embeddedCatalog;embeddedCatalog=null;
@@ -53,13 +55,15 @@
   body.append(screen);screen.hidden=false;
   // Render directly, bypassing any external-menu click or feature gate.
   const skip=skipEmbeddedOpen;skipEmbeddedOpen=false;if(skip)return;
+  if(childPages.has(activeConsoleSection))return;
   if(id==='profileScreen')window.AbyssalOnline?.openProfile?.();else if(id==='cardumesScreen')window.AbyssalOnline?.openCardumes?.();else if(id==='loginScreen')window.AbyssalOnline?.openLogin?.();else if(id==='resonanceScreen')$('resonanceBtn')?.click();else if(id==='notifPanel')window.openAbyssalNotifications?.();else if(id==='downloadScreen')$('downloadBtn')?.click();else if(id==='rankingsScreen')window.AbyssalOnline?.loadRankings?.();else if(id==='roomsScreen')window.AbyssalOnline?.showRooms?.();else if(id==='wheelScreen')window.AbyssalCockpitCatalog?.open(id);else if(id!=='passwordRecoveryScreen')window.AbyssalCockpitCatalog?.open(id);
  }
  function installEmbeddedClose(id){
   const screen=$(id);if(!screen)return;
   screen.addEventListener('click',event=>{
    if(embeddedCatalog?.screen!==screen)return;
-   const button=event.target.closest?.('#shopCloseBtn,#shopTopCloseBtn,#catalogCloseBtn,#profileCloseBtn,#cardumesCloseBtn,#loginCancelBtn,#notifPanelClose,#downloadCloseBtn,#wheelTopCloseBtn,#wheelCloseBtn,[data-close-screen]');
+   if(['redeemCodeScreen','skinPurchaseConfirmModal','ugcReportScreen'].includes(id))return;
+   const button=event.target.closest?.('#shopCloseBtn,#shopTopCloseBtn,#catalogCloseBtn,#profileCloseBtn,#cardumesCloseBtn,#loginCancelBtn,#notifPanelClose,#downloadCloseBtn,#wheelTopCloseBtn,#wheelCloseBtn,#supportCancelBtn,#recoveryCancelBtn,[data-close-screen]');
    if(!button)return;
    event.preventDefault();event.stopImmediatePropagation();
    backEmbedded();
