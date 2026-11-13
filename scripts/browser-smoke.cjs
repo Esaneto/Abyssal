@@ -153,8 +153,24 @@ const injected=`<script>
     const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;
     document.getElementById('ageTermsContinue')?.click();
    },300);
-   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='cockpit')return;if(!stage){const cockpit=document.getElementById('submarineWorkshop');const action=cockpit&&!cockpit.hidden?cockpit.querySelector('.abyss-visor-action'):null;if(action&&/INICIAR SHOOTER SOLO/.test(action.textContent))action.click();else document.getElementById('playBtn')?.click();}else window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
-   setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
+   const stage=new URLSearchParams(location.search).get('stage');
+   if(stage!=='cockpit'){
+    let attempts=0;
+    const enter=()=>{
+     if(document.body.classList.contains('game-active')){
+      const guide=document.getElementById('abyssalTutorialOverlay');if(guide&&!guide.hidden)document.getElementById('abyssalGuideStart')?.click();
+      check();return;
+     }
+     if(++attempts>30)return;
+     if(document.getElementById('ageTermsScreen')?.hidden===false||document.documentElement.classList.contains('abyssal-startup')){setTimeout(enter,200);return;}
+     if(stage){window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));}
+     else if(document.getElementById('submarineWorkshop')?.hidden===false){document.getElementById('cockpitSoloDiveBtn')?.click();}
+     else if(document.getElementById('abyssalDiveChoicePanel')?.hidden===false){document.getElementById('abyssDiveSoloChoice')?.click();}
+     else document.getElementById('divePortalBtn')?.click();
+     setTimeout(enter,250);
+    };
+    setTimeout(enter,950);
+   }
    let inventoryAttempts=0;
    const openSeaInventory=()=>{const q=new URLSearchParams(location.search),stage=q.get('stage');if(stage!=='sea'||q.has('biome'))return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}inventoryAttempts++;if(inventoryAttempts<24)setTimeout(openSeaInventory,150);else check();};
    setTimeout(openSeaInventory,2200);
