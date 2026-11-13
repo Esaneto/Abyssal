@@ -35,7 +35,7 @@ test('offline install precaches the exact versioned assets referenced by the cur
  }
  for(const name of ['abyssal-offshore-system.js','abyssal-submarine-cockpit.js',
   'abyssal-extraction-ui.js','abyssal-submarine-laboratory.css',
-  'abyssal-open-sea-lighting.js','abyssal-ocean-respawn.js','abyssal-exploration-hud.css']){
+  'abyssal-open-sea-lighting.js','abyssal-ocean-respawn.js','abyssal-exploration-hud.css','update-manager.css','assets/branding/icon/0.b64','assets/branding/loading/5.b64']){
   assert.ok(cachedURLs.some(url=>new URL(url).pathname.endsWith('/'+name)),name+' is absent from offline install');
  }
 });

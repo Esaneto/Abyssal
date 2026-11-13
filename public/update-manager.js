@@ -101,6 +101,7 @@
      if(status)status.textContent='Autorize o Abyssal a instalar atualizações e volte ao jogo. Depois toque em ATUALIZAR AGORA novamente.';
      return result;
     }
+    if(!result?.ok||!result?.launched)throw new Error('android-installer-not-launched');
     root.AbyssalLoadingScreen?.releaseAfterUpdate('Download concluído. Confirme a instalação na tela do Android.');
     if(status)status.textContent='Download concluído. Confirme a instalação na tela do Android.';
     return result;
@@ -109,6 +110,7 @@
     root.AbyssalLoadingScreen?.updateDownload('Baixando, validando e preparando o instalador do Windows…',68);
     if(status)status.textContent='Baixando, validando e preparando o instalador do Windows…';
     result=await windowsBridge().installUpdate({url:data.url,sha256:data.sha256||'',version:data.latestVersion||''});
+    if(!result?.ok||!result?.launched)throw new Error('windows-installer-not-launched');
     root.AbyssalLoadingScreen?.updateInstall('Instalador validado e aberto. O Abyssal será fechado.',96);
     if(status)status.textContent='Instalador aberto. O Abyssal será fechado para concluir a atualização.';
     return result;

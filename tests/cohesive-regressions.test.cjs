@@ -105,8 +105,8 @@ test('Socket.IO account handlers are attached only after connect() creates the s
 
 test('Windows and Android downloads have native direct links to published release assets', () => {
   const html = read('public/index.html');
-  assert.match(html, /href="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/latest\/download\/Abyssal-Setup\.exe"/);
-  assert.match(html, /href="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/latest\/download\/Abyssal-Android\.apk"/);
+  assert.match(html, /href="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/download\/downloads-2\/Abyssal-Setup\.exe"/);
+  assert.match(html, /href="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/download\/downloads-2\/Abyssal-Android\.apk"/);
 });
 
 test('codex state is cached and snapshot handling never reads localStorage repeatedly', () => {

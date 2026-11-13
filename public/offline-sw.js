@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-13-expedition-hub-v193';
+const VERSION = '2026-11-13-expedition-hub-v194';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -30,7 +30,10 @@ const GAME_FILES = [
   'offline-ui.css',
   'loading-screen.js',
   'loading-screen.css',
-  'update-manager.js',
+  'update-manager.js','update-manager.css',
+  'assets/branding/icon/0.b64','assets/branding/icon/1.b64','assets/branding/icon/2.b64',
+  'assets/branding/loading/0.b64','assets/branding/loading/1.b64','assets/branding/loading/2.b64',
+  'assets/branding/loading/3.b64','assets/branding/loading/4.b64','assets/branding/loading/5.b64',
   'abyssal-admob.js',
   'client-build.js',
   'developer-tools.js',

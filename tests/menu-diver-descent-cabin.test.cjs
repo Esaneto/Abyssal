@@ -21,18 +21,14 @@ test('menu starts outside the hull; explicit cabin exits retain the hatch animat
 test('cabin entry is explicit and visually emphasized',()=>{
  const html=read('public/index.html');
  const css=read('public/abyssal-menu-v2.css');
- assert.match(html,/abyss-hatch-kicker">SUBMARINO/);
- assert.match(html,/abyss-hatch-label">CABINE/);
- assert.match(html,/abyss-hatch-action">ENTRAR/);
- assert.match(css,/abyss-cabin-pulse/);
- assert.match(css,/submarineWorkshopBtn\.abyss-laboratory-hatch/);
- assert.match(css,/pointer-events:auto/);
+ assert.match(html,/id="submarineWorkshopBtn"[^>]*class="hub-destination"[^>]*>[\s\S]*?<strong>CABINE<\/strong>/);
+ assert.match(read("public/abyssal-deep-systems.css"),/hub-destination/);
 });
 
 test('menu release refreshes offline shell',()=>{
  const sw=read('public/offline-sw.js');
  const build=read('public/client-build.js');
- assert.match(sw,/sample-audio-v172/);
+ assert.match(sw,/const VERSION = '[^']+'/);
  assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
 });
 

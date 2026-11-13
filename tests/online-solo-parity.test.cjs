@@ -15,7 +15,7 @@ test('classic Online is released and defaults to the Solo-equivalent room',()=>{
  assert.match(gate,/const LOCKED=new Set\(\['sea','rift'\]\)/);
  assert.doesNotMatch(gate,/['"]online['"]\s*\]/);
  assert.match(online,/MERGULHO-ONLINE/);
- assert.match(online,/AbyssalPreferredRoomMode==='open-sea'\?'open-sea':'coop'/);
+ assert.match(online,/AbyssalPreferredRoomMode='coop'/);
  assert.match(menu,/AbyssalPreferredRoomMode='coop'/);
  assert.match(server,/CLASSIC_ROOM_ID = 'MERGULHO-ONLINE'/);
  assert.match(server,/name:'Mergulho Online'.*mode:'coop'/);

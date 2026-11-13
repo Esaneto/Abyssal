@@ -98,7 +98,7 @@ test('Android AdMob is native, consent-gated and never grants demo ad rewards',(
  assert.match(generator,/com\.google\.android\.gms\.ads\.APPLICATION_ID/);
  assert.match(generator,/consent\.canRequestAds\(\)/);
  assert.match(generator,/RewardedAd\.load/);
- assert.match(adapter,/result\?\.earned&&!result\.testMode/);
+ assert.match(adapter,/earned&&!result\.testMode/);
  assert.match(ci,/ABYSSAL_ADMOB_APP_ID/);
  assert.match(ci,/ABYSSAL_ADMOB_TEST_MODE != 'true'/);
 });

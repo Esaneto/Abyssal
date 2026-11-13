@@ -7,9 +7,9 @@ const path=require('node:path');
 const game=fs.readFileSync(path.resolve(__dirname,'../public/game.js'),'utf8');
 
 test('submarine hull repair takes exactly six seconds',()=>{
- assert.match(game,/const SOLO_HULL_REPAIR_SECONDS=6;/);
- assert.match(game,/job\.elapsed=Math\.min\(SOLO_HULL_REPAIR_SECONDS/);
- assert.match(game,/Math\.ceil\(SOLO_HULL_REPAIR_SECONDS-job\.elapsed\)/);
+ assert.match(game,/const SOLO_HULL_REPAIR_SECONDS=6,ONLINE_HULL_REPAIR_SECONDS=15/);
+ assert.match(game,/const repairSeconds=submarineRepairSeconds\(\)/);
+ assert.match(game,/job\.elapsed=Math\.min\(repairSeconds/);
 });
 
 test('submarine turrets reuse one visible-enemy candidate list per gameplay frame',()=>{

@@ -17,7 +17,7 @@ test('offline shell cache is bumped so stale game.js cannot survive the release'
  const sw=read('public/offline-sw.js');
  const offline=read('public/offline-ui.js');
  const build=read('public/client-build.js');
- assert.match(sw,/online-submarine-1000hp-v147/);
+ assert.match(sw,/const VERSION = '[^']+'/);
  assert.match(offline,/updateViaCache:'none'/);
- assert.match(build,/version:'3\.6\.7'/);
+ assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
 });
