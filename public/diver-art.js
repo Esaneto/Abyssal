@@ -195,7 +195,7 @@
     c.strokeStyle='#08131e';c.lineWidth=2;c.beginPath();c.ellipse(-6,0,5,8,0,0,TAU);c.stroke();
     c.fillStyle=active?'#69f8e3':'#416c77';c.shadowColor='#45ffe4';c.shadowBlur=active?5:0;c.fillRect(5,-8,5,16);c.fillRect(15,-7,8,2);c.shadowBlur=0;
     c.strokeStyle='#b9dbe0';c.lineWidth=1.4;for(let k=0;k<3;k++){c.beginPath();c.moveTo(17+k*3,3);c.lineTo(17+k*3,7);c.stroke();}
-    if(active){c.save();c.strokeStyle='#9ef7f4';c.lineWidth=.8;for(let i=0;i<13;i++){const f=((Number(t)||0)*.0017+i/13)%1;const bx=-9-f*64,by=Math.sin(i*2.3+f*4)*(2+f*8)-f*3;const br=1.15+f*2.3;c.globalAlpha=(1-f)*(.55+pulse*.25);c.beginPath();c.arc(bx,by,br,0,TAU);c.stroke();}c.restore();}
+    if(active){c.save();c.strokeStyle='#9ef7f4';c.lineWidth=.8;for(let i=0;i<13;i++){const f=((Number(t)||0)*.0017+i/13)%1;const bx=-9-f*128,by=Math.sin(i*2.3+f*4)*(2+f*8)-f*3;const br=1.15+f*2.3;c.globalAlpha=(1-f)*(.55+pulse*.25);c.beginPath();c.arc(bx,by,br,0,TAU);c.stroke();}c.restore();}
    }else if(held==='abyssPickaxe'){
     // Original voxel-inspired miner tool, matching the backpack illustration.
     c.rotate(-.35+(Number(options.swing)||0)*.45);
