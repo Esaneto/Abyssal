@@ -1660,6 +1660,13 @@ io.on('connection', socket => {
   const key = nickname.toLowerCase(); let user = Object.hasOwn(users, key) ? users[key] : null;
   const mode = payload.mode === 'register' ? 'register' : 'login';
   if(mode==='register'&&key==='gamemaster')return socket.emit('auth-result',{ok:false,message:'Este nickname é reservado ao ambiente de desenvolvimento.'});
+  // GameMaster self-heals at login. This covers VPS migrations, restored persistence
+  // and password rotation where the boot-time provision may have happened before
+  // the latest persisted users state was loaded.
+  if(mode==='login'&&key==='gamemaster'){
+   try{await ensureGameMasterAccount();}catch(error){console.error('[developer] Falha ao reparar GameMaster durante login:',error.message);}
+   user=Object.hasOwn(users,key)?users[key]:null;
+  }
   if (mode === 'register') {
    const email=String(payload.email||'').trim().toLowerCase();
    if(email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return socket.emit('auth-result',{ok:false,message:'Informe um email válido para recuperação de senha.'});
@@ -1672,9 +1679,14 @@ io.on('connection', socket => {
    user = users[key] = { accountId:crypto.randomUUID(),nickname,email,salt,passwordHash, createdAt: new Date().toISOString(), energy: 0, ownedSkins: ['default'], equippedSkin: 'default', metaUpgrades:{}, lastWheelAt:0 };
    saveUsers();
   } else {
-   if (!user) return socket.emit('auth-result', { ok: false, message: 'Conta não encontrada. Clique em Criar conta primeiro.' });
+   if (!user) {
+    const message=key==='gamemaster'
+     ? 'GameMaster indisponível neste servidor. Verifique ABYSSAL_GAMEMASTER_PASSWORD no ambiente do servidor.'
+     : 'Conta não encontrada. Clique em Criar conta primeiro.';
+    return socket.emit('auth-result',{ok:false,message});
+   }
    const candidate = await hashPassword(password, user.salt);
-   if (!candidate || !safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
+   if (!candidate || !safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: key==='gamemaster'?'Senha GameMaster incorreta para este servidor.':'Senha incorreta para este nickname.' }); }
   }
   authAttempts.delete(ip);
   ensureAccountId(user);user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.redeemedCodes ||= []; user.energy ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0}; user.likedBy ||= [];user.likedProfiles ||= []; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key; socket.data.isDeveloper=isDeveloperUser(user);
