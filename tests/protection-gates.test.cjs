@@ -29,14 +29,15 @@ test('upgrade protection consumes server-earned XP credit',()=>{
  assert.match(server,/grantSharedXp\(room,WorldSimulation\.xpValueForEnemy/);
 });
 
-test('dash protection requires the owned meta upgrade and exact legitimate duration',()=>{
+test('retired ghost dash cannot grant invulnerability; propulsor needs owned research',()=>{
  const start=server.indexOf("socket.on('player-protection'");
  const end=server.indexOf("socket.on('request-player-state'",start);
  const handler=server.slice(start,end);
- assert.match(handler,/reason === 'dash'/);
- assert.match(handler,/seconds !== 1\.5/);
- assert.match(handler,/u\?\.metaUpgrades\?\.dash/);
- assert.match(handler,/now \+ 1500/);
+ assert.match(handler,/reason === 'dash'\) return;/);
+ assert.doesNotMatch(handler,/now \+ 1500/);
+ assert.match(server,/id==='propulsor-on'\|\|id==='propulsor-off'/);
+ assert.match(server,/if\(!\(Number\(u\?\.metaUpgrades\?\.dash\)>0\)\)return ack\(false,'invalid-ability'\)/);
+ assert.doesNotMatch(game,/ghostDashUntil/);
 });
 
 test('room join relies on server-created protection and sends no redundant protection packet',()=>{
