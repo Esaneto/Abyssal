@@ -34,6 +34,17 @@
    const response=await fetch(base+'/api/client-update?platform='+encodeURIComponent(p)+'&currentVersion='+encodeURIComponent(build.version||''),{cache:'no-store',signal:AbortSignal.timeout(6000)});
    if(!response.ok)return null;
    const data=await response.json();if(!data?.ok||cmp(data.latestVersion,build.version)<=0)return data;
+   // Never advertise a release until the platform artifact has actually been promoted.
+   // The stable release metadata is updated by CI only after the APK/installer exists.
+   if(data.metadataUrl){
+    try{
+     const publishedResponse=await fetch(data.metadataUrl+'?v='+encodeURIComponent(data.latestVersion),{cache:'no-store',signal:AbortSignal.timeout(6000)});
+     if(!publishedResponse.ok)return data;
+     const published=await publishedResponse.json();
+     if(String(published.version||'')!==String(data.latestVersion||''))return data;
+     if(published.sha256)data.sha256=String(published.sha256);
+    }catch(_){return data;}
+   }
    let deferred='';try{deferred=sessionStorage.getItem('abyssalUpdateDeferred')||'';}catch(_){}
    if(force||data.required||deferred!==String(data.latestVersion||''))modal(data);
    return data;
