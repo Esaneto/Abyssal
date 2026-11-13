@@ -15,6 +15,56 @@
  function cmp(a,b){const aa=parts(a),bb=parts(b);for(let i=0;i<3;i++){const d=(aa[i]||0)-(bb[i]||0);if(d)return d;}return 0;}
  function androidBridge(){return root.Capacitor?.Plugins?.AbyssalUpdater||null;}
  function windowsBridge(){return root.AbyssalNativeUpdater||null;}
+ function browserMode(){return !native()&&(root.location.protocol==='https:'||root.location.hostname==='localhost');}
+ async function refreshBrowserTo(version){
+  const target=String(version||'').trim();if(!target)return false;
+  const key='abyssalBrowserReload:'+target;
+  try{if(sessionStorage.getItem(key)==='1')return false;sessionStorage.setItem(key,'1');}catch(_){}
+  root.AbyssalLoadingScreen?.status('ATUALIZANDO ABYSSAL','Nova versão encontrada. Atualizando arquivos do navegador…','update',58);
+  let reloaded=false;
+  const reload=()=>{
+   if(reloaded)return;reloaded=true;
+   try{
+    const url=new URL(root.location.href);url.searchParams.set('abyssVersion',target);url.searchParams.set('_t',Date.now().toString(36));
+    root.location.replace(url.href);
+   }catch(_){root.location.reload();}
+  };
+  try{
+   if('serviceWorker' in navigator){
+    const reg=await navigator.serviceWorker.getRegistration('/');
+    if(reg){
+     const changed=new Promise(resolve=>{
+      let settled=false;const done=()=>{if(settled)return;settled=true;resolve(true);};
+      navigator.serviceWorker.addEventListener('controllerchange',done,{once:true});
+      reg.addEventListener('updatefound',()=>{
+       const worker=reg.installing;if(!worker)return;
+       worker.addEventListener('statechange',()=>{if(worker.state==='activated')done();});
+      },{once:true});
+      setTimeout(()=>resolve(false),4500);
+     });
+     await reg.update();
+     await changed;
+    }
+   }
+  }catch(error){console.warn('[Abyssal] Falha ao atualizar Service Worker:',error?.message||error);}
+  setTimeout(reload,80);return true;
+ }
+ async function checkBrowser(force=false){
+  if(!browserMode()||navigator.onLine===false)return null;
+  try{
+   const response=await fetch('/api/browser-version?currentVersion='+encodeURIComponent(build.version||'')+'&t='+Date.now(),{cache:'no-store',headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(5000)});
+   if(!response.ok)return null;
+   const data=await response.json();if(!data?.ok||!data.version)return data;
+   if(cmp(data.version,build.version)>0){
+    root.AbyssalLoadingScreen?.beginUpdate(data.version);
+    await refreshBrowserTo(data.version);
+   }else if(force){
+    root.AbyssalLoadingScreen?.status('VERSÃO ATUAL','O navegador já está usando a versão mais recente.','boot',92);
+    root.AbyssalLoadingScreen?.resolveUpdateGate();
+   }
+   return data;
+  }catch(error){console.warn('[Abyssal] Falha ao verificar atualização web:',error?.message||error);return null;}
+ }
  async function installNative(data,status,button){
   const original=button?.textContent||'ATUALIZAR AGORA';
   root.AbyssalLoadingScreen?.beginUpdate(data.latestVersion||'');
@@ -81,7 +131,11 @@
   if(autoStart)setTimeout(()=>{if(now.isConnected&&!now.disabled)now.click();},260);
  }
  async function check(force=false){
-  if(!native()){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
+  if(!native()){
+   const browserResult=await checkBrowser(force);
+   root.AbyssalLoadingScreen?.resolveUpdateGate();
+   return browserResult;
+  }
   if(navigator.onLine===false){
    root.AbyssalLoadingScreen?.status('MODO OFFLINE','Sem internet: usando os arquivos locais. Solo e modos offline continuam disponíveis.','offline',84);
    root.AbyssalLoadingScreen?.resolveUpdateGate();
@@ -146,7 +200,7 @@
    return null;
   }
  }
- root.AbyssalUpdater={check,currentVersion:build.version,platform,installNative};
+ root.AbyssalUpdater={check,currentVersion:build.version,platform,installNative,checkBrowser};
  function bindManualCheck(){
   const button=document.getElementById('checkNativeUpdateBtn'),message=document.getElementById('downloadInstallMessage');
   if(!button)return;
@@ -166,6 +220,14 @@
   });
  }
  const schedule=()=>setTimeout(()=>check(false),900);
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{bindManualCheck();schedule();},{once:true});else{bindManualCheck();schedule();}
+ let browserPoll=0;
+ function startBrowserPolling(){
+  if(!browserMode()||browserPoll)return;
+  browserPoll=setInterval(()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false)checkBrowser(false);},30000);
+ }
+
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{bindManualCheck();schedule();startBrowserPolling();},{once:true});else{bindManualCheck();schedule();startBrowserPolling();}
  root.addEventListener('online',()=>setTimeout(()=>check(false),1200));
+ root.addEventListener('focus',()=>{if(browserMode()&&navigator.onLine!==false)checkBrowser(false);});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&browserMode()&&navigator.onLine!==false)checkBrowser(false);});
 })(window);
