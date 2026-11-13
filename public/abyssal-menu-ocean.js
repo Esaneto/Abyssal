@@ -189,7 +189,7 @@
   });
   divePanel.querySelector('#abyssDiveOnlineChoice')?.addEventListener('click',()=>{
    divePanel.hidden=true;
-   // Classic Online is released for testing and joins the permanent Solo-equivalent room.
+   // Classic Online opens the room browser; joining requires an explicit selection.
    window.AbyssalPreferredRoomMode='coop';
    var mode=document.getElementById('roomModeInput');if(mode)mode.value='coop';
    window.AbyssalOnline?.connectAndJoin?.('MERGULHO-ONLINE');

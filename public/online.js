@@ -449,7 +449,7 @@ function showRooms(){
 function requestRooms(){if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp();}
 function connectAndJoin(targetRoom='MERGULHO-ONLINE'){
  const s=connect();if(!s){if(navigator.onLine!==false){pendingJoinAfterClient=targetRoom;setMessage('Carregando o cliente online…');}else setMessage('Sem internet: entre em MERGULHAR para jogar solo.',true);return;}
- if(authenticated){window.AbyssalOnlinePendingStart=false;if(targetRoom==='MERGULHO-ONLINE'&&hasAgeTermsProfile())return joinRoom(targetRoom);if(targetRoom==='MERGULHO-ONLINE'){window.AbyssalOnlinePendingStart=targetRoom;openAgeTermsIfNeeded();return;}showRooms();return;}
+ if(authenticated){window.AbyssalOnlinePendingStart=false;if(targetRoom==='MERGULHO-ONLINE'&&!hasAgeTermsProfile()){window.AbyssalOnlinePendingStart=targetRoom;openAgeTermsIfNeeded();return;}showRooms();return;}
  window.AbyssalOnlinePendingStart=targetRoom;
  if(sessionToken){
   setMessage('Restaurando sua sessão segura…');
@@ -511,7 +511,7 @@ $('ageTermsContinue')?.addEventListener('click',()=>{
  window.loadAbyssalAds?.();
  if(message)message.textContent='';
  $('ageTermsScreen').hidden=true;applyAgeTreatment();
- if(authenticated&&window.AbyssalOnlinePendingStart==='MERGULHO-ONLINE'){window.AbyssalOnlinePendingStart=false;joinRoom('MERGULHO-ONLINE');}
+ if(authenticated&&window.AbyssalOnlinePendingStart==='MERGULHO-ONLINE'){window.AbyssalOnlinePendingStart=false;showRooms();}
 });
 applyAgeTreatment();
 const _ageStartup=ageProfile();if(hasAgeTermsProfile()){window.google_tag_for_age_treatment=_ageStartup?.band==='teen'?2:_ageStartup?.band==='under16'?1:0;window.loadAbyssalAds?.();}
@@ -837,8 +837,7 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
  $('matchHistoryBtn')?.addEventListener('click',()=>openMatchHistory());
  $('onlineBtn')?.addEventListener('click',()=>{
   window.AbyssalPreferredRoomMode='coop';
-  if(authenticated)joinRoom('MERGULHO-ONLINE');
-  else connectAndJoin('MERGULHO-ONLINE');
+  connectAndJoin('MERGULHO-ONLINE');
  });
 document.addEventListener('visibilitychange',()=>{
  const hidden=Boolean(document.hidden);
