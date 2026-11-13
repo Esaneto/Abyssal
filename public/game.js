@@ -3088,7 +3088,7 @@ function updateSpecimenRuntime(dt){
  if(!attackHolding&&activeMapLayout&&ABYSSAL_MAP?.navigationTarget){const route=ABYSSAL_MAP.navigationTarget(activeMapLayout,pos.x,pos.y,target.x,target.y,{padding:5/GAME_WORLD_ZOOM});if(route&&!route.blocked)target={x:route.x,y:route.y};}
  if(!attackHolding&&soloCave){
   if(!orb&&!combatTarget&&SOLO_CAVERN.isBlocked(arenaRocks,target.x,target.y,pad))target={x:player.x,y:player.y};
-  if(orb){const safe=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,orb.x,orb.y,pad);if(safe){if(SOLO_CAVERN.isBlocked(arenaRocks,orb.x,orb.y,0)){orb.x=safe.x;orb.y=safe.y;}target=safe;}}
+  if(orb){const safe=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,orb.x,orb.y,pad);if(safe){if(SOLO_CAVERN.orbNeedsRelocation(arenaRocks,orb,safe,radius,12/GAME_WORLD_ZOOM)){orb.x=safe.x;orb.y=safe.y;}target=safe;}}
   const goal={...target},nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad);if(!nav.blocked)target={x:nav.x,y:nav.y};else target=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad,s.facingAngle)||pos;
   if((s.stuckSeconds||0)>.8&&Math.hypot(goal.x-pos.x,goal.y-pos.y)>radius+5){const escape=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad,s.facingAngle);if(escape){s.escapeWaypoint=escape;s.escapeUntil=now+650;}if(orb){s.unreachableOrbId=orb.id;s.unreachableUntil=now+1800;s.nextTacticsAt=0;}s.stuckSeconds=0;}
   if(s.escapeWaypoint&&now<s.escapeUntil&&Math.hypot(s.escapeWaypoint.x-pos.x,s.escapeWaypoint.y-pos.y)>5)target=s.escapeWaypoint;else s.escapeWaypoint=null;

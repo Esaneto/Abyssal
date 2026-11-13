@@ -151,7 +151,16 @@
   for(let distance=Math.max(2,pad*.25);distance<=Math.max(40,pad*4);distance+=Math.max(2,pad*.25)){
    for(let i=0;i<24;i++){const a=i*TAU/24,xx=x+Math.cos(a)*distance,yy=y+Math.sin(a)*distance;if(valid(xx,yy)&&(dry||!segmentBlocked(rocks,x,y,xx,yy,0)))return {x:xx,y:yy};}
   }
-  return nearestWater(rocks,w,h,x,y,pad);
+  const fallback=nearestWater(rocks,w,h,x,y,pad);
+  // A wet orb must stay on its own side of a solid barrier, even when
+  // the local clearance search falls back to the navigation grid.
+  return fallback&&(dry||!segmentBlocked(rocks,x,y,fallback.x,fallback.y,0))?fallback:null;
+ }
+ function orbNeedsRelocation(rocks,orb,approach,radius,pickupPadding=12){
+  if(!approach)return false;
+  return isBlocked(rocks,orb.x,orb.y,0)||
+   (!segmentBlocked(rocks,orb.x,orb.y,approach.x,approach.y,0)&&
+    !orbReachable(rocks,{...approach,r:radius},orb,pickupPadding));
  }
  function orbReachable(rocks,pet,orb,pickupPadding=12){
   return Math.hypot(pet.x-orb.x,pet.y-orb.y)<=Math.max(0,Number(pet.r)||0)+pickupPadding&&!segmentBlocked(rocks,pet.x,pet.y,orb.x,orb.y,0);
@@ -408,5 +417,5 @@
   }
   c.restore();
  }
- return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,orbWaterPoint,orbReachable,submarineSpawn,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting});
+ return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,orbWaterPoint,orbNeedsRelocation,orbReachable,submarineSpawn,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting});
 });
