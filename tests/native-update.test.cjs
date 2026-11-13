@@ -19,7 +19,9 @@ test('server exposes stable Android and Windows update channels without forcing 
  assert.match(server,/Abyssal-Setup\.exe/);
  assert.match(server,/Abyssal-Android-build\.json/);
  assert.match(server,/required:false/);
- assert.match(server,/latestVersion:APP_VERSION/);
+ assert.match(server,/latestVersion:published\.version/);
+ assert.match(server,/serverVersion:APP_VERSION/);
+ assert.match(server,/app\.get\('\/api\/native-release\/:platform'/);
 });
 
 test('installed clients verify promoted artifact metadata and auto-start a validated update',()=>{
@@ -59,7 +61,9 @@ test('web boot loads branded startup and updater locally and therefore remains o
 test('Android CI publishes versioned stable metadata after building the APK',()=>{
  const ci=read('.github/workflows/ci.yml');
  assert.match(ci,/CLIENT_VERSION=\$\(node -p "require\('\.\/package\.json'\)\.version"\)/);
- assert.match(ci,/\"updatable\":%s,\"signing\":\"%s\"/);
+ assert.match(ci,/\"updatable\":true,\"signing\":\"release\"/);
+ assert.match(ci,/apksigner.*verify Abyssal-Android\.apk/);
+ assert.match(ci,/CURRENT_MAIN.*GITHUB_SHA/);
  assert.match(ci,/assembleRelease/);
  assert.match(ci,/gh release upload downloads-2 Abyssal-Android\.apk Abyssal-Android-build\.json --clobber/);
  assert.match(ci,/android\/app\/src\/main\/assets\/public\/update-manager\.js/);
@@ -80,4 +84,16 @@ test('native icon builds use the generated kraken artwork instead of the legacy 
  ]){
   assert.ok(fs.statSync(path.join(root,file)).size>1000,file+' should contain embedded artwork');
  }
+});
+
+test('Android AdMob is native, consent-gated and never grants demo ad rewards',()=>{
+ const generator=read('scripts/configure-android-admob.cjs');
+ const adapter=read('public/abyssal-admob.js');
+ const ci=read('.github/workflows/ci.yml');
+ assert.match(generator,/com\.google\.android\.gms\.ads\.APPLICATION_ID/);
+ assert.match(generator,/consent\.canRequestAds\(\)/);
+ assert.match(generator,/RewardedAd\.load/);
+ assert.match(adapter,/result\?\.earned&&!result\.testMode/);
+ assert.match(ci,/ABYSSAL_ADMOB_APP_ID/);
+ assert.match(ci,/ABYSSAL_ADMOB_TEST_MODE != 'true'/);
 });
