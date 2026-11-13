@@ -5286,11 +5286,54 @@ window.AbyssalGameHooks={
  sharedDamage:applySharedDamage,
  sharedXp:applySharedXp,
 };
+// Shop-only optical framing. Cache the union of the creature's visible anatomy
+// over several poses, not its gameplay origin or hitbox.
+const shopSpecimenFraming=new Map();
+const SHOP_PREVIEW_SIDE=384,SHOP_PREVIEW_ORIGIN=192,SHOP_PREVIEW_RADIUS=30;
+let shopSpecimenMeasureSurface=null;
+function measureShopSpecimen(skin,color){
+ const key=skin.id+'|'+color;
+ if(shopSpecimenFraming.has(key))return shopSpecimenFraming.get(key);
+ if(!shopSpecimenMeasureSurface){
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=SHOP_PREVIEW_SIDE;
+  shopSpecimenMeasureSurface=canvas.getContext('2d',{willReadFrequently:true});
+ }
+ const m=shopSpecimenMeasureSurface,side=SHOP_PREVIEW_SIDE,origin=SHOP_PREVIEW_ORIGIN;
+ let minX=side,minY=side,maxX=-1,maxY=-1;
+ if(m)for(const time of [0,850,1700,2550]){
+  m.setTransform(1,0,0,1,0,0);m.clearRect(0,0,side,side);
+  drawCreature(origin,origin,SHOP_PREVIEW_RADIUS,-.05,color,'player',time,true,0,m,skin,{visualId:'shop-specimen:'+skin.id,moveSpeed:0});
+  const pixels=m.getImageData(0,0,side,side).data;
+  for(let y=0;y<side;y++)for(let x=0;x<side;x++){
+   if(pixels[(y*side+x)*4+3]<24)continue;
+   if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+  }
+ }
+ if(maxX<minX||maxY<minY){minX=origin-60;maxX=origin+60;minY=origin-60;maxY=origin+60;}
+ const fit={cx:(minX+maxX)/2,cy:(minY+maxY)/2,width:maxX-minX+1,height:maxY-minY+1};
+ shopSpecimenFraming.set(key,fit);return fit;
+}
+function shopPreviewTransform(fit,w,h){
+ // Keep the entire animal within the inner capsule, with space for animation
+ // and glow. Use the same scale in both axes; never stretch a species.
+ const scale=Math.min(w*.60/Math.max(1,fit.width),h*.70/Math.max(1,fit.height),1.65);
+ return {scale,x:w*.5-fit.cx*scale,y:h*.5-fit.cy*scale};
+}
+function renderShopSpecimenFramed(c,w,h,skin,color){
+ const fit=measureShopSpecimen(skin,color),frame=shopPreviewTransform(fit,w,h);
+ const now=performance.now();
+ c.save();c.globalAlpha=.13;c.fillStyle=color;c.beginPath();
+ c.ellipse(w*.5,h*.84,Math.min(w*.19,fit.width*frame.scale*.40),Math.max(2,h*.035),0,0,Math.PI*2);c.fill();c.restore();
+ c.save();c.translate(frame.x,frame.y);c.scale(frame.scale,frame.scale);
+ drawCreature(SHOP_PREVIEW_ORIGIN,SHOP_PREVIEW_ORIGIN,SHOP_PREVIEW_RADIUS,-.05,color,'player',now,true,0,c,skin,{visualId:'shop-specimen:'+skin.id,moveSpeed:0});
+ c.restore();
+}
 function renderCreaturePreview(canvas,kind,color,skin=null){
  if(!canvas)return;
  const surface=preparePreviewCanvas(canvas);if(!surface)return;
  const {c,w,h}=surface;c.clearRect(0,0,w,h);
  const isSpecimenVessel=Boolean(canvas.closest?.('#shopScreen'));
+ if(isSpecimenVessel&&kind==='player'&&skin){renderShopSpecimenFramed(c,w,h,skin,color);return;}
  const bg=c.createRadialGradient(w*.48,h*.42,2,w*.5,h*.5,Math.max(w,h)*.7);
  bg.addColorStop(0,'#0d2637');bg.addColorStop(.62,'#06121d');bg.addColorStop(1,'#020812');
  // Laboratory water and the handwritten journal paper must remain visible beneath the creature.
