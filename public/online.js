@@ -263,7 +263,7 @@ function connect(){
  socket.on('boss-warning',data=>window.dispatchEvent(new CustomEvent('abyssal-boss-warning',{detail:data||{}})));
  socket.on('room-created',result=>{window.dispatchEvent(new CustomEvent('abyssal-room-created',{detail:result||{ok:false,message:'Falha ao criar a sala.'}}));if(result?.ok){const pw=pendingRoomPassword;pendingRoomPassword='';joinRoom(result.room?.id,pw)}});
  socket.on('room-join-result',result=>{if(!result||result.ok)return;if(reconnectPending&&reconnectTarget&&!reconnectFallbackUsed){reconnectFallbackUsed=true;const fallback=reconnectTarget.mode==='pvp'?'MAR-VERMELHO':reconnectTarget.mode==='coop'?'MERGULHO-ONLINE':reconnectTarget.mode==='rift'?'MAR-ABYSSAL':'MAR-ABERTO';reconnectTarget={...reconnectTarget,id:fallback,password:''};setMessage('A sala anterior foi reiniciada no deploy. Retomando na arena padrão…');joinRoom(fallback,'',{reconnect:true});return;}failReconnect(result?.message||'A expedição não pôde ser retomada automaticamente.');window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:result}));});
- function handleRoomJoined(data){if(!data?.ok)return false;const roomId=String(data.room?.id||'').toUpperCase();if(!reconnectPending&&currentRoom&&String(currentRoom.id||'').toUpperCase()===roomId&&localPlayerId===socket?.id&&document.body.classList.contains('game-active'))return true;clearReconnectWatchdog();const wasReconnect=Boolean(reconnectPending&&reconnectTarget&&roomId===String(reconnectTarget.id||'').toUpperCase());currentRoom=data.room||null;specimenMotion.clear();startPositionHeartbeat();if(wasReconnect){activeRoomPassword=reconnectTarget.password||'';showMaintenanceOverlay('Expedição restaurada. Sincronizando o mundo…');}reconnectPending=false;reconnectTarget=null;reconnectFallbackUsed=false;localPlayerId=socket.id;latestPositionPayload=null;positionPacketInFlight=false;stopRoomPolling();const roomsScreen=$('roomsScreen');if(roomsScreen)roomsScreen.hidden=true;try{applyPlayerList(data.players||[])}catch(error){console.error('[online] Falha ao preparar lista de jogadores:',error)}let updateClient=null;try{const saved=JSON.parse(sessionStorage.getItem(updateResumeKey)||'null');if(data.resumedRun&&saved?.id===roomId&&Date.now()-saved.savedAt<15*60*1000)updateClient=saved.client||null;}catch(_){}clearUpdateResume();const entryDetail={...data,reconnected:wasReconnect,updateClient};window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:entryDetail}));queueMicrotask(()=>{if(!document.body.classList.contains('game-active'))window.dispatchEvent(new CustomEvent('abyssal-room-entry-retry',{detail:entryDetail}));});hideMaintenanceOverlay();setTimeout(()=>hideMaintenanceOverlay(),120);// The room-joined packet already carries the complete world state.
+ function handleRoomJoined(data){if(!data?.ok)return false;const roomId=String(data.room?.id||'').toUpperCase();if(!reconnectPending&&currentRoom&&String(currentRoom.id||'').toUpperCase()===roomId&&localPlayerId===socket?.id&&document.body.classList.contains('game-active'))return true;clearReconnectWatchdog();const wasReconnect=Boolean(reconnectPending&&reconnectTarget&&roomId===String(reconnectTarget.id||'').toUpperCase());currentRoom=data.room||null;if(onlineMaintenanceTimer){clearTimeout(onlineMaintenanceTimer);onlineMaintenanceTimer=0;}specimenMotion.clear();startPositionHeartbeat();if(wasReconnect){activeRoomPassword=reconnectTarget.password||'';showMaintenanceOverlay('Expedição restaurada. Sincronizando o mundo…');}reconnectPending=false;reconnectTarget=null;reconnectFallbackUsed=false;localPlayerId=socket.id;latestPositionPayload=null;positionPacketInFlight=false;stopRoomPolling();const roomsScreen=$('roomsScreen');if(roomsScreen)roomsScreen.hidden=true;try{applyPlayerList(data.players||[])}catch(error){console.error('[online] Falha ao preparar lista de jogadores:',error)}let updateClient=null;try{const saved=JSON.parse(sessionStorage.getItem(updateResumeKey)||'null');if(data.resumedRun&&saved?.id===roomId&&Date.now()-saved.savedAt<15*60*1000)updateClient=saved.client||null;}catch(_){}clearUpdateResume();const entryDetail={...data,reconnected:wasReconnect,updateClient};window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:entryDetail}));queueMicrotask(()=>{if(!document.body.classList.contains('game-active'))window.dispatchEvent(new CustomEvent('abyssal-room-entry-retry',{detail:entryDetail}));});hideMaintenanceOverlay();setTimeout(()=>hideMaintenanceOverlay(),120);// The room-joined packet already carries the complete world state.
  // Avoid requesting a second full world snapshot immediately on every join.
  return true;}
  socket.on('room-joined',handleRoomJoined);
@@ -560,7 +560,7 @@ function flushPosition(force=false){
  socket.volatile.emit('player-motion-input',window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle]);
  flushPosition.lastPayload={x:latestPositionPayload.x,y:latestPositionPayload.y,angle:latestPositionPayload.angle};
  lastPositionAt=now;positionPacketsSent++;
- if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
+ if(now-lastNetMetaAt>=2000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
  return true;
 }
 function sendPosition(player){
@@ -574,7 +574,7 @@ function startPositionHeartbeat(){
   const live=window.AbyssalGameHooks?.getPlayerPosition?.();
   if(live&&Number.isFinite(Number(live.x))&&Number.isFinite(Number(live.y)))latestPositionPayload=buildPositionPayload(live);
   flushPosition();
- },1000/20);
+ },80);
 }
 function stopPositionHeartbeat(){
  if(positionHeartbeatTimer){clearInterval(positionHeartbeatTimer);positionHeartbeatTimer=null;}
@@ -610,7 +610,7 @@ function readSoloQueue(key){try{const rows=JSON.parse(localStorage.getItem(soloQ
 function writeSoloQueue(key,rows){try{localStorage.setItem(soloQueueKey(key),JSON.stringify(rows));return true;}catch{return false;}}
 function queueSoloRun(key,data){key=String(key||'').trim().toLowerCase();if(!key||!data?.id)return false;const rows=readSoloQueue(key);if(!rows.some(row=>row.id===data.id)){if(!writeSoloQueue(key,[...rows,data]))return false;}syncSoloRuns();scheduleOnlineMaintenance(3000);return true;}
 function syncSoloRuns(){
- const key=soloAccountKey();if(soloSyncBusy||!key||!authenticated||!socket?.connected)return;
+ const key=soloAccountKey();if(soloSyncBusy||currentRoom||!key||!authenticated||!socket?.connected)return;
  const row=readSoloQueue(key)[0];if(!row)return;
  soloSyncBusy=true;const session=sessionToken;
  socket.timeout(15000).emit('sync-solo-run',row,(error,result)=>{
@@ -624,6 +624,7 @@ function syncSoloRuns(){
 }
 let onlineMaintenanceTimer=0;
 function onlineMaintenanceNeeded(){
+ if(currentRoom)return false;
  return Boolean((authenticated&&readSoloQueue(soloAccountKey()).length)||(sessionToken&&!socket?.connected&&navigator.onLine!==false));
 }
 function scheduleOnlineMaintenance(delay=30000){

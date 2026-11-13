@@ -9,10 +9,11 @@
   // Snapshot delivery is intentionally lossy for routine positions. Keep the latest
   // authoritative velocity moving the sprite briefly through a dropped packet, then
   // stop extrapolation quickly so hit geometry does not diverge from the server.
-  // Snapshot cadence is 100 ms, but real RTT/jitter can be several times higher.
-  // Keep moving briefly through delayed packets instead of freezing at the last point.
-  const MAX_EXTRAPOLATION_MS = 120;
-  const MOTION_BUFFER_MS = 85;
+  // Authoritative motion normally arrives every 50 ms. Volatile packets may be dropped
+  // under congestion, so bridge several missed ticks instead of visibly stopping a mob.
+  // Contact and damage remain server-authoritative; this is presentation prediction only.
+  const MAX_EXTRAPOLATION_MS = 300;
+  const MOTION_BUFFER_MS = 65;
   const MOTION_BUFFER_SAMPLES = 8;
 
   function createMotionWatchdog(options = {}) {
@@ -76,7 +77,7 @@
       enemy.motionSampleMs = Number.isFinite(previous) ? previous * .82 + spacing * .18 : spacing;
       const jitter = Math.abs(arrivalSpacing - spacing);
       enemy.motionJitterMs = Number.isFinite(Number(enemy.motionJitterMs)) ? Number(enemy.motionJitterMs) * .82 + jitter * .18 : jitter;
-      enemy.motionBufferMs = clamp(Math.max(MOTION_BUFFER_MS,enemy.motionSampleMs*1.35) + (Number(enemy.motionJitterMs) || 0) * 1.35, 70, 180);
+      enemy.motionBufferMs = clamp(Math.max(MOTION_BUFFER_MS,enemy.motionSampleMs*1.12) + (Number(enemy.motionJitterMs) || 0), 55, 150);
     } else enemy.motionBufferMs = MOTION_BUFFER_MS;
     if(previousDisplay)preserveMotionContinuity(enemy,previousDisplay,renderedPositionRaw(enemy,receivedAt),receivedAt);
     return true;
@@ -122,7 +123,9 @@
         return { x: Number(a.x) + (Number(b.x) - Number(a.x)) * t, y: Number(a.y) + (Number(b.y) - Number(a.y)) * t };
       }
       const extraMs = Math.min(MAX_EXTRAPOLATION_MS, Math.max(0, renderTime - Number(latest.serverTime)));
-      const previous = samples[samples.length - 2];
+      // A two-interval velocity estimate is less sensitive to one delayed packet than
+      // differentiating only the last pair, while still reacting quickly to turns.
+      const previous = samples[Math.max(0, samples.length - 3)];
       const dt = Math.max(.001, (Number(latest.serverTime) - Number(previous.serverTime)) / 1000);
       const maxV = (enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss') ? 380 : 220;
       let vx=(Number(latest.x)-Number(previous.x))/dt,vy=(Number(latest.y)-Number(previous.y))/dt;

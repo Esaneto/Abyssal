@@ -81,8 +81,8 @@ test('movement extrapolation bridges the reliable snapshot baseline without free
   const next = reconcileSnapshot(state, [{ id: 99, kind: 'drifter', x: 108, y: 100, r: 10, hp: 22, maxHp: 22, vx: 80, vy: 0 }], { now: 100, interpolationMs: 100 });
   const held = renderedPosition(next[0], 800);
   assert.ok(held.x > 108, 'enemy continues briefly along its last authoritative velocity');
-  assert.equal(held.x, 117.6, 'extrapolation stays bounded during a delayed mobile packet window');
-  assert.equal(require('../public/enemy-netcode.js').MAX_EXTRAPOLATION_MS, 120);
+  assert.ok(held.x >= 131.9 && held.x <= 132.1, 'prediction bridges several missed 20 Hz packets without an early freeze');
+  assert.equal(require('../public/enemy-netcode.js').MAX_EXTRAPOLATION_MS, 300);
 });
 
 
@@ -152,4 +152,38 @@ test('late stop packet corrects extrapolation without a visible position jump',(
  const at=renderedPosition(e,250);assert.ok(Math.abs(at.y-before.y)<.001,'packet boundary is continuous');
  const halfway=renderedPosition(e,300);assert.ok(halfway.y<at.y&&halfway.y>=110);
  const settled=renderedPosition(e,351);assert.ok(Math.abs(settled.y-110)<.001);
+});
+
+
+test('volatile packet loss does not produce walk-stop-walk motion inside a short congestion burst',()=>{
+ const e={id:701,kind:'drifter',x:100,y:100,motionSamples:[]};
+ pushMotionSample(e,{x:100,y:100,serverTime:1000,receivedAt:0});
+ pushMotionSample(e,{x:105,y:100,serverTime:1050,receivedAt:50});
+ pushMotionSample(e,{x:110,y:100,serverTime:1100,receivedAt:100});
+ const afterThreeMissedTicks=renderedPosition(e,250);
+ const afterFiveMissedTicks=renderedPosition(e,350);
+ assert.ok(afterFiveMissedTicks.x>afterThreeMissedTicks.x,'creature keeps advancing while several volatile 20 Hz packets are missing');
+ const bounded=renderedPosition(e,900);
+ assert.ok(bounded.x<=141,'presentation prediction remains bounded if the authoritative stream is genuinely lost');
+});
+
+test('online hot path streams an interest area instead of periodic off-screen/full-state bursts',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+ const motion=server.slice(server.indexOf('function getRoomMotionSnapshot'),server.indexOf('function getRoomSpawnSnapshot'));
+ assert.doesNotMatch(motion,/sendFar|lastFarMotionAt/);
+ assert.match(motion,/paddingX=viewWidth\*\.42/);
+ assert.match(motion,/BOSS_KINDS\.has\(e\.kind\)/);
+ const tickHead=server.slice(server.indexOf('function tickRoom'),server.indexOf('// The classic co-op shooter'));
+ assert.doesNotMatch(tickHead,/lastAreaRefreshAt|area-refresh|>1600/);
+ assert.match(tickHead,/30 s recovery baseline/);
+});
+
+test('active online rooms suspend unrelated maintenance traffic and use a lightweight heartbeat',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const online=fs.readFileSync(path.join(__dirname,'../public/online.js'),'utf8');
+ assert.match(online,/if\(soloSyncBusy\|\|currentRoom\|\|!key/);
+ assert.match(online,/function onlineMaintenanceNeeded\(\)\{\n if\(currentRoom\)return false;/);
+ assert.match(online,/\},80\);\n\}\nfunction stopPositionHeartbeat/);
+ assert.match(online,/lastNetMetaAt>=2000/);
 });

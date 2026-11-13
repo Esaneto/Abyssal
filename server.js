@@ -816,15 +816,18 @@ function getRoomMotionSnapshot(room, options = {}){
   const viewHeight=windowWidthSafe(recipient.viewportHeight,700)/zoom;
   const cameraX=clamp((Number(recipient.x)||0)-viewWidth*.5,0,Math.max(0,roomWorldWidth(room)-viewWidth));
   const cameraY=clamp((Number(recipient.y)||0)-viewHeight*.5,0,Math.max(0,activeWorldHeight-viewHeight));
-  const paddingX=viewWidth*.22,paddingY=viewHeight*.22;
+  const paddingX=viewWidth*.42,paddingY=viewHeight*.42;
   bounds={left:cameraX-paddingX,right:cameraX+viewWidth+paddingX,top:cameraY-paddingY,bottom:cameraY+viewHeight+paddingY};
  }
- // Near entities follow the authoritative 20 Hz simulation cadence. Off-screen entities
- // receive a lighter 4 Hz keep-warm sample so they enter the viewport with fresh history
- // without sending the full 400-enemy set on every tick.
- const motionNow=Date.now(),sendFar=room.mode!=='open-sea'&&(!recipient||motionNow-(Number(recipient.lastFarMotionAt)||0)>=250);
- if(recipient&&sendFar)recipient.lastFarMotionAt=motionNow;
- const enemies=recipient?world.enemies.filter(e=>sendFar||(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)):world.enemies;
+ // Keep the 20 Hz hot path focused on what this recipient can actually use. Ordinary
+ // off-screen creatures no longer create periodic bandwidth bursts. Bosses stay live for
+ // direction indicators, and powered-submarine targets stay live inside turret reach.
+ const motionNow=Date.now(),submarine=room.mode==='coop'?world.submarine:null,submarineRadius=760/WORLD_ZOOM;
+ const enemies=recipient?world.enemies.filter(e=>{
+  if(BOSS_KINDS.has(e.kind))return true;
+  if(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)return true;
+  return Boolean(submarine&&(Number(submarine.powerSeconds)||0)>0&&Math.hypot((Number(e.x)||0)-Number(submarine.x),(Number(e.y)||0)-Number(submarine.y))<=submarineRadius);
+ }):world.enemies;
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
   snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:motionNow,tickCount:world.tickCount||0,intervalMs:50,submarine:room.mode==='coop'&&world.submarine?{x:world.submarine.x,y:world.submarine.y,controllerId:[...room.players.keys()][0]||null,powerSeconds:world.submarine.powerSeconds,sections:(world.submarine.sections||[]).map(s=>({id:s.id,hp:s.hp,maxHp:s.maxHp})),repair:world.submarine.repair?{sectionId:world.submarine.repair.sectionId,playerId:world.submarine.repair.playerId,startedAt:world.submarine.repair.startedAt,endsAt:world.submarine.repair.endsAt}:null}:null,
@@ -1275,14 +1278,9 @@ function tickSkinTrailNodes(room,players,now){
  if(w.sharkWakeTrails.length>450)w.sharkWakeTrails.splice(0,w.sharkWakeTrails.length-450);
 }
 function tickRoom(room, now) {
- // 1.6-second interest-area baseline; bounded by current local entities, not map size.
- if(['coop','open-sea'].includes(room?.mode)&&room.players.size&&room.world?.initialized&&now-(room.lastAreaRefreshAt||0)>1600){
-  room.lastAreaRefreshAt=now;
-  for(const recipient of room.players.values()){
-   const frame=getRoomSnapshot(room,{criticalReason:'area-refresh'},recipient);
-   if(frame)io.to(recipient.id).emit('game-snapshot',frame);
-  }
- }
+ // Active gameplay uses compact interest-scoped motion only. Complete reliable snapshots
+ // are reserved for join/resume, contact verification and the 30 s recovery baseline.
+ // This prevents large background state bursts from starving volatile movement packets.
  if (!room || room.players.size === 0) { if (room) clearRoomWorld(room); return; }
  const activePlayers = livingPlayers(room);
  if (!activePlayers.length){
