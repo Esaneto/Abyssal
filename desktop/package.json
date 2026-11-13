@@ -1,6 +1,6 @@
 {
   "name": "abyssal-desktop",
-  "version": "3.5.12",
+  "version": "3.6.1",
   "description": "Abyssal desktop app for Windows",
   "main": "main.cjs",
   "private": true,
@@ -19,6 +19,7 @@
     },
     "files": [
       "main.cjs",
+      "preload.cjs",
       "package.json",
       "build/icon.ico"
     ],

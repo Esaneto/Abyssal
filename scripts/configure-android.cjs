@@ -1,5 +1,6 @@
 const fs=require('fs');
 const path=require('path');
+
 const manifest=path.join('android','app','src','main','AndroidManifest.xml');
 let xml=fs.readFileSync(manifest,'utf8');
 xml=xml.replace(/<uses-permission android:name="android.permission.INTERNET"\s*\/>/,'<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />');
@@ -8,13 +9,204 @@ xml=xml.replace(/<activity([^>]*android:name="\.MainActivity"[^>]*)>/,(_,attrs)=
  if(/android:screenOrientation=/.test(a))a=a.replace(/android:screenOrientation="[^"]*"/,'android:screenOrientation="landscape"');else a+=' android:screenOrientation="landscape"';
  return '<activity'+a+'>';
 });
-xml=xml.replace(/<application([^>]*)>/,(_,attrs)=>{let a=attrs;if(/android:usesCleartextTraffic=/.test(a))a=a.replace(/android:usesCleartextTraffic="[^"]*"/,'android:usesCleartextTraffic="false"');else a+=' android:usesCleartextTraffic="false"';if(/android:hardwareAccelerated=/.test(a))a=a.replace(/android:hardwareAccelerated="[^"]*"/,'android:hardwareAccelerated="true"');else a+=' android:hardwareAccelerated="true"';return '<application'+a+'>';});
+xml=xml.replace(/<application([^>]*)>/,(_,attrs)=>{
+ let a=attrs;
+ if(/android:usesCleartextTraffic=/.test(a))a=a.replace(/android:usesCleartextTraffic="[^"]*"/,'android:usesCleartextTraffic="false"');else a+=' android:usesCleartextTraffic="false"';
+ if(/android:hardwareAccelerated=/.test(a))a=a.replace(/android:hardwareAccelerated="[^"]*"/,'android:hardwareAccelerated="true"');else a+=' android:hardwareAccelerated="true"';
+ return '<application'+a+'>';
+});
+if(!xml.includes('abyssal_update_paths')){
+ xml=xml.replace('</application>',`        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="\${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/abyssal_update_paths" />
+        </provider>
+    </application>`);
+}
 fs.writeFileSync(manifest,xml);
-const java=path.join('android','app','src','main','java','com','esaneto','abyssal','MainActivity.java');
+
+const xmlDir=path.join('android','app','src','main','res','xml');
+fs.mkdirSync(xmlDir,{recursive:true});
+fs.writeFileSync(path.join(xmlDir,'abyssal_update_paths.xml'),`<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="abyssal_updates" path="updates/" />
+</paths>
+`);
+
+const javaDir=path.join('android','app','src','main','java','com','esaneto','abyssal');
+fs.mkdirSync(javaDir,{recursive:true});
+const updaterJava=path.join(javaDir,'AbyssalUpdaterPlugin.java');
+fs.writeFileSync(updaterJava,`package com.esaneto.abyssal;
+
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
+import androidx.core.content.FileProvider;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.PluginMethod;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.MessageDigest;
+import java.util.Locale;
+
+@CapacitorPlugin(name = "AbyssalUpdater")
+public class AbyssalUpdaterPlugin extends Plugin {
+  private static final long MAX_UPDATE_BYTES = 750L * 1024L * 1024L;
+
+  @PluginMethod
+  public void installApk(PluginCall call) {
+    String rawUrl = call.getString("url", "");
+    String expectedSha = call.getString("sha256", "").toLowerCase(Locale.ROOT).trim();
+    String version = call.getString("version", "latest").replaceAll("[^0-9A-Za-z._-]", "");
+    if (!expectedSha.matches("[a-f0-9]{64}")) {
+      call.reject("missing-update-sha256");
+      return;
+    }
+
+    try {
+      URL first = new URL(rawUrl);
+      if (!isAllowed(first, true)) {
+        call.reject("update-url-not-allowed");
+        return;
+      }
+    } catch (Exception error) {
+      call.reject("invalid-update-url");
+      return;
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+        !getContext().getPackageManager().canRequestPackageInstalls()) {
+      Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+          Uri.parse("package:" + getContext().getPackageName()));
+      settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      getActivity().runOnUiThread(() -> getContext().startActivity(settings));
+      JSObject result = new JSObject();
+      result.put("ok", false);
+      result.put("permissionRequired", true);
+      call.resolve(result);
+      return;
+    }
+
+    new Thread(() -> {
+      File partial = null;
+      try {
+        File dir = new File(getContext().getCacheDir(), "updates");
+        if (!dir.exists() && !dir.mkdirs()) throw new Exception("cannot-create-update-dir");
+        File apk = new File(dir, "Abyssal-" + (version.isEmpty() ? "latest" : version) + ".apk");
+        partial = new File(dir, apk.getName() + ".part");
+
+        HttpURLConnection connection = openFollowingRedirects(rawUrl);
+        long declared = connection.getContentLengthLong();
+        if (declared > MAX_UPDATE_BYTES) throw new Exception("update-too-large");
+
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        long total = 0;
+        try (BufferedInputStream input = new BufferedInputStream(connection.getInputStream());
+             FileOutputStream output = new FileOutputStream(partial)) {
+          byte[] buffer = new byte[64 * 1024];
+          int read;
+          while ((read = input.read(buffer)) != -1) {
+            total += read;
+            if (total > MAX_UPDATE_BYTES) throw new Exception("update-too-large");
+            digest.update(buffer, 0, read);
+            output.write(buffer, 0, read);
+          }
+          output.getFD().sync();
+        } finally {
+          connection.disconnect();
+        }
+
+        if (total <= 0) throw new Exception("empty-update");
+        String actualSha = hex(digest.digest());
+        if (!actualSha.equals(expectedSha)) throw new Exception("update-sha256-mismatch");
+        if (apk.exists() && !apk.delete()) throw new Exception("cannot-replace-update");
+        if (!partial.renameTo(apk)) throw new Exception("cannot-finalize-update");
+
+        Uri uri = FileProvider.getUriForFile(
+            getContext(),
+            getContext().getPackageName() + ".fileprovider",
+            apk
+        );
+        Intent install = new Intent(Intent.ACTION_VIEW);
+        install.setDataAndType(uri, "application/vnd.android.package-archive");
+        install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        getActivity().runOnUiThread(() -> {
+          try {
+            getContext().startActivity(install);
+            JSObject result = new JSObject();
+            result.put("ok", true);
+            result.put("launched", true);
+            call.resolve(result);
+          } catch (Exception error) {
+            call.reject("installer-launch-failed", error);
+          }
+        });
+      } catch (Exception error) {
+        if (partial != null && partial.exists()) partial.delete();
+        call.reject(error.getMessage() == null ? "update-failed" : error.getMessage(), error);
+      }
+    }, "abyssal-apk-updater").start();
+  }
+
+  private HttpURLConnection openFollowingRedirects(String rawUrl) throws Exception {
+    URL current = new URL(rawUrl);
+    for (int redirect = 0; redirect < 6; redirect++) {
+      if (!isAllowed(current, redirect == 0)) throw new Exception("update-url-not-allowed");
+      HttpURLConnection connection = (HttpURLConnection) current.openConnection();
+      connection.setConnectTimeout(10000);
+      connection.setReadTimeout(30000);
+      connection.setInstanceFollowRedirects(false);
+      connection.setRequestProperty("User-Agent", "Abyssal-Android-Updater");
+      int status = connection.getResponseCode();
+      if (status >= 300 && status < 400) {
+        String location = connection.getHeaderField("Location");
+        connection.disconnect();
+        if (location == null || location.isEmpty()) throw new Exception("invalid-update-redirect");
+        current = new URL(current, location);
+        continue;
+      }
+      if (status < 200 || status >= 300) {
+        connection.disconnect();
+        throw new Exception("update-download-http-" + status);
+      }
+      return connection;
+    }
+    throw new Exception("too-many-update-redirects");
+  }
+
+  private boolean isAllowed(URL url, boolean first) {
+    if (!"https".equalsIgnoreCase(url.getProtocol())) return false;
+    String host = url.getHost().toLowerCase(Locale.ROOT);
+    if (first) {
+      return "github.com".equals(host)
+          && url.getPath().startsWith("/Esaneto/Abyssal/releases/download/")
+          && url.getPath().endsWith("/Abyssal-Android.apk");
+    }
+    return "github.com".equals(host) || host.endsWith(".githubusercontent.com");
+  }
+
+  private String hex(byte[] bytes) {
+    StringBuilder out = new StringBuilder(bytes.length * 2);
+    for (byte value : bytes) out.append(String.format(Locale.ROOT, "%02x", value));
+    return out.toString();
+  }
+}
+`);
+
+const java=path.join(javaDir,'MainActivity.java');
 if(fs.existsSync(java)){
- // Keep system navigation visible and reserve its real touch area, including
- // landscape back gestures, navigation bar and display cutouts on API 24–36.
- // API 35+ enforces edge-to-edge; explicit insets keep the entire WebView safe.
  const src=`package com.esaneto.abyssal;
 
 import android.os.Bundle;
@@ -31,6 +223,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
+    registerPlugin(AbyssalUpdaterPlugin.class);
     super.onCreate(savedInstanceState);
     Window window = getWindow();
     WindowCompat.setDecorFitsSystemWindows(window, false);
