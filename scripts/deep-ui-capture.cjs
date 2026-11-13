@@ -49,6 +49,9 @@ async function capture(root,label){
    await ev("document.getElementById('abyssalGuideX')?.click();window.AbyssalCockpitNavigation.open();");
    await wait("!document.getElementById('submarineWorkshop').hidden&&!!document.querySelector('#submarineWorkshop .abyss-control-deck')");
    await ev("document.fonts.ready.then(()=>true)");
+   // Wait for the real loading overlay to finish, not just the DOM behind it.
+   await wait("!document.getElementById('abyssalStartupLoading') && !document.documentElement.classList.contains('abyssal-startup')");
+   await wait("(()=>{const e=document.querySelector('#submarineWorkshop .abyss-cockpit-visor');if(!e)return false;const r=e.getBoundingClientRect(),p=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !!p&&e.contains(p);})()");
    await snap(device+'-cabine');
    const report=await ev(`(()=>{const box=document.getElementById('submarineWorkshop'),a=box.querySelector('#cockpitSoloDiveBtn')||box.querySelector('.abyss-console-info>button'),b=box.querySelector('#cockpitOnlineDiveBtn'),r=e=>{const q=e?.getBoundingClientRect();return q?{x:Math.round(q.x),y:Math.round(q.y),w:Math.round(q.width),h:Math.round(q.height)}:null;};const v=box.querySelector('.abyss-visor-body');return {solo:r(a),online:r(b),visor:r(v),deck:r(box.querySelector('.abyss-control-deck')),font:getComputedStyle(a).fontFamily,scrollWidth:v.scrollWidth,clientWidth:v.clientWidth,scrollHeight:v.scrollHeight,clientHeight:v.clientHeight,gameActive:document.body.classList.contains('game-active')};})()`);
    reports.push({device,screen:'cabine',...report});
@@ -57,6 +60,7 @@ async function capture(root,label){
     assert.ok(Math.abs(report.solo.w-report.online.w)<=2,'Unequal expedition cards');
     assert.ok(report.scrollWidth<=report.clientWidth+2,'Cabin horizontal overflow');
     assert.ok(mobile?report.online.y>report.solo.y:Math.abs(report.online.y-report.solo.y)<3,'Wrong card layout');
+    assert.ok(report.online.y+report.online.h<=report.visor.y+report.visor.h+2,'Online card clipped on first view');
    }
    await ev("window.AbyssalCockpitNavigation.showExterior();");
    await wait("!document.getElementById('menuScreen').hidden&&document.body.classList.contains('abyss-hatch-navigation')");
