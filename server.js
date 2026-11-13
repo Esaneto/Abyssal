@@ -833,7 +833,7 @@ function getRoomMotionSnapshot(room, options = {}){
  // off-screen creatures no longer create periodic bandwidth bursts. Bosses stay live for
  // direction indicators, and powered-submarine targets stay live inside turret reach.
  const motionNow=Date.now(),submarine=room.mode==='coop'?world.submarine:null,submarineRadius=760/WORLD_ZOOM;
- const enemies=recipient?world.enemies.filter(e=>{
+ const enemies=recipient&&room.mode==='open-sea'?world.enemies.filter(e=>{
   if(BOSS_KINDS.has(e.kind))return true;
   if(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)return true;
   return Boolean(submarine&&(Number(submarine.powerSeconds)||0)>0&&Math.hypot((Number(e.x)||0)-Number(submarine.x),(Number(e.y)||0)-Number(submarine.y))<=submarineRadius);
@@ -841,6 +841,7 @@ function getRoomMotionSnapshot(room, options = {}){
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
   snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:motionNow,tickCount:world.tickCount||0,intervalMs:50,submarine:room.mode==='coop'&&world.submarine?{x:world.submarine.x,y:world.submarine.y,controllerId:[...room.players.keys()][0]||null,powerSeconds:world.submarine.powerSeconds,sections:(world.submarine.sections||[]).map(s=>({id:s.id,hp:s.hp,maxHp:s.maxHp})),repair:world.submarine.repair?{sectionId:world.submarine.repair.sectionId,playerId:world.submarine.repair.playerId,startedAt:world.submarine.repair.startedAt,endsAt:world.submarine.repair.endsAt}:null}:null,
+  enemyCatalog:room.mode==='coop'&&(Number(world.tickCount)||0)%20===0?enemies.map(({damageContributors,...enemy})=>enemy):undefined,
   enemies:enemies.map(e=>{
    const x=Math.round((Number(e.x)||0)*100)/100,y=Math.round((Number(e.y)||0)*100)/100;
     const base=[e.id,x,y,Number(e.hp)||0,Number(e.damageRevision)||0,Math.round((Number(e.angle)||0)*1000)/1000,Math.round((Number(e.phase)||0)*1000)/1000];
@@ -993,7 +994,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
   // cinco minutos vem exclusivamente do snapshot persistido em pendingRunResume.
   clearRoomWorld(room);
   if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
-  if(roomId!==DEFAULT_ROOM_ID&&roomId!==PVP_ROOM_ID&&roomId!==FOSSAS_ROOM_ID){
+  if(roomId!==DEFAULT_ROOM_ID&&roomId!==CLASSIC_ROOM_ID&&roomId!==PVP_ROOM_ID&&roomId!==FOSSAS_ROOM_ID){
    rooms.delete(roomId);deletingRoomIds.add(roomId);pendingRoomDeletion.add(roomId);
    deleteRoomRow(roomId).then(()=>broadcastRooms()).catch(err=>console.error('[rooms] limpeza da sala vazia:',err.message));
   }
@@ -1522,7 +1523,8 @@ function tickRoom(room, now) {
  // lifecycle changes use compact reliable events; motion stays volatile and view-scoped.
  const criticalEnemyIds=[...new Set([...spawnedEnemies.map(enemy=>String(enemy.id)),...playerHits.map(hit=>String(hit.enemyId))])];
  let criticalSnapshot=null;
- if(result.sendReliableSnapshot){
+ if(result.sendReliableSnapshot||(room.mode==='coop'&&now-(w.lastEnemyBaselineAt||0)>=1000)){
+  w.lastEnemyBaselineAt=now;
   const reason=playerHits.length?'enemy-contact':'periodic-baseline';
   criticalSnapshot=getRoomSnapshot(room,{criticalEnemyIds,criticalReason:reason});
   if(criticalSnapshot){
@@ -1826,7 +1828,8 @@ io.on('connection', socket => {
   // A normal join must never load the entire persisted accounts JSONB.
   // Only a deploy reconnect needs to recover a pending session from storage.
   if(payload.reconnect===true&&!u?.pendingRunResume)u=await refreshDeployResumeFromPersistence(socket.data.userKey);
-  const room=rooms.get(id)||restoreDeployRoom(u,id);
+  let room=rooms.get(id)||restoreDeployRoom(u,id);
+  if(!room&&id===CLASSIC_ROOM_ID){room=makeRoom({id:CLASSIC_ROOM_ID,name:'Mergulho Online',capacity:6,mode:'coop'});rooms.set(id,room);deletingRoomIds.delete(id);pendingRoomDeletion.delete(id);}
   if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outra instância do servidor e não pode ser acessada por este processo.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
   const savedResume=u?.pendingRunResume;const authorizedDeployResume=payload.reconnect===true&&savedResume&&!savedResume.settled&&Number(savedResume.expiresAt)>=Date.now()&&savedResume.roomId===room.id&&savedResume.roomMode===normalizeRoomMode(room.mode);
   if(room.isPrivate&&!authorizedDeployResume){const candidate=await hashPassword(String(payload.password||''),room.passwordSalt);if(!candidate||!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
