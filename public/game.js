@@ -2490,6 +2490,19 @@ function registerEnemyContactSnapshot(data){
  const enemyRows=data.enemies.filter(enemy=>enemy&&enemy.id!=null);
  const frame={worldId,snapshotSeq:sequence,serverTime,criticalEnemyIds:criticalIds,enemies:new Map(enemyRows.map(enemy=>[String(enemy.id),{id:String(enemy.id),kind:String(enemy.kind||'drifter'),x:Number(enemy.x)||0,y:Number(enemy.y)||0,r:Number(enemy.r)||10,hp:Number(enemy.hp)||0,maxHp:Number(enemy.maxHp)||0}]))};
  if(!frame.enemies.size||![...criticalIds].some(id=>frame.enemies.has(id)))return;
+ // Contact packets carry the exact attacker position used by server-side damage.
+ // Pull the already-rendered attacker toward that point immediately so damage can
+ // never arrive from a creature that is visibly stranded somewhere else.
+ const contactNow=performance.now();
+ for(const raw of enemyRows){
+  const id=String(raw.id),enemy=onlineEnemyById.get(id);if(!enemy)continue;
+  const tx=clamp(Number(raw.x)||0,0,W),ty=clamp(Number(raw.y)||0,0,H),gap=Math.hypot(tx-(Number(enemy.x)||0),ty-(Number(enemy.y)||0));
+  enemy.serverX=tx;enemy.serverY=ty;enemy.snapshotReceivedAt=contactNow;
+  enemy.motionSamples=[];enemy.motionRenderTime=null;enemy.motionRenderAt=null;enemy.motionCorrection=null;
+  window.AbyssalEnemyNetcode?.pushMotionSample?.(enemy,{x:tx,y:ty,serverTime:serverTime||Date.now(),receivedAt:contactNow});
+  enemy.interpFromX=Number(enemy.x)||tx;enemy.interpFromY=Number(enemy.y)||ty;enemy.interpTargetX=tx;enemy.interpTargetY=ty;enemy.interpAt=contactNow;enemy.interpDuration=gap>90/GAME_WORLD_ZOOM?0:45;
+  if(gap>90/GAME_WORLD_ZOOM){enemy.x=tx;enemy.y=ty;}
+ }
  authoritativeSnapshotHistory.set(`${worldId}:${sequence}`,frame);
  while(authoritativeSnapshotHistory.size>18)authoritativeSnapshotHistory.delete(authoritativeSnapshotHistory.keys().next().value);
  lastAuthoritativeSnapshotSeq=sequence;
@@ -3343,8 +3356,20 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   const e=enemies[i];e.hit=Math.max(0,e.hit-dt);
   if(onlineMode){
    const bx=Number(e.x)||0,by=Number(e.y)||0;
-   const p=window.AbyssalEnemyNetcode?.renderedPosition?.(e,enemyFrameNow);
-   if(p){e.x=p.x;e.y=p.y;}
+   const rendered=window.AbyssalEnemyNetcode?.renderedPosition?.(e,enemyFrameNow);
+   const sx=Number.isFinite(Number(e.serverX))?Number(e.serverX):(rendered?.x??bx),sy=Number.isFinite(Number(e.serverY))?Number(e.serverY):(rendered?.y??by);
+   const sampleAge=Number.isFinite(Number(e.snapshotReceivedAt))?clamp((enemyFrameNow-Number(e.snapshotReceivedAt))/1000,0,.18):0;
+   const predictedX=sx+(Number(e.vx)||0)*sampleAge*.65,predictedY=sy+(Number(e.vy)||0)*sampleAge*.65;
+   const renderX=Number.isFinite(Number(rendered?.x))?Number(rendered.x):predictedX,renderY=Number.isFinite(Number(rendered?.y))?Number(rendered.y):predictedY;
+   const renderGap=Math.hypot(renderX-bx,renderY-by),serverGap=Math.hypot(sx-bx,sy-by);
+   // The motion buffer is preferred, but serverX/serverY are an invariant fallback.
+   // If interpolation stalls while authoritative coordinates keep advancing, converge
+   // directly to the latest server trajectory instead of leaving a frozen hitbox sprite.
+   const stalledVisual=renderGap<.015&&serverGap>.35;
+   const targetX=stalledVisual?predictedX:renderX,targetY=stalledVisual?predictedY:renderY;
+   const catchup=1-Math.exp(-dt*(stalledVisual?30:20));
+   if(serverGap>120/GAME_WORLD_ZOOM){e.x=sx;e.y=sy;}
+   else{e.x=bx+(targetX-bx)*catchup;e.y=by+(targetY-by)*catchup;}
    if(Math.hypot(e.x-bx,e.y-by)>.02)onlineVisualMovingEnemies++;
    continue;
   }
