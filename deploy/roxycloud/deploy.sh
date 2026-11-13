@@ -1,46 +1,51 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-APP_DIR="${ABYSSAL_APP_DIR:-/opt/abyssal}"
-BRANCH="${ABYSSAL_BRANCH:-main}"
-HEALTH_URL="${ABYSSAL_HEALTH_URL:-http://127.0.0.1:3000/health}"
-EXPECTED_PROFILE="roxycloud-ryzen4"
-
-cd "$APP_DIR"
-previous_commit="$(git rev-parse HEAD)"
-
-rollback() {
-  echo "[deploy] rollback para $previous_commit"
-  git reset --hard "$previous_commit"
-  npm ci --omit=dev
-  sudo systemctl restart abyssal
-}
-trap 'echo "[deploy] falhou"; rollback' ERR
-
-git fetch --prune origin
-git checkout "$BRANCH"
-git reset --hard "origin/$BRANCH"
-npm ci --omit=dev
-node --check server.js
-node --check state-persistence-worker.js
-node --check scripts/roxycloud-preflight.cjs
-node --check public/game.js
-node --check public/specimen-system.js
-# The full historical suite remains in GitHub CI. A production hot deploy must
-# pass the Roxy-specific acceptance gates, not unrelated stale expectations.
-node --test tests/roxycloud-readiness.test.cjs tests/specimen-journal-biology.test.cjs
-
-sudo systemctl restart abyssal
-
-for attempt in {1..30}; do
-  if curl --fail --silent --show-error "$HEALTH_URL" >/tmp/abyssal-health.json; then
-    node -e "const h=require('/tmp/abyssal-health.json');if(!h.ok||h.resources?.profile!=='$EXPECTED_PROFILE')process.exit(1);console.log('[deploy] health ok',h.build,h.resources.profile,h.resources.cpu,h.resources.memory)"
-    trap - ERR
-    echo "[deploy] concluído em $(git rev-parse --short HEAD)"
-    exit 0
-  fi
+set -Eeuo pipefail
+[[ $(id -u) == 0 ]] || { echo "Execute como root."; exit 1; }
+export PATH=/usr/local/bin:/usr/bin:/bin
+exec 9>/run/lock/abyssal-deploy.lock
+flock -n 9 || exit 0
+cd /opt/abyssal
+as_app() { runuser -u abyssal -- "$@"; }
+previous=$(as_app git rev-parse HEAD)
+as_app git fetch --prune origin main
+target=$(as_app git rev-parse origin/main)
+[[ "$previous" != "$target" ]] || { echo "Abyssal atualizado."; exit 0; }
+stage=$(mktemp -d /opt/abyssal-stage.XXXXXX)
+chown abyssal:abyssal "$stage"
+cleanup() { as_app git worktree remove --force "$stage" >/dev/null 2>&1 || true; rm -rf -- "$stage"; }
+trap cleanup EXIT
+as_app git worktree add --detach "$stage" "$target"
+(
+ cd "$stage"
+ as_app npm ci --omit=dev
+ as_app node --check server.js
+ as_app node --check payments.js
+ as_app node --check public/game.js
+ as_app node --test tests/roxycloud-readiness.test.cjs tests/roxycloud-stripe-webhook.test.cjs tests/specimen-journal-biology.test.cjs
+)
+# Never interrupt an occupied server on a timer. Retry at the next interval.
+if ! curl -fsS --max-time 5 http://127.0.0.1:3000/health | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{try{const h=JSON.parse(s);process.exit(h.ok&&h.persistence==="postgres"&&h.activePlayers===0&&h.online===0?0:1)}catch{process.exit(1)}})'; then
+ echo "Deploy adiado: servidor ocupado ou health indisponível."; exit 0
+fi
+health() {
+ for i in {1..45}; do
+  if curl -fsS --max-time 3 http://127.0.0.1:3000/health 2>/dev/null | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{try{const h=JSON.parse(s);process.exit(h.ok&&h.persistence==="postgres"&&h.resources?.profile==="roxycloud-ryzen4"?0:1)}catch{process.exit(1)}})'; then return 0; fi
   sleep 1
-done
-
-echo "[deploy] health check não respondeu com o perfil RoxyCloud esperado"
-exit 1
+ done
+ return 1
+}
+rollback() {
+ trap - ERR
+ echo "Falha; restaurando código anterior $previous" >&2
+ systemctl stop abyssal || true
+ as_app git checkout --detach "$previous" && as_app npm ci --omit=dev && systemctl start abyssal && health || { echo "Rollback requer intervenção." >&2; exit 2; }
+ exit 1
+}
+trap rollback ERR
+systemctl stop abyssal
+as_app git checkout --detach "$target"
+as_app npm ci --omit=dev
+systemctl start abyssal
+health
+trap - ERR
+echo "Deploy concluído: $target"
