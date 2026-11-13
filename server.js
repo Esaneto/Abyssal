@@ -82,7 +82,9 @@ app.use((request,response,next)=>{
  }
  next();
 });
-app.use(express.json({limit:'16kb'}));
+const jsonBodyParser=express.json({limit:'16kb'});
+// Stripe signs the original bytes. Leave the webhook body for express.raw in payments.js.
+app.use((req,res,next)=>/^\/api\/payments\/webhook\/?$/i.test(req.path)?next():jsonBodyParser(req,res,next));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);

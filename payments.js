@@ -73,8 +73,13 @@ function tokenUser(users,token) {
 function hasPurchaseResponsibilityAcceptance(user) {
  return Boolean(user&&user.purchaseResponsibilityAcceptedVersion===TERMS_VERSION&&user.purchaseResponsibilityAcceptedAt);
 }
+function checkoutPublicOrigin() {
+ const configured=String(process.env.PUBLIC_BASE_URL||'https://abyssal-ej5j.onrender.com').trim();
+ try { const url=new URL(configured); if(url.protocol==='https:'&&!url.username&&!url.password)return url.origin; } catch {}
+ return null;
+}
 function liveSalesReady() {
- return /^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(String(process.env.STRIPE_SECRET_KEY||'').trim());
+ return process.env.STRIPE_CHECKOUT_ENABLED!=='false'&&/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(String(process.env.STRIPE_SECRET_KEY||'').trim())&&Boolean(checkoutPublicOrigin());
 }
 function registerPaymentRoutes(options) {
  const app=options.app,getUsers=options.getUsers,getPool=options.getPool,saveUsers=options.saveUsers;
@@ -136,7 +141,8 @@ function registerPaymentRoutes(options) {
  app.post('/api/payments/checkout',jsonParser,async(req,res)=>{
   try{
    const secret=String(process.env.STRIPE_SECRET_KEY||'').trim();
-   if(!/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(secret||''))return res.status(503).json({ok:false,message:'Pagamentos ainda não configurados.'});
+   const publicOrigin=checkoutPublicOrigin();
+   if(!liveSalesReady()||!publicOrigin)return res.status(503).json({ok:false,message:'Pagamentos temporariamente indisponíveis.'});
    const auth=String(req.headers.authorization||''),token=auth.startsWith('Bearer ')?auth.slice(7):'';
    const account=tokenUser(getUsers(),token);
    if(!account)return res.status(401).json({ok:false,message:'Entre na sua conta para comprar.'});
@@ -212,8 +218,8 @@ function registerPaymentRoutes(options) {
    form.set('allow_promotion_codes','false');
    form.set('submit_type','auto');
    form.set('expires_at',String(Math.floor(Date.now()/1000)+45*60));
-   form.set('success_url','https://abyssal-ej5j.onrender.com/?payment=success&session_id={CHECKOUT_SESSION_ID}');
-   form.set('cancel_url','https://abyssal-ej5j.onrender.com/?payment=cancelled');
+   form.set('success_url',publicOrigin+'/?payment=success&session_id={CHECKOUT_SESSION_ID}');
+   form.set('cancel_url',publicOrigin+'/?payment=cancelled');
    form.set('client_reference_id',account.key);form.set('locale',english?'en':'pt-BR');
    form.set('line_items[0][quantity]','1');
    form.set('line_items[0][price_data][currency]',currency);
