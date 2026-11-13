@@ -1,9 +1,9 @@
-/* Abyssal launch focus: preserve unfinished modes, expose Solo only.
+/* Abyssal launch focus: preserve unfinished modes, expose Solo and Online classic shooter.
  * This is a UI/routing gate, not deletion of game systems or saved data.
  */
 (function(){
  'use strict';
- const LOCKED=new Set(['sea','rift','online']);
+ const LOCKED=new Set(['sea','rift']);
  // Frozen modes may run only inside the explicit Chromium CI harness.
  // A normal local browser or packaged application is NOT a test exception.
  const acceptanceLegacy=window.__ABYSSAL_CI_SMOKE__===true&&
@@ -13,15 +13,15 @@
  function notify(){
   let toast=document.getElementById('abyssalDevelopmentNotice');
   if(!toast){toast=document.createElement('div');toast.id='abyssalDevelopmentNotice';toast.className='abyss-development-notice';toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');document.body.appendChild(toast);}
-  toast.textContent='EM DESENVOLVIMENTO · No momento, jogue o Shooter Solo.';
+  toast.textContent='EM DESENVOLVIMENTO · No momento, jogue Solo ou Mergulho Online.';
   toast.classList.add('is-visible');clearTimeout(timer);timer=setTimeout(()=>toast.classList.remove('is-visible'),3200);
   return false;
  }
- const api=Object.freeze({soloOnly:true,isLocked:kind=>LOCKED.has(kind),notify});
+ const api=Object.freeze({soloOnly:false,isLocked:kind=>LOCKED.has(kind),notify});
  window.AbyssalLaunchFocus=api;
  // Capture routes before older menu and room-browser handlers run.
  document.addEventListener('click',event=>{
-  const target=event.target?.closest?.('#openSeaPortalBtn,#riftPortalBtn,#onlineBtn,#abyssDiveOnlineChoice,#abyssDescentPanel [data-mode],#submarineWorkshop [data-abyss-locked]');
+  const target=event.target?.closest?.('#openSeaPortalBtn,#riftPortalBtn,#abyssDescentPanel [data-mode],#submarineWorkshop [data-abyss-locked]');
   if(!target)return;
   event.preventDefault();event.stopImmediatePropagation();notify();
  },true);

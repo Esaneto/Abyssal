@@ -13,6 +13,7 @@ const RiftWildlife = require('./public/rift-wildlife.js');
 const OpenSeaEcology=require('./public/abyssal-open-sea-ecology.js');
 const SpecimenSystem = require('./public/specimen-system.js');
 const CreatureScale = require('./public/creature-scale.js');
+const SoloCavern = require('./public/abyssal-solo-cavern.js');
 const RIFT_SPECIMEN_SKINS=Object.freeze(Object.keys(SkinStandard.profiles).filter(id=>SpecimenRarity.rarityFor(id)));
 function riftSpecimenSkin(random=Math.random){
  return SpecimenRarity.roll(RIFT_SPECIMEN_SKINS,random)||'default';
@@ -23,11 +24,23 @@ const OceanRespawn=require('./public/abyssal-ocean-respawn.js');
 const OceanGeography=require('./public/abyssal-ocean-geography.js');
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
+const CLASSIC_ENEMY_CAP=50;
+const CLASSIC_COMMON_CAP=49;
+const ONLINE_SUBMARINE_SECTION_HP=1000;
+const ONLINE_SUBMARINE_REPAIR_SECONDS=15;
+const ONLINE_SUBMARINE_OFFSETS=[-220,0,220];
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
-const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:SeaProgression.MAX_SEA_ENEMIES;
-const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:SeaProgression.MAX_SEA_COMMON_ENEMIES;
+const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:world?.mode==='classic'?CLASSIC_ENEMY_CAP:SeaProgression.MAX_SEA_ENEMIES;
+const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:world?.mode==='classic'?CLASSIC_COMMON_CAP:SeaProgression.MAX_SEA_COMMON_ENEMIES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const ECOLOGY_CELL_SIZE=480,ecologySpatialCaches=new WeakMap();
+const classicCavernCache=new WeakMap();
+function classicCavernRocks(world){
+ if(!world||world.mode!=='classic')return [];
+ let rocks=classicCavernCache.get(world);
+ if(!rocks){rocks=SoloCavern.buildRocks(world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);classicCavernCache.set(world,rocks);}
+ return rocks;
+}
 function rebuildEcologySpatial(world){
  let cache=ecologySpatialCaches.get(world);
  if(!cache){cache={grid:new Map(),buckets:[],bucketCount:0,scratch:[]};ecologySpatialCaches.set(world,cache);}
@@ -60,7 +73,8 @@ function createWorldState(now = Date.now(), mode = 'classic') {
     movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0,
     activeEventId: null, eventEndsAt: 0, eventSerial: 0,
     eliteRewardClaimedTier: -1, sideEncounterResolvedTier: -1, sideEncounterId: null, sideEncounterSerial: 0,
-    mapSeed: AbyssalMap.seedValue(`${now}-${Math.random()}`), mapTier: 0
+    mapSeed: AbyssalMap.seedValue(`${now}-${Math.random()}`), mapTier: 0,
+    submarine:{x:WORLD_WIDTH*.5,y:WORLD_HEIGHT*.39,powerSeconds:0,shieldSpent:false,sections:ONLINE_SUBMARINE_OFFSETS.map((offset,index)=>({id:index,name:['POPA','CENTRO','PROA'][index],x:WORLD_WIDTH*.5+offset/WORLD_ZOOM,y:WORLD_HEIGHT*.39,hp:ONLINE_SUBMARINE_SECTION_HP,maxHp:ONLINE_SUBMARINE_SECTION_HP})),repair:null}
   };
 }
 
@@ -193,7 +207,7 @@ function spawnEnemy(world, options = {}) {
   const { type = 'common', initial = false, random = Math.random } = options;
   if (!world || world.enemies.length >= enemyLimitForWorld(world)) return null;
   const bosses = countBosses(world);
-  if (type === 'boss' && bosses.length >= MAX_BOSSES) return null;
+  if (type === 'boss' && bosses.length >= (world.mode==='classic'?1:MAX_BOSSES)) return null;
   if (type !== 'boss' && countCommons(world) >= commonLimitForWorld(world)) return null;
 
   const layout = mapLayoutFor(world);
@@ -203,6 +217,11 @@ function spawnEnemy(world, options = {}) {
   }) : (options.position||EnemyAI.chooseSpawnPoint(random, initial ? world.nextEnemyId % 4 : null, world.width||WORLD_WIDTH, world.height||WORLD_HEIGHT));
   if(world.mode==='open-sea'&&!layout&&OceanGeography.isSolid(point.x,point.y,35)){
    const water=OceanGeography.nearestWater(point.x,point.y,35);
+   if(!water)return null;
+   point={...point,x:water.x,y:water.y};
+  }
+  if(world.mode==='classic'&&!layout&&SoloCavern.isBlocked(classicCavernRocks(world),point.x,point.y,35/WORLD_ZOOM)){
+   const water=SoloCavern.nearestWater(classicCavernRocks(world),point.x,point.y,35/WORLD_ZOOM);
    if(!water)return null;
    point={...point,x:water.x,y:water.y};
   }
@@ -438,6 +457,14 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const validPlayers = Array.isArray(players)
     ? players.filter(p => p && p.alive !== false && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)))
     : [];
+  if(world.mode==='classic'&&world.submarine){
+    world.submarine.powerSeconds=Math.max(0,(Number(world.submarine.powerSeconds)||0)-Math.max(0,(now-(Number(world.lastTick)||now))/1000));
+    const repair=world.submarine.repair;
+    if(repair){
+      const diver=validPlayers.find(p=>p.id===repair.playerId),section=(world.submarine.sections||[]).find(s=>s.id===repair.sectionId);
+      if(!diver||!section||diver.alive===false||Math.hypot(Number(diver.x)-Number(repair.startX),Number(diver.y)-Number(repair.startY))>8/WORLD_ZOOM||Math.hypot(Number(diver.x)-Number(section.x),Number(diver.y)-Number(section.y))>150/WORLD_ZOOM)world.submarine.repair=null;
+    }
+  }
   if (validPlayers.length === 0) {
     // No living participants means no world time, spawning, movement, or attacks.
     // The server stops its ticker as well; state is cleared when the last participant leaves.
@@ -620,8 +647,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
   const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: (world.width||WORLD_WIDTH) - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: (mapLayout?.height||world.height||WORLD_HEIGHT) - 8 / WORLD_ZOOM, stopDistance: 0 };
-  const terrainClear=(ax,ay,bx,by,padding=2)=>riftMode&&mapLayout?AbyssalMap.segmentWalkable(mapLayout,ax,ay,bx,by,padding):world.mode==='open-sea'?OceanGeography.segmentClear(ax,ay,bx,by,padding):true;
-  const sharkNavigation=(enemy,target,pad)=>riftMode&&mapLayout?AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,target.x,target.y,{padding:pad,includePortal:false}):world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,target,pad,now):target;
+  const terrainClear=(ax,ay,bx,by,padding=2)=>riftMode&&mapLayout?AbyssalMap.segmentWalkable(mapLayout,ax,ay,bx,by,padding):world.mode==='open-sea'?OceanGeography.segmentClear(ax,ay,bx,by,padding):world.mode==='classic'?!SoloCavern.segmentBlocked(classicCavernRocks(world),ax,ay,bx,by,padding):true;
+  const sharkNavigation=(enemy,target,pad)=>riftMode&&mapLayout?AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,target.x,target.y,{padding:pad,includePortal:false}):world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,target,pad,now):world.mode==='classic'?SoloCavern.navigationTarget(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,enemy.x,enemy.y,target.x,target.y,pad):target;
   const contactTarget = { x: 0, y: 0, r: 13 / WORLD_ZOOM };
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
@@ -756,7 +783,15 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     }
     movementOptions.stopDistance = EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId));
     let actualTarget=null,nearestTargetDistance=Infinity;
-    for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
+    const poweredSubmarine=world.mode==='classic'&&world.submarine&&(Number(world.submarine.powerSeconds)||0)>0;
+    if(poweredSubmarine){
+      for(const section of world.submarine.sections||[]){
+        if((Number(section.hp)||0)<=0)continue;
+        const d=Math.hypot(Number(section.x)-Number(enemy.x),Number(section.y)-Number(enemy.y));
+        if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget={x:Number(section.x),y:Number(section.y),r:72/WORLD_ZOOM,alive:true,moveSpeed:150/WORLD_ZOOM,submarine:true,section};}
+      }
+    }
+    if(!actualTarget)for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
     let movement;
     movementOptions.freeSwim=false;
     movementOptions.sharkLineOfSight=actualTarget?terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y):false;
@@ -788,12 +823,30 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         }
         movement.target=actualTarget;
       }else{
-        movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
+        const movementTargets=actualTarget?.submarine?[actualTarget]:targetablePlayers;
+        movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
         if (!movement.moved && actualTarget && dt > 0) {
-          movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);
+          if(actualTarget.submarine){
+            const dx=actualTarget.x-enemy.x,dy=actualTarget.y-enemy.y,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*.85*dt,Math.max(0,d-movementOptions.stopDistance));
+            enemy.x=clamp(enemy.x+dx/d*step,0,world.width||WORLD_WIDTH);enemy.y=clamp(enemy.y+dy/d*step,0,world.height||WORLD_HEIGHT);movement.moved=step>0;
+          }else movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);
           if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
         }
-        movement.target = EnemyAI.isChargeAttack(enemy)?(movement.target||actualTarget):actualTarget;
+        movement.target = actualTarget?.submarine?actualTarget:(EnemyAI.isChargeAttack(enemy)?(movement.target||actualTarget):actualTarget);
+        if(world.mode==='classic'){
+          const beforeX=seaBeforeX,beforeY=seaBeforeY,pad=Math.max(8,Math.min(45,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),rocks=classicCavernRocks(world);
+          const resolved=SoloCavern.resolve(rocks,beforeX,beforeY,enemy.x,enemy.y,pad);
+          enemy.x=resolved.x;enemy.y=resolved.y;
+          if(resolved.blocked&&actualTarget){
+            const nav=SoloCavern.navigationTarget(rocks,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,beforeX,beforeY,actualTarget.x,actualTarget.y,pad);
+            if(nav&&!nav.direct&&Number.isFinite(nav.x)&&Number.isFinite(nav.y)){
+              const dx=nav.x-beforeX,dy=nav.y-beforeY,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*dt,d);
+              const fallback=SoloCavern.resolve(rocks,beforeX,beforeY,beforeX+dx/d*step,beforeY+dy/d*step,pad);
+              enemy.x=fallback.x;enemy.y=fallback.y;
+            }
+          }
+          movement.moved=Math.hypot(enemy.x-beforeX,enemy.y-beforeY)>.04;
+        }
       }
     } else {
     // Only sighted prey may trigger a pursuit. Passive fauna patrols until
@@ -890,6 +943,16 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const target = movement.target;
     if (riftMode && !actualTarget) continue;
     if (!target || target.alive === false || enemy.attackCd > 0 || (EnemyAI.isChargeAttack(enemy)&&(!enemy.sharkCharging||(enemy.kind==='whiteSharkBoss'&&enemy.sharkChargeHit)))) continue;
+    if(target.submarine&&target.section){
+      const radius=Math.max(28/WORLD_ZOOM,(Number(enemy.r)||10)/WORLD_ZOOM+34/WORLD_ZOOM);
+      if(Math.hypot(Number(target.x)-Number(enemy.x),Number(target.y)-Number(enemy.y))<=radius+78/WORLD_ZOOM){
+        enemy.attackCd=BOSS_KINDS.includes(enemy.kind)?1.15:.92;
+        const damage=Math.max(5,Math.round(Number(enemy.damage)||8));
+        target.section.hp=Math.max(0,(Number(target.section.hp)||ONLINE_SUBMARINE_SECTION_HP)-damage);
+        world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
+      }
+      continue;
+    }
     const lastPositionAt = Number(target.lastPositionAt) || 0;
     const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
     const resumeGraceUntil = Number(target.positionResumeGraceUntil) || 0;
@@ -1058,4 +1121,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom, markOceanSpecimenDeath };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, ONLINE_SUBMARINE_SECTION_HP, ONLINE_SUBMARINE_REPAIR_SECONDS, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom, markOceanSpecimenDeath };

@@ -646,6 +646,7 @@ function queueRoomDirectory(work){const run=roomDirectoryQueue.then(work,work);r
 const deletingRoomIds = new Set();
 const pendingRoomDeletion = new Set();
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
+const CLASSIC_ROOM_ID = 'MERGULHO-ONLINE';
 const PVP_ROOM_ID = 'MAR-VERMELHO';
 const FOSSAS_ROOM_ID = 'MAR-ABYSSAL';
 const curatedSkins=require('./public/abyssal-curated-skins.js');
@@ -695,6 +696,7 @@ function makeRoom({id,name,isPrivate=false,passwordSalt=null,passwordHash=null,c
  return {id,name,mode,isPrivate,passwordSalt,passwordHash,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(mode),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
 }
 rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6,mode:'open-sea'}));
+rooms.set(CLASSIC_ROOM_ID,makeRoom({id:CLASSIC_ROOM_ID,name:'Mergulho Online',capacity:6,mode:'coop'}));
 rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mode:'pvp'}));
 rooms.set(FOSSAS_ROOM_ID,makeRoom({id:FOSSAS_ROOM_ID,name:'Mar Abyssal - Fossas Cooperativo',capacity:6,mode:'rift'}));
 function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
@@ -737,7 +739,7 @@ function publicRoomInfo(room){
  const bossCount=room.world.enemies.filter(e=>isBossKind(e.kind)).length;
  return {id:room.id,code:room.id,name:room.name,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),playerCount:room.players.size,capacity:room.capacity,available:room.players.size<room.capacity,joinable:true,local:true,state:room.players.size?'INICIADA':'AGUARDANDO',elapsed:Math.floor(room.world.elapsed||0),enemyCount:room.mode==='pvp'?0:room.world.enemies.length,bossCount:room.mode==='pvp'?0:bossCount};
 }
-function sortRoomInfos(list){return list.sort((a,b)=>{const priority=id=>id===DEFAULT_ROOM_ID?0:id===PVP_ROOM_ID?1:id===FOSSAS_ROOM_ID?2:3;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0)||String(a.name||'').localeCompare(String(b.name||''));});}
+function sortRoomInfos(list){return list.sort((a,b)=>{const priority=id=>id===CLASSIC_ROOM_ID?0:id===DEFAULT_ROOM_ID?1:id===PVP_ROOM_ID?2:id===FOSSAS_ROOM_ID?3:4;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0)||String(a.name||'').localeCompare(String(b.name||''));});}
 function roomList(){return sortRoomInfos([...rooms.values()].map(publicRoomInfo));}
 async function roomListForClients(){
  const merged=new Map();
@@ -749,7 +751,8 @@ async function roomListForClients(){
  }
  // Live in-process rooms contain the authoritative player count and are always joinable by this process.
  for(const room of rooms.values())if(!deletingRoomIds.has(room.id))merged.set(room.id,publicRoomInfo(room));
- if(!merged.has(DEFAULT_ROOM_ID))merged.set(DEFAULT_ROOM_ID,{id:DEFAULT_ROOM_ID,code:DEFAULT_ROOM_ID,name:'Mar Aberto',mode:'coop',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
+ if(!merged.has(CLASSIC_ROOM_ID))merged.set(CLASSIC_ROOM_ID,{id:CLASSIC_ROOM_ID,code:CLASSIC_ROOM_ID,name:'Mergulho Online',mode:'coop',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
+ if(!merged.has(DEFAULT_ROOM_ID))merged.set(DEFAULT_ROOM_ID,{id:DEFAULT_ROOM_ID,code:DEFAULT_ROOM_ID,name:'Mar Aberto',mode:'open-sea',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
  if(!merged.has(PVP_ROOM_ID))merged.set(PVP_ROOM_ID,{id:PVP_ROOM_ID,code:PVP_ROOM_ID,name:'Mar Vermelho',mode:'pvp',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
  if(!merged.has(FOSSAS_ROOM_ID))merged.set(FOSSAS_ROOM_ID,{id:FOSSAS_ROOM_ID,code:FOSSAS_ROOM_ID,name:'Mar Abyssal - Fossas Cooperativo',mode:'rift',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
  return sortRoomInfos([...merged.values()]);
@@ -780,7 +783,7 @@ function getRoomSnapshot(room, metadata = {}, recipient=null){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.filter(e=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(e,recipient,roomAoiRadius(recipient))).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(o,recipient,roomAoiRadius(recipient))).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,submarine:room.mode==='coop'&&world.submarine?{x:world.submarine.x,y:world.submarine.y,controllerId:[...room.players.keys()][0]||null,weapons:Array.isArray(room.players.values().next().value?.submarineWeapons)?room.players.values().next().value.submarineWeapons:['photon'],powerSeconds:world.submarine.powerSeconds,sections:(world.submarine.sections||[]).map(s=>({id:s.id,name:s.name,x:s.x,y:s.y,hp:s.hp,maxHp:s.maxHp})),repair:world.submarine.repair?{sectionId:world.submarine.repair.sectionId,playerId:world.submarine.repair.playerId,startedAt:world.submarine.repair.startedAt,endsAt:world.submarine.repair.endsAt}:null}:null,enemies:world.enemies.filter(e=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(e,recipient,roomAoiRadius(recipient))).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(o,recipient,roomAoiRadius(recipient))).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -820,7 +823,7 @@ function getRoomMotionSnapshot(room, options = {}){
  const enemies=recipient?world.enemies.filter(e=>sendFar||(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)):world.enemies;
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
-  snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:motionNow,tickCount:world.tickCount||0,intervalMs:50,
+  snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:motionNow,tickCount:world.tickCount||0,intervalMs:50,submarine:room.mode==='coop'&&world.submarine?{x:world.submarine.x,y:world.submarine.y,controllerId:[...room.players.keys()][0]||null,powerSeconds:world.submarine.powerSeconds,sections:(world.submarine.sections||[]).map(s=>({id:s.id,hp:s.hp,maxHp:s.maxHp})),repair:world.submarine.repair?{sectionId:world.submarine.repair.sectionId,playerId:world.submarine.repair.playerId,startedAt:world.submarine.repair.startedAt,endsAt:world.submarine.repair.endsAt}:null}:null,
   enemies:enemies.map(e=>{
    const x=Math.round((Number(e.x)||0)*100)/100,y=Math.round((Number(e.y)||0)*100)/100;
     const base=[e.id,x,y,Number(e.hp)||0,Number(e.damageRevision)||0,Math.round((Number(e.angle)||0)*1000)/1000,Math.round((Number(e.phase)||0)*1000)/1000];
@@ -862,7 +865,7 @@ async function persistRoomRow(room){
  });
 }
 async function deleteRoomRow(roomId){
- if(roomId===DEFAULT_ROOM_ID){pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);return;}
+ if(roomId===DEFAULT_ROOM_ID||roomId===CLASSIC_ROOM_ID){pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);return;}
  deletingRoomIds.add(roomId);
  if(!pgPool||!roomRegistryReady){pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);return;}
  try{return await queueRoomDirectory(async()=>{await pgPool.query('DELETE FROM abyssal_rooms WHERE room_id=$1',[roomId]);pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);});}
@@ -885,7 +888,7 @@ async function initializeRoomRegistry(){
 }
 function ensureWorld(room){
  // Co-op is the classic 4800x3000 shooter; never expand an old room to exploration bounds.
- if(room?.mode==='coop'&&room.world){room.world.mode='classic';room.world.width=WORLD_WIDTH;room.world.height=WORLD_HEIGHT;}
+ if(room?.mode==='coop'&&room.world){room.world.mode='classic';room.world.width=WORLD_WIDTH;room.world.height=WORLD_HEIGHT;if(!room.world.submarine)room.world.submarine=WorldSimulation.createWorldState(Date.now(),'classic').submarine;}
  if(room?.mode==='pvp'){
   room.world.initialized=true;room.world.enemies=[];room.world.orbs=[];room.world.nextEnemyId=0;room.world.nextOrbId=0;
   return [];
@@ -900,7 +903,7 @@ function clearRoomWorld(room){
  if(room.pvpProjectiles)room.pvpProjectiles.length=0;
 }
 function scheduleUnjoinedRoomExpiry(room,delay=30000){
- if(!room||room.id===DEFAULT_ROOM_ID||room.id===PVP_ROOM_ID||room.id===FOSSAS_ROOM_ID)return;
+ if(!room||room.id===DEFAULT_ROOM_ID||room.id===CLASSIC_ROOM_ID||room.id===PVP_ROOM_ID||room.id===FOSSAS_ROOM_ID)return;
  if(room.emptyRoomTimer)clearTimeout(room.emptyRoomTimer);
  room.emptyRoomTimer=setTimeout(()=>{
   room.emptyRoomTimer=null;
@@ -1787,7 +1790,7 @@ io.on('connection', socket => {
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
   const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
   const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
-  const spawnX=expeditionSpawn?expeditionSpawn.x:clamp((room.mode==='open-sea'?1300:roomWorldWidth(room)*.5)+Math.cos(spawnAngle)*spawnRadius,80,roomWorldWidth(room)-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp((room.mode==='open-sea'?420:room.mode==='coop'?roomWorldHeight(room)*.11:roomWorldHeight(room)*.5)+Math.sin(spawnAngle)*spawnRadius,80,roomWorldHeight(room)-80);
+  const coopSub=room.mode==='coop'?room.world?.submarine:null;const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(room.mode==='open-sea'?1300:coopSub?coopSub.x+Math.cos(spawnAngle)*spawnRadius:roomWorldWidth(room)*.5+Math.cos(spawnAngle)*spawnRadius,80,roomWorldWidth(room)-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(room.mode==='open-sea'?420:coopSub?coopSub.y-25/WORLD_ZOOM+Math.sin(spawnAngle)*spawnRadius*.35:roomWorldHeight(room)*.5+Math.sin(spawnAngle)*spawnRadius,80,roomWorldHeight(room)-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':room.mode==='open-sea'?'open-sea':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,roomWorldWidth(room)-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
   const resumeBuild=resumedRun?.resumeBuild||{};const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,isDeveloper:isDeveloperUser(u),userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:clamp(Math.floor(Number(resumeBuild.regenLevel)||0),0,3),magnetStrength:clamp(Number(resumeBuild.magnetStrength)||1,1,1.26),rangeStrength:clamp(Number(resumeBuild.rangeStrength)||1,1,Math.pow(1.22,3)),arcChainActive:resumeBuild.arcChainActive===true,hadalBeamActive:resumeBuild.hadalBeamActive===true,ricochetLevel:clamp(Math.floor(Number(resumeBuild.ricochetLevel)||0),0,3),prismaticLevel:clamp(Math.floor(Number(resumeBuild.prismaticLevel)||0),0,3),predatorLevel:clamp(Math.floor(Number(resumeBuild.predatorLevel)||0),0,3),electricLevel:clamp(Math.floor(Number(resumeBuild.electricLevel)||0),0,3),shellLevel:clamp(Math.floor(Number(resumeBuild.shellLevel)||0),0,3),lastStandLevel:clamp(Math.floor(Number(resumeBuild.lastStandLevel)||0),0,3),regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:roomWorldWidth(room),worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',speedStrength:clamp(Number(resumeBuild.speedStrength)||1,1,4),specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:SpecimenSystem.effectiveStats(equippedSkinId,specimenPoints).hp,specimenMaxHp:SpecimenSystem.effectiveStats(equippedSkinId,specimenPoints).hp,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runLevel:Math.max(1,Math.floor(Number(resumedRun?.level)||1)),energy:Math.max(0,Number(resumedRun?.score)||0),runStats:resumedRun||{...makeRunStats(),energySkinId:equippedSkinId}};ensureMatchParticipant(room,p);
    if(room.mode==='rift'||room.mode==='open-sea'){
@@ -1822,6 +1825,29 @@ io.on('connection', socket => {
   persistRoomRow(room).catch(err=>console.error('[rooms] atualizar contagem após entrada:',err.message));broadcastRooms();broadcastOnline();refreshWorldTicker();
  });
  socket.on('join-world', () => socket.emit('legacy-join-world', {roomId:DEFAULT_ROOM_ID}));
+ socket.on('submarine-power',async(_,ack)=>{
+  const reply=result=>typeof ack==='function'&&ack(result),room=socketRoom(socket),u=users[socket.data.userKey],p=room?.players.get(socket.id);
+  if(!room||room.mode!=='coop'||!u||!p||p.alive===false||!room.world?.submarine)return reply({ok:false,message:'Submarino online indisponível.'});
+  const sub=room.world.submarine;if(Math.hypot(p.x-sub.x,p.y-sub.y)>390/EnemyAI.WORLD_ZOOM)return reply({ok:false,message:'Aproxime-se do submarino.'});
+  const missing=Math.max(0,300-(Number(sub.powerSeconds)||0));if(missing<=.01)return reply({ok:false,message:'Submarino já está com carga máxima.'});
+  const needed=Math.max(1,Math.ceil(20*missing/300)),cost=Math.min(needed,Math.max(0,Number(u.energy)||0));if(cost<=0)return reply({ok:false,message:'Energia insuficiente.'});
+  u.energy=Math.max(0,(Number(u.energy)||0)-cost);sub.powerSeconds=Math.min(300,(Number(sub.powerSeconds)||0)+cost/20*300);saveUsers();await flushPersistence();socket.emit('account-data',publicUser(u));broadcastWorld(room,{submarine:true});reply({ok:true,cost,powerSeconds:sub.powerSeconds,account:publicUser(u)});
+ });
+ socket.on('submarine-repair',(payload={},ack)=>{
+  const reply=result=>typeof ack==='function'&&ack(result),room=socketRoom(socket),p=room?.players.get(socket.id),sub=room?.world?.submarine,sectionId=Math.floor(Number(payload.sectionId));
+  if(!room||room.mode!=='coop'||!p||p.alive===false||!sub)return reply({ok:false,message:'Reparo online indisponível.'});
+  const section=(sub.sections||[]).find(s=>s.id===sectionId);if(!section||(Number(section.hp)||0)>=(Number(section.maxHp)||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP))return reply({ok:false,message:'Esta peça não precisa de reparo.'});
+  if(Math.hypot(p.x-section.x,p.y-section.y)>150/EnemyAI.WORLD_ZOOM)return reply({ok:false,message:'Aproxime-se da peça danificada.'});
+  if(sub.repair&&Date.now()<Number(sub.repair.endsAt))return reply({ok:false,message:'Já existe um reparo em andamento.'});
+  const startedAt=Date.now(),endsAt=startedAt+WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000;sub.repair={sectionId,playerId:socket.id,startedAt,endsAt,startX:Number(p.x),startY:Number(p.y)};broadcastWorld(room,{submarine:true});reply({ok:true,sectionId,startedAt,endsAt,durationSeconds:WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS});
+  setTimeout(()=>{
+   const liveRoom=rooms.get(room.id),liveSub=liveRoom?.world?.submarine,livePlayer=liveRoom?.players.get(socket.id),job=liveSub?.repair;
+   if(!liveRoom||!liveSub||!livePlayer||!job||job.playerId!==socket.id||job.sectionId!==sectionId||job.endsAt!==endsAt)return;
+   const liveSection=(liveSub.sections||[]).find(s=>s.id===sectionId);
+   if(livePlayer.alive!==false&&liveSection&&Math.hypot(livePlayer.x-liveSection.x,livePlayer.y-liveSection.y)<=150/EnemyAI.WORLD_ZOOM){liveSection.hp=liveSection.maxHp||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP;}
+   liveSub.repair=null;broadcastWorld(liveRoom,{submarine:true});
+  },WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000).unref?.();
+ });
  socket.on('leave-world', async () => { if(socket.data.userKey&&socket.data.joined) { try { await finishRunForSocket(socket,{}); } catch(err) { console.error('[run] Falha ao finalizar mergulho ao sair:',err.message); } } removeFromRoom(socket,{announce:true,emitResult:true}); });
  socket.on('client-visibility', payload => {
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!room||!p||!socket.data.joined)return;
@@ -1975,6 +2001,9 @@ io.on('connection', socket => {
   p.electricLevel = clamp(Math.floor(Number(payload.electricLevel) || 0), 0, 3);
   p.shellLevel = clamp(Math.floor(Number(payload.shellLevel) || 0), 0, 3);
   p.lastStandLevel = clamp(Math.floor(Number(payload.lastStandLevel) || 0), 0, 3);
+  const allowedSubmarineWeapons=new Set(['photon','electric','pierce','photonRay','nova','echoShot']);
+  p.submarineWeapons=[...new Set((Array.isArray(payload.submarineWeapons)?payload.submarineWeapons:[]).map(String).filter(id=>allowedSubmarineWeapons.has(id)))].slice(0,6);
+  if(!p.submarineWeapons.includes('photon'))p.submarineWeapons.unshift('photon');
  });
  socket.on('tutorial-preference',payload=>{
   const u=users[socket.data.userKey],mode=String(payload?.mode||'');

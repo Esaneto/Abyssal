@@ -83,7 +83,7 @@ function saveResonancePresets(){resonancePresets=normalizeResonancePresets(reson
 window.addEventListener('abyssal-account-data',event=>{const saved=event.detail?.resonancePresets;if(!saved)return;
  if(resonanceEditedInSession){if(!resonanceSyncedAfterLogin&&window.AbyssalOnline?.isAuthenticated?.()){resonanceSyncedAfterLogin=true;saveResonancePresets();}return;}
  resonancePresets=normalizeResonancePresets(saved);try{localStorage.setItem(RESONANCE_STORAGE_KEY,JSON.stringify(resonancePresets));}catch(_){}});
-let onlineEnemyById=new Map(),onlineOrbById=new Map(),onlineDamageQueue=[];
+let onlineEnemyById=new Map(),onlineOrbById=new Map(),onlineDamageQueue=[],onlineSubmarineControllerId=null,onlineSubmarineWeapons=['photon'];
 const predictedCombatHits=new Map();let predictedCombatSequence=0;
 function nextCombatActionId(skillId='hit'){predictedCombatSequence=(predictedCombatSequence+1)>>>0;return `${String(skillId||'hit').slice(0,18)}:${Date.now().toString(36)}:${predictedCombatSequence.toString(36)}`;}
 function predictCombatImpact(enemy,damage,skillId,actionId){if(!enemy||!actionId)return;const key=`${actionId}:${enemy.id}`;predictedCombatHits.set(key,{at:performance.now(),enemyId:String(enemy.id),skillId:String(skillId||''),damage:Number(damage)||0});enemy.hit=Math.max(Number(enemy.hit)||0,.16);burst(enemy.x,enemy.y,'#c4b4ff',3,50);spawnDamageNumber(enemy.x,enemy.y,damage,damageTone(skillId));if(predictedCombatHits.size>256){const cutoff=performance.now()-2500;for(const [id,row] of predictedCombatHits)if(row.at<cutoff)predictedCombatHits.delete(id);}}
@@ -625,7 +625,8 @@ function holdSoloHullAttack(e,dt,now){
  e.attackCd=Math.max(0,(Number(e.attackCd)||0)-dt);
  soloHullContact(e,now);return true;
 }
-const SOLO_HULL_REPAIR_SECONDS=6;
+const SOLO_HULL_REPAIR_SECONDS=6,ONLINE_HULL_REPAIR_SECONDS=15;
+const submarineRepairSeconds=()=>onlineMode&&onlineRoomMode==='coop'?ONLINE_HULL_REPAIR_SECONDS:SOLO_HULL_REPAIR_SECONDS;
 function soloRepairCandidate(){
  if(!soloSubmarineActive()||!player||soloSubmarine.spawnFx>1.25)return null;
  let best=null,d=Infinity;
@@ -644,9 +645,17 @@ function soloRepairSurface(section,x,y){
 }
 function cancelSoloHullRepair(){if(!soloSubmarine.repair)return false;soloSubmarine.repair=null;return true;}
 function repairSoloHull(){
- if(soloSubmarine.repair){cancelSoloHullRepair();return false;}
+ if(soloSubmarine.repair){if(!onlineMode)cancelSoloHullRepair();return false;}
  const section=soloRepairCandidate();if(!section)return false;
  const point=soloRepairSurface(section,player.x,player.y);
+ if(onlineMode&&onlineRoomMode==='coop'){
+  const sent=window.AbyssalOnline?.submarineRepair?.(section.id,result=>{
+   if(!result?.ok){showToast(String(result?.message||'REPARO ONLINE INDISPONÍVEL').toUpperCase());return;}
+   soloSubmarine.repair={section,elapsed:0,point,startX:player.x,startY:player.y,startedAt:Number(result.startedAt)||Date.now(),endsAt:Number(result.endsAt)||Date.now()+ONLINE_HULL_REPAIR_SECONDS*1000,online:true};
+   showToast('REPARO INICIADO · 15 SEGUNDOS');
+  });
+  return Boolean(sent);
+ }
  soloSubmarine.repair={section,elapsed:0,point,startX:player.x,startY:player.y};
  player.bodyAngle=player.angle=player.weaponAngle=Math.atan2(point.y-player.y,point.x-player.x);
  return true;
@@ -663,21 +672,27 @@ function updateSoloHullRepair(dt){
     Math.hypot(player.x-job.startX,player.y-job.startY)>8/GAME_WORLD_ZOOM||
     !SOLO_CAVERN.isBlocked(job.section.collision,player.x,player.y,75/GAME_WORLD_ZOOM+(Number(player.r)||0))){cancelSoloHullRepair();return false;}
  const point=job.point;player.bodyAngle=player.angle=player.weaponAngle=Math.atan2(point.y-player.y,point.x-player.x);
- job.elapsed=Math.min(SOLO_HULL_REPAIR_SECONDS,job.elapsed+Math.max(0,Number(dt)||0));
- if(job.elapsed+1e-8<SOLO_HULL_REPAIR_SECONDS)return false;
+ const repairSeconds=submarineRepairSeconds();
+ if(onlineMode&&job.online){job.elapsed=Math.min(repairSeconds,Math.max(0,(Date.now()-(Number(job.startedAt)||Date.now()))/1000));return false;}
+ job.elapsed=Math.min(repairSeconds,job.elapsed+Math.max(0,Number(dt)||0));
+ if(job.elapsed+1e-8<repairSeconds)return false;
  soloSubmarine.repair=null;finishSoloHullRepair(job.section);return true;
 }
 function ensureSoloRepairButton(){let b=$('soloSubmarineRepairBtn');if(b)return b;b=document.createElement('button');b.id='soloSubmarineRepairBtn';b.type='button';b.hidden=true;b.innerHTML='<span aria-hidden="true">🔧</span><small>REPARAR</small>';b.addEventListener('click',repairSoloHull);$('petHabitBar')?.prepend(b);return b;}
 window.addEventListener('keydown',e=>{if(e.code==='KeyT'&&!e.repeat&&(soloSubmarine.repair||soloRepairCandidate())&&!e.target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]')){e.preventDefault();repairSoloHull();}});
 const SOLO_SUB_RANGE=650/GAME_WORLD_ZOOM;
-function soloSubmarineActive(){return !onlineMode&&isClassicShooterRun()&&gameState==='playing';}
+function soloSubmarineActive(){return isClassicShooterRun()&&gameState==='playing'&&(!onlineMode||onlineRoomMode==='coop');}
 function resetSoloSubmarine(){
  soloSubmarine={x:W*.5,y:H*.39,powerSeconds:0,spawnFx:2.2,weaponTimers:Object.create(null),weaponAngles:Object.create(null),sections:[],debris:[],shieldSpent:false,shieldFlashUntil:0,repair:null};
  ensureSoloHull();
 }
 function ensureSoloHull(){if(!SOLO_CAVERN?.submarineHull||!soloSubmarine.x)return;if(!soloSubmarine.sections.length)soloSubmarine.sections=makeSoloHullSections();syncSoloHull();}
-function soloSubmarinePowered(){return !onlineMode&&isClassicShooterRun()&&soloSubmarine.powerSeconds>0.01;}
+function soloSubmarinePowered(){return isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop')&&soloSubmarine.powerSeconds>0.01;}
 function soloSubmarineTopUp(){
+ if(onlineMode&&onlineRoomMode==='coop'){
+  const sent=window.AbyssalOnline?.submarinePower?.(result=>{if(result?.ok){soloSubmarine.powerSeconds=Math.max(soloSubmarine.powerSeconds,Number(result.powerSeconds)||0);showToast('SUBMARINO ONLINE ENERGIZADO · '+Math.ceil(soloSubmarine.powerSeconds/60)+' MIN');}else showToast(String(result?.message||'NÃO FOI POSSÍVEL ENERGIZAR').toUpperCase());});
+  return {ok:Boolean(sent),online:true};
+ }
  if(!window.AbyssalSoloBase)return {ok:false,reason:'unavailable'};
  const result=window.AbyssalSoloBase.topUp(soloSubmarine.powerSeconds);
  if(result.ok){soloSubmarine.powerSeconds=result.remaining;showToast('SUBMARINO ENERGIZADO · '+Math.ceil(result.remaining/60)+' MIN');playWorldSound('ui-purchase',player,750,.8);}
@@ -692,12 +707,12 @@ function ensureSoloSubmarineButton(){
 }
 function updateSoloSubmarineInteraction(){
  const button=ensureSoloSubmarineButton(),repair=ensureSoloRepairButton();if(!button)return;
- const job=soloSubmarine.repair,damaged=job?.section||soloRepairCandidate();repair.hidden=!soloSubmarineActive()||!damaged;if(damaged&&!repair.hidden){const label=repair.querySelector('small'),name=job?'CANCELAR · '+Math.ceil(SOLO_HULL_REPAIR_SECONDS-job.elapsed)+'s':damaged.name+' '+Math.ceil(damaged.hp)+'/'+SOLO_HULL_HP;if(label.textContent!==name)label.textContent=name;repair.setAttribute('aria-label',job?'Cancelar soldagem '+name:'Reparar '+name);}
+ const job=soloSubmarine.repair,damaged=job?.section||soloRepairCandidate();repair.hidden=!soloSubmarineActive()||!damaged;if(damaged&&!repair.hidden){const label=repair.querySelector('small'),duration=submarineRepairSeconds(),name=job?(onlineMode?'REPARANDO · ':'CANCELAR · ')+Math.ceil(Math.max(0,duration-job.elapsed))+'s':damaged.name+' '+Math.ceil(damaged.hp)+'/'+SOLO_HULL_HP;if(label.textContent!==name)label.textContent=name;repair.setAttribute('aria-label',job?(onlineMode?'Reparo em andamento '+name:'Cancelar soldagem '+name):'Reparar '+name);}
  if(!soloSubmarineActive()||!player){button.hidden=true;return;}
  const near=Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM;
  button.hidden=!near;if(!near)return;
- const full=window.AbyssalSoloBase?.fullPowerCost?.()||20,seconds=Math.max(0,soloSubmarine.powerSeconds),minutes=seconds/60;
- const missing=Math.max(0,300-seconds),needed=missing<=.01?0:Math.max(1,Math.ceil(full*missing/300)),wallet=Math.max(0,Number(energyWallet?.get().energy)||0),cost=wallet>0?Math.min(needed,wallet):needed;
+ const full=20,seconds=Math.max(0,soloSubmarine.powerSeconds),minutes=seconds/60;
+ const missing=Math.max(0,300-seconds),needed=missing<=.01?0:Math.max(1,Math.ceil(full*missing/300)),wallet=onlineMode?Math.max(0,Number(window.AbyssalOnline?.getAccount?.()?.energy)||0):Math.max(0,Number(energyWallet?.get().energy)||0),cost=wallet>0?Math.min(needed,wallet):needed;
  const parent=mobileViewport?$('petHabitBar'):$('gameShell');if(parent&&button.parentElement!==parent)parent.prepend(button);
  button.classList.toggle('compact-submarine-power',mobileViewport);
  button.disabled=needed===0||wallet<=0;
@@ -741,7 +756,7 @@ function fireSoloSubmarineWeapon(id,target,a,dt=0){
   (soloSubmarine.weaponFlash||=Object.create(null))[id]=performance.now()+120;
   for(const e of enemies){
    if(!e||e.hp<=0||!PHOTON_RAY_VISUAL.segmentCircleHit(ox,oy,end.x2,end.y2,e.x,e.y,e.r+width*.5))continue;
-   dealEnemyDamage(e,damage/BASE_SHOT_INTERVAL*interval,'photonRay',{origin:muzzle});e.hit=.08;burst(e.x,e.y,'#bafaff',2,35);
+   dealEnemyDamage(e,damage/BASE_SHOT_INTERVAL*interval,'photonRay',{origin:muzzle,submarineShot:true});e.hit=.08;burst(e.x,e.y,'#bafaff',2,35);
   }
   return;
  }
@@ -752,7 +767,7 @@ function fireSoloSubmarineWeapon(id,target,a,dt=0){
   const novaDamage=damage/BASE_SHOT_INTERVAL;
   for(const e of enemies){
    if(!e||e.hp<=0||!window.AbyssalGravityCone?.contains?.(ox,oy,a,e.x,e.y,e.r,SOLO_SUB_RANGE)||!pveProjectileTerrainClear(ox,oy,e.x,e.y,2))continue;
-   dealEnemyDamage(e,novaDamage,'nova',{origin:muzzle});burst(e.x,e.y,'#72f5ff',3,70);
+   dealEnemyDamage(e,novaDamage,'nova',{origin:muzzle,submarineShot:true});burst(e.x,e.y,'#72f5ff',3,70);
   }
   spawnNovaVisual(ox,oy,SOLO_SUB_RANGE,'#72f5ff',false,a,false);playSkillSound('nova','trigger');return;
  }
@@ -769,9 +784,9 @@ function updateSoloSubmarine(dt){
  soloSubmarine.spawnFx=Math.max(0,soloSubmarine.spawnFx-dt);
  for(let i=soloSubmarine.debris.length-1;i>=0;i--){const d=soloSubmarine.debris[i];d.life-=dt;if(d.life<=0){soloSubmarine.debris.splice(i,1);continue;}d.x+=d.vx*dt;d.y+=d.vy*dt;d.vy+=28*dt/GAME_WORLD_ZOOM;d.angle+=d.spin*dt;}
  if(soloSubmarine.powerSeconds<=0){clearSoloSubmarinePhotonRay();return;}
- soloSubmarine.powerSeconds=Math.max(0,soloSubmarine.powerSeconds-dt);
+ if(!onlineMode)soloSubmarine.powerSeconds=Math.max(0,soloSubmarine.powerSeconds-dt);
  if(soloSubmarine.powerSeconds<=0){clearSoloSubmarinePhotonRay();return;}
- const shots=window.AbyssalSoloBase?.installedWeapons?.()||[];
+ const shots=onlineMode?onlineSubmarineWeapons:(window.AbyssalSoloBase?.installedWeapons?.()||[]);
  if(!shots.includes('photonRay')||!soloWeaponOperational('photonRay'))clearSoloSubmarinePhotonRay();
  const candidates=refreshSoloSubmarineTargetCandidates();
  shots.forEach(id=>{if(!soloWeaponOperational(id))return;soloSubmarine.weaponTimers[id]=Math.max(0,(Number(soloSubmarine.weaponTimers[id])||0)-dt);const target=soloSubmarineTarget(id,candidates);if(!target){if(id==='photonRay')clearSoloSubmarinePhotonRay();return;}soloSubmarine.weaponAngles[id]=target.angle;fireSoloSubmarineWeapon(id,target.enemy,target.angle,dt);});
@@ -1031,7 +1046,7 @@ function createArenaRocks(){
  // Exploration uses natural geology. Classic Solo/Online and PvP use arena stones.
  if(usesNaturalOceanTerrain()||isRiftRun())return;
  // Solo no longer uses the old perimeter art; its solid shelves are the whole arena.
- if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN){arenaRocks=SOLO_CAVERN.buildRocks(W,H);ensureSoloHull();return;}
+ if(isClassicShooterRun()&&onlineRoomMode!=='pvp'&&SOLO_CAVERN){arenaRocks=SOLO_CAVERN.buildRocks(W,H);ensureSoloHull();return;}
  if(onlineRoomMode==='pvp'){
   const minDim=Math.min(W,H),cx=W*.5,cy=H*.5;
   const rnd=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453123;return v-Math.floor(v);};
@@ -1660,8 +1675,8 @@ if(isOpenSeaRun()){
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;effectPool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();aquaticMotionTracker?.clear?.();remoteCreatureAttackUntil.clear();
  // Recreate bounds for the selected mode, not the menu's previous dimensions.
  createArenaRocks();
- if(!onlineMode&&isClassicShooterRun())resetSoloSubmarine();
- const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:(!onlineMode&&isClassicShooterRun()?soloSubmarine.x:W*.5),y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:(!onlineMode&&isClassicShooterRun()?soloSubmarine.y-25/GAME_WORLD_ZOOM:H*.11)};
+ if(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop'))resetSoloSubmarine();
+ const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop')?soloSubmarine.x:W*.5),y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop')?soloSubmarine.y-25/GAME_WORLD_ZOOM:H*.11)};
  expandingSkinClouds.length=0;expandingSkinPulses.length=0;
  player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:Math.PI/2,bodyAngle:Math.PI/2,weaponAngle:Math.PI/2,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,maxHp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
@@ -1675,7 +1690,7 @@ if(isOpenSeaRun()){
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  const cockpit=document.getElementById('submarineWorkshop');if(cockpit&&!cockpit.hidden){cockpit.hidden=true;window.AbyssalSubmarineCockpit?.close?.();}
  gameState='playing';worldZoom=desiredWorldZoom();updateCamera();syncMobileFireButton();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='block';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();playWorldSound('ui-open',player,850,.9);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else if(isOpenSeaRun())updateSoloOceanChunks(true);else {for(let i=0;i<3;i++)spawnEnemy(true,'common');}}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
+ updateHud();last=performance.now();playWorldSound('ui-open',player,850,.9);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else if(isOpenSeaRun())updateSoloOceanChunks(true);else {for(let i=0;i<3;i++)spawnEnemy(true,'common');}}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand,submarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||['photon']});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
  window.AbyssalTutorials?.enter(isOpenSeaRun()?'open-sea':onlineMode?onlineRoomMode:(requestedRunMode==='rift'?'rift-solo':'solo'));
  scheduleGameLoop();
 }
@@ -1789,7 +1804,7 @@ function chooseUpgrade(u){
  if(!upgrades.photonCascade&&upgradeLevels.photon>=3&&upgradeLevels.spread>=3){upgrades.photonCascade=1;upgradeLevels.photonCascade=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.photonCascade.name;}
  if(!upgrades.tidalEcho&&upgradeLevels.echoShot>=3&&upgradeLevels.ricochet>=3){upgrades.tidalEcho=1;upgradeLevels.tidalEcho=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.tidalEcho.name;}
  if(!upgrades.hadalBeam&&upgradeLevels.photonRay>=3&&upgradeLevels.range>=3){upgrades.hadalBeam=1;upgradeLevels.hadalBeam=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.hadalBeam.name;}
- if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});
+ if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand,submarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||['photon']});
  // Save through the shared codex cache; referencing a local, undefined "codex" here
  // used to throw before the level-up overlay closed, breaking both click and auto-pick.
  discoverCodexSkill(u.id);
@@ -2307,6 +2322,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
   if(!enemy||enemy.hp<=0||!Number.isFinite(damage)||damage<=0)return;
  if(activeMapLayout&&enemy.spawnedAt&&Date.now()-enemy.spawnedAt<3000)return;
  if(onlineRoomMode!=='pvp'&&player&&!String(skillId||'').startsWith('rift-hazard-')&&skillId!=='skin-active-poison-dot'){const origin=options.origin||player;const ranged=options.projectile||options.submarineShot||['electric','pierce','photon','photonRay','nova','echoShot','prismShard','ricochet','skin-active-shot','skin-active-slowShot'].includes(skillId);if(!(ranged?pveProjectileTerrainClear:pveTerrainClear)(origin.x,origin.y,enemy.x,enemy.y,2))return;}
+ if(onlineMode&&options.submarineShot&&onlineSubmarineControllerId&&window.AbyssalOnline?.getSocketId?.()!==onlineSubmarineControllerId){enemy.hit=.12;return;}
  score += Math.round(damage);
  if(options.silentSound!==true&&!options.secondary)playWorldSound('enemy-hit',enemy,620,.62);
  if(skillId&&options.silentSound!==true)playSkillSound(skillId,'trigger');
@@ -2408,6 +2424,15 @@ function applySharedSnapshot(data){
   enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();lastAuthoritativeSnapshotSeq=0;authoritativeSnapshotHistory.clear();pendingOnlineHitVitals=pendingOnlineHitVitals.filter(item=>String(item.worldId||'')===incomingWorldId);
  }
  if(data.map)setActiveMapDescriptor(data.map);
+ if(data.submarine&&onlineRoomMode==='coop'){
+  if(!soloSubmarine.sections.length||Math.abs(soloSubmarine.x-(Number(data.submarine.x)||W*.5))>1){soloSubmarine.x=Number(data.submarine.x)||W*.5;soloSubmarine.y=Number(data.submarine.y)||H*.39;soloSubmarine.sections=[];ensureSoloHull();}
+  soloSubmarine.powerSeconds=Math.max(0,Number(data.submarine.powerSeconds)||0);onlineSubmarineControllerId=String(data.submarine.controllerId||'')||null;onlineSubmarineWeapons=Array.isArray(data.submarine.weapons)&&data.submarine.weapons.length?[...data.submarine.weapons]:['photon'];
+  for(const remote of data.submarine.sections||[]){const local=soloSubmarine.sections.find(s=>s.id===Number(remote.id));if(local)local.hp=Math.max(0,Number(remote.hp)||0);}
+  syncSoloHull();
+  const repair=data.submarine.repair,section=repair?soloSubmarine.sections.find(s=>s.id===Number(repair.sectionId)):null;
+  if(repair&&section){const point=soloRepairSurface(section,player?.x||section.x,player?.y||section.y);soloSubmarine.repair={section,point,startX:player?.x||0,startY:player?.y||0,startedAt:Number(repair.startedAt)||Date.now(),endsAt:Number(repair.endsAt)||Date.now()+ONLINE_HULL_REPAIR_SECONDS*1000,elapsed:Math.max(0,(Date.now()-(Number(repair.startedAt)||Date.now()))/1000),online:true};}
+  else if(soloSubmarine.repair?.online)soloSubmarine.repair=null;
+ }
  if(isRiftRun()&&data.depthState)window.dispatchEvent(new CustomEvent('abyssal-depth-state',{detail:data.depthState}));
  if(data.bossesDefeated!=null&&Number.isFinite(Number(data.bossesDefeated))){
   const defeated=Math.max(0,Math.floor(Number(data.bossesDefeated)||0));
@@ -3142,7 +3167,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen){playSkillSound('regen','trigger');queueEffect({type:'regen-pulse',x:player.x,y:player.y,max:player.r*2.8,life:.55,maxLife:.55,color:'#67f5a0'});}}
  if(gameState==='playing'&&upgrades.ward>0){const interval=Math.max(18,28-(upgrades.ward-1)*4);if(!Number.isFinite(player.wardTimer))player.wardTimer=interval;player.wardTimer-=dt;if(player.wardTimer<=0){player.wardTimer=interval;player.invuln=Math.max(player.invuln,.55);burst(player.x,player.y,'#9deaff',14,105);queueEffect({type:'ward-collapse',x:player.x,y:player.y,max:player.r*3.2,life:.55,maxLife:.55,color:'#8deaff'});playSkillSound('shield','trigger');}}
- if(gameState==='playing'&&upgrades.pressureCocoon>0){const cocoonInterval=[0,24,20,16][Math.min(3,upgrades.pressureCocoon)];if(upgrades.shield<=0){player.pressureCocoonTimer=(Number.isFinite(player.pressureCocoonTimer)?player.pressureCocoonTimer:cocoonInterval)-dt;if(player.pressureCocoonTimer<=0){player.pressureCocoonTimer=cocoonInterval;upgrades.shield=1;queueEffect({type:'ward-collapse',x:player.x,y:player.y,max:player.r*3.6,life:.7,maxLife:.7,color:'#58d6c4'});burst(player.x,player.y,'#76f5df',18,100);if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,prismaticLevel:upgrades.spread,predatorLevel:upgrades.predator,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});}}else player.pressureCocoonTimer=cocoonInterval;}
+ if(gameState==='playing'&&upgrades.pressureCocoon>0){const cocoonInterval=[0,24,20,16][Math.min(3,upgrades.pressureCocoon)];if(upgrades.shield<=0){player.pressureCocoonTimer=(Number.isFinite(player.pressureCocoonTimer)?player.pressureCocoonTimer:cocoonInterval)-dt;if(player.pressureCocoonTimer<=0){player.pressureCocoonTimer=cocoonInterval;upgrades.shield=1;queueEffect({type:'ward-collapse',x:player.x,y:player.y,max:player.r*3.6,life:.7,maxLife:.7,color:'#58d6c4'});burst(player.x,player.y,'#76f5df',18,100);if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,prismaticLevel:upgrades.spread,predatorLevel:upgrades.predator,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand,submarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||['photon']});}}else player.pressureCocoonTimer=cocoonInterval;}
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);queueEffect({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.62,maxLife:.62,color:'#c18cff'});queueEffect({type:'ring',x:player.x,y:player.y,r:0,max:145*upgrades.range/GAME_WORLD_ZOOM,life:.4,maxLife:.4,color:'#f0d9ff'});playWorldSound('ability-nova',player,1000,.82)}}
  if(upgrades.photonRay>0&&(!isManualFiringMode()||manualFireDown())){
   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
@@ -5669,7 +5694,7 @@ function enterOnlineGameplay(data){const d=data||{};const canResume=Boolean(d.re
  for(const id of [...screens,'roomsScreen','loginScreen']){const node=$(id);if(node)node.hidden=true;}
  document.body.classList.add('game-active');
  try{createArenaRocks();}catch(error){console.error('[online-entry] Falha ao preparar arena; continuando entrada:',error);arenaRocks=[];}
- if(!canResume){startGame();}else{gameState='playing';last=performance.now();onlineDamageQueue.length=0;const hud=$('hud'),toggle=$('toggleHudBtn'),pause=$('pauseBtn');if(hud)hud.hidden=false;if(toggle)toggle.hidden=false;if(pause)pause.hidden=false;setMobileGameActive(true);window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});}if(onlineRoomMode==='pvp'){enemies.length=0;orbs.length=0;projectiles.length=0;}if(player)player.invuln=Math.max(player.invuln,5);if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);if(d.resumedRun&&d.runResume)restoreDeployRunProgress(d.runResume);const badge=$('roomBadge');if(badge){badge.textContent=`${onlineRoomMode==='pvp'?'⚠ ARENA PvP':'⌁'} ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.dataset.mode=onlineRoomMode;badge.classList.toggle('pvp-room-badge',onlineRoomMode==='pvp');badge.hidden=false;}scheduleGameLoop();showToast(d.reconnected&&d.resumedRun?'CONEXÃO RESTAURADA · EXPEDIÇÃO RETOMADA':onlineRoomMode==='pvp'?'⚠ ARENA PvP · PERIGO':'MERGULHAR ONLINE · '+(d.room?.name||'SALA ABISSAL'));}
+ if(!canResume){startGame();}else{gameState='playing';last=performance.now();onlineDamageQueue.length=0;const hud=$('hud'),toggle=$('toggleHudBtn'),pause=$('pauseBtn');if(hud)hud.hidden=false;if(toggle)toggle.hidden=false;if(pause)pause.hidden=false;setMobileGameActive(true);window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand,submarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||['photon']});}if(onlineRoomMode==='pvp'){enemies.length=0;orbs.length=0;projectiles.length=0;}if(player)player.invuln=Math.max(player.invuln,5);if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);if(d.resumedRun&&d.runResume)restoreDeployRunProgress(d.runResume);const badge=$('roomBadge');if(badge){badge.textContent=`${onlineRoomMode==='pvp'?'⚠ ARENA PvP':'⌁'} ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.dataset.mode=onlineRoomMode;badge.classList.toggle('pvp-room-badge',onlineRoomMode==='pvp');badge.hidden=false;}scheduleGameLoop();showToast(d.reconnected&&d.resumedRun?'CONEXÃO RESTAURADA · EXPEDIÇÃO RETOMADA':onlineRoomMode==='pvp'?'⚠ ARENA PvP · PERIGO':'MERGULHAR ONLINE · '+(d.room?.name||'SALA ABISSAL'));}
 function activateOnlineEntry(detail){try{enterOnlineGameplay(detail||{});return document.body.classList.contains('game-active')&&gameState==='playing';}catch(error){console.error('[online-entry] Falha ao inicializar gameplay após confirmação da sala:',error);const menu=$('menuScreen'),rooms=$('roomsScreen'),login=$('loginScreen'),hud=$('hud'),pause=$('pauseBtn'),toggle=$('toggleHudBtn');if(menu)menu.hidden=true;if(rooms)rooms.hidden=true;if(login)login.hidden=true;document.body.classList.add('game-active');onlineMode=true;gameState='playing';setMobileGameActive(true);if(hud)hud.hidden=false;if(pause)pause.hidden=false;if(toggle)toggle.hidden=false;last=performance.now();scheduleGameLoop();return true;}}
 window.addEventListener('abyssal-room-joined',ev=>{if(!activateOnlineEntry(ev.detail))showToast('Falha ao iniciar a expedição online. Tentando recuperar…');});
 window.addEventListener('abyssal-room-entry-retry',ev=>{if(document.body.classList.contains('game-active')&&gameState==='playing')return;activateOnlineEntry(ev.detail||{});});
