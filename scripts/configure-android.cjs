@@ -43,6 +43,8 @@ const updaterJava=path.join(javaDir,'AbyssalUpdaterPlugin.java');
 fs.writeFileSync(updaterJava,`package com.esaneto.abyssal;
 
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -63,6 +65,20 @@ import java.util.Locale;
 @CapacitorPlugin(name = "AbyssalUpdater")
 public class AbyssalUpdaterPlugin extends Plugin {
   private static final long MAX_UPDATE_BYTES = 750L * 1024L * 1024L;
+
+  @PluginMethod
+  public void getUpdateChannel(PluginCall call) {
+    String channel = "play";
+    try {
+      PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), PackageManager.GET_PERMISSIONS);
+      if (info.requestedPermissions != null) for (String permission : info.requestedPermissions) {
+        if ("android.permission.REQUEST_INSTALL_PACKAGES".equals(permission)) channel = "direct";
+      }
+    } catch (Exception ignored) {}
+    JSObject result = new JSObject();
+    result.put("channel", channel);
+    call.resolve(result);
+  }
 
   @PluginMethod
   public void installApk(PluginCall call) {
