@@ -271,7 +271,7 @@ function registerPaymentRoutes(options) {
       const expectedSkins=(Array.isArray(order?.skin_ids)?order.skin_ids:[]).slice().sort();
       const sessionPaymentIntent=typeof session.payment_intent==='string'?session.payment_intent:session.payment_intent?.id||null;
       const orderMatches=order&&Boolean(session.livemode)===/^(sk|rk)_live_/.test(String(process.env.STRIPE_SECRET_KEY||''))&&order.checkout_session_id===session.id&&session.mode==='payment'&&session.payment_status==='paid'&&Number(session.amount_total)===Number(order.amount)&&paidCurrency===order.currency&&session.client_reference_id===order.user_key&&session.metadata?.user_key===order.user_key&&session.metadata?.product_id===order.product_id&&sessionSkins.length===expectedSkins.length&&sessionSkins.every((id,index)=>id===expectedSkins[index]);
-      if(orderMatches&&order.status!=='paid'){
+      if(orderMatches&&order.status!=='paid'&&order.status!=='refunded'){
        const state=await client.query("SELECT state_value FROM abyssal_state WHERE state_key='users' FOR UPDATE"),stored=state.rows[0]&&state.rows[0].state_value||{},user=stored[order.user_key];
        if(user){
         const skins=Array.isArray(order.skin_ids)?order.skin_ids:[];
@@ -319,7 +319,7 @@ function registerPaymentRoutes(options) {
     if((event.type==='checkout.session.completed'||event.type==='checkout.session.async_payment_succeeded')&&session&&session.payment_status==='paid'){
      const orderId=String(session.metadata&&session.metadata.order_id||'');
      const order=localOrders[orderId];
-     if(order&&order.status!=='paid'&&order.checkoutSessionId===session.id&&session.mode==='payment'&&Number(session.amount_total)===Number(order.amount)&&String(session.currency||'').toLowerCase()===order.currency&&session.client_reference_id===order.userKey&&session.metadata?.user_key===order.userKey&&session.metadata?.product_id===order.productId&&String(session.metadata?.skin_ids||'').split(',').filter(Boolean).sort().join(',')===(order.skinIds||[]).slice().sort().join(',')){
+     if(order&&order.status!=='paid'&&order.status!=='refunded'&&order.checkoutSessionId===session.id&&session.mode==='payment'&&Number(session.amount_total)===Number(order.amount)&&String(session.currency||'').toLowerCase()===order.currency&&session.client_reference_id===order.userKey&&session.metadata?.user_key===order.userKey&&session.metadata?.product_id===order.productId&&String(session.metadata?.skin_ids||'').split(',').filter(Boolean).sort().join(',')===(order.skinIds||[]).slice().sort().join(',')){
       const allUsers=getUsers();
       const user=allUsers[order.userKey];
       if(user){

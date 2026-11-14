@@ -34,6 +34,7 @@
  function study(id,levels={},inventory={},offshore=null){
   const definition=DEFINITIONS[id];
   if(!definition)return {ok:false,reason:'unknown-research'};
+  if(Object.hasOwn(COMBAT_ENERGY,id))return {ok:false,reason:'energy-required',cost:COMBAT_ENERGY[id]};
   const safeLevels=sanitizeLevels(levels),safeInventory=sanitizeInventory(inventory);
   const level=safeLevels[id],cost=costFor(id,level),offshoreCost=offshoreCostFor(id,level)||{};
   if(level>=definition.max)return {ok:false,reason:'max-level'};

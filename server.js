@@ -2888,7 +2888,7 @@ io.on('connection', socket => {
  });
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
   socket.on('equip-title', payload => { const u=users[socket.data.userKey];if(!u||!payload)return;const id=String(payload.id||'');if(!unlockedTitleIds(u).includes(id))return socket.emit('account-data',publicUser(u));u.equippedTitle=id;saveUsers();socket.emit('account-data',publicUser(u));const room=socketRoom(socket),player=room?.players.get(socket.id);if(player){player.titleId=id;io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));} });
- socket.on('save-cosmetics', (payload,ack) => {
+ socket.on('save-cosmetics', async(payload,ack) => {
   const u = users[socket.data.userKey];
   const reply=data=>{if(typeof ack==='function')ack(data);};
   if (!u || !payload) return reply({ok:false,message:'Entre na conta para salvar.'});
@@ -2933,7 +2933,7 @@ io.on('connection', socket => {
    }
   }
   saveUsers();
-  socket.emit('account-data', publicUser(u));reply({ok:true,account:publicUser(u)});
+  try{await flushPersistence();}catch{return reply({ok:false,message:'Não foi possível confirmar o salvamento. Atualize a conta.'});}socket.emit('account-data', publicUser(u));reply({ok:true,account:publicUser(u)});
  });
  socket.on('purchase-avatar-cosmetic',async(payload={},ack)=>{
   const reply=data=>{if(typeof ack==='function')ack(data);};const u=users[socket.data.userKey];if(!u)return reply({ok:false,message:'Entre na conta para comprar.'});migrateEnergy(u);
@@ -3099,7 +3099,7 @@ io.on('connection', socket => {
   if(p&&p.alive!==false)return respond({ok:false,reason:'return-to-base'});
   const id=String(payload.id||'');
   const levels=ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels;
-  if(payload.currency==='energy'){
+  if(Object.hasOwn(ResearchSystem.COMBAT_ENERGY,id)||payload.currency==='energy'){
    migrateEnergy(u);
    const result=ResearchSystem.studyCombatEnergy(id,levels,u.metaUpgrades||{},u.energy);
    if(!result.ok)return respond(result);

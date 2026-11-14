@@ -24,7 +24,7 @@
  const products=Object.freeze(PAID_SLOTS.flatMap(slot=>slots[slot].map(i=>Object.freeze(product(slot,i.id)))));
  function byProduct(key){return products.find(p=>p.key===key)||null;}
  function normalizeOwned(value){return [...new Set((Array.isArray(value)?value:[]).filter(k=>{const p=byProduct(k);return p&&p.currency!=='free';}))];}
- function owns(slot,id,owned=[]){const p=product(slot,id);return Boolean(p&&(p.currency==='free'||owned.includes(p.key)));}
+ function owns(slot,id,owned=[]){const p=product(slot,id);return Boolean(p&&(p.currency==='free'||(Array.isArray(owned)&&owned.includes(p.key))));}
  function locked(value,owned=[]){const v=normalize(value);return Object.keys(DEFAULT).filter(k=>!owns(k,v[k],owned)).map(k=>product(k,v[k]));}
  function authorized(value,owned=[]){const v=normalize(value);for(const p of locked(v,owned))v[p.slot]=DEFAULT[p.slot];return v;}
  function buyEnergy(key,owned,balance){const p=byProduct(key),ids=normalizeOwned(owned),energy=Math.max(0,Math.floor(Number(balance)||0));if(!p||p.currency!=='energy')return {ok:false,reason:'invalid-product'};if(ids.includes(key))return {ok:true,owned:ids,energy,alreadyOwned:true};if(energy<p.price)return {ok:false,reason:'energy',cost:p.price};return {ok:true,owned:[...ids,key],energy:energy-p.price,cost:p.price};}
