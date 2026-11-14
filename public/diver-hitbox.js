@@ -18,7 +18,7 @@
   const aimCos=Math.cos(aim),aimSin=Math.sin(aim);
   // Collision uses the same neutral rig, conservatively covering the small kick envelope.
   // Cosmetic client phases are not trusted for authoritative hit detection.
-  const view=rig.viewFor?.(rig.GAMEPLAY_YAW,angle),left=rig.leg(-1,0,0,Boolean(player?.propulsorEquipped),null,view),right=rig.leg(1,0,0,Boolean(player?.propulsorEquipped),null,view);
+  const view=rig.viewFor?.(rig.GAMEPLAY_YAW,angle),speed=Math.hypot(Number(player?.velocityX)||0,Number(player?.velocityY)||0),weight=Number.isFinite(player?.swimPose?.weight)?clamp(player.swimPose.weight,0,1):speed>1?1:0,powered=Boolean(player?.propulsorMoving),left=rig.leg(-1,0,weight,powered,null,view),right=rig.leg(1,0,weight,powered,null,view);
   const held=player?.propulsorEquipped?'abyssPropulsor':'abyssWeapon',side=rig.facing(aim),offset=(held==='abyssPropulsor'?5:12)*side,grips=(rig.gripsFor?.(held,view)||(held==='abyssPropulsor'?rig.toolGrips:rig.rifleGrips)).map(([x,y])=>[x,y*side]);
   const arms=rig.armPair?.(aim-angle,offset,grips,'standard',view)||[rig.arm(-1,aim-angle,offset,grips[0]),rig.arm(1,aim-angle,offset,grips[1])];
   const point=(px,py,weapon=false)=>{

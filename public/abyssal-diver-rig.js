@@ -4,8 +4,8 @@
  'use strict';
  const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const finite=(v,f=0)=>Number.isFinite(v)?v:f;
- const facing=angle=>Math.cos(finite(angle))<0?-1:1;
- const viewFor=(yaw=.65,heading=0)=>{yaw=clamp(finite(yaw,.65),0,1);const profile=clamp((yaw-.65)/.35,0,1),side=profile>.5?facing(heading):1;return {yaw,profile,facing:side,width:(1-.22*yaw-.10*profile)*side,shear:.055*yaw*(1-profile)*side,headTilt:-.57*profile};};
+ const facing=angle=>Math.cos(finite(angle))< -1e-9?-1:1;
+ const viewFor=(yaw=.65,heading=0)=>{yaw=clamp(finite(yaw,.65),0,1);const profile=clamp((yaw-.65)/.35,0,1),side=profile>.5?facing(heading):1;return {yaw,profile,facing:side,width:(1-.22*yaw-.10*profile)*side,shear:.055*yaw*(1-profile)*side,headTilt:-.72*profile};};
  const headPoint=(p,view)=>{const a=view?.headTilt||0,x=p[0]-22,y=p[1];return [22+x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)];};
  const GAMEPLAY_YAW=1;
  const project=(p,view)=>view?[p[0],p[1]*view.width+p[0]*view.shear]:[...p];
@@ -33,9 +33,10 @@
    // dorsal side, calves alternate, and the blade lags the ankle.
    const w=clamp(finite(weight),0,1),motor=powered?1:0,braking=clamp(-finite(motion?.drive)/5,0,1);
    const p=finite(phase)+(side<0?Math.PI:0),hip=[-19,side*3.2],hipAngle=-.035+(1-motor)*(.045*Math.sin(p)*w-.07*braking);
-   const flex=(1-motor)*(.32+.22*(1-w)+.26*braking+.20*Math.sin(p-.55)*w)+motor*.08;
+   const flex=(1-motor)*(.32+.37*(1-w)+.22*braking+.20*Math.sin(p-.55)*w)+motor*.08;
    const calfAngle=hipAngle-Math.max(.035,flex),knee=[hip[0]-24*Math.cos(hipAngle),hip[1]+24*Math.sin(hipAngle)],ankle=[knee[0]-24*Math.cos(calfAngle),knee[1]+24*Math.sin(calfAngle)];
-   return {hip,knee,ankle,finAngle:calfAngle+(1-motor)*(.13*Math.sin(p-1.1)*w+.10)};
+   const finAngle=motor?calfAngle:calfAngle*w-.10*(1-w)+.13*Math.sin(p-1.1)*w+.08*w;
+   return {hip,knee,ankle,finAngle,finFlex:(1-motor)*2.2*Math.sin(p-1.4)*w};
   }
   const knee=[hip[0]-24*Math.cos(thigh),hip[1]+24*Math.sin(thigh)];
   const ankle=[knee[0]-24*Math.cos(calf),knee[1]+24*Math.sin(calf)];
@@ -116,9 +117,9 @@
   const grips=gripsFor(held,view).map(([x,y])=>[27+(x-27)*co-y*si,(x-27)*si+y*co]);
   return {swingAngle,objectAngle,grips,pivot:27+propulsorOffset(held,view)};
  }
- function idleArm(side,phase=0,weight=0,motion=null,view=null){
+ function idleArm(side,phase=0,weight=0,motion=null,view=null,mode='free'){
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
-  const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.profile>.5)return {shoulder:project([13,side*13],view),elbow:project([-5+brake*4,side<0?1:18+brake*2],view),hand:project([-26+brake*7,side<0?4:13+sway*.35+brake*3],view)};return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
+  const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.profile>.5){const tucked=mode==='tool';return {shoulder:project([13,side*13],view),elbow:project([tucked?-5:0,side<0?2:19+brake*2],view),hand:project([tucked?-26:18-brake*3,side<0?8:16+sway*.35+brake*2],view)};}return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
  return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });

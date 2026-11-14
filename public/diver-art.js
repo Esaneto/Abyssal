@@ -9,7 +9,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const TAU=Math.PI*2,DRAW_SCALE=.60,BARREL_TIP_X=69,GUN_OFFSET_Y=12,WELDER_TIP_X=57;
- const weaponSide=angle=>Math.cos(Number(angle)||0)<0?-1:1;
+ const weaponSide=angle=>Math.cos(Number(angle)||0)< -1e-9?-1:1;
  const genderOf=value=>value==='female'?'female':'male';
  function muzzle(x,y,r,aim){
   const distance=(Number(r)||13)*DRAW_SCALE*BARREL_TIP_X/14;
@@ -32,7 +32,7 @@
   const offset=(held==='abyssWeapon'?GUN_OFFSET_Y:5)*itemSide,tool=rig?.toolPose(held,Number(options.swing)||0,view)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
   const grips=(held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[22,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co])).map(([x,y])=>[x,y*itemSide]);
   const pair=(held!=='abyssWelder'&&held!=='none'?rig?.armPair?.(relativeAim,offset,grips,'standard',view):null)||grips.map((g,i)=>rig?.arm(i?1:-1,relativeAim,offset,g,held==='abyssWelder'?'welder':'standard',view)||{shoulder:[6,i?7:-7],elbow:[16,i?12:-12],hand:g});
-  const idle=side=>rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0,options.motion,view)||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};
+  const idle=side=>rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0,options.motion,view,held==='abyssWelder'?'tool':'free')||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};
   let farPainted=false;
   const paintArm=(l,p,i,grip=false)=>{const far=i===0,upper=far?7.5:8.5,lower=far?6.3:7.0;
    if(l.joint)l.joint(p.shoulder,4.0);l(p.shoulder,p.elbow,upper,suitTone('#263847',far?0:1),suitTone('#668293',far?2:3));if(l.joint)l.joint(p.elbow,3.0);l(p.elbow,p.hand,lower,suitTone('#101923',0),suitTone('#39536a',far?1:2));if(!grip&&l.glove)l.glove(p.hand,p.elbow);

@@ -110,7 +110,7 @@ function simulateHair(style,t,heading,motion,weight,flow,reduced=false,view=null
  if(!state||state.style!==style||state.locks.length!==rest.length||!Number.isFinite(state.time)||Math.abs(t-state.time)>400){
   state={style,time:t,locks:rest.map(l=>{const nodes=[0,4,8,12,16].map(i=>toWorld(l.points[i]));return {nodes,vel:nodes.map(()=>[0,0])};})};motion.hairState=state;
  }
- const elapsed=clamp((t-state.time)/1000,0,.065),steps=Math.max(1,Math.ceil(elapsed/.016)),dt=elapsed/steps;state.time=t;
+ const headCenter=root.AbyssalDiverRig?.headPoint([31,0],view)||[31,0],elapsed=clamp((t-state.time)/1000,0,.065),steps=Math.max(1,Math.ceil(elapsed/.016)),dt=elapsed/steps;state.time=t;
  const vx=Number(motion.flowX)||0,vy=Number(motion.flowY)||0;
  for(let k=0;k<rest.length;k++){
   const l=rest[k],q=state.locks[k],target=[0,4,8,12,16].map(i=>toWorld(l.points[i])),lengths=target.slice(1).map((p,i)=>Math.hypot(p[0]-target[i][0],p[1]-target[i][1]));
@@ -127,7 +127,7 @@ function simulateHair(style,t,heading,motion,weight,flow,reduced=false,view=null
    }
    // Project every segment to its original length, keeping root fixed.
    for(let i=1;i<5;i++){const a=q.nodes[i-1],b=q.nodes[i],dx=b[0]-a[0],dy=b[1]-a[1],L=lengths[i-1];const restA=target[i-1],restB=target[i],restAngle=Math.atan2(restB[1]-restA[1],restB[0]-restA[0]);const ref=i===1?restAngle:Math.atan2(a[1]-q.nodes[i-2][1],a[0]-q.nodes[i-2][0]);const limit=i===1?.58:l.layer==='crown'?1.0:1.45;const raw=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(raw-ref),Math.cos(raw-ref));let angle=ref+clamp(delta,-limit,limit);
-    const clearance=(v)=>{const p=toLocal(v),head=root.AbyssalDiverRig?.headPoint([31,0],view)||[31,0],ellipse=(x,y,rx,ry)=>((p[0]-x)/rx)**2+((p[1]-y)/ry)**2;return Math.min(ellipse(head[0],head[1],9,8),ellipse(0,0,20,12));};
+    const clearance=(v)=>{const p=toLocal(v),head=headCenter,ellipse=(x,y,rx,ry)=>((p[0]-x)/rx)**2+((p[1]-y)/ry)**2;return Math.min(ellipse(head[0],head[1],9,8),ellipse(0,0,20,12));};
     if(i>=2&&(l.layer==='back'||l.layer==='braid')&&clearance(restB)>1.08){const candidate=ang=>[a[0]+Math.cos(ang)*L,a[1]+Math.sin(ang)*L];if(clearance(candidate(angle))<1){let best=angle,score=clearance(candidate(angle));for(let j=-4;j<=4;j++){const ang=ref+limit*j/4,q=clearance(candidate(ang));if(q>score){best=ang;score=q;}}angle=best;}}
     b[0]=a[0]+Math.cos(angle)*L;b[1]=a[1]+Math.sin(angle)*L;}
    if(dt>0)for(let i=1;i<5;i++){q.vel[i][0]=clamp((q.nodes[i][0]-before[i][0])/dt,-125,125);q.vel[i][1]=clamp((q.nodes[i][1]-before[i][1])/dt,-125,125);}
@@ -193,8 +193,9 @@ function body(c,t,options,look={}){
   c.save();c.translate(...ankle);c.rotate(-pose.finAngle);
   box(-5,-3.1,9.5,6.2,2.1,grad([0,-3],[0,3],[[0,s[2]],[.45,s[1]],[1,s[0]]]),'#0b1821',.55);
   const blade=grad([-12,-6],[-12,6],[[0,'#0a141c'],[.23,f[1]],[.45,f[0]],[.8,f[0]],[1,'#071219']]);
-  path(()=>{c.moveTo(-2,-3);c.bezierCurveTo(-9,-3.5,-17,-5.8,-22,-6);c.quadraticCurveTo(-25,0,-22,6);c.bezierCurveTo(-17,5.8,-9,3.5,-2,3);c.closePath();},blade,f[1],.7);
-  for(const off of [-3,0,3])path(()=>{c.moveTo(-6,off*.45);c.quadraticCurveTo(-14,off*.6,-21,off);},null,f[2],.55);
+  const flex=pose.finFlex||0;
+  path(()=>{c.moveTo(-2,-3);c.bezierCurveTo(-9,-3.5,-17,-5.8+flex*.55,-22,-6+flex);c.quadraticCurveTo(-25,flex,-22,6+flex);c.bezierCurveTo(-17,5.8+flex*.55,-9,3.5,-2,3);c.closePath();},blade,f[1],.7);
+  for(const off of [-3,0,3])path(()=>{c.moveTo(-6,off*.45);c.quadraticCurveTo(-14,off*.6+flex*.40,-21,off+flex);},null,f[2],.55);
   c.restore();c.restore();
  }
  // Far arm is painted before the torso, in projected space, not above the face.
