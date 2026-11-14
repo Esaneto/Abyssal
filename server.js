@@ -385,7 +385,16 @@ const TITLE_DEFINITIONS=[
  }
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
  function migrateEnergy(u){if(!u)return;if(!Number.isFinite(Number(u.energy)))u.energy=Math.max(0,Math.floor((Number(u.coins)||0)/10));else u.energy=Math.max(0,Math.floor(Number(u.energy)));delete u.coins;}
- function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return { wheel:wheelDailyStatus(u), nickname: u.nickname, role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), metaUpgrades: u.metaUpgrades || {}, researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ const CARDUME_INVITE_TTL=7*24*60*60*1000;
+ function visibleCardumeInvites(u){
+  if(!u||u.cardumeId||!SOCIAL_FEATURES_ENABLED)return [];
+  const key=String(u.nickname||'').toLowerCase(),now=Date.now();
+  return (Array.isArray(u.cardumeInvites)?u.cardumeInvites:[]).filter(i=>{
+   const c=cardumes[i?.cardumeId],sender=users[i?.senderKey];
+   return i&&now-Number(i.at)<CARDUME_INVITE_TTL&&c&&c.open&&c.members.length<c.capacity&&sender&&c.members.includes(i.senderKey)&&!(u.blockedUsers||[]).includes(i.senderKey)&&!(sender.blockedUsers||[]).includes(key);
+  }).slice(0,20).map(i=>({id:i.id,cardumeId:i.cardumeId,cardumeName:cardumes[i.cardumeId].name,sender:users[i.senderKey].nickname,at:i.at}));
+ }
+ function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return { wheel:wheelDailyStatus(u), nickname: u.nickname, role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), metaUpgrades: u.metaUpgrades || {}, researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, likedProfileKeys:u.likedProfiles.slice(), cardumeInvites:visibleCardumeInvites(u), blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];normalizeHallTitle(u);return {nickname:u.nickname,isDeveloper:isDeveloperUser(u),hallPosition:hallPosition(u),equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)),specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
@@ -1853,7 +1862,7 @@ io.on('connection', socket => {
    viewer.blockedUsers ||= [];viewer.likedProfiles ||= [];target.likedBy ||= [];
    const blocked=viewer.blockedUsers.includes(targetKey);
    if(blocked)viewer.blockedUsers=viewer.blockedUsers.filter(key=>key!==targetKey);
-   else{viewer.blockedUsers.push(targetKey);viewer.likedProfiles=viewer.likedProfiles.filter(key=>key!==targetKey);target.likedBy=target.likedBy.filter(key=>key!==viewerKey);}
+   else{viewer.blockedUsers.push(targetKey);viewer.likedProfiles=viewer.likedProfiles.filter(key=>key!==targetKey);target.likedBy=target.likedBy.filter(key=>key!==viewerKey);viewer.cardumeInvites=(viewer.cardumeInvites||[]).filter(i=>i.senderKey!==targetKey);target.cardumeInvites=(target.cardumeInvites||[]).filter(i=>i.senderKey!==viewerKey);}
    saveUsers();socket.emit('user-block-result',{ok:true,blocked:!blocked,profile:publicProfile(targetKey,viewerKey),account:publicUser(viewer),message:blocked?'Usuário desbloqueado.':'Usuário bloqueado. Interações sociais entre vocês foram interrompidas.'});
   });
   socket.on('toggle-profile-like',(payload={})=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('profile-like-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis durante a revisão de segurança.'});const viewerKey=socket.data.userKey;if(!viewerKey||!users[viewerKey])return socket.emit('profile-like-result',{ok:false,message:'Entre na sua conta para curtir perfis.'});const targetNickname=String(payload.nickname||'').trim();const targetKey=targetNickname.toLowerCase(),target=users[targetKey],viewer=users[viewerKey];if(!target)return socket.emit('profile-like-result',{ok:false,message:'Jogador não encontrado.'});if(targetKey===viewerKey)return socket.emit('profile-like-result',{ok:false,message:'Você não pode curtir seu próprio perfil.'});target.blockedUsers ||= [];viewer.blockedUsers ||= [];if(viewer.blockedUsers.includes(targetKey)||target.blockedUsers.includes(viewerKey))return socket.emit('profile-like-result',{ok:false,message:'Esta interação não está disponível entre usuários bloqueados.'});target.likedBy ||= [];viewer.likedProfiles ||= [];const already=target.likedBy.includes(viewerKey);if(already){target.likedBy=target.likedBy.filter(k=>k!==viewerKey);viewer.likedProfiles=viewer.likedProfiles.filter(k=>k!==targetKey);}else{target.likedBy.push(viewerKey);viewer.likedProfiles.push(targetKey);}saveUsers();socket.emit('profile-like-result',{ok:true,liked:!already,profile:publicProfile(targetKey,viewerKey),account:publicUser(viewer),message:already?'Curtida removida.':'Você curtiu este perfil!'});for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data?.userKey===targetKey){client.emit('account-data',publicUser(target));client.emit('profile-likes-updated',{likesReceived:target.likedBy.length});}});
@@ -1901,13 +1910,49 @@ io.on('connection', socket => {
    if(Object.keys(cardumes).length>=500)return socket.emit('cardume-action-result',{ok:false,message:'O limite de Cardumes foi atingido.'});
    const id=crypto.randomUUID(),entry={id,name,description,leader:user.nickname,members:[key],capacity:30,open:true,createdAt:Date.now()};cardumes[id]=entry;user.cardumeId=id;user.titleStats ||= {};user.titleStats.cardumesCreated=(Number(user.titleStats.cardumesCreated)||0)+1;saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Cardume criado! Você é o líder.',cardume:publicCardume(entry),account:publicUser(user)});sendCardumes();emitCardumeRoster(entry);
   });
+  socket.on('send-cardume-invite',(payload={},ack)=>{
+   const reply=(r)=>{if(typeof ack==='function')ack(r);};
+   const key=socket.data.userKey,user=users[key],targetKey=String(payload?.nickname||'').trim().toLowerCase(),target=users[targetKey];
+   const c=user&&cardumes[user.cardumeId];
+   if(!SOCIAL_FEATURES_ENABLED||!user||!c||!c.members.includes(key))return reply({ok:false,message:'Entre em um Cardume para convidar mergulhadores.'});
+   if(!target||targetKey===key||target.cardumeId||!c.open||c.members.length>=c.capacity)return reply({ok:false,message:'Este convite não está disponível.'});
+   if((user.blockedUsers||[]).includes(targetKey)||(target.blockedUsers||[]).includes(key))return reply({ok:false,message:'Esta interação não está disponível.'});
+   const now=Date.now();
+   user.cardumeInviteSent=(Array.isArray(user.cardumeInviteSent)?user.cardumeInviteSent:[]).filter(i=>now-Number(i.at)<86400000);
+   if(user.cardumeInviteSent.some(i=>i.targetKey===targetKey)||user.cardumeInviteSent.filter(i=>now-Number(i.at)<3600000).length>=8)return reply({ok:false,message:'Convite recente ou limite temporário atingido.'});
+   const active=visibleCardumeInvites(target);
+   if(active.some(i=>i.cardumeId===c.id))return reply({ok:false,message:'Já existe um convite pendente para esse Cardume.'});
+   if(active.length>=20)return reply({ok:false,message:'O jogador já possui muitos convites pendentes.'});
+   const ids=new Set(active.map(i=>i.id));
+   target.cardumeInvites=(Array.isArray(target.cardumeInvites)?target.cardumeInvites:[]).filter(i=>ids.has(i.id));
+   target.cardumeInvites.unshift({id:crypto.randomUUID(),cardumeId:c.id,senderKey:key,at:now});
+   user.cardumeInviteSent.push({targetKey,at:now});
+   saveUsers();
+   for(const client of(io.sockets?.sockets?.values?.()||[]))if(client.data.userKey===targetKey)client.emit('account-data',publicUser(target));
+   reply({ok:true,message:'Convite enviado ao sino de Avisos do jogador.'});
+  });
+  socket.on('respond-cardume-invite',(payload={},ack)=>{
+   const reply=r=>{if(typeof ack==='function')ack(r);};
+   const key=socket.data.userKey,user=users[key],id=String(payload?.id||'');
+   if(!SOCIAL_FEATURES_ENABLED||!user)return reply({ok:false,message:'Entre em sua conta.'});
+   const invitation=(Array.isArray(user.cardumeInvites)?user.cardumeInvites:[]).find(i=>i.id===id);
+   if(!invitation)return reply({ok:false,message:'Convite indisponível.',account:publicUser(user)});
+   if(payload.accept!==true&&payload.accept!==false)return reply({ok:false,message:'Escolha aceitar ou recusar.'});
+   if(payload.accept===true){
+    const visible=visibleCardumeInvites(user).some(i=>i.id===id),c=cardumes[invitation.cardumeId];
+    if(!visible||!c||user.cardumeId||c.members.includes(key)){user.cardumeInvites=user.cardumeInvites.filter(i=>i.id!==id);saveUsers();return reply({ok:false,message:'Este convite não está mais disponível.',account:publicUser(user)});}
+    c.members.push(key);user.cardumeId=c.id;user.cardumeInvites=[];saveCardumes();saveUsers();
+    reply({ok:true,message:'Você entrou no Cardume '+c.name+'.',account:publicUser(user)});sendCardumes();emitCardumeRoster(c);
+   }else{user.cardumeInvites=user.cardumeInvites.filter(i=>i.id!==id);saveUsers();reply({ok:true,message:'Convite recusado.',account:publicUser(user)});}
+   for(const client of(io.sockets?.sockets?.values?.()||[]))if(client!==socket&&client.data.userKey===key)client.emit('account-data',publicUser(user));
+  });
   socket.on('join-cardume',(payload={})=>{
    if(!SOCIAL_FEATURES_ENABLED)return socket.emit('cardume-action-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis enquanto os controles de segurança são preparados.'});
    const key=socket.data.userKey,user=users[key];if(!user)return socket.emit('cardume-action-result',{ok:false,message:'Entre na sua conta para recrutar-se em um Cardume.'});
    if(user.cardumeId&&cardumes[user.cardumeId])return socket.emit('cardume-action-result',{ok:false,message:'Você já pertence a um Cardume. Saia dele antes de entrar em outro.'});
    const c=cardumes[String(payload.id||'')];if(!c||!c.open)return socket.emit('cardume-action-result',{ok:false,message:'Este Cardume não está disponível.'});
    if(c.members.length>=c.capacity)return socket.emit('cardume-action-result',{ok:false,message:'Este Cardume está cheio.'});
-   c.members.push(key);user.cardumeId=c.id;saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Você entrou no Cardume '+c.name+'.',cardume:publicCardume(c),account:publicUser(user)});sendCardumes();emitCardumeRoster(c);
+   c.members.push(key);user.cardumeId=c.id;user.cardumeInvites=[];saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Você entrou no Cardume '+c.name+'.',cardume:publicCardume(c),account:publicUser(user)});sendCardumes();emitCardumeRoster(c);
   });
   socket.on('leave-cardume',()=>{
    const key=socket.data.userKey,user=users[key];if(!user)return socket.emit('cardume-action-result',{ok:false,message:'Entre na sua conta primeiro.'});

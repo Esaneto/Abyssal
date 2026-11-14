@@ -21,3 +21,30 @@
 #quickCommsWheel:not([hidden])+#quickCommsFeed{bottom:220px}
 #quickCommsFeed div{background:#061d2de8;border:1px solid #27768a;border-radius:8px;padding:4px 7px;color:#d8f7ff;font-size:12px;overflow-wrap:anywhere}
 @media(max-width:600px){#quickComms{bottom:max(90px,calc(env(safe-area-inset-bottom) + 75px));}#quickCommsToggle,#quickCommsWheel button{width:40px;height:40px}#quickCommsWheel{grid-template-columns:repeat(4,40px);bottom:47px;gap:5px}#cardumeChatForm{flex-wrap:wrap}#cardumeChatInput{flex:1 1 110px}}
+
+/* Social controls: positive actions first; safety is explicit and last. */
+.player-social-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;min-width:0}
+.social-icon-btn{display:inline-flex!important;align-items:center;justify-content:center;gap:4px;min-width:44px;min-height:44px;padding:6px!important;border:1px solid #398094;border-radius:9px;background:#092637;color:#c4f4ff;cursor:pointer;touch-action:manipulation;line-height:1}
+.social-icon-btn svg{width:20px;height:20px;flex-shrink:0}
+.social-icon-btn:focus-visible,.social-safety-options button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.social-icon-btn:disabled{opacity:.38;cursor:not-allowed}
+.social-icon-btn[aria-pressed=true]{background:#176078;color:#fff;border-color:#67e5f5}
+.social-safety{display:inline-flex;position:relative;flex-direction:column;align-items:flex-end;min-width:0}
+.social-safety summary{list-style:none;color:#ffce88;border-color:#a77b4b}
+.social-safety summary::-webkit-details-marker{display:none}
+.social-safety-options{display:grid;gap:6px;padding:8px;margin-top:4px;background:#0b2233;border:1px solid #996d45;border-radius:8px;max-width:100%;min-width:150px}
+.social-safety:not([open]) .social-safety-options{display:none}
+.social-safety-options button{min-height:44px;background:#172b38;color:#ffe2b7;border:1px solid #775c41;border-radius:6px;padding:8px;text-align:left;cursor:pointer}
+.cardume-message header{align-items:flex-start}
+.cardume-message .player-social-actions{flex:0 1 auto}
+.match-history-player>.player-social-actions{grid-column:1/-1;justify-content:flex-end}
+.match-history-player>.player-social-actions .social-safety{align-self:flex-start}
+#publicProfileActions .social-icon-btn{min-width:44px;min-height:44px}
+#publicProfileActions .social-safety-options{z-index:5}
+.cardume-invite-inbox{display:grid;gap:8px;margin-bottom:12px}
+.cardume-invite-heading{font-size:.76rem;color:#8deaff;margin:0}
+.cardume-invite-item{display:grid;gap:7px;overflow-wrap:anywhere}
+.cardume-invite-item strong{color:#91edff}
+.cardume-invite-actions{display:flex;gap:8px;flex-wrap:wrap}
+.cardume-invite-actions button{min-height:44px;flex:1 1 115px}
+@media(max-width:480px){.cardume-message .player-social-actions{justify-content:flex-start;flex-basis:100%}.player-social-actions{gap:5px}.social-safety-options{min-width:130px}}
