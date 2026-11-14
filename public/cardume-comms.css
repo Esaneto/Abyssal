@@ -21,3 +21,5 @@
 #quickCommsWheel:not([hidden])+#quickCommsFeed{bottom:220px}
 #quickCommsFeed div{background:#061d2de8;border:1px solid #27768a;border-radius:8px;padding:4px 7px;color:#d8f7ff;font-size:12px;overflow-wrap:anywhere}
 @media(max-width:600px){#quickComms{bottom:max(90px,calc(env(safe-area-inset-bottom) + 75px));}#quickCommsToggle,#quickCommsWheel button{width:40px;height:40px}#quickCommsWheel{grid-template-columns:repeat(4,40px);bottom:47px;gap:5px}#cardumeChatForm{flex-wrap:wrap}#cardumeChatInput{flex:1 1 110px}}
+
+.cardume-message header .small-action{min-width:28px;min-height:28px;padding:2px 5px;flex:0 0 auto;font-size:15px;line-height:1}.cardume-message header strong{min-width:0;overflow-wrap:anywhere;flex:1}

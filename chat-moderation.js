@@ -80,7 +80,7 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
         [reportId, reporter.key, String(message.senderKey || ''), message.id, String(message.nickname || 'Mergulhador').slice(0,18), String(message.text || '').slice(0,180), reason]
       );
       if (!inserted.rowCount) return res.status(409).set('Cache-Control', 'no-store').json({ ok: false, message: 'Você já denunciou esta mensagem.' });
-      return res.status(201).set('Cache-Control', 'no-store').json({ ok: true, message: 'Denúncia enviada para análise.' });
+      return res.status(201).set('Cache-Control', 'no-store').json({ ok: true, message: 'Obrigado por ajudar a manter a comunidade saudável. Sua denúncia será analisada e tomaremos as providências necessárias.' });
     } catch (error) {
       console.error('[chat-moderation] Report failed:', error.message);
       return res.status(503).json({ ok: false, message: 'Não foi possível registrar a denúncia.' });
@@ -95,7 +95,7 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
     try {
       await ensureModerationSchema(pool);
       const result = await pool.query(
-        "SELECT report_id,message_nickname,message_text,reason,status,created_at FROM abyssal_chat_reports WHERE status IN ('open','followup') ORDER BY created_at ASC LIMIT 100"
+        "SELECT report_id,reported_key,message_nickname,message_text,reason,status,created_at FROM abyssal_chat_reports WHERE status IN ('open','followup') ORDER BY created_at ASC LIMIT 100"
       );
       return res.set('Cache-Control', 'no-store').json({ ok: true, reports: result.rows });
     } catch (error) {
@@ -121,7 +121,8 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
       if (!report.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ ok: false, message: 'Denúncia não encontrada ou já analisada.' }); }
       const status = action === 'dismiss' ? 'dismissed' : action === 'needs_followup' ? 'followup' : 'actioned';
       const target = getUsers()[report.rows[0].reported_key];
-      await client.query('UPDATE abyssal_chat_reports SET status=$2,closed_at=CASE WHEN $2='followup' THEN NULL ELSE NOW() END,moderator_key=$3,resolution=$4 WHERE report_id=$1', [report.rows[0].report_id, status, moderator.key, note || action]);
+      if(isDeveloper?.(target)&&['warn','mute_24h','ban_chat'].includes(action)){await client.query('ROLLBACK');return res.status(403).json({ok:false,message:'Conta protegida.'});}
+      await client.query('UPDATE abyssal_chat_reports SET status=$2,closed_at=CASE WHEN $2=\'followup\' THEN NULL ELSE NOW() END,moderator_key=$3,resolution=$4 WHERE report_id=$1', [report.rows[0].report_id, status, moderator.key, note || action]);
       await client.query('INSERT INTO abyssal_chat_moderation_audit(audit_id,report_id,moderator_key,action,note) VALUES($1,$2,$3,$4,$5)', [crypto.randomUUID(), report.rows[0].report_id, moderator.key, action, note]);
       await client.query('COMMIT');
       client.release();
