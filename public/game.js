@@ -2,7 +2,7 @@
 'use strict';
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
-let mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
+let mobileViewport=document.documentElement.classList.contains('abyssal-handheld')||window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
 const cores=navigator.hardwareConcurrency||8;let lowPowerRendering=false,backgroundGradientCache=null,backgroundBloomCache=null,lastPaintAt=0;
 let hostileSpritePaintFrame=-1,hostileSpritePaintsThisFrame=0;
 const ADAPTIVE_QUALITY=[{name:'LEVE',dpr:.75},{name:'MÉDIO',dpr:1},{name:'ULTRA',dpr:Infinity}];
@@ -835,7 +835,7 @@ function getArenaVortexGlow(vortex){
  return gradient;
 }
 const isMobileDevice=()=>mobileViewport;
-function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;$('mobileMoveStick')?.classList.remove('dual-stick-visible');$('mobileAimStick')?.classList.toggle('dual-stick-visible',enabled&&controlSettings.mobile==='dual-stick');if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
+function setMobileGameActive(active){mobileViewport=document.documentElement.classList.contains('abyssal-handheld')||window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;$('mobileMoveStick')?.classList.remove('dual-stick-visible');$('mobileAimStick')?.classList.toggle('dual-stick-visible',enabled&&controlSettings.mobile==='dual-stick');if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
 let hudCollapsed=false;
 function setHudCollapsed(collapsed){hudCollapsed=Boolean(collapsed);document.body.classList.toggle('hud-collapsed',hudCollapsed);const button=$('toggleHudBtn');if(button){button.textContent=hudCollapsed?'‹':'›';button.setAttribute('aria-label',hudCollapsed?'Mostrar interface':'Ocultar interface');button.title=hudCollapsed?'Mostrar interface':'Ocultar interface';}}
 $('toggleHudBtn')?.addEventListener('click',()=>setHudCollapsed(!hudCollapsed));
@@ -1010,7 +1010,7 @@ function resize(){
  const r=$('gameShell').getBoundingClientRect();
  const oldW=W,oldH=H;
  viewW=Math.max(320,r.width);viewH=Math.max(300,r.height);
- mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
+ mobileViewport=document.documentElement.classList.contains('abyssal-handheld')||window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
  lowPowerRendering=adaptiveQualityLevel===0;
  dpr=graphicsDpr();
  worldZoom=desiredWorldZoom();mapFactor=desiredMapFactor();
