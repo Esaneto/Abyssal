@@ -1,0 +1,83 @@
+/* Release candidate: coherent visual language, independent of gameplay simulation.
+   Important rules in this layer outrank legacy unlayered cursor overrides. */
+@layer abyssal-input-contract {
+ :root, :root body, :root body *, :root body *::before, :root body *::after{
+  cursor:url('abyssal-red-reticle.svg') 16 16,crosshair!important;
+  -webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none;
+ }
+ :root body :is(input:not([type=button],[type=submit],[type=reset],[type=checkbox],[type=radio],[type=range],[type=file],[type=color]),textarea,[contenteditable]:not([contenteditable=false]),[contenteditable]:not([contenteditable=false]) *,[data-selectable-text],[data-selectable-text] *){
+  -webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default;
+ }
+}
+:root{--release-ink:#eaf5fa;--release-muted:#adc0cc;--release-line:#375366;--release-panel:#0b1926;--release-surface:#142a3a;--release-focus:#78e5df;--release-green:#75e5a6;--release-font:"Abyssal UI",system-ui,sans-serif}
+.abyss-ui-icon{display:inline-block;width:1.3em;height:1.3em;vertical-align:middle;flex:none}
+#menuScreen .hub-nav-icon .abyss-ui-icon,#menuScreen .hub-launch-icon .abyss-ui-icon{width:26px;height:26px}
+#submarineWorkshop .abyss-control-icon .abyss-ui-icon{width:22px;height:22px}
+#submarineWorkshop .cockpit-command .abyss-ui-icon{width:14px;height:14px}
+#submarineWorkshop .abyss-cockpit-help{display:inline-flex;align-items:center;justify-content:center;gap:4px;flex:none;min-width:0;min-height:28px;padding:3px 6px;border:1px solid #647c86;border-radius:5px;background:#142a37;color:#dcecf1;font:700 10px/1 var(--release-font);white-space:nowrap}
+#submarineWorkshop .abyss-cockpit-help .abyss-ui-icon{width:15px;height:15px}
+#submarineWorkshop .abyss-cockpit-help:focus-visible,#menuScreen #menuTourBtn:focus-visible{outline:2px solid var(--release-focus);outline-offset:2px}
+#menuScreen.expedition-hub .hub-secondary{display:flex;flex-wrap:wrap;gap:8px}
+#menuScreen.expedition-hub .hub-secondary>button{flex:1 1 135px;min-width:0;gap:6px;white-space:normal}
+#menuScreen.expedition-hub .hub-secondary>details{flex:1 1 135px;min-width:0}
+#menuScreen.expedition-hub .hub-intro h2{letter-spacing:-.025em;text-shadow:none}
+#menuScreen.expedition-hub .hub-kicker,#menuScreen.expedition-hub .hub-brand span{letter-spacing:.09em}
+#menuScreen.expedition-hub .hub-nav .hub-destination{box-shadow:none!important}
+#menuScreen.expedition-hub .hub-nav .hub-destination strong,#menuScreen.expedition-hub .hub-launch strong{line-height:1.2!important;letter-spacing:.025em!important}
+#menuScreen.expedition-hub .hub-nav .hub-destination small{line-height:1.35!important;overflow-wrap:anywhere}
+#submarineWorkshop .abyss-visor-heading strong{letter-spacing:.025em!important;line-height:1.2!important}
+#submarineWorkshop .abyss-visor-body{scrollbar-width:thin;scrollbar-color:#496878 #0b1926;overscroll-behavior:contain}
+#submarineWorkshop .abyss-visor-body :is(.abyss-tree-intro,.solo-research-copy,.cockpit-setting-note){line-height:1.45!important;overflow-wrap:anywhere}
+#submarineWorkshop .abyss-tree-node,#resonanceScreen .abyss-tree-node{min-width:0;min-height:75px;overflow-wrap:anywhere;box-shadow:none!important}
+#submarineWorkshop .abyss-tree-node-name,#resonanceScreen .abyss-tree-node-name{font-size:12px;line-height:1.2;letter-spacing:0}
+#submarineWorkshop .abyss-tree-node-state,#resonanceScreen .abyss-tree-node-state{line-height:1.3;white-space:normal}
+#submarineWorkshop .abyss-tree-detail,#resonanceScreen .abyss-tree-detail{min-width:0}
+.abyss-recommended,#submarineWorkshop .abyss-recommended,#resonanceScreen .abyss-recommended,#upgradeScreen .abyss-recommended,#catalogScreen .abyss-recommended{display:block!important;color:var(--release-green)!important;font:650 11px/1.3 var(--release-font)!important;letter-spacing:.015em!important;text-transform:none!important;text-shadow:none!important;margin:2px 0;white-space:normal}
+#upgradeScreen .upgrade-card{font-family:var(--release-font)!important;min-width:0;overflow-wrap:anywhere;text-shadow:none!important;box-shadow:0 6px 20px #0006!important}
+#upgradeScreen .upgrade-card strong{font-family:var(--release-font)!important;line-height:1.3!important;letter-spacing:0!important}
+#upgradeScreen .upgrade-card p{font-family:var(--release-font)!important;font-size:clamp(12px,1vw,15px)!important;line-height:1.45!important;color:#d0e1e9!important;text-shadow:none!important}
+#upgradeScreen .upgrade-card .upgrade-progress{font-family:var(--release-font)!important;line-height:1.3}
+#pauseScreen,#gameOverScreen,#pauseScreen :is(h2,h3,p,button,label,small,strong),#gameOverScreen :is(h2,h3,p,button,label,small,strong){font-family:var(--release-font)!important;text-shadow:none}
+#shopScreen #skinGrid .skin-card,#catalogScreen .codex-card,#rankingsScreen .ranking-row,#roomsScreen .room-row,#profileScreen .profile-stat,#cardumesScreen .cardume-card,#wheelScreen .wheel-modal{min-width:0;overflow-wrap:anywhere}
+#shopScreen #skinGrid .skin-card,#catalogScreen .codex-card,#roomsScreen .room-row,#cardumesScreen .cardume-card{box-shadow:none!important}
+#shopScreen #skinGrid .skin-card :is(strong,b,p,small),#catalogScreen .codex-card :is(strong,b,p,small),#roomsScreen .room-row :is(strong,b,p,small),#cardumesScreen .cardume-card :is(strong,b,p,small){line-height:1.4!important;text-shadow:none!important}
+#shopScreen #skinGrid .skin-card :is(canvas,img),#catalogScreen .codex-card :is(canvas,img){object-fit:contain;image-rendering:auto}
+#submarineWorkshop .aw-option-copy strong{overflow-wrap:anywhere;line-height:1.3}
+#submarineWorkshop .aw-message{line-height:1.4;overflow-wrap:anywhere}
+#submarineWorkshop .aw-buy{white-space:normal}
+#abyssalTutorialOverlay .abyssal-guide-card,#abyssalProgressionChoice .abyssal-guide-card{border:1px solid var(--release-line)!important;border-radius:12px!important;background:linear-gradient(150deg,#142a3a,#0b1926 65%)!important;box-shadow:0 20px 60px #0009!important;color:var(--release-ink)!important}
+#abyssalTutorialOverlay .abyssal-guide-card::before,#abyssalTutorialOverlay .abyssal-guide-card::after,#abyssalProgressionChoice .abyssal-guide-card::before,#abyssalProgressionChoice .abyssal-guide-card::after{display:none!important}
+#abyssalTutorialOverlay .abyssal-guide-card :is(h2,p,li,label),#abyssalProgressionChoice .abyssal-guide-card :is(h2,p,label){color:var(--release-ink)!important;text-shadow:none!important}
+#abyssalTutorialOverlay .guide-step-title,#abyssalTutorialOverlay .guide-kicker{color:var(--release-focus)!important;letter-spacing:.06em!important}
+#abyssalTutorialOverlay .abyssal-guide-step-card{background:#0b1926!important;border-color:var(--release-line)!important}
+#abyssalTutorialOverlay .guide-picture{box-shadow:none!important}
+#abyssalTutorialOverlay .abyssal-guide-primary,#abyssalProgressionChoice .abyssal-guide-primary{background:#78e5df!important;color:#071923!important;border:1px solid #78e5df!important}
+#abyssalTutorialOverlay .abyssal-guide-secondary,#abyssalTutorialOverlay .abyssal-guide-close,#abyssalProgressionChoice .abyssal-guide-secondary{background:#142a3a!important;color:#eaf5fa!important;border:1px solid #496878!important}
+#abyssalMenuTour[hidden]{display:none!important}
+#abyssalMenuTour{position:fixed;inset:0;z-index:11990;isolation:isolate;overflow:hidden;touch-action:manipulation;font:500 14px/1.45 var(--release-font);color:var(--release-ink)}
+#abyssalMenuTour .amt-spot{position:absolute;pointer-events:none;border:2px solid #80ebe2;border-radius:9px;box-shadow:0 0 0 200vmax #020811c9,0 0 0 4px #80ebe233}
+#abyssalMenuTour .amt-card{position:absolute;width:min(390px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;padding:16px;border:1px solid #547584;border-radius:12px;background:#0b1926;color:#eaf5fa;box-shadow:0 14px 42px #0009;overscroll-behavior:contain}
+#abyssalMenuTour .amt-kicker{font-size:11px;color:#91c9ca;letter-spacing:.08em}
+#abyssalMenuTour h2{font:700 20px/1.25 var(--release-font)!important;margin:8px 0;color:#f1fbff;text-shadow:none}
+#abyssalMenuTour p{font:500 14px/1.5 var(--release-font)!important;color:#c8dce5;margin:0 0 12px}
+#abyssalMenuTour .amt-counter{font:650 11px/1.3 var(--release-font);color:#afc7d0}
+#abyssalMenuTour progress{width:100%;height:5px;accent-color:#78e5df;margin:8px 0 12px}
+#abyssalMenuTour .amt-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#abyssalMenuTour button{font:650 13px/1.2 var(--release-font)!important;min-height:42px;padding:8px;border-radius:7px;border:1px solid #496878;background:#142a3a;color:#eaf5fa;white-space:normal}
+#abyssalMenuTour button:focus-visible{outline:2px solid #78e5df;outline-offset:2px}
+#abyssalMenuTour .amt-next{background:#78e5df;color:#071923;border-color:#78e5df}
+#abyssalMenuTour .amt-skip{grid-column:1/-1;min-height:34px;background:transparent;border-color:transparent;color:#a9c0cb}
+#abyssalMenuTour button:disabled{opacity:.48}
+@media(max-width:640px){
+ #submarineWorkshop .abyss-cockpit-help span{display:none}
+ #submarineWorkshop .abyss-cockpit-help{padding:3px;min-width:24px}
+ #submarineWorkshop .cockpit-command .abyss-ui-icon{width:12px;height:12px}
+ #submarineWorkshop .abyss-control-icon .abyss-ui-icon{width:18px;height:18px}
+ #menuScreen.expedition-hub .hub-secondary>button,#menuScreen.expedition-hub .hub-secondary>details{flex-basis:calc(50% - 8px)}
+ #abyssalMenuTour .amt-card{padding:12px}
+ #abyssalMenuTour h2{font-size:17px!important}
+ #abyssalMenuTour p{font-size:13px!important;line-height:1.4!important}
+ #abyssalMenuTour .amt-actions{gap:5px}
+ #abyssalMenuTour button{min-height:38px}
+}
+@media(prefers-reduced-motion:reduce){#abyssalMenuTour *,#menuScreen .hub-nav *,#submarineWorkshop .abyss-control-key{animation:none!important;transition:none!important}}

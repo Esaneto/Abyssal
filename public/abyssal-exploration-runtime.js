@@ -211,7 +211,7 @@
    key.setAttribute('aria-pressed',String(selected));
    if(option.locked){key.dataset.abyssLocked='true';key.setAttribute('aria-description','Em desenvolvimento. Disponível futuramente.');}
    const symbol=document.createElement('span');symbol.className='abyss-control-icon';
-   symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
+   const icons={solo:"<svg class=\"abyss-ui-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12h5l3-7 3 14 3-7h4\"/></svg>",research:"<svg class=\"abyss-ui-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 3h6m-5 0v7L5 19a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-9V3M8 16h8\"/></svg>",shop:"<svg class=\"abyss-ui-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 8h16l-1 13H5zM8 9V6a4 4 0 0 1 8 0v3\"/></svg>",specimens:"<svg class=\"abyss-ui-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 6C9 3 5 4 3 5v15c3-2 6-2 9 0 3-2 6-2 9 0V5c-2-1-6-2-9 1v14\"/></svg>"};symbol.innerHTML=icons[option.id];symbol.setAttribute('aria-hidden','true');
    const name=document.createElement('span');name.textContent=option.name;
    key.append(symbol,name);
    key.addEventListener('click',()=>{
@@ -224,7 +224,7 @@
   // Show scrolling guidance only when the actual monitor contains hidden rows.
   const hint=document.createElement('span');
   hint.className='abyss-visor-scroll-hint';
-  hint.textContent='▾ ROLE OU DESLIZE PARA VER MAIS';
+  hint.textContent='Deslize para ver mais';
   hint.setAttribute('aria-hidden','true');hint.hidden=true;visor.append(hint);
   const refreshHint=()=>{hint.hidden=body.scrollHeight<=body.clientHeight+5
    ||body.scrollTop+body.clientHeight>=body.scrollHeight-5;};
@@ -240,7 +240,7 @@
   const title=document.createElement('h3');title.className='solo-research-heading';title.textContent='PESQUISA';group.append(title);
   const nav=document.createElement('nav');nav.className='solo-upgrade-nav solo-research-tabs';nav.setAttribute('aria-label','Áreas de pesquisa');
   for(const item of [{id:'diver',label:'MERGULHADOR'},{id:'submarine',label:'SUBMARINO'},{id:'resonance',label:'RESSONÂNCIA'}]){
-   const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';button.textContent=item.label;button.setAttribute('aria-pressed',String(activeConsoleSection==='resonance'?item.id==='resonance':soloConsolePage===item.id));
+   const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';button.dataset.researchArea=item.id;button.textContent=item.label;button.setAttribute('aria-pressed',String(activeConsoleSection==='resonance'?item.id==='resonance':soloConsolePage===item.id));
    button.addEventListener('click',()=>{if(item.id==='resonance'){navigateEmbedded('resonanceScreen');return;}if(activeConsoleSection!=='solo'||soloConsolePage!==item.id){activeConsoleSection='solo';soloConsolePage=item.id;renderWorkshop();}});nav.append(button);
   }
   group.append(nav);return group;
@@ -292,7 +292,7 @@
     };
     branches.push({name:'Habilidades ativas · Q / E',items:combatInfo.map(item=>{
      const owned=Number(combatLevels[item.id])>0,cost=research.COMBAT_ENERGY[item.id];
-     return {...item,owned,active:owned,state:owned?'Desbloqueada · ativa':'Disponível',costText:owned?'Já pesquisada · sem custo adicional':cost.toLocaleString('pt-BR')+' energia',actions:owned?[]:[{label:combatResearchPending?'Confirmando…':'Pesquisar · '+cost.toLocaleString('pt-BR')+' energia',disabled:combatResearchPending||state.energy<cost,run:()=>studyCombat(item.id)}]};
+     return {...item,recommended:true,owned,active:owned,state:owned?'Desbloqueada · ativa':'Disponível',costText:owned?'Já pesquisada · sem custo adicional':cost.toLocaleString('pt-BR')+' energia',actions:owned?[]:[{label:combatResearchPending?'Confirmando…':'Pesquisar · '+cost.toLocaleString('pt-BR')+' energia',disabled:combatResearchPending||state.energy<cost,run:()=>studyCombat(item.id)}]};
     })});
     const combatNote=document.createElement('p');combatNote.className='solo-research-copy';combatNote.textContent=combatResearchMessage||'Pesquise Q e E com energia. As duas habilidades ficam disponíveis automaticamente; no celular, use os botões de habilidade.';combatNote.setAttribute('role','status');utility.append(combatNote);
    }else{
@@ -323,8 +323,8 @@
   }else{
    const pages={
     solo:['MERGULHAR','A expedição ativa do Abyssal. Sobreviva, evolua seus disparos e comande o seu espécime durante a partida.','INICIAR MERGULHO','playBtn'],
-    shop:['ESPÉCIMES','Veja aparências, cápsulas e ofertas. Compras e preços são controlados pela loja original do jogo.','ABRIR ESPÉCIMES','shopBtn'],
-    specimens:['REGISTRO DE ESPÉCIES','Explore o Abissário com raridades, criaturas descobertas e habilidades.','ABRIR ABYSSÁRIO','catalogBtn'],
+    shop:['ESPÉCIMES','Consulte os espécimes disponíveis, suas habilidades e os preços de aquisição.','ABRIR ESPÉCIMES','shopBtn'],
+    specimens:['REGISTRO DE ESPÉCIES','Consulte espécies registradas, raridades e habilidades descobertas.','ABRIR ABYSSÁRIO','catalogBtn'],
     sea:['EXPEDIÇÃO OCEÂNICA','Nade pelo Mar Aberto, colete amostras e monte instalações de extração.','INICIAR EXPLORAÇÃO','openSeaPortalBtn'],
     rift:['DESCIDA ÀS FOSSAS','Enfrente as cavernas, armadilhas e os chefes das Fossas Abissais.','INICIAR DESCIDA','riftPortalBtn']
    };
