@@ -46,7 +46,7 @@ function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,en
   socket.on('cardume-chat-send',async(payload,cb)=>{
    const k=key(),c=members(k),u=getUsers()[k];if(!c||!u)return ack(cb,{ok:false,message:'Entre em um Cardume para conversar.'});
    if(!rate(k,'send',2000)||pending.has(k))return ack(cb,{ok:false,message:'Aguarde 2 segundos antes de enviar outra mensagem.'});
-   if(u.chatBanned||Number(u.chatMutedUntil)>Date.now())return ack(cb,{ok:false,message:'Seu chat está silenciado.',mutedUntil:Number(u.chatMutedUntil)||0});
+   if(u.chatBanned||Number(u.chatMutedUntil)>Date.now()||Number(u.onlineSuspendedUntil)>Date.now())return ack(cb,{ok:false,message:'Seu chat está silenciado.',mutedUntil:Number(u.chatMutedUntil)||0});
    if(u.cardumeChatRules!==RULES_VERSION){if(payload?.acceptRules!==true)return ack(cb,{ok:false,message:'Aceite as regras da comunidade para conversar.'});u.cardumeChatRules=RULES_VERSION;saveUsers();}
    const r=screen(payload?.text);if(!r.ok){const duration=penalty(u,r.reason);saveUsers();return ack(cb,{ok:false,message:duration?'Mensagem bloqueada. Chat temporariamente silenciado.':'Mensagem bloqueada. Revise o texto e as regras da comunidade.',mutedUntil:Number(u.chatMutedUntil)||0});}
    const prev=lastText.get(k);if(prev?.text===r.text&&Date.now()-prev.at<30000)return ack(cb,{ok:false,message:'Evite repetir a mesma mensagem.'});
@@ -61,7 +61,7 @@ function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,en
   });
   socket.on('online-quick-emoji',(payload,cb)=>{
    const k=key(),u=getUsers()[k],room=getRoom(socket),id=payload?.id;
-   if(!enabled()||!u||!room||!socket.data.joined||!room.players.has(socket.id)||room.players.get(socket.id)?.alive===false||typeof id!=='string'||!Object.hasOwn(QUICK,id)||!rate(k,'emoji',2500))return ack(cb,{ok:false});
+   if(!enabled()||!u||u.chatBanned||Number(u.chatMutedUntil)>Date.now()||Number(u.onlineSuspendedUntil)>Date.now()||!room||!socket.data.joined||!room.players.has(socket.id)||room.players.get(socket.id)?.alive===false||typeof id!=='string'||!Object.hasOwn(QUICK,id)||!rate(k,'emoji',2500))return ack(cb,{ok:false});
    for(const client of(io.sockets?.sockets?.values?.()||[])){const recipient=client.data.userKey;if(recipient&&getRoom(client)===room&&room.players.has(client.id)&&!blocked(getUsers(),k,recipient))client.emit('online-quick-emoji',{id,playerId:socket.id,nickname:u.nickname});}ack(cb,{ok:true});
   });
  }
