@@ -47,12 +47,12 @@ async function capture(root,label){
    await cmd('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile});
    await cmd('Page.navigate',{url});
    await wait("Boolean(window.AbyssalCockpitNavigation&&document.getElementById('submarineWorkshop'))");
-   await ev("document.getElementById('abyssalGuideX')?.click();window.AbyssalCockpitNavigation.open();");
-   await wait("!document.getElementById('submarineWorkshop').hidden&&!!document.querySelector('#submarineWorkshop .abyss-control-deck')");
-   await ev("document.fonts.ready.then(()=>true)");
-   // Wait for the real loading overlay to finish, not just the DOM behind it.
+   // Complete real first-launch UI rather than relying on a historical stored profile.
    await wait("!document.getElementById('abyssalStartupLoading') && !document.documentElement.classList.contains('abyssal-startup')");
-   await wait("(()=>{const e=document.querySelector('#submarineWorkshop .abyss-cockpit-visor');if(!e)return false;const r=e.getBoundingClientRect(),p=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !!p&&e.contains(p);})()");
+   await ev(`(()=>{const gate=document.getElementById('ageTermsScreen');if(!gate||gate.hidden)return;const range=document.getElementById('ageYearsRange');if(range){range.value='27';range.dispatchEvent(new Event('input',{bubbles:true}));}else for(const [id,value] of [['ageBirthDay','1'],['ageBirthMonth','1'],['ageBirthYear','1990']]){const input=document.getElementById(id);if(input){input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}}const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;document.getElementById('ageTermsContinue')?.click();})()`);
+   await wait("document.getElementById('ageTermsScreen')?.hidden!==false");
+   await wait(`(()=>{const tour=document.getElementById('abyssalMenuTour'),menu=document.getElementById('menuScreen'),cabin=document.getElementById('submarineWorkshop');if(tour&&!tour.hidden){tour.querySelector('.amt-skip')?.click();return false;}if(!menu?.hidden&&window.AbyssalMenuTour&&localStorage.getItem('abyssalMenuTourV1')!=='1'&&window.AbyssalMenuTour.open('exterior',true))return false;const guide=document.getElementById('abyssalTutorialOverlay');if(guide&&!guide.hidden){document.getElementById('abyssalGuideX')?.click();return false;}if(cabin?.hidden||!cabin?.querySelector('.abyss-control-deck'))window.AbyssalCockpitNavigation.open();const e=cabin?.querySelector('.abyss-cockpit-visor');if(!e||cabin.hidden)return false;const r=e.getBoundingClientRect(),p=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !!p&&e.contains(p);})()`);
+   await ev("document.fonts.ready.then(()=>true)");
    await snap(device+'-cabine');
    const report=await ev(`(()=>{const box=document.getElementById('submarineWorkshop'),a=box.querySelector('#cockpitSoloDiveBtn')||box.querySelector('.abyss-console-info>button'),b=box.querySelector('#cockpitOnlineDiveBtn'),r=e=>{const q=e?.getBoundingClientRect();return q?{x:Math.round(q.x),y:Math.round(q.y),w:Math.round(q.width),h:Math.round(q.height)}:null;};const v=box.querySelector('.abyss-visor-body');return {solo:r(a),online:r(b),visor:r(v),deck:r(box.querySelector('.abyss-control-deck')),font:getComputedStyle(a).fontFamily,scrollWidth:v.scrollWidth,clientWidth:v.clientWidth,scrollHeight:v.scrollHeight,clientHeight:v.clientHeight,gameActive:document.body.classList.contains('game-active')};})()`);
    reports.push({device,screen:'cabine',...report});
