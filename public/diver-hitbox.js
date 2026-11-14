@@ -12,13 +12,14 @@
  function canonicalRadius(player){return Math.max(.1,(Number(player?.r)||13)*DRAW_SCALE/14);}
  function zones(player,t=0){
   const x=Number(player?.x)||0,y=Number(player?.y)||0,angle=Number(player?.bodyAngle)||0;
-  const aim=Number(player?.weaponAngle??player?.angle??angle)||0;
+  // The equipped propulsor follows body heading in the renderer, not weapon aim.
+  const aim=player?.propulsorEquipped?angle:(Number(player?.weaponAngle??player?.angle??angle)||0);
   const scale=canonicalRadius(player),cos=Math.cos(angle),sin=Math.sin(angle);
   const aimCos=Math.cos(aim),aimSin=Math.sin(aim);
   // Collision uses the same neutral rig, conservatively covering the small kick envelope.
   // Cosmetic client phases are not trusted for authoritative hit detection.
   const left=rig.leg(-1,0,0),right=rig.leg(1,0,0);
-  const held=player?.propulsorEquipped?'abyssPropulsor':'abyssWeapon',offset=held==='abyssPropulsor'?5:12,grips=rig.gripsFor(held);
+  const held=player?.propulsorEquipped?'abyssPropulsor':'abyssWeapon',offset=held==='abyssPropulsor'?5:12,grips=rig.gripsFor?.(held)||(held==='abyssPropulsor'?rig.toolGrips:rig.rifleGrips);
   const arms=[rig.arm(-1,aim-angle,offset,grips[0]),rig.arm(1,aim-angle,offset,grips[1])];
   const point=(px,py,weapon=false)=>{
    const ca=weapon?aimCos:cos,sa=weapon?aimSin:sin;
