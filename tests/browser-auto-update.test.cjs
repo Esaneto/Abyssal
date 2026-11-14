@@ -21,7 +21,7 @@ test('browser updater checks server version and refreshes service worker',()=>{
  assert.match(updater,/navigator\.serviceWorker\.getRegistration/);
  assert.match(updater,/await reg\.update\(\)/);
  assert.match(updater,/location\.replace/);
- assert.match(updater,/setInterval\(.*30000/);
+ assert.match(updater,/setInterval\(\(\)=>\{if\(document\.visibilityState==='visible'&&navigator\.onLine!==false\)[^\n]+15000\)/);
 });
 
 test('service worker reload guard is version-aware',()=>{

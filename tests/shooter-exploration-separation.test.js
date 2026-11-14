@@ -16,7 +16,7 @@ test('classic Solo and cooperative Online retain 4800x3000 shooter arena',()=>{
 
 test('classic shooter enemies spawn from corner fissures and follow aggressive AI',()=>{
  const game=source('public/game.js'),world=source('world-simulation.js'),enemyAI=source('public/enemy-ai.js');
- assert.match(game,/else for\(let i=0;i<7;i\+\+\)spawnEnemy\(true,'common'\)/);
+ assert.match(game,/else \{for\(let i=0;i<3;i\+\+\)spawnEnemy\(true,'common'\);\}/);
  assert.match(game,/if\(!onlineMode&&isClassicShooterRun\(\)&&spawnTimer<=0\)/);
  assert.match(world,/if \(world\.mode==='classic' && world\.commonSpawnTimer <= 0\)/);
  assert.match(game,/wildlifeMode:isOpenSeaRun\(\)&&!isBossType\?/);
@@ -68,7 +68,7 @@ test('old solo/online handlers live outside the visual menu',()=>{
  assert.match(menu,/id="riftPortalBtn"/);
  assert.match(html,/id="playBtn" type="button" hidden tabindex="-1"/);
  assert.match(html,/id="onlineBtn" type="button" hidden tabindex="-1"/);
- assert.match(html,/#menuScreen\.ocean-menu-v2:not\(\.menu-ready\)\{visibility:hidden!important\}/);
+ assert.match(html,/#menuScreen\.ocean-menu-v2:not\(\.menu-ready\),body:not\(\.abyss-hatch-navigation\) #menuScreen\{visibility:hidden!important;pointer-events:none!important\}/);
 });
 
 test('classic co-op never consumes oxygen, suffers depth pressure or receives depth events',()=>{
@@ -95,7 +95,7 @@ test('T follows mouse with manual control 2 and never toggles auto-fire',()=>{
  assert.match(game,/autoFollowCursor\|\|controlSettings\.pc==='classic'&&pointer\.down/);
  assert.match(game,/&&!?\(mx\|\|my\)/);
  assert.match(game,/if\(dd>12\)\{mx=dx\/dd;my=dy\/dd\}/);
- assert.match(game,/if\(isPcMouseAimMode\(\)\)updateMouseAimFromCursor\(\)/);
+ assert.match(game,/if\(mouseAimMode\)updateMouseAimFromCursor\(\)/);
  assert.match(game,/autoFollowCursor=!autoFollowCursor/);
  assert.match(game,/autoFollowCursor=false;\s*document\.body\.classList\.add\('game-active'\)/);
 });

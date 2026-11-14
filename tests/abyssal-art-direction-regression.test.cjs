@@ -41,7 +41,7 @@ test('diver keeps the server-matched rifle and readable animated hair',()=>{
  const art=require('../public/diver-art.js');
  assert.equal(art.BARREL_TIP_X,69);assert.equal(art.GUN_OFFSET_Y,12);
  const source=read('public/diver-art.js');
- assert.match(source,/const step=female\?4:5/);
+ assert.match(source,/const step=longHair\?4:5/);
  assert.match(source,/Paired metal oxygen tanks/);
 });
 test('open sea implements actual visual facets, rock roots and 3 depth provinces',()=>{

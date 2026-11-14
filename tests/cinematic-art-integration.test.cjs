@@ -41,7 +41,7 @@ test('new bridge renders original procedural materials while Open Sea keeps its 
  assert.match(ocean,/AbyssalCinematicArt\?\.seaAtmosphere/);
  assert.match(ocean,/AbyssalCinematicArt\?\.seaHighlights/);
  assert.ok(html.indexOf('abyssal-cinematic-art.js')<html.indexOf('abyssal-open-sea-render.js'));
- assert.match(html,/abyssal-submarine-cockpit\.js\?v=2026\.11\.11\.109/);
+ assert.match(html,/<script src="abyssal-submarine-cockpit\.js\?v=[^"]+"><\/script>/);
 });
 test('bridge has original moving water and separate cached structural render passes',()=>{
  const source=read('public/abyssal-submarine-cockpit.js');

@@ -76,6 +76,6 @@ test('Solo commands are organized with Research and a purple Resonance action',(
 test('server uses the same rarity price authority for online coin purchases',()=>{
  const server=read('server.js');
  assert.match(server,/require\('\.\/public\/abyssal-shop-economy\.js'\)/);
- assert.match(server,/profile\?\.tier!=='coins'/);
+ assert.match(server,/if\(profile\.tier!=='coins'\)return socket\.emit\('purchase-result',\{ok:false/);
  assert.match(server,/ShopEconomy\.priceForRarity\(rarity\)/);assert.match(server,/active==='pulse'/);assert.match(server,/const previous=radius\*clamp/);
 });
