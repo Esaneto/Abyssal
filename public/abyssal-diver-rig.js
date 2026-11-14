@@ -54,7 +54,7 @@
   return {x:width/2-(minX+maxX)*scale/2,y:height/2-(minY+maxY)*scale/2,r:scale*14/.60};
  }
  // Portrait frame keeps the crown and every animated tip inside its tile.
- function hairPortraitFrame(width,height,style='all'){width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));const small=['classic','short','shaved','topKnot','mohawk','tealSpikes'].includes(style);const scale=Math.min(width/(small?70:106),height/(small?91:126));return {x:width/2,y:height*(small?.72:.56),r:scale*14/.60};}
+ function hairPortraitFrame(width,height,style='all'){width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));if(style==='animated'){const scale=Math.min(width/160,height/158);return {x:width/2,y:height*.55,r:scale*14/.60};}const small=['classic','short','shaved','topKnot','mohawk','tealSpikes'].includes(style);const scale=Math.min(width/(small?70:106),height/(small?91:126));return {x:width/2,y:height*(small?.72:.56),r:scale*14/.60};}
  const pair=(a,b)=>Object.freeze([Object.freeze(a),Object.freeze(b)]);
  // Contacts lie on the actual receiver handle, pistol grip and tool handles.
  const rifleGrips=pair([34,2],[22,11]);
