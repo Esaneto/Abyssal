@@ -73,3 +73,11 @@
 #submarineWorkshop .abyss-wardrobe[data-compact=true] .aw-option-copy strong{font-size:12px}
 #submarineWorkshop .abyss-wardrobe[data-compact=true] .aw-hair-thumb{max-width:124px}
 @container(max-width:360px){#submarineWorkshop .abyss-wardrobe[data-compact=true] .aw-groups{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}#submarineWorkshop .abyss-wardrobe[data-compact=true] .aw-groups button{flex:0 0 auto;padding-inline:10px}}
+
+/* Keep whole labels within each card; tiny panels use one catalog scroller. */
+#submarineWorkshop .aw-hair-thumb{max-width:90px}
+#submarineWorkshop .abyss-wardrobe[data-compact=true] .aw-categories{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
+#submarineWorkshop .abyss-wardrobe[data-compact=true] .aw-categories button{flex:0 0 auto;white-space:nowrap}
+#submarineWorkshop .abyss-wardrobe[data-tiny=true] .aw-panel{overflow-y:auto;scrollbar-width:thin}
+#submarineWorkshop .abyss-wardrobe[data-tiny=true] .aw-panel>*{flex-shrink:0}
+#submarineWorkshop .abyss-wardrobe[data-tiny=true] .aw-choices{flex:0 0 auto;overflow:visible;max-height:none}
