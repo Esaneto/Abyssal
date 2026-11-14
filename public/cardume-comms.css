@@ -66,3 +66,16 @@
 #quickCommsWheel button span{font-size:20px}
 #quickCommsWheel button small{font-size:10px;font-weight:600;line-height:1.15;white-space:normal;overflow-wrap:anywhere;color:#d3edf5}
 #quickCommsWheel:not([hidden])+#quickCommsFeed{display:none}
+
+/* The safety disclosure stays inside the message instead of clipping a floating menu in the scroll container. */
+.cardume-chat .chat-message-actions{position:relative;display:block;flex:0 0 auto;margin-inline-start:0}
+.cardume-chat .chat-safety-toggle{display:grid;place-items:center;width:44px;height:44px;border:1px solid #36596c;border-radius:50%;background:#0d2334;color:#b9dce8;font-size:18px;font-weight:800;line-height:1;cursor:pointer;list-style:none;touch-action:manipulation}
+.cardume-chat .chat-safety-toggle::-webkit-details-marker{display:none}
+.cardume-chat .chat-safety-toggle::marker{content:''}
+.cardume-chat .chat-safety-toggle:hover,.cardume-chat .chat-safety-toggle:focus-visible,.cardume-chat .chat-message-actions[open] .chat-safety-toggle{border-color:#8cecf2;color:#e8fbff;outline:2px solid transparent}
+.cardume-chat .chat-safety-toggle:focus-visible{outline:2px solid #a0f6ff;outline-offset:3px}
+.cardume-chat .chat-message-actions:not([open]) .chat-safety-menu{display:none}
+.cardume-chat .chat-message-actions[open] {flex:1 0 100%;display:grid;gap:6px;justify-items:start}
+.cardume-chat .chat-safety-menu{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;width:min(100%,240px);padding:6px;border:1px solid #416477;background:#0a1b2a;border-radius:10px}
+.cardume-chat .chat-safety-menu button{text-align:left;width:100%;min-height:44px;background:#132d41;border-color:#37586c}
+.cardume-chat .chat-safety-menu button:hover{background:#1b4155}
