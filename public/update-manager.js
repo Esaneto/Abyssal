@@ -246,6 +246,7 @@
       root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
      }
      data.sha256=String(published.sha256).toLowerCase();
+     if(published.url)data.url=published.url;
     }catch(_){
      root.AbyssalLoadingScreen?.status('SEM ACESSO AO PACOTE','Abrindo a versão local instalada.','offline',86);
      root.AbyssalLoadingScreen?.resolveUpdateGate();return data;

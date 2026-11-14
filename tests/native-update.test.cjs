@@ -103,3 +103,14 @@ test('Android AdMob is native, consent-gated and never grants demo ad rewards',(
  assert.match(ci,/ABYSSAL_ADMOB_APP_ID/);
  assert.match(ci,/ABYSSAL_ADMOB_TEST_MODE != 'true'/);
 });
+
+
+test('Windows starts fullscreen with keyboard exit and bounded verified downloads',()=>{
+ const main=read('desktop/main.cjs');
+ assert.match(main,/fullscreen: true/);
+ assert.match(main,/input.key === 'F11'/);
+ assert.match(main,/input.key === 'Escape'/);
+ assert.match(main,/signal: controller.signal/);
+ assert.match(main,/total!==declaredSize/);
+ assert.match(main,/clearTimeout\(timeout\)/);
+});

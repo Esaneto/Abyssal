@@ -73,7 +73,7 @@ function registerOfflineAssets() {
 
 function validateStableWindowsUpdate(value) {
   const url = new URL(String(value || ''));
-  if (url.protocol !== 'https:' || url.hostname !== 'github.com') throw new Error('update-url-not-allowed');
+  if (url.protocol !== 'https:' || url.hostname !== 'github.com' || url.username || url.password || url.port) throw new Error('update-url-not-allowed');
   if (!url.pathname.startsWith('/Esaneto/Abyssal/releases/download/')) throw new Error('update-url-not-allowed');
   if (!url.pathname.endsWith('/Abyssal-Setup.exe')) throw new Error('update-file-not-allowed');
   return url.toString();
@@ -85,7 +85,10 @@ async function downloadAndLaunchWindowsUpdate(payload) {
   const expectedHash = String(payload?.sha256 || '').trim().toLowerCase();
   if (!/^[a-f0-9]{64}$/.test(expectedHash)) throw new Error('missing-update-sha256');
 
-  const response = await net.fetch(updateUrl, { cache: 'no-store', redirect: 'follow' });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15 * 60 * 1000);
+  try {
+  const response = await net.fetch(updateUrl, { cache: 'no-store', redirect: 'follow', signal: controller.signal });
   if (!response.ok) throw new Error('update-download-http-' + response.status);
   const declaredSize = Number(response.headers.get('content-length') || 0);
   if (declaredSize > 750 * 1024 * 1024) throw new Error('update-too-large');
@@ -98,8 +101,8 @@ async function downloadAndLaunchWindowsUpdate(payload) {
   let total=0;const digest=crypto.createHash('sha256');
   const validator=new Transform({transform(chunk,_encoding,callback){total+=chunk.length;if(total>750*1024*1024)return callback(new Error('update-too-large'));digest.update(chunk);callback(null,chunk);}});
   try{
-    await pipeline(Readable.fromWeb(response.body),validator,fs.createWriteStream(partial));
-    if(!total||digest.digest('hex')!==expectedHash)throw new Error('update-sha256-mismatch');
+    await pipeline(Readable.fromWeb(response.body),validator,fs.createWriteStream(partial),{signal:controller.signal});
+    if(!total||(declaredSize>0&&total!==declaredSize)||digest.digest('hex')!==expectedHash)throw new Error('update-sha256-mismatch');
     await fs.promises.rm(target,{force:true});
     await fs.promises.rename(partial,target);
   }catch(error){await fs.promises.rm(partial,{force:true});throw error;}
@@ -109,6 +112,7 @@ async function downloadAndLaunchWindowsUpdate(payload) {
 
   setTimeout(() => app.quit(), 1200);
   return { ok: true, launched: true };
+  } finally { clearTimeout(timeout); }
 }
 
 function registerNativeUpdater() {
@@ -122,6 +126,7 @@ function registerNativeUpdater() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    fullscreen: true,
     width: 1440,
     height: 900,
     minWidth: 960,
