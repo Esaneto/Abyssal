@@ -81,3 +81,7 @@
 #submarineWorkshop .abyss-wardrobe[data-tiny=true] .aw-panel{overflow-y:auto;scrollbar-width:thin}
 #submarineWorkshop .abyss-wardrobe[data-tiny=true] .aw-panel>*{flex-shrink:0}
 #submarineWorkshop .abyss-wardrobe[data-tiny=true] .aw-choices{flex:0 0 auto;overflow:visible;max-height:none}
+
+/* Keep the save action visibly inactive when no cosmetic change is pending. */
+#submarineWorkshop .abyss-wardrobe button:disabled{opacity:.48;cursor:default;box-shadow:none}
+#submarineWorkshop .abyss-wardrobe button:disabled:hover{background:#215e60;border-color:#83dfd4;color:#fff}
