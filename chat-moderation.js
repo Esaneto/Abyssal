@@ -29,7 +29,7 @@ async function ensureModerationSchema(pool) {
     "audit_id TEXT PRIMARY KEY, report_id TEXT NOT NULL, moderator_key TEXT NOT NULL," +
     "action TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());"
   );
-  await pool.query("DELETE FROM abyssal_chat_reports WHERE status <> 'open' AND closed_at < NOW()-INTERVAL '180 days'; DELETE FROM abyssal_chat_moderation_audit WHERE created_at < NOW()-INTERVAL '180 days';");
+  await pool.query("DELETE FROM abyssal_chat_reports WHERE status IN ('dismissed','actioned') AND closed_at < NOW()-INTERVAL '180 days'; DELETE FROM abyssal_chat_moderation_audit WHERE created_at < NOW()-INTERVAL '180 days';");
 }
 
 function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getChatMessage, removeMessage, isDeveloper }) {
@@ -114,16 +114,18 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
     if (!pool) return res.status(503).json({ ok: false, message: 'PostgreSQL indisponível.' });
     let client;
     try {
-      client = await pool.connect();
       await ensureModerationSchema(pool);
+      client = await pool.connect();
       await client.query('BEGIN');
       const report = await client.query('SELECT report_id,reported_key,message_id FROM abyssal_chat_reports WHERE report_id=$1 AND status IN (\'open\',\'followup\') FOR UPDATE', [String(req.params.id || '')]);
       if (!report.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ ok: false, message: 'Denúncia não encontrada ou já analisada.' }); }
       const status = action === 'dismiss' ? 'dismissed' : action === 'needs_followup' ? 'followup' : 'actioned';
       const target = getUsers()[report.rows[0].reported_key];
-      await client.query('UPDATE abyssal_chat_reports SET status=$2,closed_at=NOW(),moderator_key=$3,resolution=$4 WHERE report_id=$1', [report.rows[0].report_id, status, moderator.key, note || action]);
+      await client.query('UPDATE abyssal_chat_reports SET status=$2,closed_at=CASE WHEN $2='followup' THEN NULL ELSE NOW() END,moderator_key=$3,resolution=$4 WHERE report_id=$1', [report.rows[0].report_id, status, moderator.key, note || action]);
       await client.query('INSERT INTO abyssal_chat_moderation_audit(audit_id,report_id,moderator_key,action,note) VALUES($1,$2,$3,$4,$5)', [crypto.randomUUID(), report.rows[0].report_id, moderator.key, action, note]);
       await client.query('COMMIT');
+      client.release();
+      client = null;
       if (['warn','mute_24h','ban_chat'].includes(action)) await removeMessage?.(report.rows[0].message_id).catch(error=>console.error('[chat-moderation] remove:',error.message));
       if (target && action === 'warn') { target.chatWarnings = Math.min(100, (Number(target.chatWarnings) || 0) + 1); target.chatLastViolationAt=Date.now(); saveUsers(); }
       if (target && action === 'mute_24h') { target.chatMutedUntil = Math.max(Number(target.chatMutedUntil)||0,Date.now() + 24 * 60 * 60 * 1000); saveUsers(); }
