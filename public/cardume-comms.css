@@ -25,3 +25,23 @@
 .cardume-message header .small-action{min-width:28px;min-height:28px;padding:2px 5px;flex:0 0 auto;font-size:15px;line-height:1}.cardume-message header strong{min-width:0;overflow-wrap:anywhere;flex:1}
 
 .chat-safety-menu{position:relative;flex:0 0 auto}.chat-safety-actions{position:absolute;z-index:30;right:0;top:100%;display:flex;flex-direction:column;gap:4px;background:#101924;border:1px solid #725367;border-radius:7px;padding:5px;min-width:105px;box-shadow:0 5px 18px #000a}.chat-safety-actions[hidden]{display:none!important}.chat-safety-actions button{white-space:nowrap;min-height:34px!important;min-width:98px!important}.cardume-message header button[aria-pressed=true],#likeProfileBtn[aria-pressed=true]{border-color:#58c8ff;background:#164153}.cardume-message header .small-action{min-width:30px;min-height:30px}#publicProfileActions #inviteProfileBtn,#publicProfileActions #profileSafetyBtn,#publicProfileActions #likeProfileBtn{min-width:34px;padding:4px 7px;font-size:16px}.chat-safety-actions button{font-size:11px!important}
+
+/* Contextual controls do not reserve space in each message. */
+.cardume-chat{position:relative}
+.cardume-chat-context[hidden],.chat-context-security[hidden]{display:none!important}
+.cardume-chat-context{position:absolute;z-index:40;right:8px;top:36px;width:max-content;max-width:calc(100% - 16px);display:grid;gap:7px;padding:10px;background:#0b2638;border:1px solid #4597af;border-radius:10px;box-shadow:0 8px 28px #000a}
+.cardume-chat-context>strong{color:#a4f4ff;font-size:.85rem;overflow-wrap:anywhere}
+.chat-context-actions{display:flex;gap:6px}
+.chat-action-icon{min-width:44px;min-height:44px;padding:6px;border:1px solid #37677d;border-radius:7px;background:#102f42;color:#d9f9ff;cursor:pointer}
+.chat-context-actions .chat-action-icon{font-size:18px}
+.chat-action-icon[aria-pressed=true]{border-color:#58c8ff;background:#164153}
+.chat-context-security{display:grid;gap:5px}
+.chat-context-security .chat-action-icon{font-size:.85rem;text-align:left}
+.cardume-message .cardume-chat-name{display:inline;min-height:0;padding:0;border:0;background:none;color:#9cf6ff;box-shadow:none;font-weight:700;text-align:left;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;cursor:pointer;overflow-wrap:anywhere}
+.cardume-chat-name:focus-visible,.chat-action-icon:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.cardume-message time{font-size:.7rem;color:#9dbac8}
+.cardume-message.is-self{border-left-color:#82e2ac;background:#123d40}
+.chat-report-form{gap:6px}
+.chat-report-form button{min-height:44px}
+.cardume-invite-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.cardume-invite-actions button{min-height:44px;flex:1 1 110px}
