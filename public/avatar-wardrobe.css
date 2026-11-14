@@ -45,3 +45,6 @@
 #submarineWorkshop .aw-hair-thumb{display:block;position:relative!important;inset:auto!important;width:100%!important;height:auto!important;max-width:112px;aspect-ratio:1;background:radial-gradient(ellipse,#31515c,#0b1b27 75%);border-radius:5px}
 
 #submarineWorkshop .aw-hair-thumb{max-width:138px}
+
+#submarineWorkshop .aw-choices[data-category=outfit] .aw-hair-thumb{max-width:105px;flex:none}
+#submarineWorkshop .aw-choices[data-category=outfit] .aw-option{align-items:center;gap:10px}

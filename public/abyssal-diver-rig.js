@@ -20,7 +20,9 @@
   const magnitude=Math.hypot(vx,vy);if(magnitude>4){vx*=4/magnitude;vy*=4/magnitude;}const blend=1-Math.exp(-dt*7);const flowX=finite(old.flowX)+(vx-finite(old.flowX))*blend,flowY=finite(old.flowY)+(vy-finite(old.flowY))*blend;
   const accel=dt>0?clamp((Math.hypot(vx,vy)-finite(old.speedSample))/dt,-5,5):0,drive=finite(old.drive)+(accel-finite(old.drive))*(1-Math.exp(-dt*5));
   const delta=Math.atan2(Math.sin(heading-finite(old.heading,heading)),Math.cos(heading-finite(old.heading,heading))),turn=finite(old.turn)+(clamp(delta/Math.max(.016,dt),-3,3)-finite(old.turn))*(1-Math.exp(-dt*6));
-  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn};
+  const rollTarget=clamp(turn/3,-1,1)*.82+Math.sin(phase)*weight*(powered?.035:.10),roll=clamp(finite(old.roll)+(rollTarget-finite(old.roll))*(1-Math.exp(-dt*7)), -1,1);
+  const breath=(finite(old.breath)+dt*(.31+.12*weight))%1;
+  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath};
  }
  function leg(side,phase,weight=1,powered=false,motion=null,view=null){
   const a=clamp(finite(weight),0,1)*(powered?.23:1);
@@ -31,12 +33,13 @@
   if(view?.profile>.5){
    // Technical-diver trim: hips remain stable; the knees bend toward the
    // dorsal side, calves alternate, and the blade lags the ankle.
-   const w=clamp(finite(weight),0,1),motor=powered?1:0,braking=clamp(-finite(motion?.drive)/5,0,1);
-   const p=finite(phase)+(side<0?Math.PI:0),hip=[-19,side*3.2],hipAngle=-.035+(1-motor)*(.045*Math.sin(p)*w-.07*braking);
-   const flex=(1-motor)*(.32+.37*(1-w)+.22*braking+.20*Math.sin(p-.55)*w)+motor*.08;
+   const w=clamp(finite(weight),0,1),motor=Number.isFinite(motion?.hairFlow)?clamp(motion.hairFlow,0,1):(powered?1:0),braking=clamp(-finite(motion?.drive)/5,0,1);
+   const p=finite(phase)+(side<0?Math.PI:0),hip=[-19,side*3.2],hipAngle=-.035+(1-motor)*(.035*Math.sin(p)*w-.07*braking);
+   // A slower recovery and stronger push, driven from the knee.
+   const stroke=.72*Math.sin(p-.55)+.28*Math.sin(2*(p-.55)),flex=(1-motor)*(.34+.37*(1-w)+.22*braking+.24*stroke*w)+motor*.08;
    const calfAngle=hipAngle-Math.max(.035,flex),knee=[hip[0]-24*Math.cos(hipAngle),hip[1]+24*Math.sin(hipAngle)],ankle=[knee[0]-24*Math.cos(calfAngle),knee[1]+24*Math.sin(calfAngle)];
-   const finAngle=motor?calfAngle:calfAngle*w-.10*(1-w)+.13*Math.sin(p-1.1)*w+.08*w;
-   return {hip,knee,ankle,finAngle,finFlex:(1-motor)*2.2*Math.sin(p-1.4)*w};
+   const ankleLag=(.19*Math.sin(p-1.05)+.055*Math.sin(2*p-1.8))*w,finAngle=calfAngle*motor+(1-motor)*(calfAngle*w-.10*(1-w)+ankleLag+.08*w);
+   return {hip,knee,ankle,finAngle,finFlex:(1-motor)*3.15*Math.sin(p-1.4)*w,finTwist:(1-motor)*(.12+.17*Math.sin(p-1.12)*w)};
   }
   const knee=[hip[0]-24*Math.cos(thigh),hip[1]+24*Math.sin(thigh)];
   const ankle=[knee[0]-24*Math.cos(calf),knee[1]+24*Math.sin(calf)];
