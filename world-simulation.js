@@ -1022,7 +1022,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const biteClear=riftMode?AbyssalMap.segmentWalkable(mapLayout,enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):world.mode==='open-sea'?OceanGeography.segmentClear(enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):true;
     const tentacleHit=contact.tentacleAttacker===true&&contact.tentacleContact===true;
     const biteHit=!contact.tentacleAttacker&&!charge&&biteClear&&contactDistance<=contactRadius;
-    if(!biteClear||(contact.tentacleAttacker?!tentacleHit:(!biteHit&&!(charge&&contactZone))))continue;
+    const sharkBiteHit=enemy.kind==='whiteShark'&&contactDistance<=EnemyAI.sharkBiteReach(contact.enemyRadiusWorld,contact.playerRadiusWorld);
+    if(!biteClear||(contact.tentacleAttacker?!tentacleHit:(!biteHit&&!(charge&&(enemy.kind==='whiteShark'?sharkBiteHit:contactZone)))))continue;
 
     // Contact attacks now expose a species identity without widening hitboxes.
     const contactProfile=tentacleHit?{skillId:'tentacle-strike',power:enemy.kind==='kraken'&&enemy.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{

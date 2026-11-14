@@ -8,10 +8,10 @@
     'Use WASD ou o mouse, conforme o Controle escolhido. No celular, mova o joystick. No Controle 2, você controla a mira e os disparos.',
     'Derrote criaturas para coletar orbes de experiência. Ao subir de nível, escolha uma nova habilidade ou melhoria.',
     'A barra de progressão libera um boss por etapa e pausa até a sua derrota. Sete bosses completam o primeiro ciclo.',
-    'Na primeira barra completa de uma conta, você recebe 5.000 de energia. Depois, pode retornar à superfície ou enfrentar ciclos cada vez mais fortes.',
-    'Concluir toda a progressão em 100% concede a recompensa final: a Serpente Esmeralda.'
-    ,'Energize o submarino próximo à base: 20 de energia por 5 minutos de luz, mais 10 por torre. Cada uma das três partes tem 1.000 de vida. Aproxime-se e use Reparar (T no PC) por 6 segundos.'
-    ,'Você mantém 100% da energia coletada. Sem bônus (0%), 1.000 de energia continuam 1.000; com um Espécime de +10%, passam a 1.100. O bônus é creditado ao encerrar o mergulho, sem alterar a experiência.',
+    'Complete a barra de progressão para desbloquear recompensas. Depois, decida se retorna à superfície ou continua enfrentando desafios.',
+    'Continue avançando para descobrir novas conquistas.'
+    ,'Aproxime-se do submarino e use Energizar para ativar sua luz e suas armas. Se uma seção for danificada, aproxime-se e use Reparar (T no PC).'
+    ,'Ao encerrar o mergulho, a energia coletada é creditada com o bônus do Espécime equipado. Experiência e energia são recursos diferentes.',
     'Na cabine, abra Pesquisa > Mergulhador. Desbloqueie Pulso de Maré (Q) e Propulsor Abissal (E) com energia. E equipa ou guarda a turbina, que acelera o nado e recarrega ao parar. Use R para a habilidade do Espécime; no celular, toque nos botões.'
    ],end:'Dica: volte à cabine para pesquisar, trocar seu Espécime e preparar o próximo mergulho.'
   },
@@ -21,11 +21,11 @@
    tips:[
     'Movimente-se e evolua em tempo real. Os inimigos e o progresso dos bosses são sincronizados entre os participantes da sala.',
     'Derrote monstros para coletar experiência e desbloquear ressonâncias. Ajude aliados a sobreviver aos ataques dos bosses.',
-    'Cada boss da sequência vencido aproxima o grupo da conclusão da barra. Sua primeira barra pessoal completa dá 5.000 de energia, uma única vez por conta.',
-    'Após receber o bônus, você escolhe voltar à superfície ou continuar pelos ciclos de fortalecimento, rumo à Serpente Esmeralda.',
-    'Escolha ou crie uma sala antes de entrar. Energize a base compartilhada: 20 de energia por ciclo de 5 minutos, mais 10 por torre. Cada seção tem 1.000 de vida; o reparo leva 15 segundos.',
-    'Você mantém 100% da energia coletada. O bônus do Espécime é aplicado no encerramento: 0% = 1.000 de energia; +10% = 1.100. A experiência não recebe esse bônus.',
-    'No ranking por bosses derrotados, os 10 primeiros de cada período recebem energia: diário 100, semanal 1.000 e mensal 5.000.',
+    'Derrote os chefes para avançar na barra de progressão e desbloquear recompensas.',
+    'Ao completar um ciclo, escolha retornar à superfície ou continuar com o grupo.',
+    'Escolha ou crie uma sala. Energize a base compartilhada e ajude seus aliados a reparar as seções danificadas.',
+    'Ao encerrar, receba a energia coletada e o bônus do Espécime. A experiência é calculada separadamente.',
+    'Consulte o ranking na cabine para acompanhar sua classificação e as recompensas disponíveis.',
     'Pesquise Q (Pulso de Maré) e E (Propulsor Abissal) na cabine. E alterna entre arma e propulsor; a bateria se recupera ao parar. R ativa a habilidade do Espécime. Use os botões correspondentes no celular.'
    ],end:'A partida continua acontecendo para os demais. Enquanto este manual estiver aberto, você fica protegido, mas não pode atacar.'
   },
@@ -37,7 +37,7 @@
     'As pedras da arena bloqueiam passagem e disparos. Use-as como cobertura para escapar ou preparar sua investida.',
     'Os tiros e os efeitos de combate são validados pelo servidor. Antecipe o movimento e controle o alcance das habilidades.',
     'Aumente sua resistência com ressonâncias e faça uso cuidadoso das habilidades Q e E.',
-    'O bônus de 5.000 de energia por progressão é exclusivo das campanhas solo e cooperativa, não da arena.'
+    'Consulte as campanhas Solo e Cooperativa para acompanhar a progressão de chefes.'
    ],end:'Enquanto este manual estiver aberto, você está protegido e não pode causar dano.'
   },
   rift:{
@@ -50,7 +50,7 @@
     'Elites e encontros especiais podem entregar experiência, fragmentos e baús. Fique atento aos sinais da expedição.',
     'Vulcões jorram até a parede oposta; as plantas espalham veneno pela área sem atravessar rochas. Vórtices ocupam corredores. Uma marca vermelha avisa a investida dos tentáculos antes que eles saiam das fendas.',
     'Se morrer, você renasce no início da câmara com proteção temporária, sem abandonar a expedição.',
-    'Na oitava camada, Pesadelo Roxo exige desviar das marcas vermelhas de seus tentáculos. Sua vitória libera o Baú Mofado Dourado com 10.000 de energia e uma skin garantida.'
+    'Nas camadas mais profundas, observe os avisos vermelhos e desvie antes dos ataques. Descubra as recompensas ao vencer.'
    ],end:'Enquanto você lê, está protegido de dano e suas ações ofensivas ficam suspensas.'
   },
   'open-sea':{
@@ -74,7 +74,7 @@
     'Escolha ressonâncias ao subir de nível para se preparar para a pressão crescente.',
     'O fogo espirra até a rocha oposta; o gás verde se espalha por todo o espaço aberto. Vórtices bloqueiam corredores. Observe a marca vermelha antes da investida dos tentáculos, que retornam lentamente às fendas.',
     'A morte não encerra este mergulho: você retorna ao início da sala, recupera a vida e mantém os upgrades.',
-    'No oitavo patamar, derrote Pesadelo Roxo para abrir o Baú Mofado Dourado com 10.000 de energia e uma skin garantida.'
+    'Nas camadas mais profundas, observe os avisos de ataque e descubra as recompensas ao vencer.'
    ],end:'O tempo do mundo solo fica suspenso enquanto este manual estiver na tela.'
   }
  };
@@ -82,14 +82,14 @@
  const QUICK_STEPS=Object.freeze({
   solo:{tips:[
    'Mova-se com WASD ou pelo mouse; no celular, use o joystick. Escolha seus controles no menu. O espécime coleta orbs e ajuda no combate.',
-   'Derrote criaturas, recolha orbs e escolha ressonâncias ao subir de nível. Vença os bosses para avançar na barra; o primeiro ciclo dá 5.000 de energia uma vez por conta.',
-   'Aproxime-se do submarino para energizá-lo. Luz: 20 de energia por 5 minutos, mais 10 por torre. Use o botão Reparar nas seções danificadas; demora 6 segundos.',
+   'Derrote criaturas, recolha orbes e escolha uma ressonância ao subir de nível. Enfrente os chefes para avançar.',
+   'Aproxime-se do submarino e use Energizar. Se uma seção sofrer dano, aproxime-se dela e use Reparar.',
    'Ao encerrar, você mantém a energia coletada e recebe o bônus do espécime. Na cabine, pesquise Q/E, personalize ressonâncias e equipe espécimes. R ativa sua habilidade.'
   ],topics:['move','progress','submarine','skills']},
   coop:{tips:[
    'Escolha ou crie uma sala para mergulhar com amigos. Use WASD ou mouse no PC, joystick no celular. O mundo e os bosses são compartilhados.',
-   'Derrote criaturas e recolha orbs com seu espécime para evoluir. Vença bosses para avançar na barra; o primeiro ciclo pessoal dá 5.000 de energia uma vez por conta.',
-   'Energize o submarino compartilhado: 20 de energia por 5 minutos, mais 10 por torre. Aproxime-se das seções danificadas e use Reparar (15 segundos).',
+   'Derrote criaturas, recolha orbes e escolha melhorias. Enfrente os chefes junto com seus aliados.',
+   'Energize o submarino compartilhado. Ajude seus aliados a reparar as seções danificadas.',
    'No encerramento, a energia coletada recebe o bônus do espécime. Pesquise Q/E na cabine e use R para a habilidade do espécime. Consulte o guia completo no menu externo.'
   ],topics:['team','progress','submarine','skills']}
  });

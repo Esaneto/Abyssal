@@ -85,3 +85,10 @@
 /* Keep the extra help control inside the already compact upper command rail. */
 @media(max-width:700px){#submarineWorkshop .abyss-cockpit-chrome{gap:3px!important}#submarineWorkshop .abyss-cockpit-help{min-height:25px;max-width:28px}#submarineWorkshop .abyss-cockpit-top-actions{min-width:0;flex:1 1 auto}}
 #abyssalMenuTour .amt-card{max-height:min(calc(100% - 24px),440px)}
+
+/* Desktop text clarity: keep labels in the native CSS rasterization layer. */
+@media (min-width: 701px) and (pointer: fine) {
+  body, button, input, select, textarea { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+  #menuScreen :is(button,small,label,p), #submarineWorkshop :is(button,small,label,p), #shopScreen :is(button,small,label,p), #abyssalTutorialOverlay :is(button,p,li), #abyssalMenuTour :is(button,p) { text-shadow: none !important; }
+  #game { image-rendering: auto; }
+}

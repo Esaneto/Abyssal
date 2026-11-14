@@ -19,6 +19,8 @@
   function angleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b));}
   const isChargeAttack=enemy=>enemy?.kind==='whiteShark'||enemy?.kind==='whiteSharkBoss';
   function biteDistance(enemyRadius,playerRadius){return Math.max(1,Number(enemyRadius)||1)+Math.max(1,Number(playerRadius)||1)+24/WORLD_ZOOM;}
+  function sharkBiteStop(enemyRadius,playerRadius){return Math.max(1,Number(enemyRadius)||1)+Math.max(1,Number(playerRadius)||1)+9/WORLD_ZOOM;}
+  function sharkBiteReach(enemyRadius,playerRadius){return sharkBiteStop(enemyRadius,playerRadius)+8/WORLD_ZOOM;}
   function biteReach(enemyRadius,playerRadius){return biteDistance(enemyRadius,playerRadius)+10/WORLD_ZOOM;}
 
   function sharkVisionState(enemy,target,now=Date.now()){
@@ -294,7 +296,16 @@
         const steer=Number(options.sharkSteeringAngle);
         heading=Number.isFinite(steer)?previous+clamp(angleDelta(steer,previous),-2.9*dt,2.9*dt):previous+(.18+Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.42)*dt;
       }
-      const travel=(hunting?speed:speed*.42)*dt;
+      let travel=(hunting?speed:speed*.42)*dt;
+      // The ordinary shark bites from just outside the diver's body. Only the boss retains ballistic passes.
+      if(!boss&&hunting&&!target.submarine&&!target.specimen){
+        const stop=sharkBiteStop((Number(enemy.r)||24)*(options.enemyRadiusScale||1),Number(target.r)||13/WORLD_ZOOM);
+        if(clear(x,y,target.x,target.y)){
+          heading=aim;
+          if(distance<stop-1){const back=Math.min(travel,stop-distance);const bx=x-Math.cos(aim)*back,by=y-Math.sin(aim)*back;if(clear(x,y,bx,by))travel=-back;else travel=0;}
+          else travel=Math.min(travel,Math.max(0,distance-stop));
+        }
+      }
       let nx=x+Math.cos(heading)*travel,ny=y+Math.sin(heading)*travel;
       if(!clear(x,y,nx,ny)){
         // Collision is the only opportunity for a hunting boss to change
@@ -435,5 +446,5 @@
     // envelope until each species has a dedicated anatomical curve.
     return d<=r*(enemy.kind==='devourer'?2.05:1.8)+tr;
   }
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionRange, sharkVisionState, isChargeAttack, biteDistance, biteReach, tentacleAttacker, tentacleStopDistance, tentacleContact, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionRange, sharkVisionState, isChargeAttack, sharkBiteStop, sharkBiteReach, biteDistance, biteReach, tentacleAttacker, tentacleStopDistance, tentacleContact, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
 });
