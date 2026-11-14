@@ -31,16 +31,16 @@
  }
  // Convert actual shoulder into the weapon-local space, then solve a bent
  // two-link arm toward the fixed grip. The barrel and tool anchors never move.
- function armCandidates(side,relativeAim,offset,grip,profile='standard',view=null){
+ function armCandidates(side,relativeAim,offset,grip,profile='standard',view=null,projectedTotal=null){
   const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),torch=profile==='welder',[sx,sy]=project([13,side*13],view);
   const shoulder=[sx*ca+sy*sa,-sx*sa+sy*ca-offset],dx=grip[0]-shoulder[0],dy=grip[1]-shoulder[1];
-  const d=Math.max(.001,Math.hypot(dx,dy)),ux=dx/d,uy=dy/d,min=torch?31:36,total=clamp(Math.max(min,d+1.8),min,56),upper=total*.53,lower=total*.47,reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
+  const d=Math.max(.001,Math.hypot(dx,dy)),ux=dx/d,uy=dy/d,min=torch?31:36,total=clamp(Math.max(projectedTotal??min,d+1.8),min,56),upper=total*.53,lower=total*.47,reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
   const along=(upper*upper-lower*lower+reach*reach)/(2*reach),height=Math.sqrt(Math.max(0,upper*upper-along*along));
   return [-1,1].map(sign=>{const elbow=[shoulder[0]+ux*along-uy*height*sign,shoulder[1]+uy*along+ux*height*sign],ex=elbow[0]*ca-(elbow[1]+offset)*sa,ey=elbow[0]*sa+(elbow[1]+offset)*ca;
    // The elbow hint belongs to the BODY, not to the rotating weapon.
    // Prefer an ipsilateral, low elbow and penalize bending into the head.
    const pole=project([3,side*24],view),score=Math.hypot(ex-pole[0],ey-pole[1])+.85*Math.max(0,ex-21)+1.7*Math.max(0,5-side*ey);
-   return {shoulder,elbow,hand:[...grip],score,side,depth:side};
+   return {shoulder,elbow,hand:[...grip],score,side,depth:side,projectedTotal:total};
   });
  }
  function arm(side,relativeAim,offset,grip,profile='standard',view=null){return armCandidates(side,relativeAim,offset,grip,profile,view).sort((a,b)=>a.score-b.score)[0];}
@@ -50,8 +50,8 @@
  }
  function armCrossings(a,b){let n=0;for(const [p,q] of [[a.shoulder,a.elbow],[a.elbow,a.hand]])for(const [r,s] of [[b.shoulder,b.elbow],[b.elbow,b.hand]])if(segmentsCross(p,q,r,s))n++;return n;}
  function armPair(relativeAim,offset,grips,profile='standard',view=null){
-  const left=armCandidates(-1,relativeAim,offset,grips[0],profile,view),right=armCandidates(1,relativeAim,offset,grips[1],profile,view);let best=null,cost=Infinity;
-  for(const a of left)for(const b of right){const crossings=armCrossings(a,b),score=a.score+b.score+crossings*85;if(score<cost){best=[a,b];cost=score;}}
+  const totals=[36,40,45,50,56];const left=totals.flatMap(n=>armCandidates(-1,relativeAim,offset,grips[0],profile,view,n)),right=totals.flatMap(n=>armCandidates(1,relativeAim,offset,grips[1],profile,view,n));let best=null,cost=Infinity;
+  for(const a of left)for(const b of right){const crossings=armCrossings(a,b),score=a.score+b.score+crossings*180+Math.abs(a.projectedTotal-36)*.12+Math.abs(b.projectedTotal-36)*.12;if(score<cost){best=[a,b];cost=score;}}
   return best;
  }
  // Bounds in renderer coordinates; fit the same playable art, not a replacement sprite.
