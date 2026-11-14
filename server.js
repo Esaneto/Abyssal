@@ -1474,7 +1474,7 @@ function tickRoom(room, now) {
   const acquisitionRange=294/WORLD_ZOOM*clamp(Number(peer.rangeStrength)||1,1,2.5)*SkinAbilities.targetRangeMultiplier(peer.skinId,peer.specimenPoints,true);
   const orb=room.mode==='pvp'?null:SpecimenEvasion.bestOrb(pos,room.world?.orbs||[],peer,acquisitionRange,hostile,radius,28/WORLD_ZOOM);
   let target=orb?{x:orb.x,y:orb.y}:{x:(Number(peer.x)||0),y:(Number(peer.y)||0)-34/WORLD_ZOOM};
-  let combatTarget=null,attackHolding=false;
+  let combatTarget=null,attackHolding=false,combatStop=0;
   if(specimenClassicRocks){
    const habit=PetTactics.normalize(peer.petHabit),threats=hostile.filter(e=>Math.hypot(e.x-pos.x,e.y-pos.y)<360/WORLD_ZOOM);
    const candidates=(room.world?.orbs||[]).filter(o=>Math.hypot(o.x-peer.x,o.y-peer.y)<=acquisitionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
@@ -1484,10 +1484,10 @@ function tickRoom(room, now) {
    else if(choice.type==='enemy'){
     combatTarget=choice.enemy;const profile=PetTactics.attackProfile(peer.skinId,SpecimenSystem.familyFor(peer.skinId),CreatureScale.visualRadius(peer.skinId,radius)||radius),direct=Math.atan2(combatTarget.y-pos.y,combatTarget.x-pos.x);
     if(peer.specimenAttackId!==combatTarget.id||!Number.isFinite(peer.specimenApproachAngle))peer.specimenApproachAngle=direct;else peer.specimenApproachAngle+=clamp(Math.atan2(Math.sin(direct-peer.specimenApproachAngle),Math.cos(direct-peer.specimenApproachAngle)),-dt*2.6,dt*2.6);
-    peer.specimenAttackId=combatTarget.id;const goal=PetTactics.attackGoal(pos,combatTarget,profile,peer.specimenApproachAngle);target=goal;
+    peer.specimenAttackId=combatTarget.id;const goal=PetTactics.attackGoal(pos,combatTarget,profile,peer.specimenApproachAngle);target=goal;combatStop=goal.stop;
     const angle=goal.angle,phase=now*.0018,clear=!ClassicCavern.segmentBlocked(specimenClassicRocks,pos.x,pos.y,combatTarget.x,combatTarget.y,2),contact=clear&&PetTactics.attackContact(pos,combatTarget,profile,angle,phase,EnemyAI.touchesKrakenTentacle);
     if(contact){peer.specimenAttackHoldUntil=now+180;if(now>=(Number(peer.nextSpecimenAttackAt)||0)){const live=(room.world?.enemies||[]).find(e=>e.id===combatTarget.id&&e.hp>0),owner=io.sockets.sockets.get(peer.id);if(live&&owner){peer.nextSpecimenAttackAt=now+1020;peer.skinActiveServerResolving=true;peer.skinActiveDamageOrigin=pos;try{processWorldDamage(owner,Number(live.id),SpecimenSystem.effectiveStats(peer.skinId,peer.specimenPoints).damage,profile.body?'specimen-body-contact':'specimen-bite');}finally{peer.skinActiveServerResolving=false;peer.skinActiveDamageOrigin=null;}io.to(channelFor(room)).emit('specimen-attack',{fromId:peer.id,x:pos.x,y:pos.y,angle});}}}
-    attackHolding=now<(Number(peer.specimenAttackHoldUntil)||0)&&Math.abs(goal.distance-goal.stop)<=Math.max(7/WORLD_ZOOM,profile.slack*1.8)*2.2;if(attackHolding){peer.specimenEvasionHeading=angle;continue;}
+    attackHolding=now<(Number(peer.specimenAttackHoldUntil)||0)&&goal.distance>=goal.stop-1&&goal.distance<=goal.stop+Math.max(7/WORLD_ZOOM,profile.slack*1.8);if(attackHolding){peer.specimenEvasionHeading=angle;continue;}
    }else{peer.specimenAttackId=null;peer.specimenAttackHoldUntil=0;}
    if(ClassicCavern.isBlocked(specimenClassicRocks,target.x,target.y,radius+1/WORLD_ZOOM)&&!combatTarget)target={x:peer.x,y:peer.y};
    const actor={...pos,angle:peer.specimenEvasionHeading,caveRoute:peer.specimenRoute},route=ClassicCavern.pursuitTarget(specimenClassicRocks,roomWorldWidth(room),roomWorldHeight(room),actor,target,radius+1/WORLD_ZOOM,now);peer.specimenRoute=actor.caveRoute;if(route&&!route.blocked)target=route;
@@ -1502,7 +1502,8 @@ function tickRoom(room, now) {
    const move=SpecimenEvasion.steer({position:pos,target,enemies:nearbyHostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
    heading:Number(peer.specimenEvasionHeading)||0,
    resolve:specimenCaveLayout?(x,y)=>AbyssalMap.resolveMove(specimenCaveLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):specimenClassicRocks?(x,y)=>ClassicCavern.resolve(specimenClassicRocks,pos.x,pos.y,x,y,radius+1/WORLD_ZOOM):(x,y)=>({x:clamp(x,18/WORLD_ZOOM,roomWorldWidth(room)-18/WORLD_ZOOM),y:clamp(y,18/WORLD_ZOOM,roomWorldHeight(room)-18/WORLD_ZOOM)})});
-  peer.specimenX=move.x;peer.specimenY=move.y;peer.specimenEvasionHeading=move.angle;
+  const spaced=combatTarget?PetTactics.limitApproach(pos,move,combatTarget,combatStop-1):move;
+  peer.specimenX=spaced.x;peer.specimenY=spaced.y;peer.specimenEvasionHeading=move.angle;
  }
  if(activePlayers.length)io.to(channelFor(room)).volatile.emit('specimen-motion',{serverTime:now,rows:activePlayers.map(p=>[p.id,p.specimenX,p.specimenY,Number(p.specimenEvasionHeading)||0,p.specimenAlive!==false])});
  const w = room.world;

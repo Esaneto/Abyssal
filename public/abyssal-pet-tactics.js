@@ -2,10 +2,11 @@
  * Pure deterministic selection, independently testable without the browser.
  */
 (function(root,factory){
- const api=factory();
+ const scale=typeof module==='object'&&module.exports?require('./creature-scale.js'):root.AbyssalCreatureScale;
+ const api=factory(scale);
  if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.AbyssalPetTactics=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(scale){
  'use strict';
  const MODES=Object.freeze(['passive','aggressive','guardian']);
  const normalize=mode=>MODES.includes(mode)?mode:'passive';
@@ -65,16 +66,30 @@
   const reach=kraken?3.1*r:body?(['octopus','squid','jelly'].includes(family)?1.8:1.25)*r:(family==='eel'?1.65:family==='reptile'?1.55:1.15)*r;
   return {body,kraken,r,reach,core:Math.max(1,r*.65),slack:Math.max(3,r*.13)};
  }
+ function attackTargetRadius(enemy){
+  const core=Math.max(1,Number(enemy.r)||1);
+  const visual=scale?.monsterVisualRadius?.(enemy.kind,core,enemy.specimenSkinId)||core;
+  return Math.max(core,visual*(enemy.kind==='whiteShark'||enemy.kind==='whiteSharkBoss'?1.32:0.9));
+ }
+ function limitApproach(from,to,enemy,min){
+  const old=distance(from,enemy),next=distance(to,enemy);
+  if(next>=min||next>=old)return to;
+  if(old<=min)return {x:from.x,y:from.y};
+  // Clip the segment at the first circle intersection, preserving its terrain-resolved path.
+  const dx=to.x-from.x,dy=to.y-from.y,fx=from.x-enemy.x,fy=from.y-enemy.y,a=dx*dx+dy*dy,b=2*(fx*dx+fy*dy),c=fx*fx+fy*fy-min*min;
+  const t=a>0?Math.max(0,Math.min(1,(-b-Math.sqrt(Math.max(0,b*b-4*a*c)))/(2*a))):0;
+  return {x:from.x+dx*t,y:from.y+dy*t};
+ }
  function attackGoal(pet,enemy,profile,approachAngle=null){
   const dx=enemy.x-pet.x,dy=enemy.y-pet.y,d=Math.hypot(dx,dy);
   const directAngle=d>1e-6?Math.atan2(dy,dx):Number(pet.facingAngle)||0;
   const travelAngle=Number.isFinite(approachAngle)?approachAngle:directAngle;
-  const er=Math.max(1,Number(enemy.r)||1);
+  const er=attackTargetRadius(enemy);
   const stop=er+profile.reach+profile.slack*.35;
   return {x:enemy.x-Math.cos(travelAngle)*stop,y:enemy.y-Math.sin(travelAngle)*stop,angle:directAngle,approachAngle:travelAngle,stop,distance:d};
  }
  function attackContact(pet,enemy,p,angle,phase,krakenTouch){
-  const er=Math.max(1,Number(enemy.r)||1),dx=enemy.x-pet.x,dy=enemy.y-pet.y,d=Math.hypot(dx,dy);
+  const er=attackTargetRadius(enemy),dx=enemy.x-pet.x,dy=enemy.y-pet.y,d=Math.hypot(dx,dy);
   if(p.kraken){
    if(d>p.r*5.2+er)return false;
    // Use actual animated arm paths, plus mantle/core.
@@ -90,5 +105,5 @@
   const mouthX=pet.x+Math.cos(angle)*p.reach,mouthY=pet.y+Math.sin(angle)*p.reach;
   return Math.hypot(enemy.x-mouthX,enemy.y-mouthY)<=er+p.slack;
  }
- return Object.freeze({MODES,normalize,choose,orbRisk,attackProfile,attackGoal,attackContact});
+ return Object.freeze({MODES,normalize,choose,orbRisk,attackProfile,attackTargetRadius,limitApproach,attackGoal,attackContact});
 });

@@ -585,7 +585,7 @@ function syncSoloHull(){arenaRocks=arenaRocks.filter(r=>!r.submarineHull).concat
 function soloHullDistance(s,x,y){return Math.hypot(x-s.x,y-s.y);}
 function nearestSoloHull(x,y,damagedOnly=false){let best=null,d=Infinity;for(const s of soloSubmarine.sections){if(damagedOnly?s.hp>=SOLO_HULL_HP:s.hp<=0)continue;const q=soloHullDistance(s,x,y);if(q<d){best=s;d=q;}}return best;}
 function soloHullAttackTarget(e){const s=nearestSoloHull(e.x,e.y);if(!s)return null;const now=performance.now(),cached=e.submarineTargetCache;if(cached&&cached.section===s&&cached.revision===soloSubmarine.hullRevision&&now<cached.until)return cached.target;const r=s.rock,pad=Math.max(5,e.r*.62),a=Math.atan2(e.y-s.y,e.x-s.x);let best=null,cost=Infinity;for(const off of [0,.55,-.55,1.1,-1.1,1.65,-1.65,Math.PI]){const dx=Math.cos(a+off),dy=Math.sin(a+off);let lo=0,hi=r.r+pad+20;for(let i=0;i<9;i++){const mid=(lo+hi)*.5;if(SOLO_CAVERN.isBlocked(s.collision,s.x+dx*mid,s.y+dy*mid,pad+3))lo=mid;else hi=mid;}const x=s.x+dx*hi,y=s.y+dy*hi;if(SOLO_CAVERN.isBlocked(arenaRocks,x,y,pad))continue;const q=Math.hypot(e.x-x,e.y-y);if(q<cost){best={x,y};cost=q;}if(off===0&&best)break;}const target={...(best||{x:s.x,y:s.y}),local:false,submarine:true,section:s,skinId:'default',r:0,moveSpeed:player?.moveSpeed};e.submarineTargetCache={section:s,revision:soloSubmarine.hullRevision,until:now+180+(Number(e.id)||0)%70,target};return target;}
-function soloCreatureTarget(e,diver){if(!isClassicShooterRun())return diver;if(soloSubmarinePowered()){const target=soloHullAttackTarget(e);if(target)return target;}const pet=player?.specimen;if(pet?.alive&&Math.hypot(e.x-pet.x,e.y-pet.y)<Math.hypot(e.x-diver.x,e.y-diver.y))return {x:pet.x,y:pet.y,r:pet.r,local:false,specimen:true,skinId:equippedSkin,moveSpeed:player.moveSpeed};return diver;}
+function soloCreatureTarget(e,diver){if(!isClassicShooterRun())return diver;if(soloSubmarinePowered()){const target=soloHullAttackTarget(e);if(target)return target;}const pet=player?.specimen;if(pet?.alive&&Math.hypot(e.x-pet.x,e.y-pet.y)<Math.hypot(e.x-diver.x,e.y-diver.y))return {x:pet.x,y:pet.y,r:pet.r,visualRadius:CREATURE_SCALE?.visualRadius?.(equippedSkin,pet.r)||pet.r,local:false,specimen:true,skinId:equippedSkin,moveSpeed:player.moveSpeed};return diver;}
 function soloHullShieldReady(){return soloSubmarinePowered()&&!soloSubmarine.shieldSpent&&Boolean(window.AbyssalSoloBase?.get?.().submarineShield);}
 function damageSoloHull(s,amount){
  if(!s||s.hp<=0||!(amount>0))return false;
@@ -3109,7 +3109,7 @@ function updateSpecimenRuntime(dt){
   const facing=s.facingAngle,phase=now*.0018,clear=pveTerrainClear(s.x,s.y,combatTarget.x,combatTarget.y,2),contact=clear&&PET_TACTICS.attackContact(s,combatTarget,profile,facing,phase,window.AbyssalEnemyAI?.touchesKrakenTentacle);
   if(contact)s.attackHoldUntil=Math.max(Number(s.attackHoldUntil)||0,now+180);
   const distanceToTarget=Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y),holdBand=Math.max(7/GAME_WORLD_ZOOM,profile.slack*1.8);
-  attackHolding=now<(Number(s.attackHoldUntil)||0)&&Math.abs(distanceToTarget-strikeGoal.stop)<=holdBand*2.2;if(attackHolding)target=pos;
+  attackHolding=now<(Number(s.attackHoldUntil)||0)&&distanceToTarget>=strikeGoal.stop-1&&distanceToTarget<=strikeGoal.stop+holdBand;if(attackHolding)target=pos;
   if(contact&&!profile.body&&now>=(s.nextTacticalAttack||0)){const damage=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage;s.nextTacticalAttack=now+1020;s.visualAttackUntil=now+390;s.biteAnimation={startedAt:now,duration:360,reach:profile.reach};playWorldSound('bite',s,750,.9,{owner:'local-pet',local:true});s.pendingBite={enemy:combatTarget,profile,damage,hitAt:now+230};}
   if(profile.body&&now>=(s.nextBodyAttackCheck||0)){
    s.nextBodyAttackCheck=now+90;s.bodyAttackCooldowns ||= new Map();const damage=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage;
@@ -3131,7 +3131,7 @@ function updateSpecimenRuntime(dt){
  else{
   const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:navigationThreats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,heading:Number(s.facingAngle)||0,resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(isClassicCavernRun()&&SOLO_CAVERN?(x,y)=>SOLO_CAVERN.resolve(arenaRocks,pos.x,pos.y,x,y,pad):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)}))});
   if(move){
-   if(combatTarget){const min=profile.core+(Number(combatTarget.r)||0)+2,oldDistance=Math.hypot(pos.x-combatTarget.x,pos.y-combatTarget.y),newDistance=Math.hypot(move.x-combatTarget.x,move.y-combatTarget.y);if(newDistance<min&&newDistance<oldDistance){move.x=pos.x;move.y=pos.y;}}
+   if(combatTarget){const min=strikeGoal.stop-1,oldDistance=Math.hypot(pos.x-combatTarget.x,pos.y-combatTarget.y),newDistance=Math.hypot(move.x-combatTarget.x,move.y-combatTarget.y);if(newDistance<min&&newDistance<oldDistance){const corrected=PET_TACTICS.limitApproach(pos,move,combatTarget,min);move.x=corrected.x;move.y=corrected.y;}}
    s.x=move.x;s.y=move.y;const dx=move.x-pos.x,dy=move.y-pos.y,travelled=Math.hypot(dx,dy),velocityBlend=1-Math.exp(-dt*10);s.vx=(Number(s.vx)||0)+((dx/Math.max(.001,dt))-(Number(s.vx)||0))*velocityBlend;s.vy=(Number(s.vy)||0)+((dy/Math.max(.001,dt))-(Number(s.vy)||0))*velocityBlend;
    s.stuckSeconds=Math.hypot(target.x-pos.x,target.y-pos.y)>radius+4&&travelled<normalSpeed*dt*.2?(s.stuckSeconds||0)+dt:Math.max(0,(s.stuckSeconds||0)-dt*2);
    if(travelled>.01&&!combatTarget){const heading=Math.atan2(s.vy||dy,s.vx||dx),diff=Math.atan2(Math.sin(heading-(s.facingAngle||0)),Math.cos(heading-(s.facingAngle||0)));s.facingAngle=(s.facingAngle||0)+diff*(1-Math.exp(-dt*9));}
@@ -3148,7 +3148,7 @@ function hurtSpecimenSolo(amount){
 function updateSoloSpecimenContact(){
  const s=player?.specimen;if(onlineMode||!s||s.alive===false)return;
  const now=performance.now();collectEnemyCandidatesNear(s.x,s.y,360/GAME_WORLD_ZOOM,specimenContactCandidates);
- for(const e of specimenContactCandidates){if(!e||e.hp<=0||Math.hypot(e.x-s.x,e.y-s.y)>e.r+s.r+6/GAME_WORLD_ZOOM)continue;if(now<(Number(e.specimenAttackAt)||0))continue;e.specimenAttackAt=now+850;hurtSpecimenSolo(Math.max(5,Number(e.damage)||8)*.72);}
+ for(const e of specimenContactCandidates){if(!e||e.hp<=0||Math.hypot(e.x-s.x,e.y-s.y)>(e.kind==='whiteShark'?window.AbyssalEnemyAI.sharkBiteReach(e.r,CREATURE_SCALE?.visualRadius?.(equippedSkin,s.r)||s.r,activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r)):e.r+s.r+6/GAME_WORLD_ZOOM))continue;if(now<(Number(e.specimenAttackAt)||0))continue;e.specimenAttackAt=now+850;hurtSpecimenSolo(Math.max(5,Number(e.damage)||8)*.72);}
 }
 let diverBubbleClock=0;
 function update(dt){
@@ -3431,7 +3431,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  // second local AI here: that divergence is what made server-side contact attacks feel
  // like invisible enemies. Solo keeps its original local movement/collision loop.
  onlineVisualEnemyCount=enemies.length;onlineVisualMovingEnemies=0;
- const enemyFrameNow=performance.now(),localTarget={x:player.x,y:player.y,local:true,skinId:equippedSkin},localTargets=[localTarget];
+ const enemyFrameNow=performance.now(),localTarget={x:player.x,y:player.y,r:player.r,visualRadius:Math.max(player.r,20),local:true,skinId:equippedSkin},localTargets=[localTarget];
  // Spatial index avoids all-pairs separation scans in dense hordes.
  if(!onlineMode&&isClassicShooterRun())rebuildEnemyCollisionGrid();
  for(let i=enemies.length-1;i>=0;i--){
@@ -3587,6 +3587,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     soloEnemyMovementOptions.freeSwim=!(e.kind==='whiteShark'||e.kind==='whiteSharkBoss');
    }
    if(window.AbyssalEnemyAI.isChargeAttack(e)){
+    soloEnemyMovementOptions.sharkVisualRadius=activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r,e.specimenSkinId):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r,e.specimenSkinId);
     soloEnemyMovementOptions.sharkPadding=activeMapLayout?Math.max(8,Math.min(38,e.r*.58)):usesNaturalOceanTerrain()?Math.max(8,Math.min(58,e.r*.55)):Math.max(5,e.r*.62);
     soloEnemyMovementOptions.sharkTerrainClear=pveTerrainClear;
     soloEnemyMovementOptions.sharkNavigation=soloSharkNavigation;
@@ -3622,7 +3623,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
   e.attackCd=(e.attackCd||0)-dt;const charge=window.AbyssalEnemyAI.isChargeAttack(e),biteReach=window.AbyssalEnemyAI.biteReach(e.r,player.r),biteClear=activeMapLayout?(!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,e.x,e.y,player.x,player.y,2)):usesNaturalOceanTerrain()?(!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(e.x,e.y,player.x,player.y,2)):(!SOLO_CAVERN||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,player.x,player.y,2));
   const tentacleAttack=window.AbyssalEnemyAI.tentacleAttacker(e,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId)),tentacleHit=tentacleAttack&&window.AbyssalEnemyAI.tentacleContact(e,player,e.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId));
-  const attackReach=tentacleAttack?tentacleHit:charge?(e.sharkCharging&&(e.kind==='whiteShark'||!e.sharkChargeHit)&&(e.kind==='whiteShark'?td<=window.AbyssalEnemyAI.sharkBiteReach(e.r,player.r):pointSegmentDistance(player.x,player.y,beforeEnemyX,beforeEnemyY,e.x,e.y)<=e.r+player.r)):td<=biteReach;
+  const attackReach=tentacleAttack?tentacleHit:charge?(e.sharkCharging&&(e.kind==='whiteShark'||!e.sharkChargeHit)&&(e.kind==='whiteShark'?td<=window.AbyssalEnemyAI.sharkBiteReach(e.r,Math.max(player.r,20),soloEnemyMovementOptions.sharkVisualRadius):pointSegmentDistance(player.x,player.y,beforeEnemyX,beforeEnemyY,e.x,e.y)<=e.r+player.r)):td<=biteReach;
   if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:100},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;}renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Predation decisions are sampled at 10 Hz; locomotion and visuals remain per-frame.

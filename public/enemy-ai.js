@@ -19,8 +19,12 @@
   function angleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b));}
   const isChargeAttack=enemy=>enemy?.kind==='whiteShark'||enemy?.kind==='whiteSharkBoss';
   function biteDistance(enemyRadius,playerRadius){return Math.max(1,Number(enemyRadius)||1)+Math.max(1,Number(playerRadius)||1)+24/WORLD_ZOOM;}
-  function sharkBiteStop(enemyRadius,playerRadius){return Math.max(1,Number(enemyRadius)||1)+Math.max(1,Number(playerRadius)||1)+9/WORLD_ZOOM;}
-  function sharkBiteReach(enemyRadius,playerRadius){return sharkBiteStop(enemyRadius,playerRadius)+8/WORLD_ZOOM;}
+  function sharkBiteStop(enemyRadius,playerRadius,visualRadius=0){
+    // The shark artwork's snout is 1.28 visual radii from its center, not its collision radius.
+    const nose=Math.max(Number(enemyRadius)||1,1.32*(Number(visualRadius)||46.17));
+    return nose+Math.max(1,Number(playerRadius)||1)+5/WORLD_ZOOM;
+  }
+  function sharkBiteReach(enemyRadius,playerRadius,visualRadius=0){return sharkBiteStop(enemyRadius,playerRadius,visualRadius)+9/WORLD_ZOOM;}
   function biteReach(enemyRadius,playerRadius){return biteDistance(enemyRadius,playerRadius)+10/WORLD_ZOOM;}
 
   function sharkVisionState(enemy,target,now=Date.now()){
@@ -298,9 +302,9 @@
       }
       let travel=(hunting?speed:speed*.42)*dt;
       // The ordinary shark bites from just outside the diver's body. Only the boss retains ballistic passes.
-      if(!boss&&hunting&&!target.submarine&&!target.specimen){
-        const stop=sharkBiteStop((Number(enemy.r)||24)*(options.enemyRadiusScale||1),Number(target.r)||13/WORLD_ZOOM);
-        if(clear(x,y,target.x,target.y)){
+      if(!boss&&hunting&&!target.submarine){
+        const stop=sharkBiteStop((Number(enemy.r)||24)*(options.enemyRadiusScale||1),Number(target.visualRadius)||Number(target.r)||13/WORLD_ZOOM,options.sharkVisualRadius);
+        if(!options.sharkTerrainClear||options.sharkTerrainClear(x,y,target.x,target.y,2)){
           heading=aim;
           if(distance<stop-1){const back=Math.min(travel,stop-distance);const bx=x-Math.cos(aim)*back,by=y-Math.sin(aim)*back;if(clear(x,y,bx,by))travel=-back;else travel=0;}
           else travel=Math.min(travel,Math.max(0,distance-stop));

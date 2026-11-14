@@ -825,6 +825,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     movementOptions.freeSwim=false;
     movementOptions.sharkLineOfSight=actualTarget?terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y):false;
     movementOptions.sharkTerrainClear=terrainClear;
+    movementOptions.sharkVisualRadius=riftMode?CreatureScale.riftVisualRadius(enemy.kind,enemy.r,enemy.specimenSkinId):CreatureScale.monsterVisualRadius(enemy.kind,enemy.r,enemy.specimenSkinId);
     movementOptions.sharkPadding=riftMode?Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)):Math.max(10,Math.min(65,(Number(enemy.r)||10)/WORLD_ZOOM*.62));
     movementOptions.sharkNavigation=sharkNavigation;
     const seaBeforeX=Number(enemy.x),seaBeforeY=Number(enemy.y);
@@ -860,7 +861,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
           else movementTargets=[actualTarget];
         }
         if(hold){enemy.vx=0;enemy.vy=0;movement={moved:false,target:actualTarget};}else movement=EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
-        if (world.mode!=='classic' && !movement.moved && actualTarget && dt > 0) {
+        if (world.mode!=='classic' && !movement.moved && actualTarget && dt > 0 && enemy.kind!=='whiteShark') {
           if(actualTarget.submarine){
             const dx=actualTarget.x-enemy.x,dy=actualTarget.y-enemy.y,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*.85*dt,Math.max(0,d-movementOptions.stopDistance));
             enemy.x=clamp(enemy.x+dx/d*step,0,world.width||WORLD_WIDTH);enemy.y=clamp(enemy.y+dy/d*step,0,world.height||WORLD_HEIGHT);movement.moved=step>0;
@@ -1022,7 +1023,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const biteClear=riftMode?AbyssalMap.segmentWalkable(mapLayout,enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):world.mode==='open-sea'?OceanGeography.segmentClear(enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):true;
     const tentacleHit=contact.tentacleAttacker===true&&contact.tentacleContact===true;
     const biteHit=!contact.tentacleAttacker&&!charge&&biteClear&&contactDistance<=contactRadius;
-    const sharkBiteHit=enemy.kind==='whiteShark'&&contactDistance<=EnemyAI.sharkBiteReach(contact.enemyRadiusWorld,contact.playerRadiusWorld);
+    const sharkBiteHit=enemy.kind==='whiteShark'&&contactDistance<=EnemyAI.sharkBiteReach(contact.enemyRadiusWorld,Math.max(20,contact.playerRadiusWorld),movementOptions.sharkVisualRadius);
     if(!biteClear||(contact.tentacleAttacker?!tentacleHit:(!biteHit&&!(charge&&(enemy.kind==='whiteShark'?sharkBiteHit:contactZone)))))continue;
 
     // Contact attacks now expose a species identity without widening hitboxes.
