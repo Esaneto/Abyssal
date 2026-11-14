@@ -11,4 +11,4 @@ test('preview frames fit complete diver, weapon and active bubbles in any direct
   }
  }
 });
-test('preview framing does not alter weapon anchors or articulated bones',()=>{assert.deepEqual(rig.rifleGrips,[[34,2],[22,11]]);const p=rig.leg(1,1,1);assert.ok(Math.abs(Math.hypot(p.knee[0]-p.hip[0],p.knee[1]-p.hip[1])-18)<1e-8);});
+test('preview framing does not alter weapon anchors or articulated bones',()=>{assert.deepEqual(rig.rifleGrips,[[34,2],[22,11]]);const p=rig.leg(1,1,1);assert.ok(Math.abs(Math.hypot(p.knee[0]-p.hip[0],p.knee[1]-p.hip[1])-22)<1e-8);});

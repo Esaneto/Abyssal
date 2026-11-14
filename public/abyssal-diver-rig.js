@@ -19,8 +19,8 @@
   const delay=Math.sin(finite(phase)-.72+(side>0?0:Math.PI));
   const hip=[-16,side*5.5],thigh=side*.085+wave*.19*a;
   const calf=side*.12+delay*.30*a;
-  const knee=[hip[0]-18*Math.cos(thigh),hip[1]+18*Math.sin(thigh)];
-  const ankle=[knee[0]-19*Math.cos(calf),knee[1]+19*Math.sin(calf)];
+  const knee=[hip[0]-22*Math.cos(thigh),hip[1]+22*Math.sin(thigh)];
+  const ankle=[knee[0]-23*Math.cos(calf),knee[1]+23*Math.sin(calf)];
   return {hip,knee,ankle,finAngle:calf+delay*.055*a};
  }
  // Convert actual shoulder into the weapon-local space, then solve a bent
@@ -29,7 +29,9 @@
   const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),sx=11,sy=side*8;
   const shoulder=[sx*ca+sy*sa,-sx*sa+sy*ca-offset],dx=grip[0]-shoulder[0],dy=grip[1]-shoulder[1];
   const distance=Math.hypot(dx,dy),d=Math.max(.001,distance),ux=dx/d,uy=dy/d;
-  const upper=24,lower=27,reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
+  // Shorter projected lengths in close poses represent out-of-plane flexion.
+  // At extreme aim angles expand only enough to retain the fixed grip.
+  const total=clamp(Math.max(35,d+1.8),35,51),upper=total*24/51,lower=total*27/51,reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
   const along=(upper*upper-lower*lower+reach*reach)/(2*reach),height=Math.sqrt(Math.max(0,upper*upper-along*along));
   const elbow=[shoulder[0]+ux*along-uy*height*side,shoulder[1]+uy*along+ux*height*side];
   return {shoulder,elbow,hand:[...grip]};
@@ -42,15 +44,15 @@
    const co=Math.cos(a),si=Math.sin(a);
    for(const x of [x0,x1])for(const y of [y0,y1]){const px=x*co-y*si,py=x*si+y*co;minX=Math.min(minX,px);maxX=Math.max(maxX,px);minY=Math.min(minY,py);maxY=Math.max(maxY,py);}
   }
-  include(-86,-35,44,34,heading);
-  if(!['classic','short','shaved'].includes(hairStyle))include(-53,-45,64,45,heading);
+  include(-96,-35,46,34,heading);
+  if(!['classic','short','shaved'].includes(hairStyle))include(-55,-47,65,47,heading);
   if(held==='abyssWeapon')include(-6,-6,73,34,aim);
   else if(held!=='none')include(powered?-116:-6,-19,68,25,aim);
   const scale=Math.min(width*.85/(maxX-minX),height*.84/(maxY-minY));
   return {x:width/2-(minX+maxX)*scale/2,y:height/2-(minY+maxY)*scale/2,r:scale*14/.60};
  }
  // Portrait frame keeps the crown and every animated tip inside its tile.
- function hairPortraitFrame(width,height){width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));const scale=Math.min(width/104,height/136);return {x:width/2,y:height*.54,r:scale*14/.60};}
+ function hairPortraitFrame(width,height,style='all'){width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));const small=['classic','short','shaved','topKnot','mohawk','tealSpikes'].includes(style);const scale=Math.min(width/(small?70:106),height/(small?91:126));return {x:width/2,y:height*(small?.72:.56),r:scale*14/.60};}
  const pair=(a,b)=>Object.freeze([Object.freeze(a),Object.freeze(b)]);
  // Contacts lie on the actual receiver handle, pistol grip and tool handles.
  const rifleGrips=pair([34,2],[22,11]);
@@ -72,7 +74,7 @@
  }
  function idleArm(side,phase=0,weight=0){
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
-  return {shoulder:[11,side*8],elbow:[-3,side*(14+sway)],hand:[-18,side*(12+sway*.5)]};
+  return {shoulder:[11,side*8],elbow:[-7,side*(14+sway)],hand:[-25,side*(11.5+sway*.5)]};
  }
  return Object.freeze({advance,leg,arm,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });

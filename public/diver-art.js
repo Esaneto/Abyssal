@@ -186,8 +186,10 @@
   // so the rifle pose can never leak underneath a pickaxe or container.
   const held=String(options.heldItem||'abyssWeapon'),relativeAim=(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig;
   const gripHands=[];
-  const drawGripArms=(offset,grips,turn=relativeAim)=>{gripHands.length=0;for(let i=0;i<2;i++){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,turn,offset,grip)||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};limb(pose.shoulder,pose.elbow,7.1,suitTone('#263847',1),suitTone('#668293',3));limb(pose.elbow,pose.hand,5.8,suitTone('#101923',0),suitTone('#39536a',2));gripHands.push(pose);}};
+  const drawGripArms=(offset,grips,turn=relativeAim,indices=[0,1])=>{gripHands.length=0;for(const i of indices){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,turn,offset,grip)||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};limb(pose.shoulder,pose.elbow,i?7.4:6.8,suitTone('#263847',1),suitTone('#668293',3));limb(pose.elbow,pose.hand,i?6.0:5.4,suitTone('#101923',0),suitTone('#39536a',2));if(limb.joint)limb.joint(pose.elbow,3.8);gripHands.push(pose);}};
   const drawGloves=(xOffset=0)=>{if(limb.glove)for(const p of gripHands)limb.glove([p.hand[0]-xOffset,p.hand[1]],[p.elbow[0]-xOffset,p.elbow[1]],true);};
+  // A compact welding torch is a one-handed tool. The free arm rests beside the body.
+  if(held==='abyssWelder'){const p=rig?.idleArm(-1,options.motion?.phase||phase,options.motion?.weight||0);if(p){limb(p.shoulder,p.elbow,7.2,suitTone('#263847',1),suitTone('#668293',3));limb(p.elbow,p.hand,5.8,suitTone('#101923',0),suitTone('#39536a',2));if(limb.glove)limb.glove(p.hand,p.elbow);}}
   c.save();c.rotate(held==='none'?0:relativeAim);
   if(held==='none'){for(const side of [-1,1]){const p=rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0)||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};limb(p.shoulder,p.elbow,7.7,suitTone('#263847',1),suitTone('#668293',3));limb(p.elbow,p.hand,6.5,suitTone('#101923',0),suitTone('#39536a',2));if(limb.glove)limb.glove(p.hand,p.elbow);else{c.fillStyle='#14242d';c.strokeStyle='#63808a';c.lineWidth=.6;c.beginPath();c.ellipse(-22,side*13,4,2.8,0,0,TAU);c.fill();c.stroke();}}c.restore();c.restore();return;}
   if(held!=='abyssWeapon'){
@@ -196,7 +198,7 @@
    // Rotate the grip coordinates, not the shoulder reference frame.
    const co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
    const grips=tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co]);
-   drawGripArms(5,grips);
+   drawGripArms(5,grips,relativeAim,held==='abyssWelder'?[1]:[0,1]);
    c.save();c.rotate(tool.swingAngle);c.translate(27,0);
    if(held==='abyssPropulsor'||held==='abyssPropulsorIdle'){
     const active=Boolean(options.propulsorActive),pulse=.5+.5*Math.sin((Number(t)||0)*.045);
@@ -225,7 +227,7 @@
     c.fillStyle='#69e6f5';c.fillRect(18,-14,9,4);c.fillRect(12,-11,5,5);
     c.fillStyle='#314755';c.fillRect(21,-6,9,8);
    }else if(held==='abyssWelder'){
-    // Compact insulated underwater electric torch, with two-handed grip.
+    // Compact insulated underwater electric torch, with one dominant-hand grip.
     const pulse=.5+.5*Math.sin((Number(t)||0)*.035);
     c.fillStyle='#152b3a';c.strokeStyle='#a9c5ce';c.lineWidth=1.4;
     c.beginPath();c.roundRect(-5,-6,21,12,3);c.fill();c.stroke();
@@ -233,7 +235,7 @@
     c.fillStyle='#334d59';c.beginPath();c.roundRect(13,-4,12,8,2);c.fill();c.stroke();
     c.strokeStyle='#c9dce2';c.lineWidth=3;c.beginPath();c.moveTo(23,0);c.lineTo(30,0);c.stroke();
     c.fillStyle='#61efff';c.shadowColor='#4ceaff';c.shadowBlur=4+pulse*3;c.beginPath();c.arc(30,0,1.8+pulse*.5,0,TAU);c.fill();c.shadowBlur=0;
-    c.strokeStyle='#111c26';c.lineWidth=2.2;c.beginPath();c.moveTo(-3,5);c.quadraticCurveTo(-13,16,-24,9);c.stroke();
+    c.strokeStyle='#111c26';c.lineWidth=2.2;c.beginPath();c.moveTo(-3,5);c.quadraticCurveTo(-8,13,-15,10);c.stroke();
    }else if(['emptyCylinder','gasCylinder','oilCylinder'].includes(held)){
     const progress=Math.max(0,Math.min(1,Number(options.fillProgress)||0));
     const kind=String(options.fillType||'');
