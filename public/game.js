@@ -1218,6 +1218,10 @@ function playWorldSound(cue,position=null,range=850,volume=1,extra={}){
  if(gameState==='menu'||gameState==='over'||gameState==='paused')return false;
  return window.AbyssalAudio?.play(cue,soundOptions(position,range,volume,extra))||false;
 }
+function playPlayerDeathCry(position,local=false,owner='local-death'){
+ if(!position||gameState==='menu')return false;
+ return window.AbyssalAudio?.play('player-death',soundOptions(position,950,local?1:.85,{owner,local}))||false;
+}
 function playCombatAbilitySound(id,position,extra={}){const cue=window.AbyssalAudio?.abilityCue?.(id);if(cue)playWorldSound(cue,position,1100,.85,extra);return cue;}
 function playSkillSound(){}
 function playBossCry(){playWorldSound('boss-entrance',null,1200,1,{owner:'boss-warning',local:true});}
@@ -2084,6 +2088,7 @@ function burst(x,y,color,n=10,force=100){
 }
 function respawnSoloRiftCheckpoint(){
  if(!player||!activeMapLayout||!RIFT_HARDCORE)return;
+ playPlayerDeathCry(player,true);
  const cp=RIFT_HARDCORE.checkpoint(activeMapLayout,player.x,player.y,soloRiftCheckpointRoomId);
  const room=activeMapLayout.rooms.find(r=>r.id===cp.roomId);
  if(cp.roomId==='boss')for(const boss of enemies)if(boss.kind===RIFT_HARDCORE.FINAL_KIND&&boss.hp>0){boss.hp=boss.maxHp;boss.riftPendingAttacks=[];boss.riftNextAttackAt=0;}
@@ -3762,8 +3767,9 @@ function renderRunEndPresentation(){
  }
 }
 function endGame(reason='death'){
- window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();
  if(gameState==='over'||gameState==='menu')return;
+ window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();
+ if(reason==='death'&&!expeditionExtracted)playPlayerDeathCry(player,true);
  diveEndReason=expeditionExtracted?'extracted':reason;
  wasOnlineModeOnDeath=Boolean(onlineMode);
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
@@ -4532,8 +4538,10 @@ function renderSpecimenPortraits(t){
   const surface=preparePreviewCanvas(canvas);if(!surface)continue;const {c,w,h}=surface,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
   const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!canvas.closest?.('#shopScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
   // Restore the natural diagonal swimming portrait used before the upright pose.
-  const dx=w*.42,dy=h*.60,bob=Math.sin(t*.0022)*3;
-  DIVER_ART?.draw?.(c,dx,dy+bob,27,-.10,-.10,t,{gender:diverGender,moving:true});
+  const profile=canvas.id==='profileSpecimenCanvas';
+  const dx=profile?w*.50:w*.42,dy=h*.60,bob=profile?0:Math.sin(t*.0022)*3;
+  const portraitRadius=profile?Math.min(27,w*.15,h*.35):27;
+  DIVER_ART?.draw?.(c,dx,dy+bob,portraitRadius,profile?0:-.10,profile?0:-.10,profile?0:t,{gender:diverGender,moving:!profile,viewYaw:profile?1:undefined,reducedMotion:profile});
   const sx=w*.62,sy=h*.30+Math.cos(t*.002)*5;
   try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
  }
@@ -5486,7 +5494,7 @@ function applyWorldEnemyDamage(data){
 }
 window.addEventListener('abyssal-player-vitals',ev=>applyOnlinePlayerVitals(ev.detail));
 window.addEventListener('abyssal-player-damage-number',ev=>{const d=ev.detail||{};if(String(d.targetId)===String(window.AbyssalOnline?.getSocketId?.()))return;const x=Number(d.x)*W,y=Number(d.y)*H;if(Number.isFinite(x)&&Number.isFinite(y)&&Number(d.damage)>0){spawnDamageNumber(x,y,Number(d.damage),'received');playWorldSound('player-hit',{x,y},850,.85,{owner:'player:'+String(d.targetId)});}});
-window.addEventListener('abyssal-rift-checkpoint-respawn',ev=>{const d=ev.detail||{};if(!player||!isRiftRun())return;player.x=Number(d.x)||player.x;player.y=Number(d.y)||player.y;player.trail.length=0;hp=Number(d.hp)||maxHp;player.invuln=Math.max(player.invuln,3.2);damageFlash=.3;burst(player.x,player.y,'#a4e9ff',22,145);updateCamera();updateHud();enqueueGameplayNotice('cave','CHECKPOINT ATIVADO','Você renasceu no início da sala atual, mantendo a expedição.',84);});
+window.addEventListener('abyssal-rift-checkpoint-respawn',ev=>{const d=ev.detail||{};if(!player||!isRiftRun())return;playPlayerDeathCry(player,true);player.x=Number(d.x)||player.x;player.y=Number(d.y)||player.y;player.trail.length=0;hp=Number(d.hp)||maxHp;player.invuln=Math.max(player.invuln,3.2);damageFlash=.3;burst(player.x,player.y,'#a4e9ff',22,145);updateCamera();updateHud();enqueueGameplayNotice('cave','CHECKPOINT ATIVADO','Você renasceu no início da sala atual, mantendo a expedição.',84);});
 window.addEventListener('abyssal-pvp-hit',ev=>{const d=ev.detail||{};if(Number(d.damage)<=0)return;const selfId=window.AbyssalOnline?.getSocketId?.();if(selfId&&String(d.targetId)===String(selfId))return;const predictedKey='pvp:'+String(d.actionId||'')+':'+String(d.targetId||'');if(d.actionId&&predictedCombatHits.delete(predictedKey))return;const px=Number(d.x)*W,py=Number(d.y)*H;if(Number.isFinite(px)&&Number.isFinite(py))spawnDamageNumber(px,py,Number(d.damage),'received');});
 
 window.addEventListener('abyssal-world-damaged',ev=>applyWorldEnemyDamage(ev.detail));
@@ -5896,7 +5904,7 @@ $('shopCloseBtn').addEventListener('click',()=>{$('shopScreen').hidden=true});
 $('shopTopCloseBtn')?.addEventListener('click',()=>{$('shopScreen').hidden=true});
 
 window.addEventListener('abyssal-authenticated',ev=>{const target=window.AbyssalOnlinePendingStart;if(!target||ev.detail?.restoringRoom)return;$('loginScreen').hidden=true;if(target==='MERGULHO-ONLINE'){if(!$('ageTermsScreen')?.hidden)return;window.AbyssalOnlinePendingStart=false;window.AbyssalOnline?.showRooms();}else{window.AbyssalOnlinePendingStart=false;window.AbyssalOnline?.showRooms();}});
-window.addEventListener('abyssal-gameplay-notice',ev=>{const d=ev.detail||{};if(d.kind==='death'&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y)))spawnBloodPool(Number(d.x)*W,Number(d.y)*H,28/GAME_WORLD_ZOOM,Number(d.angle)||Math.random()*Math.PI*2);if(['join','leave'].includes(d.kind))enqueueGameplayNotice(d.kind,d.title||'ECO ABISSAL',d.text||'',30);});
+window.addEventListener('abyssal-gameplay-notice',ev=>{const d=ev.detail||{};if(d.kind==='death'&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y))){const pos={x:Number(d.x)*W,y:Number(d.y)*H};spawnBloodPool(pos.x,pos.y,28/GAME_WORLD_ZOOM,Number(d.angle)||Math.random()*Math.PI*2);const self=window.AbyssalOnline?.getSocketId?.();if(d.playerId&&String(d.playerId)!==String(self)&&onlineMode&&gameState!=='over')playPlayerDeathCry(pos,false,'death:'+String(d.playerId));}if(['join','leave'].includes(d.kind))enqueueGameplayNotice(d.kind,d.title||'ECO ABISSAL',d.text||'',30);});
 window.addEventListener('abyssal-peer-skin-ability',ev=>{
  const d=ev.detail||{},fromId=String(d.fromId||'');
  if(d.type!=='standard-active'||!fromId)return;

@@ -6,6 +6,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const ASSETS=Object.freeze({
+  playerDeath:{gain:.8,group:'critical',priority:103,max:1.85},
   music:{file:'music/musica.mp3',gain:.72,group:'music'},
   damage:{file:'effects/dano.wav',gain:.66,group:'combat',priority:68,max:.85},
   pulse:{file:'effects/pulsos.wav',gain:.82,group:'shot',priority:84,max:1.6},
@@ -26,7 +27,7 @@
   destroyed:{file:'effects/submarino_destruido.ogg',gain:.90,group:'critical',priority:98},
   electric:{file:'effects/tempestade_eletrica.wav',gain:.79,group:'shot',priority:82,max:1.25}
  });
- const CUES=Object.freeze({'shot-electric':'electric','shot-photon':'photon','shot-pierce':'pierce','shot-echoShot':'echo','shot-nova':'nova','shot-photonRay':'beam','enemy-death':'kill','boss-defeated':'kill','orb':'orb','bite':'bite','boss-entrance':'boss','submarine-destroyed':'destroyed','submarine-repair':'repair','player-hit':'damage','enemy-hit':'damage','specimen-hit':'damage','ability-nova':'pulse','ability-dash':'dash','ability-poison':'cloud'});
+ const CUES=Object.freeze({'shot-electric':'electric','shot-photon':'photon','shot-pierce':'pierce','shot-echoShot':'echo','shot-nova':'nova','shot-photonRay':'beam','enemy-death':'kill','boss-defeated':'kill','orb':'orb','bite':'bite','boss-entrance':'boss','submarine-destroyed':'destroyed','submarine-repair':'repair','player-hit':'damage','player-death':'playerDeath','enemy-hit':'damage','specimen-hit':'damage','ability-nova':'pulse','ability-dash':'dash','ability-poison':'cloud'});
  function abilityCue(id){const key=String(id||'').replace(/^wildlife-/,'').toLowerCase();if(['push','pulse','bio-shock','gulper-chomp','pressure-impact','rupture-pulse','abyssal-pulse','pressure-pulse'].includes(key))return 'pulse';if(['shot','slowshot','pressure-lance','hypothermic-projectile','colossal-shot'].includes(key))return 'echo';if(['cloud','toxic-cloud','monster-toxic-cloud'].includes(key))return 'cloud';if(key==='dash')return 'dash';return null;}
  function cueAsset(id){return CUES[id]||(/^boss-death-/.test(id)?'kill':/^enemy-attack-/.test(id)?'bite':null);}
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -129,6 +130,24 @@
   }
   return out;
  }
+ // Original, deterministic vocal-like PCM. Descending pitch, breath and
+ // narrowing formants imitate a scream fading into deep water, not a beep.
+ function buildDeathCry(ctx){
+  const sr=ctx.sampleRate||44100,duration=1.85,n=Math.round(sr*duration),buffer=ctx.createBuffer(1,n,sr),data=buffer.getChannelData(0);
+  let phase=0,seed=0x5a91d02b,breath=0;
+  for(let i=0;i<n;i++){
+   const t=i/sr,q=t/duration;
+   const pitch=430+125*Math.exp(-(((t-.13)/.13)**2))-260*q+22*Math.sin(t*45)*(1-q);
+   phase+=2*Math.PI*pitch/sr;
+   seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;
+   breath=breath*.73+((seed>>>0)/2147483648-1)*.27;
+   const envelope=Math.min(1,t/.045)*Math.pow(1-q,2.35)*Math.min(1,(duration-t)/.2);
+   let vocal=0;
+   for(let h=1;h<=9;h++){const f=pitch*h,formant=.25+.85*Math.exp(-(((f-(950-350*q))/370)**2))+.62*Math.exp(-(((f-(2300-1000*q))/620)**2));vocal+=Math.sin(phase*h+.12*Math.sin(t*31+h))*formant/h;}
+   data[i]=Math.max(-.95,Math.min(.95,(vocal*.48+breath*.42)*envelope));
+  }
+  return buffer;
+ }
  function createMixer(env){
   let ctx=null,master=null,sfx=null,musicBus=null,musicVoice=null,muted=false,hidden=Boolean(env.document?.hidden),started=false,warm=false,loopTimer=null,epoch=0,duckUntil=0;
   const buffers=new Map(),normalizations=new Map(),onsets=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
@@ -154,6 +173,7 @@
    if(!ctx||!ASSETS[id]||(failedUntil.get(id)||0)>clock())return Promise.resolve(null);
    const task=(async()=>{
     try{
+     if(id==='playerDeath'){const decoded=buildDeathCry(ctx);normalizations.set(id,normalizedGain(id,decoded));onsets.set(id,0);buffers.set(id,decoded);return decoded;}
      if(id==='propulsor'||id==='propulsorStart'){
       const original=await load('dash');if(!original)throw Error('Investida unavailable');
       const decoded=id==='propulsor'?buildPropulsorBed(ctx,original):original;
@@ -171,7 +191,7 @@
    if(warm)return;warm=true;
    // Short high-frequency samples and the selected music first; the large
    // continuous beam is last. No synchronous decode or wait in the game loop.
-   const order=['electric','photon','pierce','echo','nova','beam','damage','pulse','music','bite','orb','kill','dash','propulsorStart','propulsor','cloud','boss','destroyed','repair'];
+   const order=['playerDeath','electric','photon','pierce','echo','nova','beam','damage','pulse','music','bite','orb','kill','dash','propulsorStart','propulsor','cloud','boss','destroyed','repair'];
    for(let i=0;i<order.length;i+=2)await Promise.all(order.slice(i,i+2).map(load));
   }
   function cleanVoice(v){if(v.done)return;v.done=true;voices.delete(v);if(v.key&&loops.get(v.key)===v)loops.delete(v.key);for(const n of [v.source,v.gain,v.pan,v.filter])try{n?.disconnect();}catch{}}
@@ -255,6 +275,7 @@
    if(!asset||muted||hidden||sfxVolume<=0||!ctx||ctx.state!=='running')return false;
    if(!spatial(options,asset))return false;
    if(!rememberEvent(asset,options))return false;
+   if(asset==='playerDeath'&&!buffers.has(asset)){const decoded=buildDeathCry(ctx);buffers.set(asset,decoded);normalizations.set(asset,normalizedGain(asset,decoded));onsets.set(asset,0);}
    const b=buffers.get(asset);
    if(b)return Boolean(createVoice(asset,b,options));
    // Do not accumulate a queue of obsolete shots during the initial download.
@@ -299,5 +320,5 @@
   env.addEventListener?.('pagehide',()=>setHidden(true));env.addEventListener?.('pageshow',()=>setHidden(Boolean(env.document?.hidden)));
   return {unlock,play,loop,stopLoop,stopEffects,setMuted,setVolume,startMusic,inspect,abilityCue};
  }
- return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,weaponOnset,spatialProfile,buildPropulsorBed,createMixer};
+ return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,weaponOnset,spatialProfile,buildPropulsorBed,buildDeathCry,createMixer};
 });
