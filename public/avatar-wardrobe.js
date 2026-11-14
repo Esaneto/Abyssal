@@ -7,7 +7,7 @@
  const element=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e;};
  function createPage(){
   const page=element('section','abyss-wardrobe');page.setAttribute('aria-label','Armário do mergulhador');
-  let draft=base.get(),gender=window.AbyssalDiverGender||'male',category='outfit',held='none',flipped=false,swim=false,raf=0,last=0;
+  let draft=base.get(),gender=window.AbyssalDiverGender||'male',category='outfit',held='none',flipped=false,swim=false,raf=0,last=0,motion=null,poseAt=0;
   const stage=element('div','aw-stage'),intro=element('div','aw-intro');
   intro.append(element('small','aw-eyebrow','ESTAÇÃO 03 / VESTIÁRIO'),element('strong','','Seu mergulhador'),element('p','','Experimente a aparência. As escolhas são cosméticas e não alteram habilidades.'));
   const canvas=element('canvas','aw-canvas');canvas.width=660;canvas.height=750;canvas.setAttribute('aria-label','Prévia animada do mergulhador');
@@ -30,7 +30,8 @@
    const ctx=canvas.getContext('2d');if(!ctx)return;const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);
    ctx.save();ctx.translate(w/2,swim?h*.50:h*.40);if(flipped)ctx.scale(-1,1);
    const angle=swim?-.10:-Math.PI/2,aim=held==='none'||swim?angle:0,r=swim?Math.min(w*.125,h*.125):h*.14;
-   window.AbyssalDiverArt?.draw(ctx,0,Math.sin(now*.0015)*5,r,angle,aim,now,{gender,appearance:draft,moving:swim,heldItem:held,helmetLamp:true});ctx.restore();
+   motion=window.AbyssalDiverRig?.advance(motion,swim?1:0,poseAt?Math.min(.10,(now-poseAt)/1000):0,swim&&held==='abyssPropulsorIdle');poseAt=now;
+   window.AbyssalDiverArt?.draw(ctx,0,Math.sin(now*.0015)*5,r,angle,aim,now,{gender,appearance:draft,motion,moving:swim,heldItem:swim&&held==='abyssPropulsorIdle'?'abyssPropulsor':held,propulsorActive:swim&&held==='abyssPropulsorIdle',helmetLamp:true});ctx.restore();
   }
   function tick(now){raf=0;if(!page.isConnected||page.closest('[hidden]'))return;if(now-last>=42){last=now;paint(now);}raf=requestAnimationFrame(tick);}
   function start(){if(!raf)raf=requestAnimationFrame(tick);}

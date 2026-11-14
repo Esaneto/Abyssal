@@ -78,10 +78,10 @@ test('visual knees, lowered rifle arms and predicted collision coordinates use o
  const art=read('public/diver-art.js');
  const hitbox=read('public/diver-hitbox.js');
  const simulation=read('world-simulation.js');
- assert.match(art,/const knee=\[-28\+4\*kick/);
- assert.match(hitbox,/const kneeFor=side=>\[-28\+4\*kickFor\(side\)/);
+ assert.match(read('public/abyssal-realistic-body.js'),/rig\?\.leg\(side,phase,weight,powered\)/);
+ assert.match(hitbox,/rig\.leg\(-1,0,0\)/);
  assert.match(art,/c\.translate\(0,GUN_OFFSET_Y\)/);
- assert.match(hitbox,/limb\('right-arm',4,20,15,29/);
+ assert.match(hitbox,/rig\.arm\(-1,aim-angle,offset,grips\[0\]\)/);
  assert.match(simulation,/contactTarget\.bodyAngle=Number\(target\.bodyAngle\)/);
  assert.match(simulation,/DiverHitbox\.circleHit\(resolvedContactTarget,enemy\.x,enemy\.y,enemyBodyRadius,now\)/);
 });

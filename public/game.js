@@ -2090,7 +2090,7 @@ function respawnSoloRiftCheckpoint(){
  riftBossMarks=[];
  const safe=ABYSSAL_MAP.isWalkable(activeMapLayout,cp.x,cp.y,player.r)?cp:{x:room?.x??cp.x,y:(room?.y??cp.y)-Math.min(85,Number(room?.ry)||85)};
  player.x=safe.x;player.y=safe.y;player.trail.length=0;hp=maxHp;
- player.propulsorEquipped=false;player.propulsorMoving=false;player.propulsorEnergy=100;player.invuln=3.2;player.fireTimer=0;damageFlash=.35;shake=10;
+ player.propulsorEquipped=false;player.propulsorMoving=false;player.swimPose=null;player.swimming=false;player.propulsorEnergy=100;player.invuln=3.2;player.fireTimer=0;damageFlash=.35;shake=10;
  burst(player.x,player.y,'#a3eaff',26,160);playWorldSound('checkpoint',player,850,.85);
  enqueueGameplayNotice('cave','CHECKPOINT · '+String(room?.name||cp.roomId).toUpperCase(),'As Fossas o devolveram ao início da sala. Sua expedição continua.',84);
  updateCamera();updateHud();
@@ -3191,7 +3191,7 @@ function update(dt){
    if(!isMobileDevice())updateMouseAimFromCursor();
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;player.weaponAngle=controlAimAngle;}
    if(soloSubmarine.repair){mx=0;my=0;}
-   const prop=window.AbyssalPropulsor,propMoving=Boolean(mx||my),propPowered=Boolean(player.propulsorEquipped&&prop.charge(player.propulsorEnergy)>0&&propMoving);player.propulsorMoving=false;const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const skinSlowMultiplier=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*specimenPassiveMultiplier('movement')*toxinMultiplier*skinSlowMultiplier;const dashMultiplier=propPowered?prop.SPEED:1;const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}else if(usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const seaMove=OCEAN_GEOGRAPHY.resolveMove(player.x,player.y,nextX,nextY,player.r+5/GAME_WORLD_ZOOM);nextX=seaMove.x;nextY=seaMove.y;}else if(isClassicCavernRun()&&SOLO_CAVERN){const rockMove=SOLO_CAVERN.resolve(arenaRocks,player.x,player.y,nextX,nextY,player.r+6/GAME_WORLD_ZOOM);nextX=rockMove.x;nextY=rockMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}const traveledX=nextX-player.x,traveledY=nextY-player.y;player.x=nextX;player.y=nextY;const actualSwim=Math.hypot(traveledX,traveledY)>.01;player.propulsorMoving=propPowered&&actualSwim;player.propulsorEnergy=prop.step(player.propulsorEnergy,dt,player.propulsorEquipped,actualSwim);if(Math.hypot(traveledX,traveledY)>.01){const swimHeading=Math.atan2(traveledY,traveledX);const diff=Math.atan2(Math.sin(swimHeading-(player.bodyAngle||0)),Math.cos(swimHeading-(player.bodyAngle||0)));player.bodyAngle=(player.bodyAngle||0)+diff*(1-Math.exp(-dt*13));}/* Body and lamp heading are independent of weapon aim. */updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift();
+   let swimVisualSpeed=0;const prop=window.AbyssalPropulsor,propMoving=Boolean(mx||my),propPowered=Boolean(player.propulsorEquipped&&prop.charge(player.propulsorEnergy)>0&&propMoving);player.propulsorMoving=false;const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const skinSlowMultiplier=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*specimenPassiveMultiplier('movement')*toxinMultiplier*skinSlowMultiplier;const dashMultiplier=propPowered?prop.SPEED:1;const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}else if(usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const seaMove=OCEAN_GEOGRAPHY.resolveMove(player.x,player.y,nextX,nextY,player.r+5/GAME_WORLD_ZOOM);nextX=seaMove.x;nextY=seaMove.y;}else if(isClassicCavernRun()&&SOLO_CAVERN){const rockMove=SOLO_CAVERN.resolve(arenaRocks,player.x,player.y,nextX,nextY,player.r+6/GAME_WORLD_ZOOM);nextX=rockMove.x;nextY=rockMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}const traveledX=nextX-player.x,traveledY=nextY-player.y;player.x=nextX;player.y=nextY;const actualSwim=Math.hypot(traveledX,traveledY)>.01;swimVisualSpeed=actualSwim?Math.hypot(traveledX,traveledY)/Math.max(.001,dt)/Math.max(.001,player.moveSpeed):0;player.propulsorMoving=propPowered&&actualSwim;player.propulsorEnergy=prop.step(player.propulsorEnergy,dt,player.propulsorEquipped,actualSwim);if(Math.hypot(traveledX,traveledY)>.01){const swimHeading=Math.atan2(traveledY,traveledX);const diff=Math.atan2(Math.sin(swimHeading-(player.bodyAngle||0)),Math.cos(swimHeading-(player.bodyAngle||0)));player.bodyAngle=(player.bodyAngle||0)+diff*(1-Math.exp(-dt*13));}/* Body and lamp heading are independent of weapon aim. */updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift();
    // Tiny cosmetic bubbles disperse quickly. They do not deal damage or use networking.
    diverBubbleClock+=dt;
    if(diverBubbleClock>=.075){
@@ -3208,6 +3208,8 @@ function update(dt){
      particles.push(p);
     }
    }}else{player.propulsorEnergy=prop.step(player.propulsorEnergy,dt,player.propulsorEquipped,false);}
+   player.swimPose=window.AbyssalDiverRig?.advance(player.swimPose,swimVisualSpeed,dt,player.propulsorMoving);
+   player.swimming=swimVisualSpeed>.045;
    if(soloSubmarine.repair)updateSoloHullRepair(dt);else updateAutomaticWeaponAim(dt);
    // No pointer/touch event may reset this timer. Upgrades alone increase cadence.
    player.fireTimer=Math.max(0,(Number(player.fireTimer)||0)-dt);
@@ -4635,11 +4637,11 @@ function drawSoloWelding(x,y,r,aim,job,t){
  ctx.strokeStyle='#9cecf7';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.strokeRect(bx,by,w,h);
  ctx.fillStyle='#e8fbff';ctx.font='bold '+10/GAME_WORLD_ZOOM+'px sans-serif';ctx.textAlign='center';ctx.fillText('SOLDANDO · '+Math.ceil(submarineRepairSeconds()-job.elapsed)+'s',x,by-4/GAME_WORLD_ZOOM);ctx.restore();
 }
-function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender,heldItem='abyssWeapon',appearance=null){
+function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender,heldItem='abyssWeapon',appearance=null,motion=null){
  const weld=!remote&&isClassicCavernRun()?soloSubmarine.repair:null;
  if(weld){angle=aim=Math.atan2(weld.point.y-y,weld.point.x-x);heldItem='abyssWelder';}else if(!remote&&player?.propulsorEquipped){heldItem='abyssPropulsor';aim=angle;}else if(heldItem==='abyssPropulsor'||heldItem==='abyssPropulsorIdle'){aim=angle;}
  if(DIVER_ART?.draw){
-  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,appearance:remote?appearance:window.AbyssalAvatarBase?.get(),moving:!weld,heldItem,propulsorActive:heldItem==='abyssPropulsor'&&(remote||Boolean(player?.propulsorMoving)),helmetLamp:remote||isOpenSeaRun()||isClassicCavernRun(),swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
+  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,appearance:remote?appearance:window.AbyssalAvatarBase?.get(),motion:remote?motion:player?.swimPose,moving:!weld&&(remote?(motion?.weight??1)>.02:(player?.swimPose?.weight??0)>.02),heldItem,propulsorActive:heldItem==='abyssPropulsor'&&(remote||Boolean(player?.propulsorMoving)),helmetLamp:remote||isOpenSeaRun()||isClassicCavernRun(),swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
   if(weld)drawSoloWelding(x,y,r,aim,weld,t);
   return;
  }
@@ -4908,9 +4910,11 @@ function draw(t){
        sy=remoteDash.y1+(remoteDash.y2-remoteDash.y1)*progress;
        if(progress>=1)remoteSpecimenDashes.delete(peerVisualId);
       }
-      remoteDiverMotion.set(peerVisualId,{x:px,y:py,angle:heading,sx,sy,lastAt:t});
+      const remoteSpeed=dtRemote>0?Math.hypot(vx,vy)/dtRemote/(150/GAME_WORLD_ZOOM):0;
+      const motion=window.AbyssalDiverRig?.advance(previous.motion,remoteSpeed,dtRemote,Boolean(peer.propulsorMoving));
+      remoteDiverMotion.set(peerVisualId,{x:px,y:py,angle:heading,sx,sy,lastAt:t,motion});
       remoteDiveLights.push({x:px,y:py,active:true,radius:285,strength:.84,color:'#78dfff',diver:true,heading,r:12/GAME_WORLD_ZOOM,lampLevel:1});
-      drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance);
+      drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,Number.isFinite(peer.angle)?peer.angle:heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance,motion);
       const paralyzedUntil=remoteWeaponParalysis.get(peerVisualId);
       if(paralyzedUntil){if(Date.now()>=paralyzedUntil)remoteWeaponParalysis.delete(peerVisualId);
        else{ctx.save();ctx.translate(px,py);ctx.rotate(t*.005);ctx.strokeStyle='#72eaff';ctx.shadowColor='#62edff';ctx.shadowBlur=8/GAME_WORLD_ZOOM;ctx.lineWidth=2.5/GAME_WORLD_ZOOM;
@@ -4922,7 +4926,7 @@ function draw(t){
        const peerSkin=window.AbyssalGameHooks?.skinForId?.(peer.skinId),specimenHeading=sd>.1?Math.atan2(syDelta,sxDelta):heading;
        drawCreature(sx,sy,CREATURE_SCALE?.visualRadius?.(peer.skinId,10/GAME_WORLD_ZOOM)||10/GAME_WORLD_ZOOM,specimenHeading,peerSkin?.color||peer.color||'#b8a4ff','peer',t,true,0,ctx,peerSkin,{visualId:'peer-specimen:'+peerVisualId,visualAttackUntil:remoteCreatureAttackUntil.get(peerVisualId)||0,moveSpeed:followSpeed});
        if(Math.hypot(sx-px,sy-py)<32/GAME_WORLD_ZOOM+(CREATURE_SCALE?.visualRadius?.(peer.skinId,10/GAME_WORLD_ZOOM)||10/GAME_WORLD_ZOOM)*1.7)
-         drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance);
+         drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,Number.isFinite(peer.angle)?peer.angle:heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance,motion);
        if(remoteDash)drawSpecimenDashArc(sx,sy,10/GAME_WORLD_ZOOM,remoteDash.angle,t,clamp((performance.now()-remoteDash.startedAt)/remoteDash.durationMs,0,1));
       }
       const title=PROFILE_TITLE_NAMES[peer.titleId]||'';

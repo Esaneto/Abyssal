@@ -184,16 +184,14 @@
   }
   // Held equipment owns the arms. Non-weapon tools use a compact two-hand grip
   // so the rifle pose can never leak underneath a pickaxe or container.
-  const held=String(options.heldItem||'abyssWeapon');
-  c.save();c.rotate(held==='none'?0:(Number(aim)||0)-a);
+  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig;
+  const drawGripArms=(offset,grips)=>{for(let i=0;i<2;i++){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,relativeAim,offset,grip)||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};limb(pose.shoulder,pose.elbow,6.1,suitTone('#263847',1),suitTone('#668293',3));limb(pose.elbow,pose.hand,5.2,suitTone('#101923',0),suitTone('#39536a',2));}};
+  c.save();c.rotate(held==='none'?0:relativeAim);
   if(held==='none'){for(const side of [-1,1]){limb([13,side*9],[-2,side*15],6.6,suitTone('#263847',1),suitTone('#668293',3));limb([-2,side*15],[-19,side*13],5.7,suitTone('#101923',0),suitTone('#39536a',2));c.fillStyle='#14242d';c.strokeStyle='#63808a';c.lineWidth=.6;c.beginPath();c.ellipse(-22,side*13,4,2.8,0,0,TAU);c.fill();c.stroke();}c.restore();c.restore();return;}
   if(held!=='abyssWeapon'){
    c.translate(0,5);
    if(held==='abyssPickaxe')c.rotate((Number(options.swing)||0)*.17);
-   limb([5,-7],[17,-10],5.6,suitTone('#263847',1),suitTone('#668293',3));
-   limb([17,-10],[27,-2],5.1,suitTone('#101923',0),suitTone('#39536a',2));
-   limb([4,7],[16,11],6.1,suitTone('#263847',1),suitTone('#668293',3));
-   limb([16,11],[27,3],5.2,suitTone('#101923',0),suitTone('#39536a',2));
+   drawGripArms(5,rig?.toolGrips||[[27,-2],[27,3]]);
    c.translate(27,0);
    if(held==='abyssPropulsor'||held==='abyssPropulsorIdle'){
     const active=Boolean(options.propulsorActive),pulse=.5+.5*Math.sin((Number(t)||0)*.045);
@@ -248,13 +246,7 @@
    c.restore();c.restore();return;
   }
   c.translate(0,GUN_OFFSET_Y); // Rifle stays below the torso at every aim angle.
-  limb([6,-7],[15,-16],5.6,suitTone('#263847',1),suitTone('#668293',3));
-  limb([15,-16],[31,-7],5.0,suitTone('#101923',0),suitTone('#39536a',2));
-  limb([4,8],[15,17],6.1,suitTone('#263847',1),suitTone('#668293',3));
-  limb([15,17],[27,9],5.3,suitTone('#101923',0),suitTone('#39536a',2));
-  // Forearm reinforcement follows the rifle grip to reinforce the 2.5D suit.
-  c.strokeStyle='#7bbeca';c.lineWidth=1.1;c.beginPath();c.moveTo(15,17);
-  c.quadraticCurveTo(23,13,26,10);c.stroke();
+  drawGripArms(GUN_OFFSET_Y,rig?.rifleGrips||[[31,-6],[24,8]]);
   // White futuristic AK-profile rifle: ventilated receiver, pronounced stock,
   // curved magazine, trigger guard, optic and a long distinguishable barrel.
   // The muzzle glow and hit origin use BARREL_TIP_X, exactly the same coordinate.

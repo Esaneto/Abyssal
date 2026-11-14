@@ -1,8 +1,9 @@
 (function(root,factory){
- const api=factory();
+ const rig=typeof module==='object'&&module.exports?require('./abyssal-diver-rig.js'):root.AbyssalDiverRig;
+ const api=factory(rig);
  if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.AbyssalDiverHitbox=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(rig){
  'use strict';
  // The visible diver uses the same canonical local coordinates. Every limb has
  // a separate capsule, so hits on legs and arms no longer miss a small center circle.
@@ -14,10 +15,11 @@
   const aim=Number(player?.weaponAngle??player?.angle??angle)||0;
   const scale=canonicalRadius(player),cos=Math.cos(angle),sin=Math.sin(angle);
   const aimCos=Math.cos(aim),aimSin=Math.sin(aim);
-  const cycle=player?.swimming===false?0:Math.sin((Number(t)||0)*.011);
-  const kickFor=side=>.5+.5*cycle*(side===1?1:-1);
-  const kneeFor=side=>[-28+4*kickFor(side),side*(12+12*kickFor(side))];
-  const ankleFor=side=>[-49-2*kickFor(side),side*(9+cycle*6)];
+  // Collision uses the same neutral rig, conservatively covering the small kick envelope.
+  // Cosmetic client phases are not trusted for authoritative hit detection.
+  const left=rig.leg(-1,0,0),right=rig.leg(1,0,0);
+  const held=player?.propulsorEquipped?'tool':'rifle',offset=held==='tool'?5:12,grips=held==='tool'?rig.toolGrips:rig.rifleGrips;
+  const arms=[rig.arm(-1,aim-angle,offset,grips[0]),rig.arm(1,aim-angle,offset,grips[1])];
   const point=(px,py,weapon=false)=>{
    const ca=weapon?aimCos:cos,sa=weapon?aimSin:sin;
    return {x:x+(px*ca-py*sa)*scale,y:y+(px*sa+py*ca)*scale};
@@ -29,17 +31,11 @@
   return [
    limb('torso',-16,0,17,0,10),
    limb('head',25,-1,29,-1,13),
-   // Two joints per arm follow weapon aim, not swimming orientation.
-   // The visible gun and both arms are translated 12 local pixels below the torso.
-   limb('left-arm',6,5,15,-4,4.8,true),
-   limb('left-forearm',15,-4,31,5,4.1,true),
-   limb('right-arm',4,20,15,29,5.5,true),
-   limb('right-forearm',15,29,27,21,4.7,true),
-   // Match the same independently bent knee/ankle coordinates as diver-art.js.
-   limb('left-thigh',-16,-5,...kneeFor(-1),4.8),
-   limb('left-leg',...kneeFor(-1),...ankleFor(-1),3.9),
-   limb('right-thigh',-16,5,...kneeFor(1),4.8),
-   limb('right-leg',...kneeFor(1),...ankleFor(1),3.9)
+   ...arms.flatMap((arm,i)=>{const name=i?'right':'left';return [limb(name+'-arm',arm.shoulder[0],arm.shoulder[1]+offset,arm.elbow[0],arm.elbow[1]+offset,5.2,true),limb(name+'-forearm',arm.elbow[0],arm.elbow[1]+offset,arm.hand[0],arm.hand[1]+offset,4.7,true)];}),
+   limb('left-thigh',...left.hip,...left.knee,7.2),
+   limb('left-leg',...left.knee,...left.ankle,8.5),
+   limb('right-thigh',...right.hip,...right.knee,7.2),
+   limb('right-leg',...right.knee,...right.ankle,8.5)
   ];
  }
  function pointSegmentDistance(x,y,ax,ay,bx,by){
