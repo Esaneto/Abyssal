@@ -4,6 +4,8 @@
  'use strict';
  const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const finite=(v,f=0)=>Number.isFinite(v)?v:f;
+ const viewFor=(yaw=.65)=>{yaw=clamp(finite(yaw,.65),0,1);return {yaw,width:1-.22*yaw,shear:.055*yaw};};
+ const project=(p,view)=>view?[p[0],p[1]*view.width+p[0]*view.shear]:[...p];
  function advance(previous,speed,dt,powered=false,sample=null){
   dt=clamp(finite(dt),0,.10);speed=clamp(finite(speed),0,4);
   const target=speed<.045?0:clamp(speed,0,1),old=previous||{phase:0,weight:0};
@@ -13,30 +15,44 @@
   const hairFlow=clamp(finite(old.hairFlow)+(Number(Boolean(powered))-finite(old.hairFlow))*(1-Math.exp(-dt*3.8)),0,1);
   const heading=finite(sample?.heading,finite(old.heading));let vx=0,vy=0;if(Number.isFinite(sample?.vx)&&Number.isFinite(sample?.vy)){vx=sample.vx;vy=sample.vy;}else if(Number.isFinite(sample?.x)&&Number.isFinite(old.x)&&Number.isFinite(sample?.y)&&Number.isFinite(old.y)&&dt>0){const unit=Math.max(.01,finite(sample.unit,1));vx=(sample.x-old.x)/dt/unit;vy=(sample.y-old.y)/dt/unit;}else{vx=Math.cos(heading)*speed;vy=Math.sin(heading)*speed;}
   const magnitude=Math.hypot(vx,vy);if(magnitude>4){vx*=4/magnitude;vy*=4/magnitude;}const blend=1-Math.exp(-dt*7);const flowX=finite(old.flowX)+(vx-finite(old.flowX))*blend,flowY=finite(old.flowY)+(vy-finite(old.flowY))*blend;
-  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,x:sample?.x,y:sample?.y,hairState:old.hairState};
+  const accel=dt>0?clamp((Math.hypot(vx,vy)-finite(old.speedSample))/dt,-5,5):0,drive=finite(old.drive)+(accel-finite(old.drive))*(1-Math.exp(-dt*5));
+  const delta=Math.atan2(Math.sin(heading-finite(old.heading,heading)),Math.cos(heading-finite(old.heading,heading))),turn=finite(old.turn)+(clamp(delta/Math.max(.016,dt),-3,3)-finite(old.turn))*(1-Math.exp(-dt*6));
+  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn};
  }
- function leg(side,phase,weight=1,powered=false){
+ function leg(side,phase,weight=1,powered=false,motion=null){
   const a=clamp(finite(weight),0,1)*(powered?.23:1);
   const wave=Math.sin(finite(phase)+(side>0?0:Math.PI));
   const delay=Math.sin(finite(phase)-.72+(side>0?0:Math.PI));
-  const hip=[-19,side*7.3],thigh=side*.055+wave*.16*a;
-  const calf=side*.075+delay*.27*a;
+  const brake=clamp(-finite(motion?.drive)/5,0,1),turn=clamp(finite(motion?.turn)/3,-1,1),thigh=side*(.055+.09*brake)+wave*.16*a+turn*.05,hip=[-19,side*7.3];
+  const calf=side*(.075+.18*brake)+delay*.27*a+turn*.075;
   const knee=[hip[0]-24*Math.cos(thigh),hip[1]+24*Math.sin(thigh)];
   const ankle=[knee[0]-24*Math.cos(calf),knee[1]+24*Math.sin(calf)];
   return {hip,knee,ankle,finAngle:calf+delay*.055*a};
  }
  // Convert actual shoulder into the weapon-local space, then solve a bent
  // two-link arm toward the fixed grip. The barrel and tool anchors never move.
- function arm(side,relativeAim,offset,grip,profile='standard'){
-  const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),torch=profile==='welder',sx=13,sy=side*13;
+ function armCandidates(side,relativeAim,offset,grip,profile='standard',view=null){
+  const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),torch=profile==='welder',[sx,sy]=project([13,side*13],view);
   const shoulder=[sx*ca+sy*sa,-sx*sa+sy*ca-offset],dx=grip[0]-shoulder[0],dy=grip[1]-shoulder[1];
-  const distance=Math.hypot(dx,dy),d=Math.max(.001,distance),ux=dx/d,uy=dy/d;
-  // Shorter projected lengths in close poses represent out-of-plane flexion.
-  // At extreme aim angles expand only enough to retain the fixed grip.
-  const min=torch?31:36,total=clamp(Math.max(min,d+1.8),min,56),ratio=.53,upper=total*ratio,lower=total*(1-ratio),reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
+  const d=Math.max(.001,Math.hypot(dx,dy)),ux=dx/d,uy=dy/d,min=torch?31:36,total=clamp(Math.max(min,d+1.8),min,56),upper=total*.53,lower=total*.47,reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
   const along=(upper*upper-lower*lower+reach*reach)/(2*reach),height=Math.sqrt(Math.max(0,upper*upper-along*along));
-  const elbow=[shoulder[0]+ux*along-uy*height*side,shoulder[1]+uy*along+ux*height*side];
-  return {shoulder,elbow,hand:[...grip]};
+  return [-1,1].map(sign=>{const elbow=[shoulder[0]+ux*along-uy*height*sign,shoulder[1]+uy*along+ux*height*sign],ex=elbow[0]*ca-(elbow[1]+offset)*sa,ey=elbow[0]*sa+(elbow[1]+offset)*ca;
+   // The elbow hint belongs to the BODY, not to the rotating weapon.
+   // Prefer an ipsilateral, low elbow and penalize bending into the head.
+   const pole=project([3,side*24],view),score=Math.hypot(ex-pole[0],ey-pole[1])+.85*Math.max(0,ex-21)+1.7*Math.max(0,5-side*ey);
+   return {shoulder,elbow,hand:[...grip],score,side,depth:side};
+  });
+ }
+ function arm(side,relativeAim,offset,grip,profile='standard',view=null){return armCandidates(side,relativeAim,offset,grip,profile,view).sort((a,b)=>a.score-b.score)[0];}
+ function segmentsCross(a,b,c,d){
+  const cross=(p,q,r)=>(q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]);
+  return cross(a,b,c)*cross(a,b,d)<-1e-7&&cross(c,d,a)*cross(c,d,b)<-1e-7;
+ }
+ function armCrossings(a,b){let n=0;for(const [p,q] of [[a.shoulder,a.elbow],[a.elbow,a.hand]])for(const [r,s] of [[b.shoulder,b.elbow],[b.elbow,b.hand]])if(segmentsCross(p,q,r,s))n++;return n;}
+ function armPair(relativeAim,offset,grips,profile='standard',view=null){
+  const left=armCandidates(-1,relativeAim,offset,grips[0],profile,view),right=armCandidates(1,relativeAim,offset,grips[1],profile,view);let best=null,cost=Infinity;
+  for(const a of left)for(const b of right){const crossings=armCrossings(a,b),score=a.score+b.score+crossings*85;if(score<cost){best=[a,b];cost=score;}}
+  return best;
  }
  // Bounds in renderer coordinates; fit the same playable art, not a replacement sprite.
  function previewFrame(width,height,heading=0,aim=heading,held='none',powered=false,hairStyle='classic'){
@@ -74,9 +90,9 @@
   const grips=gripsFor(held).map(([x,y])=>[27+(x-27)*co-y*si,(x-27)*si+y*co]);
   return {swingAngle,objectAngle,grips};
  }
- function idleArm(side,phase=0,weight=0){
+ function idleArm(side,phase=0,weight=0,motion=null,view=null){
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
-  return {shoulder:[13,side*13],elbow:[-8,side*(16+sway)],hand:[-30,side*(13.4+sway*.5)]};
+  const brake=clamp(-finite(motion?.drive)/5,0,1);return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
- return Object.freeze({advance,leg,arm,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
+ return Object.freeze({viewFor,project,advance,leg,arm,armPair,armCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });

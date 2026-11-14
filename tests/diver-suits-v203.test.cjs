@@ -1,3 +1,3 @@
 const test=require('node:test'),assert=require('node:assert/strict'),base=require('../public/avatar-base'),rig=require('../public/abyssal-diver-rig');
-test('all four suit types preserve existing saved IDs and cosmetic schema',()=>{for(const id of ['navy','rust','ice','olive']){const a=base.normalize({outfit:id});assert.equal(a.outfit,id);assert.equal(base.palette(a).outfitId,id);assert.equal(Object.keys(a).length,6);}assert.equal(base.normalize({outfit:'invalid'}).outfit,'navy');});
+test('all four suit types preserve existing saved IDs and cosmetic schema',()=>{for(const id of ['navy','rust','ice','olive']){const a=base.normalize({outfit:id});assert.equal(a.outfit,id);assert.equal(base.palette(a).outfitId,id);assert.equal(Object.keys(a).length,10);}assert.equal(base.normalize({outfit:'invalid'}).outfit,'navy');});
 test('suits use the same bone and grip coordinates',()=>{assert.deepEqual(rig.rifleGrips,[[34,2],[22,11]]);assert.equal(rig.leg(1,0,0).hip[0],-19);});

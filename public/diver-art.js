@@ -27,8 +27,17 @@
   c.save();c.translate(x,y);c.rotate(a);c.scale(r*DRAW_SCALE/14,r*DRAW_SCALE/14);
   c.lineJoin='round';c.lineCap='round';
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
+  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=rig?.viewFor?.(options.viewYaw??.65);
+  const offset=held==='abyssWeapon'?GUN_OFFSET_Y:5,tool=rig?.toolPose(held,Number(options.swing)||0)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
+  const grips=held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[22,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co]);
+  const pair=rig?.armPair?.(relativeAim,offset,grips,held==='abyssWelder'?'welder':'standard',view)||grips.map((g,i)=>rig?.arm(i?1:-1,relativeAim,offset,g,held==='abyssWelder'?'welder':'standard')||{shoulder:[6,i?7:-7],elbow:[16,i?12:-12],hand:g});
+  const idle=side=>rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0,options.motion,view)||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};
+  let farPainted=false;
+  const paintArm=(l,p,i,grip=false)=>{const far=i===0,upper=far?7.5:8.5,lower=far?6.3:7.0;
+   if(l.joint)l.joint(p.shoulder,4.0);l(p.shoulder,p.elbow,upper,suitTone('#263847',far?0:1),suitTone('#668293',far?2:3));if(l.joint)l.joint(p.elbow,3.0);l(p.elbow,p.hand,lower,suitTone('#101923',0),suitTone('#39536a',far?1:2));if(!grip&&l.glove)l.glove(p.hand,p.elbow);
+  };
   let limb;
-  if(globalThis.AbyssalRealisticBody)limb=globalThis.AbyssalRealisticBody.draw(c,t,{...options,heading:a},look);
+  if(globalThis.AbyssalRealisticBody)limb=globalThis.AbyssalRealisticBody.draw(c,t,{...options,heading:a,view,beforeTorso(l){if(held==='none'||held==='abyssWelder')paintArm(l,idle(-1),0);else{c.save();c.rotate(relativeAim);c.translate(0,offset);paintArm(l,pair[0],0,true);c.restore();}farPainted=true;}},look);
   else{
   limb=(start,end,thickness,base,glow)=>{
    line(start[0],start[1],end[0],end[1],'#060e19',thickness+3);
@@ -182,23 +191,17 @@
 
   // Preserve the legacy offline fallback for mixed cached builds.
   }
-  // Held equipment owns the arms. Non-weapon tools use a compact two-hand grip
-  // so the rifle pose can never leak underneath a pickaxe or container.
-  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig;
+  // Near arm is painted above the torso. The distant arm has already been
+  // composited behind it; only its gripping hand appears on the equipment.
   const gripHands=[];
-  const drawGripArms=(offset,grips,turn=relativeAim,indices=[0,1])=>{gripHands.length=0;for(const i of indices){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,turn,offset,grip,held==='abyssWelder'?'welder':'standard')||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};if(limb.joint)limb.joint(pose.shoulder,4.5);limb(pose.shoulder,pose.elbow,i?8.4:7.8,suitTone('#263847',1),suitTone('#668293',3));if(limb.joint)limb.joint(pose.elbow,3.1);limb(pose.elbow,pose.hand,i?7.0:6.4,suitTone('#101923',0),suitTone('#39536a',2));gripHands.push(pose);}};
-  const drawGloves=(xOffset=0)=>{if(limb.glove)for(const p of gripHands)limb.glove([p.hand[0]-xOffset,p.hand[1]],[p.elbow[0]-xOffset,p.elbow[1]],true);};
-  // A compact welding torch is a one-handed tool. The free arm rests beside the body.
-  if(held==='abyssWelder'){const p=rig?.idleArm(-1,options.motion?.phase||phase,options.motion?.weight||0);if(p){limb(p.shoulder,p.elbow,8.0,suitTone('#263847',1),suitTone('#668293',3));limb(p.elbow,p.hand,6.8,suitTone('#101923',0),suitTone('#39536a',2));if(limb.glove)limb.glove(p.hand,p.elbow);}}
+  const drawGripArms=(indices=[0,1])=>{gripHands.length=0;for(const i of indices){const p=pair[i];if(i!==0||!farPainted)paintArm(limb,p,i,true);gripHands.push(p);}};
+  const drawGloves=()=>{if(limb.glove)for(const p of gripHands)limb.glove(p.hand,p.elbow,true);};
+  if(held==='abyssWelder'&&!farPainted)paintArm(limb,idle(-1),0);
   c.save();c.rotate(held==='none'?0:relativeAim);
-  if(held==='none'){for(const side of [-1,1]){const p=rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0)||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};limb(p.shoulder,p.elbow,8.4,suitTone('#263847',1),suitTone('#668293',3));limb(p.elbow,p.hand,7.0,suitTone('#101923',0),suitTone('#39536a',2));if(limb.glove)limb.glove(p.hand,p.elbow);else{c.fillStyle='#14242d';c.strokeStyle='#63808a';c.lineWidth=.6;c.beginPath();c.ellipse(-22,side*13,4,2.8,0,0,TAU);c.fill();c.stroke();}}c.restore();c.restore();return;}
+  if(held==='none'){if(!farPainted)paintArm(limb,idle(-1),0);paintArm(limb,idle(1),1);c.restore();c.restore();return;}
   if(held!=='abyssWeapon'){
    c.translate(0,5);
-   const tool=rig?.toolPose(held,Number(options.swing)||0)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]};
-   // Rotate the grip coordinates, not the shoulder reference frame.
-   const co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
-   const grips=tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co]);
-   drawGripArms(5,grips,relativeAim,held==='abyssWelder'?[1]:[0,1]);
+   drawGripArms(held==='abyssWelder'?[1]:[0,1]);
    c.save();c.rotate(tool.swingAngle);c.translate(27,0);
    if(held==='abyssPropulsor'||held==='abyssPropulsorIdle'){
     const active=Boolean(options.propulsorActive),pulse=.5+.5*Math.sin((Number(t)||0)*.045);
@@ -259,11 +262,11 @@
    c.restore();c.restore();return;
   }
   c.translate(0,GUN_OFFSET_Y); // Rifle stays below the torso at every aim angle.
-  drawGripArms(GUN_OFFSET_Y,rig?.rifleGrips||[[34,2],[22,11]]);
+  drawGripArms();
   // White futuristic AK-profile rifle: ventilated receiver, pronounced stock,
   // curved magazine, trigger guard, optic and a long distinguishable barrel.
   // The muzzle glow and hit origin use BARREL_TIP_X, exactly the same coordinate.
-  c.shadowColor='rgba(213,248,255,.48)';c.shadowBlur=5.5;
+  c.shadowColor='rgba(213,248,255,.48)';c.shadowBlur=options.detail===false?0:2.3;
   c.fillStyle='#d8e4ed';c.strokeStyle='#faffff';c.lineWidth=1.25;
   c.beginPath();c.moveTo(18,-5);c.lineTo(35,-7);c.lineTo(42,-5);
   c.lineTo(48,-4);c.lineTo(49,4);c.lineTo(38,5);

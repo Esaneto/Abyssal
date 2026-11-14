@@ -125,7 +125,10 @@ function simulateHair(style,t,heading,motion,weight,flow,reduced=false){
     v[0]=clamp(v[0]+ax*dt,-125,125);v[1]=clamp(v[1]+ay*dt,-125,125);p[0]+=v[0]*dt;p[1]+=v[1]*dt;
    }
    // Project every segment to its original length, keeping root fixed.
-   for(let i=1;i<5;i++){const a=q.nodes[i-1],b=q.nodes[i],dx=b[0]-a[0],dy=b[1]-a[1],L=lengths[i-1];const restA=target[i-1],restB=target[i],restAngle=Math.atan2(restB[1]-restA[1],restB[0]-restA[0]);const ref=i===1?restAngle:Math.atan2(a[1]-q.nodes[i-2][1],a[0]-q.nodes[i-2][0]);const limit=i===1?.58:l.layer==='crown'?1.0:1.45;const raw=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(raw-ref),Math.cos(raw-ref)),angle=ref+clamp(delta,-limit,limit);b[0]=a[0]+Math.cos(angle)*L;b[1]=a[1]+Math.sin(angle)*L;}
+   for(let i=1;i<5;i++){const a=q.nodes[i-1],b=q.nodes[i],dx=b[0]-a[0],dy=b[1]-a[1],L=lengths[i-1];const restA=target[i-1],restB=target[i],restAngle=Math.atan2(restB[1]-restA[1],restB[0]-restA[0]);const ref=i===1?restAngle:Math.atan2(a[1]-q.nodes[i-2][1],a[0]-q.nodes[i-2][0]);const limit=i===1?.58:l.layer==='crown'?1.0:1.45;const raw=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(raw-ref),Math.cos(raw-ref));let angle=ref+clamp(delta,-limit,limit);
+    const clearance=(v)=>{const p=toLocal(v),ellipse=(x,y,rx,ry)=>((p[0]-x)/rx)**2+((p[1]-y)/ry)**2;return Math.min(ellipse(31,0,9,8),ellipse(0,0,20,12));};
+    if(i>=2&&l.layer==='back'&&clearance(restB)>1.08){const candidate=ang=>[a[0]+Math.cos(ang)*L,a[1]+Math.sin(ang)*L];if(clearance(candidate(angle))<1){let best=angle,score=clearance(candidate(angle));for(let j=-4;j<=4;j++){const ang=ref+limit*j/4,q=clearance(candidate(ang));if(q>score){best=ang;score=q;}}angle=best;}}
+    b[0]=a[0]+Math.cos(angle)*L;b[1]=a[1]+Math.sin(angle)*L;}
    if(dt>0)for(let i=1;i<5;i++){q.vel[i][0]=clamp((q.nodes[i][0]-before[i][0])/dt,-125,125);q.vel[i][1]=clamp((q.nodes[i][1]-before[i][1])/dt,-125,125);}
   }
   q.nodes[0]=target[0];
@@ -144,10 +147,12 @@ function body(c,t,options,look={}){
  const s=look.outfit||['#101923','#263847','#39536a','#668293','#b4c8cc'],f=look.fins||['#15242c','#60858e','#9db6b8'],tank=look.back||['#14252e','#77929b','#455e69','#263e49','#101b24'],hair=look.hair||['#121920','#46505b','#232b34'],glass=look.visor||['#b5d8d9','#568a99','#264b60','#102631'];
  const path=(fn,fill,stroke,width=.7)=>{c.beginPath();fn();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}};
  const line=(a,b,color,width=.7)=>path(()=>{c.moveTo(...a);c.lineTo(...b);},null,color,width);
- const grad=(a,b,stops)=>{const g=c.createLinearGradient(...a,...b);for(const [p,v] of stops)g.addColorStop(p,v);return g;};
+ const light=options.light||{intensity:.72,depth:0,angle:-1.2},intensity=clamp(Number(light.intensity)||0,0,1),depth=clamp((Number(light.depth)||0)/1400,0,1),lightAngle=(Number(light.angle)||0)-heading;
+ const tone=(color,p=.5)=>{if(typeof color!=='string'||!/^#[0-9a-f]{6}$/i.test(color))return color;const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16)),shade=.74+.26*intensity-.10*depth,boost=Math.max(0,1-Math.abs(p-.33)*2)*intensity*.10;return '#'+rgb.map((v,i)=>Math.round(clamp(v*shade+(i===0?13:i===1?27:36)*boost,0,255)).toString(16).padStart(2,'0')).join('');};
+ const grad=(a,b,stops)=>{const g=c.createLinearGradient(...a,...b),dir=(b[0]-a[0])*Math.cos(lightAngle)+(b[1]-a[1])*Math.sin(lightAngle),reverse=dir>0;for(const [p,v] of stops)g.addColorStop(p,tone(v,reverse?1-p:p));return g;};
  const oval=(x,y,rx,ry,fill,stroke,width=.7)=>path(()=>c.ellipse(x,y,rx,ry,0,0,Math.PI*2),fill,stroke,width);
  const box=(x,y,w,h,r,fill,stroke,width=.7)=>path(()=>c.roundRect(x,y,w,h,r),fill,stroke,width);
- const detail=options.detail!==false,bulk=industrial?1.10:polar?1.13:scout?.96:1;
+ const view=options.view||rig?.viewFor?.(0),detail=options.detail!==false,bulk=industrial?1.10:polar?1.13:scout?.96:1;
  // Continuous tapered anatomical limbs: shoulder/hip volume, muscle belly,
  // narrowed joint, then wrist/ankle. No spherical robot joints.
  function limb(a,b,thickness,base,highlight){
@@ -159,6 +164,18 @@ function body(c,t,options,look={}){
   if(industrial||polar){const panel=grad([0,-w],[0,w],[[0,s[1]],[.38,s[3]],[.72,s[2]],[1,s[0]]]);path(()=>{c.moveTo(len*.14,-w*.70);c.lineTo(len*.38,-w*.78);c.lineTo(len*.65,-v*.70);c.lineTo(len*.58,v*.69);c.lineTo(len*.22,w*.65);c.closePath();},panel,'#182a33',.45);}
   c.restore();
  }
+ limb.joint=(p,r)=>{oval(p[0],p[1],r*.83,r*.72,grad([p[0]-r,p[1]-r],[p[0]+r,p[1]+r],[[0,s[2]],[.55,s[1]],[1,s[0]]]),'#16252e',.35);};
+ // Flattened palms, thumb and fingers follow the forearm; hand center is
+ // shared with the equipment grip. Resting fingers are longer than a fist.
+ limb.glove=(hand,wrist,gripping=false)=>{const angle=Math.atan2(hand[1]-wrist[1],hand[0]-wrist[0]);c.save();c.translate(...hand);c.rotate(angle);
+  const g=grad([-3,-2.5],[3,2.5],[[0,'#657d83'],[.32,'#344a55'],[.68,'#1c303b'],[1,'#0b1720']]),end=gripping?3.4:5.2;
+  path(()=>{c.moveTo(-4,-1.8);c.quadraticCurveTo(-2,-2.8,.7,-2.4);c.quadraticCurveTo(end,-2.5,end,0);c.quadraticCurveTo(end,2.4,1,2.6);c.lineTo(-3,1.9);c.closePath();},g,'#0b1720',.55);
+  path(()=>{c.moveTo(-1,1.8);c.quadraticCurveTo(0,3.5,2.2,2.4);c.lineTo(gripping?1.2:3.4,1.3);},null,'#81979a',.5);
+  for(const x of [1.4,2.6,3.6])line([x,-1.7],[x,gripping?.3:1.3],'#a9c0c14c',.35);
+  box(-4.4,-2.2,1.9,4.4,.6,'#20333e','#58717d',.42);c.restore();
+ };
+
+ c.save();if(view)c.transform(1,view.shear,0,view.width,0,0);
  const hairStyle=look.hairStyle||'classic',hairFlow=Number.isFinite(options.motion?.hairFlow)?options.motion.hairFlow:(powered?1:0),locks=simulateHair(hairStyle,Number(t)||0,heading,options.motion,weight,hairFlow,options.reducedMotion);
  c.save();drawHairLayer(c,locks,'back',hair,detail);c.restore();
  // Low-profile paired tanks sit behind the rib cage; their outer edges alone
@@ -167,9 +184,9 @@ function body(c,t,options,look={}){
  // Legs: the pelvis is drawn over the thigh roots, with separate crotch
  // and knee landmarks. Full leg length is nearly half of standing stature.
  for(const side of [-1,1]){
-  const pose=rig?.leg(side,phase,weight,powered)||{hip:[-19,side*7],knee:[-43,side*9],ankle:[-67,side*10],finAngle:0}, {hip,knee,ankle}=pose;
-  c.save();if(side<0)c.globalAlpha=.87;
-  limb(hip,knee,11.5,s[1],s[3]);limb(knee,ankle,8.5,s[0],s[2]);
+  const pose=rig?.leg(side,phase,weight,powered,options.motion)||{hip:[-19,side*7],knee:[-43,side*9],ankle:[-67,side*10],finAngle:0}, {hip,knee,ankle}=pose;
+  c.save();const far=side<0,scale=far?1-.12*(view?.yaw||0):1;
+  limb(hip,knee,11.5*scale,far?s[0]:s[1],far?s[2]:s[3]);limb(knee,ankle,8.5*scale,s[0],far?s[1]:s[2]);
   const joint=grad([knee[0]-4,knee[1]-3],[knee[0]+4,knee[1]+3],[[0,s[1]],[.43,s[2]],[1,s[0]]]);
   path(()=>{c.moveTo(knee[0]+4,knee[1]-3);c.quadraticCurveTo(knee[0],knee[1]-4.3,knee[0]-4,knee[1]-2.6);c.lineTo(knee[0]-3,knee[1]+2.8);c.quadraticCurveTo(knee[0]+1,knee[1]+4,knee[0]+4,knee[1]+2.5);c.closePath();},joint,'#172733',.55);
   c.save();c.translate(...ankle);c.rotate(-pose.finAngle);
@@ -179,6 +196,8 @@ function body(c,t,options,look={}){
   for(const off of [-3,0,3])path(()=>{c.moveTo(-6,off*.45);c.quadraticCurveTo(-14,off*.6,-21,off);},null,f[2],.55);
   c.restore();c.restore();
  }
+ // Far arm is painted before the torso, in projected space, not above the face.
+ if(options.beforeTorso){c.save();if(view)c.transform(1,-view.shear/view.width,0,1/view.width,0,0);options.beforeTorso(limb);c.restore();}
  const shoulder=female?13.9:15.0,hipWidth=female?12.9:12.0,waist=female?8.7:9.5;
  const suit=grad([0,-shoulder],[2,shoulder],[[0,'#0b1821'],[.20,s[2]],[.42,s[1]],[.68,s[0]],[1,'#09131b']]);
  // One continuous skin-tight suit silhouette with distinct neck, trapezius,
@@ -215,10 +234,13 @@ function body(c,t,options,look={}){
  path(()=>{c.moveTo(23,-3.8);c.quadraticCurveTo(25,-7.3,31,-7.8);c.bezierCurveTo(38,-8.2,41,-4.6,40,0);c.bezierCurveTo(41,4.6,38,8.2,31,7.8);c.quadraticCurveTo(25,7.3,23,3.8);c.quadraticCurveTo(22.5,0,23,-3.8);c.closePath();},skull,'#0b151e',.8);
  if(hairStyle!=='shaved'){const cap=grad([34,-8],[42,7],[[0,hair[0]],[.43,hair[2]],[.72,hair[1]],[1,hair[0]]]);path(()=>{c.moveTo(33,-7);c.quadraticCurveTo(38,-10,41,-6);c.quadraticCurveTo(44,0,41,6);c.quadraticCurveTo(37,9,33,7);c.quadraticCurveTo(36,0,33,-7);c.closePath();},cap,hair[0],.4);}
  c.save();drawHairLayer(c,locks,'knot',hair,detail);drawHairLayer(c,locks,'crown',hair,detail);c.restore();
- const face=grad([30,-6],[30,6],[[0,'#8b6b59'],[.35,'#c6a38c'],[.66,'#ac8a75'],[1,'#695655']]);
+ const skin={original:['#8b6b59','#c6a38c','#ac8a75','#695655'],light:['#a78372','#f0c9ae','#e3b99c','#987462'],bronze:['#70432e','#c79466','#a56f49','#593a2b'],deep:['#422d29','#946951','#694337','#362724']}[look.skin]||['#8b6b59','#c6a38c','#ac8a75','#695655'];const eye={original:'#223c45',hazel:'#aa8152',blue:'#6bc1ed',green:'#7eae74',violet:'#a48de1'}[look.eyes]||'#223c45';
+ const face=grad([30,-6],[30,6],[[0,skin[0]],[.35,skin[1]],[.66,skin[2]],[1,skin[3]]]);
  path(()=>{c.moveTo(36,-5);c.quadraticCurveTo(34,-6.5,30,-6);c.quadraticCurveTo(25,-5.8,24.5,0);c.quadraticCurveTo(25,5.8,30,6);c.quadraticCurveTo(34,6.5,36,5);c.closePath();},face,'#34414a',.4);
- for(const side of [-1,1]){path(()=>{c.moveTo(33.5,side*1.8);c.quadraticCurveTo(34,side*3.7,33,side*4.7);},null,'#51413c',.45);oval(32.2,side*3.1,.55,1.05,'#d4c7b3');oval(32.2,side*3.1,.42,.42,'#223c45');}
+ for(const side of [-1,1]){path(()=>{c.moveTo(33.5,side*1.8);c.quadraticCurveTo(34,side*3.7,33,side*4.7);},null,'#51413c',.45);oval(32.2,side*3.1,.55,1.05,'#d4c7b3');oval(32.2,side*3.1,.42,.42,eye);}
  path(()=>{c.moveTo(32,0);c.lineTo(29.4,-.65);c.lineTo(29.2,.5);},null,'#70584c',.4);
+ // Optional prescription inserts sit inside the pressure mask, not on top of the hair.
+ if(look.eyewear&&look.eyewear!=='none'){const frame=look.eyewear==='tactical'?'#83e4e8':look.eyewear==='square'?'#b19a79':'#b6c9cc';for(const side of [-1,1]){if(look.eyewear==='round')oval(32.3,side*3,1.9,2.3,null,frame,.55);else box(30.4,side*3-2.2,3.8,4.4,.65,null,frame,.55);}line([32.3,-.8],[32.3,.8],frame,.6);}
  // Panoramic transparent mask, twin eyes remain readable under tinted glass.
  const mask=grad([35,-7],[28,7],[[0,glass[0]],[.30,glass[1]],[.67,glass[2]],[1,glass[3]]]);
  const maskShape=()=>{c.moveTo(35.2,-6.6);c.quadraticCurveTo(37,-3.4,35.7,0);c.quadraticCurveTo(37,3.4,35.2,6.6);c.lineTo(30.2,6.5);c.quadraticCurveTo(28.8,3.4,30.5,0);c.quadraticCurveTo(28.8,-3.4,30.2,-6.5);c.closePath();};
@@ -228,18 +250,9 @@ function body(c,t,options,look={}){
  path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#09131b',3.0);path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#55707a',1.55);
  box(23.6,-3.5,5.4,7,2.0,'#1b303c','#7a939b',.6);oval(26.2,0,1.7,2.2,'#405762','#15252f',.5);for(const y of [-1,0,1])line([25.7,y],[26.8,y],'#a3c1c3',.35);
  c.save();drawHairLayer(c,locks,'braid',hair,detail);c.restore();
+ if(look.headgear==='comms'){box(27,-9.2,5.5,3.5,1.1,'#273d47','#8da9b0',.55);path(()=>{c.moveTo(30,-9);c.lineTo(38,-11.5);},null,'#78949b',.8);oval(38,-11.5,.65,.65,'#91ead9');}else if(look.headgear==='temple'){box(33,7.1,4,3.1,.7,'#2f4955','#87b6b8',.5);line([34,8.5],[36,8.5],'#a2fff1',.8);}else if(look.headgear==='clip'&&hairStyle!=='shaved'){line([38,-5],[35,-8],'#e1be7e',1.1);line([39,-5],[36,-8],'#b28f54',.7);}
  if(options.helmetLamp){box(35,-9.7,5.2,3.7,1.1,'#354b57','#8eafb7',.55);oval(39,-7.9,1.25,1.2,'#d9fff0');}
- limb.joint=(p,r)=>{oval(p[0],p[1],r*.83,r*.72,grad([p[0]-r,p[1]-r],[p[0]+r,p[1]+r],[[0,s[2]],[.55,s[1]],[1,s[0]]]),'#16252e',.35);};
- // Flattened palms, thumb and fingers follow the forearm; hand center is
- // shared with the equipment grip. Resting fingers are longer than a fist.
- limb.glove=(hand,wrist,gripping=false)=>{const angle=Math.atan2(hand[1]-wrist[1],hand[0]-wrist[0]);c.save();c.translate(...hand);c.rotate(angle);
-  const g=grad([-3,-2.5],[3,2.5],[[0,'#657d83'],[.32,'#344a55'],[.68,'#1c303b'],[1,'#0b1720']]),end=gripping?3.4:5.2;
-  path(()=>{c.moveTo(-4,-1.8);c.quadraticCurveTo(-2,-2.8,.7,-2.4);c.quadraticCurveTo(end,-2.5,end,0);c.quadraticCurveTo(end,2.4,1,2.6);c.lineTo(-3,1.9);c.closePath();},g,'#0b1720',.55);
-  path(()=>{c.moveTo(-1,1.8);c.quadraticCurveTo(0,3.5,2.2,2.4);c.lineTo(gripping?1.2:3.4,1.3);},null,'#81979a',.5);
-  for(const x of [1.4,2.6,3.6])line([x,-1.7],[x,gripping?.3:1.3],'#a9c0c14c',.35);
-  box(-4.4,-2.2,1.9,4.4,.6,'#20333e','#58717d',.42);c.restore();
- };
- return limb;
+ c.restore();return limb;
 }
 root.AbyssalRealisticBody=Object.freeze({draw:body,hairGeometry,simulateHair,HAIR_STYLES,HAIR_ANCHOR});
 })(typeof globalThis!=='undefined'?globalThis:this);

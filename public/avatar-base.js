@@ -7,9 +7,13 @@
   outfit:Object.freeze([{id:'navy',name:'Abissal / MK-01',swatch:'#244660',description:'Traje pressurizado padrão, placas segmentadas e perfil equilibrado.'},{id:'rust',name:'Industrial / MK-02',swatch:'#ae643c',description:'Armadura de trabalho, proteção de juntas e bolsos técnicos.'},{id:'ice',name:'Polar / MK-03',swatch:'#a6cbd1',description:'Isolamento térmico, carapaça clara e gola reforçada.'},{id:'olive',name:'Explorador / MK-04',swatch:'#637956',description:'Neoprene flexível, colete de campo e armazenamento compacto.'}]),
   visor:Object.freeze([{id:'cyan',name:'Ciano',swatch:'#78dbe8'},{id:'amber',name:'Âmbar',swatch:'#eab36b'},{id:'violet',name:'Violeta',swatch:'#b4a3ee'}]),
   back:Object.freeze([{id:'standard',name:'Duplo padrão',swatch:'#4c8095'},{id:'titanium',name:'Titânio',swatch:'#b7c6cc'},{id:'dark',name:'Grafite',swatch:'#49515e'}]),
+  skin:Object.freeze([{id:'original',name:'Original',swatch:'#ac8a75'},{id:'light',name:'Claro',swatch:'#e3b99c'},{id:'bronze',name:'Bronze',swatch:'#a56f49'},{id:'deep',name:'Escuro',swatch:'#694337'}]),
+  eyes:Object.freeze([{id:'original',name:'Original',swatch:'#344c56'},{id:'hazel',name:'Avelã',swatch:'#aa8152'},{id:'blue',name:'Azul',swatch:'#6bc1ed'},{id:'green',name:'Verde',swatch:'#7eae74'},{id:'violet',name:'Violeta',swatch:'#a48de1'}]),
+  eyewear:Object.freeze([{id:'none',name:'Sem óculos'},{id:'round',name:'Redondos',swatch:'#b6c9cc'},{id:'tactical',name:'Táticos',swatch:'#83e4e8'},{id:'square',name:'Retangulares',swatch:'#b19a79'}]),
+  headgear:Object.freeze([{id:'none',name:'Sem acessório'},{id:'comms',name:'Comunicador',swatch:'#74929f'},{id:'temple',name:'Sensor temporal',swatch:'#9ddac9'},{id:'clip',name:'Presilha metálica',swatch:'#e1be7e'}]),
   fins:Object.freeze([{id:'standard',name:'Abissais',swatch:'#79b9ce'},{id:'amber',name:'Resgate',swatch:'#dba45f'},{id:'white',name:'Árticas',swatch:'#c5e4e8'}])
  });
- const DEFAULT=Object.freeze({hair:'classic',hairColor:'black',outfit:'navy',visor:'cyan',back:'standard',fins:'standard'});
+ const DEFAULT=Object.freeze({hair:'classic',hairColor:'black',outfit:'navy',visor:'cyan',back:'standard',fins:'standard',skin:'original',eyes:'original',eyewear:'none',headgear:'none'});
  const KEY='abyssalAvatarAppearanceV1';
  function normalize(value){const out={};for(const key of Object.keys(DEFAULT)){const v=value&&value[key];out[key]=slots[key].some(item=>item.id===v)?v:DEFAULT[key];}return out;}
  function same(a,b){return Object.keys(DEFAULT).every(k=>a?.[k]===b?.[k]);}
@@ -25,6 +29,6 @@
   fins:{standard:null,amber:['#30241c','#dba45f','#f4c889'],white:['#253b47','#c5e4e8','#e0faff']},
   hairColor:{black:null,brown:['#38251c','#76503b','#4d3021'],silver:['#54636d','#c4d0d6','#879ca8'],white:['#697b92','#f4faff','#b6c7d8'],green:['#173f27','#a8ef62','#49a83d'],teal:['#124450','#9bf9eb','#22b6b5'],violet:['#362553','#e0c9ff','#9362d4'],red:['#582929','#ffc3a7','#ce5549'],blue:['#1c355e','#b0d5ff','#4487df'],gold:['#60452c','#fff0b8','#b9904a'],pink:['#632844','#ffd3ef','#d76aa4'],indigo:['#28224e','#bcb9ff','#6c65c5']}
  };
- function palette(value){const v=normalize(value);return {outfitId:v.outfit,outfit:colors.outfit[v.outfit],visor:colors.visor[v.visor],back:colors.back[v.back],fins:colors.fins[v.fins],hair:colors.hairColor[v.hairColor],hairStyle:v.hair};}
+ function palette(value){const v=normalize(value);return {outfitId:v.outfit,outfit:colors.outfit[v.outfit],visor:colors.visor[v.visor],back:colors.back[v.back],fins:colors.fins[v.fins],hair:colors.hairColor[v.hairColor],hairStyle:v.hair,skin:v.skin,eyes:v.eyes,eyewear:v.eyewear,headgear:v.headgear};}
  return Object.freeze({slots,DEFAULT,normalize,same,get,apply,select,palette,KEY});
 });
