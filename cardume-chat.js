@@ -9,6 +9,7 @@ function screen(input){
  if(typeof input!=='string'||input.length>180)return {ok:false,reason:'length'};
  const r=screenChatMessage(input,180);if(!r.ok)return r;
  const n=obfuscationView(r.text),compact=n.replace(/\s+/g,'');
+ if(/\b(?:discord\.gg|t\.me|wa\.me|bit\.ly|[a-z0-9-]+\.(?:com|net|org|io|gg|br|xyz))\b/i.test(r.text))return {ok:false,reason:'contact_or_link'};
  if(/\b(?:idiota|imbecil|retardado|vadia|arrombado|nigger|faggot|whore|slut|retard|kill yourself|se mata|nudes?|porno|sexo|estupro|rape|pedofilia)\b/i.test(n))return {ok:false,reason:'abuse'};
  if(/(?:caralho|buceta|vaisefoder|vaisefuder|motherfucker|nigger|faggot)/i.test(compact)||/^(?:fdp|pqp|fuck|shit)$/i.test(compact))return {ok:false,reason:'profanity'};
  return r;
@@ -60,12 +61,12 @@ function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,en
   });
   socket.on('online-quick-emoji',(payload,cb)=>{
    const k=key(),u=getUsers()[k],room=getRoom(socket),id=payload?.id;
-   if(!u||!room||!socket.data.joined||!room.players.has(socket.id)||room.players.get(socket.id)?.alive===false||typeof id!=='string'||!Object.hasOwn(QUICK,id)||!rate(k,'emoji',2500))return ack(cb,{ok:false});
+   if(!enabled()||!u||!room||!socket.data.joined||!room.players.has(socket.id)||room.players.get(socket.id)?.alive===false||typeof id!=='string'||!Object.hasOwn(QUICK,id)||!rate(k,'emoji',2500))return ack(cb,{ok:false});
    for(const client of(io.sockets?.sockets?.values?.()||[])){const recipient=client.data.userKey;if(recipient&&getRoom(client)===room&&room.players.has(client.id)&&!blocked(getUsers(),k,recipient))client.emit('online-quick-emoji',{id,playerId:socket.id,nickname:u.nickname});}ack(cb,{ok:true});
   });
  }
  async function removeMessage(id){const pool=await db(),r=await pool.query('DELETE FROM abyssal_cardume_messages WHERE id=$1 RETURNING cardume_id',[id]),c=r.rows[0]&&getCardumes()[r.rows[0].cardume_id];if(c)for(const client of(io.sockets?.sockets?.values?.()||[]))if(allowed(client.data.userKey,c))client.emit('cardume-chat-removed',{id,cardumeId:c.id});}
- async function deleteAccount(key){if(!getPool())return;const pool=await db();await pool.query('DELETE FROM abyssal_cardume_messages WHERE sender_key=$1',[key]);}
+ async function deleteAccount(key){if(!getPool())return;const pool=await db();await pool.query('DELETE FROM abyssal_cardume_messages WHERE sender_key=$1',[key]);lastText.delete(key);}
  return {attach,getChatMessage,removeMessage,deleteAccount};
 }
 module.exports={createCardumeChat,screen,penalty,membership,blocked,QUICK,RULES_VERSION};

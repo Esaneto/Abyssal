@@ -39,7 +39,7 @@ O Abyssal contém violência fantástica e efeitos visuais de combate.
 - App access: authentication exists. Supply GoogleReviewer01 and GoogleReviewer02 (passwords provisioned privately on the production server). Test Solo Dive and cooperative Online Dive only; use both accounts in the same room for multiplayer. No OTP or private inbox is required.
 - Content rating: disclose fantasy violence, blood/death effects, multiplayer/user interaction, digital purchases if enabled, and ads/rewarded mechanics if enabled.
 - Target audience: 16+ as implemented by the current age-band flow.
-- UGC: nicknames, public profiles and Cardume names/descriptions are user-generated. In-app reporting and moderation are implemented. Public chat is not present.
+- UGC: nicknames, public profiles and Cardume names/descriptions are user-generated. In-app reporting and moderation are implemented. Public/global chat and direct messages are not present. Cardume-only text has server-side screening, blocking, individual reports and moderator review; online rooms use fixed quick emojis only. Validate these features on the Android release before changing the IARC chat-moderation declaration.
 - Account deletion: in-app deletion plus external deletion resource are implemented.
 - Data safety: disclose account identifiers/contact email when provided, user IDs/UUID, gameplay/progress, social/UGC and moderation reports, purchase data when payments are enabled, and technical/network data handled by hosting/advertising providers as applicable.
 - Privacy policy: use the public privacy URL above.

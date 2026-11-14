@@ -112,8 +112,9 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
     if (!['dismiss', 'warn', 'mute_24h', 'ban_chat', 'needs_followup'].includes(action)) return res.status(400).json({ ok: false, message: 'Ação de moderação inválida.' });
     const pool = getPool();
     if (!pool) return res.status(503).json({ ok: false, message: 'PostgreSQL indisponível.' });
-    const client = await pool.connect();
+    let client;
     try {
+      client = await pool.connect();
       await ensureModerationSchema(pool);
       await client.query('BEGIN');
       const report = await client.query('SELECT report_id,reported_key,message_id FROM abyssal_chat_reports WHERE report_id=$1 AND status IN (\'open\',\'followup\') FOR UPDATE', [String(req.params.id || '')]);
@@ -124,15 +125,15 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
       await client.query('INSERT INTO abyssal_chat_moderation_audit(audit_id,report_id,moderator_key,action,note) VALUES($1,$2,$3,$4,$5)', [crypto.randomUUID(), report.rows[0].report_id, moderator.key, action, note]);
       await client.query('COMMIT');
       if (['warn','mute_24h','ban_chat'].includes(action)) await removeMessage?.(report.rows[0].message_id).catch(error=>console.error('[chat-moderation] remove:',error.message));
-      if (target && action === 'warn') { target.chatWarnings = Math.min(100, (Number(target.chatWarnings) || 0) + 1); saveUsers(); }
+      if (target && action === 'warn') { target.chatWarnings = Math.min(100, (Number(target.chatWarnings) || 0) + 1); target.chatLastViolationAt=Date.now(); saveUsers(); }
       if (target && action === 'mute_24h') { target.chatMutedUntil = Math.max(Number(target.chatMutedUntil)||0,Date.now() + 24 * 60 * 60 * 1000); saveUsers(); }
       if (target && action === 'ban_chat') { target.chatBanned = true; target.chatMutedUntil = 0; saveUsers(); }
       return res.json({ ok: true, status });
     } catch (error) {
-      await client.query('ROLLBACK').catch(() => {});
+      if(client)await client.query('ROLLBACK').catch(() => {});
       console.error('[chat-moderation] Resolve failed:', error.message);
       return res.status(503).json({ ok: false, message: 'Não foi possível concluir a análise.' });
-    } finally { client.release(); }
+    } finally { client?.release(); }
   });
 }
 
