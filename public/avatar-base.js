@@ -4,7 +4,7 @@
  const slots=Object.freeze({
   hair:Object.freeze([{id:'classic',name:'Original'},{id:'short',name:'Curto'},{id:'long',name:'Longo'},{id:'shaved',name:'Raspado'}]),
   hairColor:Object.freeze([{id:'black',name:'Preto',swatch:'#151b25'},{id:'brown',name:'Castanho',swatch:'#76503b'},{id:'silver',name:'Prateado',swatch:'#a8bac5'}]),
-  outfit:Object.freeze([{id:'navy',name:'Abissal',swatch:'#244660'},{id:'rust',name:'Resgate',swatch:'#ae643c'},{id:'ice',name:'Ártico',swatch:'#a6cbd1'},{id:'olive',name:'Expedição',swatch:'#637956'}]),
+  outfit:Object.freeze([{id:'navy',name:'Abissal / MK-01',swatch:'#244660',description:'Traje pressurizado padrão, placas segmentadas e perfil equilibrado.'},{id:'rust',name:'Industrial / MK-02',swatch:'#ae643c',description:'Armadura de trabalho, proteção de juntas e bolsos técnicos.'},{id:'ice',name:'Polar / MK-03',swatch:'#a6cbd1',description:'Isolamento térmico, carapaça clara e gola reforçada.'},{id:'olive',name:'Explorador / MK-04',swatch:'#637956',description:'Neoprene flexível, colete de campo e armazenamento compacto.'}]),
   visor:Object.freeze([{id:'cyan',name:'Ciano',swatch:'#78dbe8'},{id:'amber',name:'Âmbar',swatch:'#eab36b'},{id:'violet',name:'Violeta',swatch:'#b4a3ee'}]),
   back:Object.freeze([{id:'standard',name:'Duplo padrão',swatch:'#4c8095'},{id:'titanium',name:'Titânio',swatch:'#b7c6cc'},{id:'dark',name:'Grafite',swatch:'#49515e'}]),
   fins:Object.freeze([{id:'standard',name:'Abissais',swatch:'#79b9ce'},{id:'amber',name:'Resgate',swatch:'#dba45f'},{id:'white',name:'Árticas',swatch:'#c5e4e8'}])
@@ -25,6 +25,6 @@
   fins:{standard:null,amber:['#30241c','#dba45f','#f4c889'],white:['#253b47','#c5e4e8','#e0faff']},
   hairColor:{black:null,brown:['#38251c','#76503b','#4d3021'],silver:['#54636d','#c4d0d6','#879ca8']}
  };
- function palette(value){const v=normalize(value);return {outfit:colors.outfit[v.outfit],visor:colors.visor[v.visor],back:colors.back[v.back],fins:colors.fins[v.fins],hair:colors.hairColor[v.hairColor],hairStyle:v.hair};}
+ function palette(value){const v=normalize(value);return {outfitId:v.outfit,outfit:colors.outfit[v.outfit],visor:colors.visor[v.visor],back:colors.back[v.back],fins:colors.fins[v.fins],hair:colors.hairColor[v.hairColor],hairStyle:v.hair};}
  return Object.freeze({slots,DEFAULT,normalize,same,get,apply,select,palette,KEY});
 });

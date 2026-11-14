@@ -30,3 +30,11 @@
 /* Inspection controls retain their labels on touch and narrow screens. */
 #submarineWorkshop .aw-view button{flex:1 1 110px}
 #submarineWorkshop .aw-canvas{background:radial-gradient(ellipse at 48% 40%,#3b5660 0%,#243d49 35%,#101f2c 72%,#0b1721 100%)}
+
+/* Equipment station: full-width suit cards with readable specifications. */
+#submarineWorkshop .aw-choices:has(.aw-option-copy small){grid-template-columns:1fr}
+#submarineWorkshop .aw-option-copy{display:grid;gap:3px;min-width:0}
+#submarineWorkshop .aw-option-copy strong{font-size:12px;line-height:1.3}
+#submarineWorkshop .aw-option-copy small{font-size:11px;line-height:1.35;font-weight:500;color:#a6c1c8}
+#submarineWorkshop .aw-option:has(.aw-option-copy small){padding:10px;min-height:58px}
+#submarineWorkshop .aw-option:has(.aw-option-copy small) .aw-swatch{width:28px;height:28px;border-radius:6px}

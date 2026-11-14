@@ -4,6 +4,7 @@
 function body(c,t,options,look={}){
  const rig=root.AbyssalDiverRig,phase=Number.isFinite(options.motion?.phase)?options.motion.phase:(Number(t)||0)*.008,swim=options.moving!==false,female=options.gender==='female';
  const weight=Number.isFinite(options.motion?.weight)?options.motion.weight:(swim?1:0),powered=Boolean(options.motion?.powered||options.propulsorActive);
+ const kind=look.outfitId||'navy',industrial=kind==='rust',polar=kind==='ice',scout=kind==='olive';
  const s=look.outfit||['#101923','#263847','#39536a','#668293','#b4c8cc'];
  const f=look.fins||['#15242c','#60858e','#9db6b8'];
  const tank=look.back||['#14252e','#77929b','#455e69','#263e49','#101b24'];
@@ -17,11 +18,19 @@ function body(c,t,options,look={}){
  function limb(a,b,thickness,base,highlight){
   const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy)||1;
   c.save();c.translate(...a);c.rotate(Math.atan2(dy,dx));
-  const w=thickness*.58,v=thickness*.40;
+  const bulk=industrial?1.12:polar?1.18:scout?.92:1;
+  const w=thickness*.58*bulk,v=thickness*.40*bulk;
   const shade=grad([0,-w],[0,w],[[0,'#0a131b'],[.25,highlight],[.45,base],[.82,base],[1,'#09141d']]);
   path(()=>{c.moveTo(-1,-w*.65);c.quadraticCurveTo(len*.34,-w,len,-v);c.quadraticCurveTo(len+v,0,len,v);c.quadraticCurveTo(len*.36,w*.87,-1,w*.65);c.quadraticCurveTo(-w,0,-1,-w*.65);},shade,'#071019',.95);
   line([len*.18,-w*.54],[len*.78,-v*.6],'#c8e0df40',.55);
   for(let j=0;j<(options.detail===false?0:2);j++)path(()=>{const q=len*(.53+j*.12);c.moveTo(q,-v*.75);c.quadraticCurveTo(q+2,0,q-1,v*.76);},null,'#07131b66',.65);
+  // Variant-specific panels follow every articulated limb, including weapon arms.
+  if(industrial||polar){
+   const top=grad([0,-w],[0,w],[[0,s[4]],[.24,s[3]],[.52,s[2]],[1,s[0]]]);
+   path(()=>{c.moveTo(len*.13,-w*.88);c.lineTo(len*.42,-w*.98);c.lineTo(len*.67,-w*.62);c.lineTo(len*.61,w*.56);c.lineTo(len*.28,w*.78);c.lineTo(len*.1,w*.35);c.closePath();},top,'#101c24',.65);
+   if(industrial){line([len*.22,-w*.65],[len*.47,-w*.55],'#e6b074',.9);line([len*.22,w*.4],[len*.47,w*.3],'#131b22',.85);}
+   else{for(const at of [.72,.84])line([len*at,-v*.74],[len*at,v*.72],'#b8d5db',.65);}
+  }else if(scout){line([len*.2,-w*.55],[len*.84,-v*.7],s[3],.75);}
   c.restore();
  }
  // Rear hair is composited before the suit, cylinders and helmet.
@@ -75,6 +84,34 @@ function body(c,t,options,look={}){
   oval(-14,7,2.2,2.2,'#243b47','#78919a',.65);oval(-14,7,.8,.8,'#9eb8b8');
   for(let i=0;i<3;i++)line([9+i*2,-5.5],[10+i*2,-3.5],'#b1c7c544',.65);
  }
+ // Interchangeable silhouette modules. All remain inside the existing body envelope.
+ const panelShade=grad([-11,-10],[15,10],[[0,s[4]],[.22,s[3]],[.55,s[2]],[1,s[0]]]);
+ if(industrial){
+  // Armoured shoulder yokes, central metal breastplate and utility belt.
+  for(const side of [-1,1]){
+   path(()=>{c.moveTo(6,side*7);c.lineTo(9,side*13.5);c.lineTo(17,side*14.5);c.lineTo(21,side*9);c.lineTo(18,side*5);c.closePath();},panelShade,'#10191f',1);
+   line([11,side*11],[17,side*11],'#f4b568',1.1);
+   box(-15,side<0?-13:7,8,6,1.3,'#47372e','#b1805c',.7);
+  }
+  path(()=>{c.moveTo(-5,-8);c.lineTo(13,-9);c.lineTo(18,-3);c.lineTo(16,6);c.lineTo(5,9);c.lineTo(-7,6);c.closePath();},panelShade,'#19252d',1);
+  for(const y of [-3,1,5])line([-2,y],[12,y-1],'#32251e',.85);
+  box(-20,-9,7,18,1.5,'#26323a','#b78b67',.8);
+ }else if(polar){
+  // Insulated pressure shell, raised collar and quilted abdominal segments.
+  path(()=>{c.moveTo(4,-12);c.quadraticCurveTo(13,-15,20,-10);c.lineTo(22,7);c.quadraticCurveTo(14,15,4,12);c.lineTo(0,7);c.lineTo(0,-7);c.closePath();},panelShade,'#56727c',.85);
+  box(16,-12,7,24,3,'#6d8791','#c5e1e0',.85);
+  for(const x of [-14,-9,-4])box(x,-7,4,14,1.5,s[2],'#304b57',.65);
+  line([7,-8],[15,-8],'#e2f5f5',1.1);line([7,8],[15,8],'#c6e3e6',1);
+ }else if(scout){
+  // Soft expedition vest, distinct side-mounted cargo pockets.
+  for(const side of [-1,1]){
+   box(-12,side<0?-12:6,12,6,1.7,s[1],'#1c2c25',.8);
+   box(-10,side<0?-11:7,8,2,1,s[3],'#273a2c',.5);
+   path(()=>{c.moveTo(2,side*8);c.lineTo(12,side*9);c.lineTo(15,side*5);c.lineTo(5,side*3);c.closePath();},s[2],'#233b2a',.75);
+  }
+  box(-2,-3,12,6,1.4,'#263b30','#8ba47c',.7);
+  line([0,0],[8,0],'#b7cda2',.8);
+ }
  // Breathing hose from shoulder valve to helmet; restrained illumination.
  path(()=>{c.moveTo(20,-18);c.bezierCurveTo(30,-22,35,-14,32,-7);},null,'#070f15',4.3);
  path(()=>{c.moveTo(20,-18);c.bezierCurveTo(30,-22,35,-14,32,-7);},null,'#455b63',2.4);
@@ -87,6 +124,13 @@ function body(c,t,options,look={}){
  box(18,-5,7,10,2.5,'#263d49','#0a1720');
  const skull=grad([21,-10],[35,10],[[0,'#526570'],[.28,'#243541'],[.65,'#14232e'],[1,'#0b151e']]);
  path(()=>{c.moveTo(21,-7.5);c.quadraticCurveTo(23,-11,30,-10);c.quadraticCurveTo(39,-9,39,0);c.quadraticCurveTo(38,9,30,10);c.quadraticCurveTo(22,10,21,6);c.closePath();},skull,'#09131b',1.1);
+ // Distinct helmets preserve the common human head and visor mounts.
+ if(industrial){
+  path(()=>{c.moveTo(21,-8);c.lineTo(23,-12);c.lineTo(33,-12);c.lineTo(38,-7);c.lineTo(37,-5);c.lineTo(30,-8);c.lineTo(23,-5);c.closePath();},panelShade,'#17232a',.8);
+  box(20,-5,4,10,1.2,s[2],'#1c272e',.75);
+ }else if(polar){
+  path(()=>{c.moveTo(21,-8);c.quadraticCurveTo(23,-13,33,-12);c.quadraticCurveTo(40,-10,40,-2);c.lineTo(37,-3);c.quadraticCurveTo(35,-9,28,-8);c.lineTo(22,-5);c.closePath();},panelShade,'#3b5866',.85);
+ }else if(scout){line([23,-7],[31,-9],'#a4b68a',1.3);}
  // Human face is seen through a tinted pressure mask, not a solid blue plate.
  const face=grad([25,-7],[36,7],[[0,'#c5a18a'],[.42,'#967768'],[1,'#4a4143']]);
  path(()=>{c.moveTo(26,-7);c.quadraticCurveTo(33,-8,34,-4);c.lineTo(36,-1);c.lineTo(34.4,.7);c.quadraticCurveTo(35,4,31,6.6);c.lineTo(27,5);c.lineTo(25,-2);c.closePath();},face,'#26303a',.5);
