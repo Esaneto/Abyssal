@@ -929,7 +929,7 @@ function updateNotifBadge() {
 
   const list = getStoredNotifications();
   const lastSeen = Number(localStorage.getItem('abyssalNotificationsLastSeen') || 0);
-  const hasUnread = list.some(item => Number(item.timestamp) > lastSeen);
+  const hasUnread = list.some(item => Number(item.timestamp) > lastSeen)||(window.AbyssalCardumeInvites?.list?.()||[]).some(i=>Number(i.at)>lastSeen);
 
   const dot = document.getElementById('notifUnreadDot');
   btn.classList.toggle('has-unread', hasUnread);
@@ -944,6 +944,7 @@ function updateNotifBadge() {
 window.addNotification = addNotification;
 window.updateNotifBadge = updateNotifBadge;
 window.openAbyssalNotifications = openNotifPanel;
+for(const eventName of ['abyssal-account-data','abyssal-account-signed-out','abyssal-online-disconnected'])window.addEventListener(eventName,()=>{updateNotifBadge();if(!document.getElementById('notifPanel')?.hidden)renderNotifPanel();});
 function receiveAnnouncement(item){
  if(!item||typeof item.id!=='string'||typeof item.message!=='string')return;
  try{
@@ -1136,6 +1137,18 @@ function renderNotifPanel() {
       });
     });
   }
+  // Convites são dados da conta, não notificações descartáveis do dispositivo.
+  const invites=window.AbyssalCardumeInvites?.list?.()||[];
+  if(invites.length){
+    if(!items.length)list.replaceChildren();
+    const heading=document.createElement('h3');heading.className='cardume-invite-heading';heading.textContent='CONVITES DE CARDUME';const inbox=document.createElement('section');inbox.className='cardume-invite-inbox';inbox.append(heading);
+    for(const invite of invites){
+      const row=document.createElement('article'),title=document.createElement('strong'),copy=document.createElement('p'),actions=document.createElement('div'),status=document.createElement('p');row.className='notif-item cardume-invite-item';title.textContent=invite.cardumeName;copy.textContent=invite.sender+' convidou você para integrar este Cardume.';actions.className='cardume-invite-actions';status.setAttribute('role','status');
+      for(const [accept,label] of [[true,'Aceitar convite'],[false,'Recusar']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=accept?'primary-btn':'secondary-btn';b.onclick=()=>{for(const btn of actions.querySelectorAll('button'))btn.disabled=true;window.AbyssalCardumeInvites.respond(invite.id,accept,r=>{if(!r?.ok){status.textContent=r?.message||'Convite indisponível.';for(const btn of actions.querySelectorAll('button'))btn.disabled=false;}else{addNotification(r.message,'RECRUTAMENTO DO CARDUME','info');renderNotifPanel();}});};actions.append(b);}
+      row.append(title,copy,actions,status);inbox.append(row);
+    }
+    list.prepend(inbox);
+  }
   // Botão de limpar tudo
   var existing = panel.querySelector('.notif-clear-all');
   if (existing) existing.remove();
@@ -1155,8 +1168,11 @@ function renderNotifPanel() {
 function openNotifPanel() {
   var panel = document.getElementById('notifPanel');
   if (!panel) return;
-  if(window.AbyssalCockpitNavigation?.routeScreen?.('notifPanel'))return;
+  window.AbyssalCardumeInvites?.refresh?.();
   renderNotifPanel();
+  try { localStorage.setItem('abyssalNotificationsLastSeen', String(Date.now())); } catch(e) {}
+  updateNotifBadge();
+  if(window.AbyssalCockpitNavigation?.routeScreen?.('notifPanel'))return;
   panel.hidden = false;
   if(!window.AbyssalCockpitNavigation?.isEmbedded?.('notifPanel'))document.body.style.overflow = 'hidden';
   // Marcar como lidas apenas ao abrir a caixa, removendo o ponto vermelho do sino.
