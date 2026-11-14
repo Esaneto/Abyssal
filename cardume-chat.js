@@ -28,7 +28,7 @@ function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,en
  const rateTimer=setInterval(()=>{const cutoff=Date.now()-600000;for(const [key,at] of rates)if(at<cutoff)rates.delete(key);for(const [key,v] of lastText)if(v.at<cutoff)lastText.delete(key);},600000);rateTimer.unref?.();
  async function db(){
   const pool=getPool();if(!pool)throw Error('chat storage unavailable');
-  if(pool!==schemaPool||!schemaPromise){schemaPool=pool;schemaPromise=pool.query("CREATE TABLE IF NOT EXISTS abyssal_cardume_messages (id TEXT PRIMARY KEY,cardume_id TEXT NOT NULL,sender_key TEXT NOT NULL,nickname TEXT NOT NULL,message_text TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE INDEX IF NOT EXISTS abyssal_cardume_messages_recent_idx ON abyssal_cardume_messages(cardume_id,created_at DESC);").catch(e=>{schemaPromise=null;throw e;});}
+  if(pool!==schemaPool||!schemaPromise){schemaPool=pool;schemaPromise=pool.query("CREATE TABLE IF NOT EXISTS abyssal_cardume_messages (id TEXT PRIMARY KEY,cardume_id TEXT NOT NULL,sender_key TEXT NOT NULL,nickname TEXT NOT NULL,message_text TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); ALTER TABLE abyssal_cardume_messages ADD COLUMN IF NOT EXISTS sender_account_id TEXT; CREATE INDEX IF NOT EXISTS abyssal_cardume_messages_recent_idx ON abyssal_cardume_messages(cardume_id,created_at DESC);").catch(e=>{schemaPromise=null;throw e;});}
   await schemaPromise;return pool;
  }
  const retention=setInterval(()=>{if(getPool())db().then(pool=>pool.query("DELETE FROM abyssal_cardume_messages WHERE created_at<NOW()-INTERVAL '7 days'")).catch(e=>console.error('[cardume-chat] cleanup:',e.message));},3600000);retention.unref?.();
@@ -36,7 +36,7 @@ function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,en
  const members=key=>enabled()?membership(getUsers(),getCardumes(),key):null;
  const allowed=(key,c)=>Boolean(key&&members(key)?.id===c.id);
  async function history(key,c){const pool=await db(),r=await pool.query("SELECT * FROM abyssal_cardume_messages WHERE cardume_id=$1 AND created_at>=NOW()-INTERVAL '7 days' ORDER BY created_at DESC,id DESC LIMIT 50",[c.id]);return allowed(key,c)?r.rows.reverse().filter(row=>!blocked(getUsers(),key,row.sender_key)).map(visible):[];}
- async function getChatMessage(reporterKey,id){const c=members(reporterKey);if(!c)return null;const pool=await db(),r=await pool.query("SELECT * FROM abyssal_cardume_messages WHERE id=$1 AND cardume_id=$2 AND created_at>=NOW()-INTERVAL '7 days'",[id,c.id]);if(!allowed(reporterKey,c))return null;const m=r.rows[0];return m?{id:m.id,senderKey:m.sender_key,nickname:m.nickname,text:m.message_text}:null;}
+ async function getChatMessage(reporterKey,id){const c=members(reporterKey);if(!c)return null;const pool=await db(),r=await pool.query("SELECT * FROM abyssal_cardume_messages WHERE id=$1 AND cardume_id=$2 AND created_at>=NOW()-INTERVAL '7 days'",[id,c.id]);if(!allowed(reporterKey,c))return null;const m=r.rows[0];return m?{id:m.id,senderKey:m.sender_key,senderAccountId:m.sender_account_id||null,nickname:m.nickname,text:m.message_text}:null;}
  function attach(socket){
   const key=()=>socket.data.userKey,ack=(cb,data)=>{if(typeof cb==='function')cb(data);};
   socket.on('cardume-chat-history',async(_payload,cb)=>{
@@ -52,7 +52,7 @@ function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,en
    const prev=lastText.get(k);if(prev?.text===r.text&&Date.now()-prev.at<30000)return ack(cb,{ok:false,message:'Evite repetir a mesma mensagem.'});
    pending.add(k);
    try{const pool=await db();if(key()!==k||!allowed(k,c))return ack(cb,{ok:false,message:'Cardume alterado.'});
-    const id=crypto.randomUUID(),result=await pool.query("INSERT INTO abyssal_cardume_messages(id,cardume_id,sender_key,nickname,message_text) VALUES($1,$2,$3,$4,$5) RETURNING *",[id,c.id,k,u.nickname,r.text]);
+    const id=crypto.randomUUID(),result=await pool.query("INSERT INTO abyssal_cardume_messages(id,cardume_id,sender_key,nickname,message_text,sender_account_id) VALUES($1,$2,$3,$4,$5,$6) RETURNING *",[id,c.id,k,u.nickname,r.text,u.accountId||null]);
     if(key()!==k||!allowed(k,c)){await pool.query('DELETE FROM abyssal_cardume_messages WHERE id=$1',[id]);return ack(cb,{ok:false,message:'Cardume alterado.'});}
     lastText.set(k,{text:r.text,at:Date.now()});
     await pool.query("DELETE FROM abyssal_cardume_messages WHERE cardume_id=$1 AND id IN (SELECT id FROM abyssal_cardume_messages WHERE cardume_id=$1 ORDER BY created_at DESC,id DESC OFFSET 50)",[c.id]);

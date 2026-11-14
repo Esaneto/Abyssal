@@ -1,6 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
-const CHAT_REASONS=new Set(['bullying','hate','sexual_content','personal_information','threat','spam','other']);
+const CHAT_REASONS=new Set(['bullying','hate','sexual_content','personal_information','threat','child_safety','spam','other']);
 const ACTIONS={
  chat:['dismiss','needs_followup','remove_message','warn','mute_24h','mute_7d','ban_chat','suspend_online_7d'],
  profile:['dismiss','needs_followup','warn','suspend_online_7d'],
@@ -71,8 +71,7 @@ function registerChatModerationRoutes({app,getUsers,saveUsers,flushPersistence,g
   try{
    const m=await getChatMessage(reporter.key,messageId);
    if(!m||m.senderKey===reporter.key)return res.status(404).json({ok:false,message:'Mensagem indisponível para denúncia.'});
-   const target=getUsers()[m.senderKey];
-   const r=await recordReport(getPool(),{type:'chat',reporterKey:reporter.key,reportedKey:m.senderKey,accountId:m.senderAccountId||target?.accountId,messageId:m.id,targetId:m.id,label:m.nickname,snapshot:m.text,reason,details});
+   const r=await recordReport(getPool(),{type:'chat',reporterKey:reporter.key,reportedKey:m.senderKey,accountId:m.senderAccountId,messageId:m.id,targetId:m.id,label:m.nickname,snapshot:m.text,reason,details});
    res.status(r.ok?201:r.status||503).set('Cache-Control','no-store').json(r);
    if(r.ok&&notifyReport)Promise.resolve(notifyReport({reportId:r.reportId,type:'chat',reason,label:m.nickname})).catch(e=>console.error('[moderation] email:',e.message));
   }catch(e){console.error('[moderation] report:',e.message);return res.status(503).json({ok:false,message:'Não foi possível registrar a denúncia.'});}
@@ -88,7 +87,7 @@ function registerChatModerationRoutes({app,getUsers,saveUsers,flushPersistence,g
     (SELECT count(*)::int FROM abyssal_chat_reports x WHERE x.status='actioned' AND x.report_id<>r.report_id AND ((r.target_account_id IS NOT NULL AND x.target_account_id=r.target_account_id) OR (r.report_type='cardume' AND x.report_type='cardume' AND x.target_id=r.target_id))) AS previous_actions
     FROM abyssal_chat_reports r LEFT JOIN LATERAL (SELECT action FROM abyssal_chat_moderation_audit WHERE report_id=r.report_id ORDER BY created_at DESC LIMIT 1) a ON true
     WHERE r.status = ANY($1::text[]) ORDER BY
-    CASE WHEN r.reason IN ('threat','sexual_content','personal_information','conteudo-ilegal','dados-pessoais','ameaca','conteudo-sexual') THEN 0 ELSE 1 END,
+    CASE WHEN r.reason IN ('threat','sexual_content','personal_information','conteudo-ilegal','dados-pessoais','ameaca','conteudo-sexual','seguranca-menor','child_safety') THEN 0 ELSE 1 END,
     CASE WHEN $2 THEN -EXTRACT(EPOCH FROM r.created_at) ELSE EXTRACT(EPOCH FROM r.created_at) END LIMIT 100`,
     [history?['dismissed','actioned']:['open','followup'],history]);
    const reports=result.rows.map(r=>({...r,actions:ACTIONS[r.report_type]||['dismiss','needs_followup']}));
@@ -120,7 +119,7 @@ function registerChatModerationRoutes({app,getUsers,saveUsers,flushPersistence,g
      if(action==='ban_chat'){target.chatBanned=true;}
      if(action==='suspend_online_7d')target.onlineSuspendedUntil=Math.max(Number(target.onlineSuspendedUntil)||0,now+7*86400000);
      target.moderationNotices.unshift({reportId:report.report_id,action,label:ACTION_LABELS[action],at:now});
-     target.moderationNotices=target.moderationNotices.slice(0,100);
+     target.moderationNotices=target.moderationNotices.filter(n=>now-Number(n.at)<180*86400000).slice(0,100);
      saveUsers();await flushPersistence?.();
     }
     if(action==='suspend_online_7d')await onOnlineSuspended?.(report.reported_key);

@@ -199,7 +199,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   const actions=playerSocialActions(m.nickname,{sameCardume:true,message:m});
   const profile=actions.querySelector('.social-icon-btn');profile?.addEventListener('click',()=>closeChatMenu());
   menu.append(title,actions);menu.hidden=false;refreshSocialLikes();
-  const bounds=section.getBoundingClientRect(),rect=anchor.getBoundingClientRect();menu.style.left=Math.max(4,Math.min(rect.left-bounds.left,bounds.width-menu.offsetWidth-4))+'px';menu.style.top=Math.max(4,rect.bottom-bounds.top+4)+'px';
+  const bounds=section.getBoundingClientRect(),rect=anchor.getBoundingClientRect();menu.style.left=Math.max(4,Math.min(rect.left-bounds.left,bounds.width-menu.offsetWidth-4))+'px';menu.style.top=Math.max(4,Math.min(rect.bottom-bounds.top+4,bounds.height-menu.offsetHeight-4))+'px';
   menu.querySelector('button')?.focus({preventScroll:true});
  }
  function renderChat(){const root=$('cardumeChatHistory');if(!root)return;closeChatMenu();root.replaceChildren();if(!chatRows.length){const p=document.createElement('p');p.textContent='Nenhuma mensagem recente. Inicie a conversa.';root.append(p);}
@@ -218,11 +218,11 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
  $('cardumeChatHistory')?.addEventListener('scroll',()=>{if(chatMenuAnchor)closeChatMenu();},{passive:true});
 
  function requestChat(group,force=false){if(!group||!socket?.connected||!authenticated)return;if(chatGroup!==group){resetCardumeChat();chatGroup=group;}else if(!force)return;const request=++chatRequest;socket.timeout(8000).emit('cardume-chat-history',{},(err,r)=>{if(request!==chatRequest||chatGroup!==group)return;if(err||!r?.ok){chatStatus(r?.message||'Não foi possível carregar o chat.');return;}if(r.cardumeId!==group)return;chatRows=(Array.isArray(r.messages)?r.messages:[]).slice(-50);chatAccepted=Boolean(r.accepted);$('cardumeChatRules').hidden=chatAccepted;renderChat();chatStatus('Canal exclusivo dos integrantes.');});}
- async function chatApi(path,method='GET',body){const r=await fetch(SERVER_URL+path,{method,headers:{Authorization:'Bearer '+sessionToken,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});return r.json();}
+ async function chatApi(path,method='GET',body){const r=await fetch(SERVER_URL+path,{method,signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+sessionToken,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});return r.json();}
  function reportChat(m){closeChatMenu();openUgcReport('chat',m.id,m.nickname,m.text);}
  function receiveChat(m){if(m?.cardumeId!==chatGroup||!authenticated||!m.id)return;if((serverAccount?.blockedUsers||[]).some(n=>String(n).toLowerCase()===String(m.nickname).toLowerCase()))return;if(!chatRows.some(x=>x.id===m.id))chatRows=[...chatRows,m].slice(-50);if(isChatVisible())renderChat();}
  const moderationLabels={dismiss:'Arquivar sem infração',needs_followup:'Manter em análise',remove_message:'Remover mensagem',warn:'Advertir jogador',mute_24h:'Silenciar chat por 24 h',mute_7d:'Silenciar chat por 7 dias',ban_chat:'Suspender chat por tempo indeterminado',suspend_online_7d:'Suspender multiplayer por 7 dias',remove_cardume_content:'Substituir nome e descrição do Cardume'};
- const moderationReasons={bullying:'Assédio',hate:'Discriminação',sexual_content:'Conteúdo sexual',personal_information:'Dados pessoais',threat:'Ameaça',spam:'Spam',other:'Outro','nome-improprio':'Nome ou conteúdo impróprio',assedio:'Assédio',discriminacao:'Discriminação',fraude:'Fraude','dados-pessoais':'Dados pessoais','conteudo-ilegal':'Conteúdo ilegal',outro:'Outro',ameaca:'Ameaça','conteudo-sexual':'Conteúdo sexual','seguranca-menor':'Segurança de menores'};
+ const moderationReasons={bullying:'Assédio',hate:'Discriminação',sexual_content:'Conteúdo sexual',personal_information:'Dados pessoais',threat:'Ameaça',child_safety:'Segurança de menores',spam:'Spam',other:'Outro','nome-improprio':'Nome ou conteúdo impróprio',assedio:'Assédio',discriminacao:'Discriminação',fraude:'Fraude','dados-pessoais':'Dados pessoais','conteudo-ilegal':'Conteúdo ilegal',outro:'Outro',ameaca:'Ameaça','conteudo-sexual':'Conteúdo sexual','seguranca-menor':'Segurança de menores'};
  async function loadModeration(){
   const list=$('cardumeModerationList'),status=$('cardumeModerationStatus'),history=$('cardumeModerationHistory')?.checked;if(!list||!serverAccount?.isDeveloper)return;status.textContent='Carregando…';
   try{const r=await chatApi('/api/moderation/chat/reports'+(history?'?history=1':''));if(!r.ok){status.textContent=r.message;return;}list.replaceChildren();
@@ -631,7 +631,7 @@ const _ageStartup=ageProfile();if(hasAgeTermsProfile()){window.google_tag_for_ag
 queueMicrotask(openAgeTermsIfNeeded);
 
 let pendingUgcReport=null,viewedProfileReportContext=null,ugcSending=false;
-const CHAT_REPORT_REASONS=[['bullying','Assédio ou intimidação'],['hate','Discriminação ou discurso de ódio'],['sexual_content','Conteúdo sexual'],['personal_information','Exposição de dados pessoais'],['threat','Ameaça'],['spam','Spam'],['other','Outro']];
+const CHAT_REPORT_REASONS=[['bullying','Assédio ou intimidação'],['hate','Discriminação ou discurso de ódio'],['sexual_content','Conteúdo sexual'],['personal_information','Exposição de dados pessoais'],['threat','Ameaça'],['child_safety','Risco à segurança de menores'],['spam','Spam'],['other','Outro']];
 const OTHER_REPORT_REASONS=[['nome-improprio','Nome ou conteúdo impróprio'],['assedio','Assédio ou intimidação'],['discriminacao','Discriminação ou discurso de ódio'],['fraude','Fraude ou falsidade'],['dados-pessoais','Exposição de dados pessoais'],['conteudo-ilegal','Conteúdo ilegal'],['ameaca','Ameaça'],['conteudo-sexual','Conteúdo sexual'],['seguranca-menor','Risco à segurança de menores'],['spam','Spam'],['outro','Outro']];
 const REPORT_THANKS='Obrigado por ajudar a manter a comunidade do Abyssal segura e saudável. Nossa equipe analisará o ocorrido e tomará as medidas necessárias de acordo com as regras da comunidade.';
 function openUgcReport(type,targetId,label,evidence=''){
@@ -646,11 +646,11 @@ function openUgcReport(type,targetId,label,evidence=''){
 function closeUgcReport(){if(ugcSending)return;if(window.AbyssalCockpitNavigation?.isEmbedded?.('ugcReportScreen'))window.AbyssalCockpitNavigation.back();else $('ugcReportScreen').hidden=true;pendingUgcReport=null;}
 function finishUgcReport(result){
  if(!pendingUgcReport)return;ugcSending=false;$('ugcReportSendBtn').disabled=false;$('ugcReportCloseBtn').disabled=false;$('ugcReportCancelBtn').disabled=false;
- if(!result?.ok){$('ugcReportStatus').textContent=result?.message||'Não foi possível enviar. Tente novamente.';return;}
+ if(!result?.ok&&!(result?.status===409&&result?.reportId)){$('ugcReportStatus').textContent=result?.message||'Não foi possível enviar. Tente novamente.';return;}
  const protocol=String(result.reportId||'').slice(0,8).toUpperCase();
  $('ugcReportTitle').textContent='DENÚNCIA RECEBIDA';$('ugcReportTarget').textContent='Sua denúncia foi registrada para análise.';$('ugcReportEvidence').hidden=true;$('ugcReportFields').hidden=true;$('ugcReportStatus').textContent='';$('ugcReportSendBtn').hidden=true;$('ugcReportCancelBtn').textContent='ENTENDIDO';
  $('ugcReportReceiptText').textContent=REPORT_THANKS;$('ugcReportReceiptProtocol').textContent=protocol?'Protocolo: '+protocol:'';$('ugcReportReceipt').hidden=false;
- window.addNotification?.(REPORT_THANKS+(protocol?' Protocolo: '+protocol:''),'DENÚNCIA RECEBIDA','moderation');$('ugcReportCancelBtn').focus({preventScroll:true});
+ if(result.ok)window.addNotification?.(REPORT_THANKS+(protocol?' Protocolo: '+protocol:''),'DENÚNCIA RECEBIDA','moderation');$('ugcReportCancelBtn').focus({preventScroll:true});
 }
 $('reportProfileBtn')?.addEventListener('click',()=>{if(viewedPublicProfile){$('profileSafetyMenu').open=false;openUgcReport('profile',viewedPublicProfile,viewedPublicProfile)}});
 $('likeProfileBtn')?.addEventListener('click',()=>{if(viewedPublicProfile)sendProfileLike(viewedPublicProfile);});
