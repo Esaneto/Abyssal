@@ -72,4 +72,25 @@ function createAdmin({getUsers,isDeveloper,persist,onlineKeys,catalog,onAction,i
  });}
  return {attach};
 }
-module.exports={createAdmin,apply,blocked,accessMessage,notices,notice};
+// A locally known session must respect newer administrative revocations even
+// when the persisted token was removed and therefore cannot be found by token.
+function syncSessionSnapshot(users,persisted,hasToken,now=Date.now()){
+ if(!persisted||typeof persisted!=='object')return;
+ const local=Object.entries(users).find(([,u])=>hasToken(u));
+ if(local){
+  const [key,current]=local,fresh=Object.hasOwn(persisted,key)?persisted[key]:null;
+  if(!fresh)return;
+  const localAt=Number(current.adminUpdatedAt)||0,freshAt=Number(fresh.adminUpdatedAt)||0;
+  if(freshAt>localAt||(freshAt===localAt&&blocked(fresh,now)&&!blocked(current,now))){
+   users[key]={...current,...fresh};
+  }
+  return;
+ }
+ const found=Object.entries(persisted).find(([,u])=>hasToken(u));
+ if(!found)return;
+ const [key,fresh]=found,current=Object.hasOwn(users,key)?users[key]:null;
+ // Never let a stale database token undo a newer in-process punishment.
+ if(current&&(blocked(current,now)||Number(current.adminUpdatedAt||0)>Number(fresh.adminUpdatedAt||0)))return;
+ if(!blocked(fresh,now))users[key]={...(current||{}),...fresh};
+}
+module.exports={createAdmin,apply,blocked,accessMessage,notices,notice,syncSessionSnapshot};
