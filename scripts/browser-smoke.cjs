@@ -178,7 +178,22 @@ const injected=`<script>
    setTimeout(openSeaInventory,2200);
    setTimeout(()=>{const q=new URLSearchParams(location.search),stage=q.get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2720,4180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);if(stage==='sea'&&q.has('biome')){const spots={coastal:[1580,480],cinematic:[8500,2900],geological:[19000,9000]};const v=spots[q.get('biome')];if(v)window.AbyssalGameHooks?.setPlayerPosition?.(...v);}check()},2550);
    if(new URLSearchParams(location.search).get('stage')==='cockpit'){
-    setTimeout(()=>document.getElementById('submarineWorkshopBtn')?.click(),2900);
+    // The first-launch tour is a real modal. Finish it through the same
+    // visible control as a player, then wait for the menu to become ready.
+    // A fixed click delay races the age gate and startup on slow viewports.
+    const enterCabin=()=>{
+     const cabin=document.getElementById('submarineWorkshop'),menu=document.getElementById('menuScreen'),button=document.getElementById('submarineWorkshopBtn');
+     if(cabin&&!cabin.hidden)return;
+     const tour=document.getElementById('abyssalMenuTour');
+     if(tour&&!tour.hidden){tour.querySelector('.amt-skip')?.click();setTimeout(enterCabin,250);return;}
+     const gate=document.getElementById('ageTermsScreen');
+     if(gate&&!gate.hidden||document.documentElement.classList.contains('abyssal-startup')||!menu||menu.hidden||!button||button.disabled){
+      setTimeout(enterCabin,250);return;
+     }
+     if(!document.getElementById('menuOceanStage')?.dataset.abyssTransit)button.click();
+     if(cabin?.hidden)setTimeout(enterCabin,500);
+    };
+    setTimeout(enterCabin,950);
     setTimeout(()=>{
      try{
       const box=document.getElementById('submarineWorkshop');
@@ -237,9 +252,9 @@ const injected=`<script>
       document.body.dataset.cockpitIcons=icons;
      }catch(error){
       document.body.dataset.cockpitStatus='error';
-      document.body.dataset.cockpitError=String(error).slice(0,160);
+      document.body.dataset.cockpitError=(String(error)+' | Runtime: '+errors.slice(0,4).join(' | ')).slice(0,1800);
      }
-    },6200);
+    },8500);
    }
  });
 })();
