@@ -72,14 +72,22 @@ function Set-RepoSecret([string]$name,[string]$value) {
   $start.Arguments = "secret set $name --repo $repo"
   $start.UseShellExecute = $false
   $start.RedirectStandardInput = $true
-  $start.StandardInputEncoding = [System.Text.UTF8Encoding]::new($false)
+  # Windows PowerShell 5.1 uses .NET Framework, which lacks StandardInputEncoding.
+  # Write UTF-8 bytes directly, with no BOM or trailing newline.
   $process = [System.Diagnostics.Process]::Start($start)
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($value)
   try {
-    $process.StandardInput.Write($value)
-    $process.StandardInput.Close()
+    $stream = $process.StandardInput.BaseStream
+    try {
+      $stream.Write($bytes, 0, $bytes.Length)
+      $stream.Flush()
+    } finally { $stream.Close() }
     $process.WaitForExit()
     if ($process.ExitCode -ne 0) { throw "Could not set $name. Do not create another key; use the existing keystore." }
-  } finally { $process.Dispose() }
+  } finally {
+    [Array]::Clear($bytes, 0, $bytes.Length)
+    $process.Dispose()
+  }
 }
 $storePass = Read-SecretText 'Keystore password (save it in your password manager)'
 if ($storePass.Length -lt 6) { throw 'Use a password of at least 6 characters.' }
