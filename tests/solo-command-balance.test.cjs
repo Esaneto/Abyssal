@@ -32,9 +32,9 @@ test('specimen biology always exposes gameplay HP speed and damage with rarity s
  }
  assert.ok(specimens.biologicalStats('toxic').hp>0);
  const game=read('public/game.js');
- assert.match(game,/biological\?\.damage/);
- assert.match(game,/biologicalStats\(equippedSkin\)\.speed/);
- assert.match(game,/biologicalStats\(equippedSkin\)\.hp/);
+ assert.match(game,/SPECIMEN_SYSTEM\.effectiveStats\(equippedSkin,specimenPoints\(\)\)\.damage/);
+ assert.match(game,/SPECIMEN_SYSTEM\.effectiveStats\(equippedSkin,specimenPoints\(\)\)\.speed/);
+ assert.match(game,/SPECIMEN_SYSTEM\.effectiveStats\(equippedSkin,specimenPoints\(\)\)\.hp/);
 });
 
 test('white shark detects only targets inside its forward vision cone',()=>{
@@ -50,7 +50,7 @@ test('white shark detects only targets inside its forward vision cone',()=>{
 
 test('Control 1 projectiles originate from each rendered gun barrel',()=>{
  const game=read('public/game.js');
- assert.match(game,/shotMuzzle=DIVER_ART\?\.muzzle\?\.\(player\.x,player\.y,player\.r,shotAngle\)/);
+ assert.match(game,/const gunTip=DIVER_ART\?\.muzzle\?\.\(player\.x,player\.y,player\.r,a\)/); assert.match(game,/const shotMuzzle=gunTip/);
  assert.match(game,/projectiles\.push\(\{x:shotMuzzle\.x,y:shotMuzzle\.y/);
  assert.match(game,/sendShot\(\{x:shotMuzzle\.x\/W,y:shotMuzzle\.y\/H/);
 });

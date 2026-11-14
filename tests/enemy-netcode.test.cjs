@@ -189,12 +189,12 @@ test('active online rooms suspend unrelated maintenance traffic and use a lightw
 });
 
 
-test('authoritative monster visuals keep converging even if interpolation stalls',()=>{
+test('authoritative monster visuals use one buffered presentation clock and correct contact positions',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
- assert.match(game,/const stalledVisual=renderGap<\.015&&serverGap>\.35/);
- assert.match(game,/const targetX=stalledVisual\?predictedX:renderX/);
- assert.match(game,/if\(serverGap>120\/GAME_WORLD_ZOOM\)\{e\.x=sx;e\.y=sy;\}/);
+ assert.match(game,/const rendered=window\.AbyssalEnemyNetcode\?\.renderedPosition\?\.\(e,enemyFrameNow\)/);
+ assert.match(game,/e\.x=clamp\(Number\.isFinite\(rendered\?\.x\)\?rendered\.x:sx\+\(Number\(e\.vx\)\|\|0\)\*age,0,W\)/);
+ assert.match(game,/if\(gap>90\/GAME_WORLD_ZOOM\)\{enemy\.motionSamples=\[\];[\s\S]{0,200}enemy\.x=tx;enemy\.y=ty;\}/);
  assert.match(game,/Contact packets carry the exact attacker position used by server-side damage/);
 });
 

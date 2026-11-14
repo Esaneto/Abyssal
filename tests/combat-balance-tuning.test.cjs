@@ -6,9 +6,9 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('regular white shark vision is half the shared shark vision range without nerfing the boss',()=>{
+test('regular white shark uses the reduced current vision range without nerfing the boss',()=>{
  const ai=read('public/enemy-ai.js');
- assert.match(ai,/enemy\?\.kind==='whiteShark'\?SHARK_VISION\.range\*\.5:SHARK_VISION\.range/);
+ const AI=require('../public/enemy-ai.js'); assert.equal(AI.sharkVisionRange({kind:'whiteShark'}),AI.SHARK_VISION.range*.25); assert.equal(AI.sharkVisionRange({kind:'whiteSharkBoss'}),AI.SHARK_VISION.range);
  assert.match(ai,/d>sharkVisionRange\(enemy\)/);
  assert.match(ai,/distance<=sharkVisionRange\(enemy\)\*2\.5/);
 });

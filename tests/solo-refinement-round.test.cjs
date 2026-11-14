@@ -14,7 +14,7 @@ test('shark vision is half as wide and shark/predator biology is strengthened',(
 
 test('solo and open sea unlit regions are darker',()=>{
  const solo=read('public/abyssal-solo-cavern.js'),sea=read('public/abyssal-open-sea-lighting.js');
- assert.match(solo,/rgba\(0,5,9,\.74\)/);
+ assert.match(solo,/rgba\(0,2,5,\.78\)/);
  assert.match(sea,/lamp\.darkness\*\.20/);
  assert.match(sea,/const dark=\.28\*/);
 });
@@ -30,16 +30,16 @@ test('cockpit is the only visible main menu and utility buttons inherit shop/cod
 
 test('solo shark collision recovery probes free space instead of remaining stuck',()=>{
  const game=read('public/game.js');
- assert.match(game,/offsets=\[-\.95,\.95,-1\.45,1\.45,Math\.PI\]/);
- assert.match(game,/SOLO_CAVERN\.rayDistance\(arenaRocks,e\.x,e\.y/);
- assert.match(game,/e\.sharkAlertUntil=0/);
+ assert.match(game,/for\(const off of \[-\.55,\.55,-1\.05,1\.05,-1\.57,1\.57,Math\.PI\]\)/);
+ assert.match(game,/SOLO_CAVERN\.segmentBlocked\(arenaRocks,e\.x,e\.y,tx,ty,pad\)/);
+ assert.match(game,/soloEnemyMovementOptions\.sharkNavigation=soloSharkNavigation/);
 });
 
-test('shop and Abyssario prioritize purchased, then discovered, then unknown specimens',()=>{
+test('shop and Abyssario prioritize purchased, then available, then unknown specimens',()=>{
  const game=read('public/game.js');
- assert.match(game,/ownedSkins\.includes\(skin\.id\)\?0:\(skin\.id==='default'\|\|discoveredSpecimens\.has\(skin\.id\)\?1:2\)/);
+ assert.match(game,/ownedSkins\.includes\(skin\.id\)\?0:\(specimenShopAvailable\(skin\)\?1:2\)/);
  assert.match(game,/const journalSkins=\[\.\.\.skinData\]\.sort/);
- assert.match(game,/const known=skin\.id==='default'\|\|ownedSkins\.includes\(skin\.id\)\|\|discoveredSpecimens\.has\(skin\.id\)/);
+ assert.match(game,/const known=specimenShopAvailable\(skin\)/);
 });
 
 test('boss progression remains seven bosses per cycle with rewards at first and final milestones',()=>{

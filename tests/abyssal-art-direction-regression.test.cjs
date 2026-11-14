@@ -11,7 +11,7 @@ test('cockpit grid forces monitor over a compact accessible physical deck',()=>{
  assert.match(css,/grid-template-columns:minmax\(0,1fr\)!important/);
  assert.match(css,/grid-auto-flow:row!important/);
  assert.match(smoke,/Console deck overlaps monitor/);
- assert.match(read('public/abyssal-exploration-runtime.js'),/ROLE OU DESLIZE PARA VER MAIS/);
+ assert.match(read('public/abyssal-exploration-runtime.js'),/hint\.textContent='Deslize para ver mais';[\s\S]{0,350}body\.scrollHeight<=body\.clientHeight\+5/);
  assert.match(smoke,/Oversized vertically stretched console key/);
 });
 test('2.5D world and diver add genuine art geometry',()=>{

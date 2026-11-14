@@ -240,7 +240,7 @@
   const title=document.createElement('h3');title.className='solo-research-heading';title.textContent='PESQUISA';group.append(title);
   const nav=document.createElement('nav');nav.className='solo-upgrade-nav solo-research-tabs';nav.setAttribute('aria-label','Áreas de pesquisa');
   for(const item of [{id:'diver',label:'MERGULHADOR'},{id:'submarine',label:'SUBMARINO'},{id:'resonance',label:'RESSONÂNCIA'}]){
-   const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';button.dataset.researchArea=item.id;button.textContent=item.label;button.setAttribute('aria-pressed',String(activeConsoleSection==='resonance'?item.id==='resonance':soloConsolePage===item.id));
+   const button=document.createElement('button');button.type='button';button.className='abyss-visor-action'+(item.id==='resonance'?' abyss-resonance-action':'');button.dataset.researchArea=item.id;button.textContent=item.label;button.setAttribute('aria-pressed',String(activeConsoleSection==='resonance'?item.id==='resonance':soloConsolePage===item.id));
    button.addEventListener('click',()=>{if(item.id==='resonance'){navigateEmbedded('resonanceScreen');return;}if(activeConsoleSection!=='solo'||soloConsolePage!==item.id){activeConsoleSection='solo';soloConsolePage=item.id;renderWorkshop();}});nav.append(button);
   }
   group.append(nav);return group;

@@ -136,7 +136,7 @@ test('main menu does not poll the gameplay loop and gameplay entries explicitly 
  const game=read('public/game.js');
  assert.match(game,/if\(gameState==='menu'&&!onlineMode\)\{syncPropulsorAudio\(t,false\);last=t;return;\}/);
  assert.doesNotMatch(game,/scheduleGameLoop\(125\)/);
- const start=game.slice(game.indexOf('function startGame\(\)'),game.indexOf('const upgradeList='));
+ const start=game.slice(game.indexOf('function startGame(resumingDeploy=false)'),game.indexOf('const upgradeList='));
  assert.match(start,/AbyssalTutorials\?\.enter[\s\S]*?scheduleGameLoop\(\);/);
  const online=game.slice(game.indexOf('function enterOnlineGameplay'),game.indexOf("window.addEventListener('abyssal-room-joined'"));
  assert.match(online,/scheduleGameLoop\(\);showToast/);
