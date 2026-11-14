@@ -4,7 +4,7 @@
  'use strict';
  const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const finite=(v,f=0)=>Number.isFinite(v)?v:f;
- const viewFor=(yaw=.65)=>{yaw=clamp(finite(yaw,.65),0,1);const profile=clamp((yaw-.65)/.35,0,1);return {yaw,profile,width:1-.22*yaw-.20*profile,shear:.055*yaw*(1-profile)};};
+ const viewFor=(yaw=.65)=>{yaw=clamp(finite(yaw,.65),0,1);const profile=clamp((yaw-.65)/.35,0,1);return {yaw,profile,width:1-.22*yaw-.10*profile,shear:.055*yaw*(1-profile)};};
  const GAMEPLAY_YAW=1;
  const project=(p,view)=>view?[p[0],p[1]*view.width+p[0]*view.shear]:[...p];
  function advance(previous,speed,dt,powered=false,sample=null){
@@ -79,7 +79,7 @@
   include(-100,-37,46,37,heading);
   if(!['classic','short','shaved'].includes(hairStyle))include(-68,-72,78,72,heading);
   if(held==='abyssWeapon')include(-6,-6,73,34,aim);
-  else if(held!=='none')include(powered?-116:-6,-19,68,25,aim);
+  else if(held!=='none'){include(powered?-116:-6,-19,68,25,aim);if(held==='abyssPropulsor'||held==='abyssPropulsorIdle')include(powered?-116:-6,-23,88,28,heading);}
   const scale=Math.min(width*.85/(maxX-minX),height*.84/(maxY-minY));
   return {x:width/2-(minX+maxX)*scale/2,y:height/2-(minY+maxY)*scale/2,r:scale*14/.60};
  }
@@ -95,14 +95,15 @@
   emptyCylinder:pair([31,-8],[31,8]),gasCylinder:pair([31,-8],[31,8]),oilCylinder:pair([31,-8],[31,8]),
   offshoreCable:pair([33,-9],[29,8]),generic:pair([29,-4],[26,5])
  });
- function gripsFor(held){return gripSets[held]||gripSets.generic;}
+ function propulsorOffset(held,view){return (held==='abyssPropulsor'||held==='abyssPropulsorIdle')?20*(view?.profile||0):0;}
+ function gripsFor(held,view=null){const g=gripSets[held]||gripSets.generic,shift=propulsorOffset(held,view);return shift?g.map(([x,y])=>[x+shift,y]):g;}
  // Rotate pickaxe/cylinder geometry around its own pivot before solving arms.
- function toolPose(held,swing=0){
+ function toolPose(held,swing=0,view=null){
   const swingAngle=held==='abyssPickaxe'?finite(swing)*.17:0;
   const objectAngle=held==='abyssPickaxe'?-.35+finite(swing)*.45:['emptyCylinder','gasCylinder','oilCylinder'].includes(held)?.08:0;
   const co=Math.cos(objectAngle),si=Math.sin(objectAngle);
-  const grips=gripsFor(held).map(([x,y])=>[27+(x-27)*co-y*si,(x-27)*si+y*co]);
-  return {swingAngle,objectAngle,grips};
+  const grips=gripsFor(held,view).map(([x,y])=>[27+(x-27)*co-y*si,(x-27)*si+y*co]);
+  return {swingAngle,objectAngle,grips,pivot:27+propulsorOffset(held,view)};
  }
  function idleArm(side,phase=0,weight=0,motion=null,view=null){
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
