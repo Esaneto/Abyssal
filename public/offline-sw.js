@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-13-wardrobe-v199';
+const VERSION = '2026-11-13-realistic-v200';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -78,7 +78,7 @@ const GAME_FILES = [
   'abyssal-resource-fields.js',
   'abyssal-navigation-chart.js',
   'ocean-menu-scenery.js',
-  'diver-art.js', 'abyssal-propulsor.js', 'avatar-base.js', 'avatar-wardrobe.js', 'avatar-wardrobe.css',
+  'diver-art.js', 'abyssal-realistic-body.js', 'abyssal-propulsor.js', 'avatar-base.js', 'avatar-wardrobe.js', 'avatar-wardrobe.css',
   'diver-hitbox.js',
   'enemy-ai.js',
   'creature-scale.js',

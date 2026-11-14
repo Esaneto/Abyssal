@@ -10,7 +10,7 @@
   let draft=base.get(),gender=window.AbyssalDiverGender||'male',category='outfit',held='none',flipped=false,swim=false,raf=0,last=0;
   const stage=element('div','aw-stage'),intro=element('div','aw-intro');
   intro.append(element('small','aw-eyebrow','ESTAÇÃO 03 / VESTIÁRIO'),element('strong','','Seu mergulhador'),element('p','','Experimente a aparência. As escolhas são cosméticas e não alteram habilidades.'));
-  const canvas=element('canvas','aw-canvas');canvas.width=440;canvas.height=500;canvas.setAttribute('aria-label','Prévia animada do mergulhador');
+  const canvas=element('canvas','aw-canvas');canvas.width=660;canvas.height=750;canvas.setAttribute('aria-label','Prévia animada do mergulhador');
   const view=element('div','aw-view');const flip=element('button','','Inverter lado'),pose=element('button','','Testar nado');for(const b of [flip,pose])b.type='button';view.append(flip,pose);stage.append(intro,canvas,view);
   const panel=element('div','aw-panel'),heading=element('div','aw-panel-head');heading.append(element('small','aw-eyebrow','CONFIGURAÇÃO / VISUAL'),element('strong','','Personalização'));
   const genderRow=element('div','aw-tabs');for(const [id,label] of [['male','Mergulhador'],['female','Mergulhadora']]){const b=element('button','',label);b.type='button';b.dataset.gender=id;b.setAttribute('aria-pressed',String(gender===id));b.onclick=()=>{gender=id;for(const item of genderRow.children)item.setAttribute('aria-pressed',String(item.dataset.gender===gender));paint(performance.now());};genderRow.append(b);}
@@ -28,11 +28,11 @@
   }
   function paint(now){
    const ctx=canvas.getContext('2d');if(!ctx)return;const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);
-   ctx.save();ctx.translate(w/2,h/2-8);if(flipped)ctx.scale(-1,1);
-   const angle=swim?-.10:-Math.PI/2,aim=swim?angle:0,r=swim?Math.min(w*.13,h*.13):h*.125;
+   ctx.save();ctx.translate(w/2,swim?h*.50:h*.40);if(flipped)ctx.scale(-1,1);
+   const angle=swim?-.10:-Math.PI/2,aim=held==='none'||swim?angle:0,r=swim?Math.min(w*.125,h*.125):h*.14;
    window.AbyssalDiverArt?.draw(ctx,0,Math.sin(now*.0015)*5,r,angle,aim,now,{gender,appearance:draft,moving:swim,heldItem:held,helmetLamp:true});ctx.restore();
   }
-  function tick(now){raf=0;if(!page.isConnected||page.closest('[hidden]'))return;if(now-last>=50){last=now;paint(now);}raf=requestAnimationFrame(tick);}
+  function tick(now){raf=0;if(!page.isConnected||page.closest('[hidden]'))return;if(now-last>=42){last=now;paint(now);}raf=requestAnimationFrame(tick);}
   function start(){if(!raf)raf=requestAnimationFrame(tick);}
   flip.onclick=()=>{flipped=!flipped;flip.setAttribute('aria-pressed',String(flipped));paint(performance.now());};
   pose.onclick=()=>{swim=!swim;pose.setAttribute('aria-pressed',String(swim));pose.textContent=swim?'Ver em repouso':'Testar nado';paint(performance.now());};

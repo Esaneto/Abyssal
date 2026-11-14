@@ -27,7 +27,10 @@
   c.save();c.translate(x,y);c.rotate(a);c.scale(r*DRAW_SCALE/14,r*DRAW_SCALE/14);
   c.lineJoin='round';c.lineCap='round';
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
-  const limb=(start,end,thickness,base,glow)=>{
+  let limb;
+  if(globalThis.AbyssalRealisticBody)limb=globalThis.AbyssalRealisticBody.draw(c,t,options,look);
+  else{
+  limb=(start,end,thickness,base,glow)=>{
    line(start[0],start[1],end[0],end[1],'#060e19',thickness+3);
    line(start[0],start[1],end[0],end[1],base,thickness);
    line(start[0],start[1]-1,end[0],end[1]-1,glow,1);
@@ -176,18 +179,21 @@
   }
   c.restore();
   }
+
+  // Preserve the legacy offline fallback for mixed cached builds.
+  }
   // Held equipment owns the arms. Non-weapon tools use a compact two-hand grip
   // so the rifle pose can never leak underneath a pickaxe or container.
   const held=String(options.heldItem||'abyssWeapon');
-  c.save();c.rotate((Number(aim)||0)-a);
-  if(held==='none'){limb([5,-7],[-1,-18],5,suitTone('#182634',1),suitTone('#617b87',3));limb([-1,-18],[-17,-20],4.5,suitTone('#152b3a',0),suitTone('#688391',3));limb([4,7],[-3,18],5,suitTone('#192733',1),suitTone('#698797',3));limb([-3,18],[-18,20],4.5,suitTone('#162c3b',0),suitTone('#5d8191',3));c.restore();c.restore();return;}
+  c.save();c.rotate(held==='none'?0:(Number(aim)||0)-a);
+  if(held==='none'){for(const side of [-1,1]){limb([13,side*9],[-2,side*15],6.6,suitTone('#263847',1),suitTone('#668293',3));limb([-2,side*15],[-19,side*13],5.7,suitTone('#101923',0),suitTone('#39536a',2));c.fillStyle='#14242d';c.strokeStyle='#63808a';c.lineWidth=.6;c.beginPath();c.ellipse(-22,side*13,4,2.8,0,0,TAU);c.fill();c.stroke();}c.restore();c.restore();return;}
   if(held!=='abyssWeapon'){
    c.translate(0,5);
    if(held==='abyssPickaxe')c.rotate((Number(options.swing)||0)*.17);
-   limb([5,-7],[17,-10],4.8,'#182634','#617b87');
-   limb([17,-10],[27,-2],4.2,'#152b3a','#688391');
-   limb([4,7],[16,11],5.2,'#192733','#698797');
-   limb([16,11],[27,3],4.5,'#162c3b','#5d8191');
+   limb([5,-7],[17,-10],5.6,suitTone('#263847',1),suitTone('#668293',3));
+   limb([17,-10],[27,-2],5.1,suitTone('#101923',0),suitTone('#39536a',2));
+   limb([4,7],[16,11],6.1,suitTone('#263847',1),suitTone('#668293',3));
+   limb([16,11],[27,3],5.2,suitTone('#101923',0),suitTone('#39536a',2));
    c.translate(27,0);
    if(held==='abyssPropulsor'||held==='abyssPropulsorIdle'){
     const active=Boolean(options.propulsorActive),pulse=.5+.5*Math.sin((Number(t)||0)*.045);
@@ -242,10 +248,10 @@
    c.restore();c.restore();return;
   }
   c.translate(0,GUN_OFFSET_Y); // Rifle stays below the torso at every aim angle.
-  limb([6,-7],[15,-16],4.8,'#182634','#617b87');
-  limb([15,-16],[31,-7],4.1,'#152b3a','#688391');
-  limb([4,8],[15,17],5.5,'#192733','#698797');
-  limb([15,17],[27,9],4.7,'#162c3b','#5d8191');
+  limb([6,-7],[15,-16],5.6,suitTone('#263847',1),suitTone('#668293',3));
+  limb([15,-16],[31,-7],5.0,suitTone('#101923',0),suitTone('#39536a',2));
+  limb([4,8],[15,17],6.1,suitTone('#263847',1),suitTone('#668293',3));
+  limb([15,17],[27,9],5.3,suitTone('#101923',0),suitTone('#39536a',2));
   // Forearm reinforcement follows the rifle grip to reinforce the 2.5D suit.
   c.strokeStyle='#7bbeca';c.lineWidth=1.1;c.beginPath();c.moveTo(15,17);
   c.quadraticCurveTo(23,13,26,10);c.stroke();
