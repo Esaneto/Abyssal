@@ -25,13 +25,13 @@
  }
  // Convert actual shoulder into the weapon-local space, then solve a bent
  // two-link arm toward the fixed grip. The barrel and tool anchors never move.
- function arm(side,relativeAim,offset,grip){
-  const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),sx=11,sy=side*8;
+ function arm(side,relativeAim,offset,grip,profile='standard'){
+  const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),torch=profile==='welder',sx=torch?12:11,sy=side*(torch?14:8);
   const shoulder=[sx*ca+sy*sa,-sx*sa+sy*ca-offset],dx=grip[0]-shoulder[0],dy=grip[1]-shoulder[1];
   const distance=Math.hypot(dx,dy),d=Math.max(.001,distance),ux=dx/d,uy=dy/d;
   // Shorter projected lengths in close poses represent out-of-plane flexion.
   // At extreme aim angles expand only enough to retain the fixed grip.
-  const total=clamp(Math.max(35,d+1.8),35,51),upper=total*24/51,lower=total*27/51,reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
+  const min= torch?32:35,total=clamp(Math.max(min,d+1.8),min,51),ratio=torch?.56:24/51,upper=total*ratio,lower=total*(1-ratio),reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
   const along=(upper*upper-lower*lower+reach*reach)/(2*reach),height=Math.sqrt(Math.max(0,upper*upper-along*along));
   const elbow=[shoulder[0]+ux*along-uy*height*side,shoulder[1]+uy*along+ux*height*side];
   return {shoulder,elbow,hand:[...grip]};

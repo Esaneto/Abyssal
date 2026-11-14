@@ -15,15 +15,15 @@ function hairGeometry(style,time=0,weight=0,flow=0){
  const seconds=time*.001,locks=[];
  // Cubic centreline sampled in normalized distance. Displacement is zero
  // at the root and grows quadratically toward the tip. No whole-hair rotation.
- function lock(layer,root,a,b,tip,width,flex=1,accent=false){
+ function lock(layer,root,a,b,tip,width,flex=1,accent=false,texture='ribbon'){
   const seed=locks.length*1.71,points=[],count=16;
   for(let i=0;i<=count;i++){
    const u=i/count,v=1-u,env=u*u,osc=Math.sin(seconds*1.9+seed-u*4.2),slow=Math.sin(seconds*1.1+seed*.71-u*2.5);
    const x=v*v*v*root[0]+3*v*v*u*a[0]+3*v*u*u*b[0]+u*u*u*tip[0] +env*flex*(slow*1.6-weight*3.4-flow*5.5);
-   const y=v*v*v*root[1]+3*v*v*u*a[1]+3*v*u*u*b[1]+u*u*u*tip[1]+env*flex*(osc*(1.5+weight*1.7+flow*2.8));
+   const y=v*v*v*root[1]+3*v*v*u*a[1]+3*v*u*u*b[1]+u*u*u*tip[1]+env*flex*(osc*(1.5+weight*1.7+flow*2.8))+(texture==='wave'?Math.sin(u*Math.PI*3+seed)*Math.sin(u*Math.PI)*4.5:0);
    points.push([x,y]);
   }
-  locks.push({layer,root:[...root],points,width,accent});
+  locks.push({layer,root:[...root],points,width,accent,texture});
  }
  const crown=(side,reach=12,width=5,accent=false)=>{for(let j=0;j<4;j++){const k=j/3;lock('crown',[34+1.4*k,side*(2+4*k)],[40+reach*.22,side*(2+6*k)],[42+reach*.55-j*2,side*(8+5*k)],[38+reach-j*3,side*(8+12*k)],width*(.56-.05*j),.48,accent);}};
  const tail=(side,len,spread,width,i=0,accent=false)=>lock('back',[28+i*.6,side*(5+i*.6)],[24,side*(11+i*2)],[12-len*.36,side*(spread+i*2+3*Math.sin(i*2))],[26-len,side*(spread+i*2)],width*.75,1,accent);
@@ -36,8 +36,8 @@ function hairGeometry(style,time=0,weight=0,flow=0){
   for(const side of [-1,1]){for(let i=0;i<n;i++)tail(side,style==='whiteLong'?42+i*2:31+i*3,15+i*1.6,4.7-i*.22,i*.25);crown(side,style==='whiteLong'?9:5,5);}
   lock('crown',[34,0],[43,-3],[54,-12],[48,-22],5.5,.65);
  }else if(style==='wildGreen'){
-  for(const side of [-1,1]){for(let i=0;i<9;i++)lock('back',[27+i*.7,side*(4+i*.4)],[26+i*.5,side*(15+i*1.1)],[3-i*3,side*(31-i*.55+3*Math.sin(i))],[-3-i*3,side*(17+i*1.8)],3.5-i*.12,1.15);crown(side,14,5);}
-  for(let i=0;i<6;i++)lock('crown',[33+i*.35,-2+i*.8],[44,2-i*.8],[50-i*1.4,8-i*3],[53-i*1.4,-12-i*2],2.7-i*.13,.8);
+  for(const side of [-1,1]){for(let i=0;i<9;i++)lock('back',[27+i*.7,side*(4+i*.4)],[26+i*.5,side*(15+i*1.1)],[3-i*3,side*(31-i*.55+3*Math.sin(i))],[-3-i*3,side*(17+i*1.8)],3.5-i*.12,1.15,false,'wave');crown(side,14,5);}
+  for(let i=0;i<6;i++)lock('crown',[33+i*.35,-2+i*.8],[44,2-i*.8],[50-i*1.4,8-i*3],[53-i*1.4,-12-i*2],2.7-i*.13,.8,false,'wave');
  }else if(style==='silverBraid'){
   crown(-1,7,5);crown(1,5,4);tail(-1,26,15,4);
   lock('braid',[28,8],[18,15],[0,21],[-24,19],4.5,.72);
@@ -63,11 +63,11 @@ function hairGeometry(style,time=0,weight=0,flow=0){
  }else if(style==='asymBob'){
   crown(-1,4,4);crown(1,3,3);for(const side of [-1,1])for(let i=0;i<7;i++)tail(side,side<0?29+i*.8:19+i*.6,12+i*1.4,3.6,i*.3);
  }else if(style==='topKnot'){
-  for(let i=0;i<9;i++){const a=i*Math.PI*2/9;lock('crown',[34,Math.sin(a)*4],[44,Math.sin(a)*8],[49+Math.cos(a)*4,Math.sin(a)*10],[46+Math.cos(a)*4,Math.sin(a)*5],3.2,.25);}tail(-1,16,12,2);
+  lock('knot',[34,0],[39,0],[44,0],[47,0],8.0,.18);for(const side of [-1,1])for(let i=0;i<3;i++)lock('crown',[33+i*.5,side*(2+i)],[39,side*(4+i)],[43,side*(3+i)],[45,side*(1+i)],2.5,.19);tail(-1,16,12,2);
  }else if(style==='twinBraids'){
   crown(-1,5,4);crown(1,5,4);for(const side of [-1,1])lock('braid',[28,side*7],[19,side*17],[1,side*20],[-29,side*18],4.2,.74);
  }else if(style==='dreadlocks'){
-  crown(-1,7,5);crown(1,7,5);for(const side of [-1,1])for(let i=0;i<6;i++)lock('back',[29+i*.45,side*(3+i*.65)],[23,side*(11+i*2)],[0-i*2,side*(15+i*2)],[-20-i*2,side*(14+i*2.4)],2.4,.78);
+  crown(-1,7,5);crown(1,7,5);for(const side of [-1,1])for(let i=0;i<6;i++)lock('back',[29+i*.45,side*(3+i*.65)],[23,side*(11+i*2)],[0-i*2,side*(15+i*2)],[-20-i*2,side*(14+i*2.4)],2.4,.78,false,'loc');
  }else if(style==='mohawk'){
   for(let i=0;i<11;i++){const k=(i-5)/5;lock('crown',[34,k*5],[43,k*6],[53+4*(1-Math.abs(k)),k*9],[57-4*Math.abs(k),k*13],2.3,.26);}
  }
@@ -80,6 +80,8 @@ function drawHairLayer(c,locks,layer,hair,detail=true){
   const p=lock.points,n=p.length,w=lock.width,pal=lock.accent?['#163b2a','#a1ed69','#419d54']:color;
   const root=p[0],tip=p[n-1],g=c.createLinearGradient(root[0],root[1],tip[0],tip[1]);
   g.addColorStop(0,pal[0]);g.addColorStop(.23,pal[2]);g.addColorStop(.49,pal[1]);g.addColorStop(.82,pal[2]);g.addColorStop(1,pal[0]);
+  if(layer==='knot'){c.save();c.translate(tip[0],tip[1]);const bun=c.createLinearGradient(-w,-w,w,w);bun.addColorStop(0,pal[0]);bun.addColorStop(.36,pal[1]);bun.addColorStop(.72,pal[2]);bun.addColorStop(1,pal[0]);c.fillStyle=bun;c.strokeStyle=pal[0];c.lineWidth=.65;c.beginPath();c.ellipse(0,0,w,w*.83,0,0,Math.PI*2);c.fill();c.stroke();for(let j=0;j<4;j++){c.strokeStyle=j%2?pal[0]:pal[1];c.lineWidth=.42;c.beginPath();c.ellipse(-.6+j*.3,0,w*(.31+j*.17),w*(.25+j*.14),-.36,Math.PI*.10,Math.PI*1.93);c.stroke();}c.restore();continue;}
+  if(lock.texture==='loc'){c.save();c.lineCap='round';c.lineJoin='round';c.beginPath();c.moveTo(...p[0]);for(let i=1;i<n;i++)c.lineTo(...p[i]);c.strokeStyle=pal[0];c.lineWidth=w*1.85;c.stroke();c.strokeStyle=g;c.lineWidth=w*1.45;c.stroke();if(detail){for(let i=2;i<n;i+=2){const a=p[i-1],b=p[i],angle=Math.atan2(b[1]-a[1],b[0]-a[0]);c.save();c.translate(b[0],b[1]);c.rotate(angle);c.strokeStyle=pal[0];c.lineWidth=.38;c.beginPath();c.moveTo(-.6,-w*.55);c.quadraticCurveTo(.5,0,.1,w*.55);c.stroke();c.restore();}}c.restore();continue;}
   if(layer==='braid'){
    for(let i=0;i<n-1;i++){const a=p[i],b=p[i+1],angle=Math.atan2(b[1]-a[1],b[0]-a[0]),size=w*(1-i/n*.58);c.save();c.translate(a[0],a[1]);c.rotate(angle+(i%2?.35:-.35));c.fillStyle=g;c.strokeStyle=pal[0];c.lineWidth=.6;c.beginPath();c.ellipse(0,0,Math.max(2,size*1.13),Math.max(1.3,size*.67),0,0,Math.PI*2);c.fill();c.stroke();c.restore();}
    const q=p[n-2];c.save();c.translate(q[0],q[1]);c.rotate(Math.atan2(tip[1]-q[1],tip[0]-q[0]));c.fillStyle='#a0d5bd';c.fillRect(-1.2,-2.2,2.4,4.4);c.restore();continue;
@@ -230,7 +232,7 @@ function body(c,t,options,look={}){
  }else if(scout){line([23,-7],[31,-9],'#a4b68a',1.3);}
  // Crown locks attach to the skull before the mask, keeping eyewear and lamp in front.
  c.save();if(hairStyle!=='shaved'){const cap=grad([33,-10],[43,10],[[0,hair[0]],[.44,hair[2]],[.7,hair[1]],[1,hair[0]]]);path(()=>{c.moveTo(32,-8);c.quadraticCurveTo(35,-13,40,-9);c.quadraticCurveTo(46,-2,41,8);c.quadraticCurveTo(37,11,32,8);c.quadraticCurveTo(36,0,32,-8);c.closePath();},cap,hair[0],.45);}
- c.restore();c.save();drawHairLayer(c,locks,'crown',hair,options.detail!==false);c.restore();
+ c.restore();c.save();drawHairLayer(c,locks,'knot',hair,options.detail!==false);drawHairLayer(c,locks,'crown',hair,options.detail!==false);c.restore();
  if(hairStyle==='greenUndercut'){for(let i=0;i<3;i++)line([24+i*2,6],[25+i*2,8],hair[2],.55);}
  // Human face is seen through a tinted pressure mask, not a solid blue plate.
  const face=grad([25,-7],[36,7],[[0,'#c5a18a'],[.42,'#967768'],[1,'#4a4143']]);
