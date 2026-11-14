@@ -5,7 +5,7 @@ const clean=(v,n=300)=>String(v??'').replace(/[\u0000-\u001f\u007f]/g,' ').trim(
 const blocked=(u,now=Date.now())=>!!(u&&(u.adminBanned||Number(u.adminSuspendedUntil)>now));
 function accessMessage(u){return 'Acesso online '+(u.adminBanned?'banido permanentemente':'suspenso até '+new Date(Number(u.adminSuspendedUntil)).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}))+'. Motivo: '+(u.adminAccessReason||'Violação das regras')+'. Consulte o suporte para contestar.';}
 function notices(u,now=Date.now()){return (u.adminNotices||[]).filter(x=>now-Number(x.timestamp)<30*DAY).slice(0,30);}
-function notice(u,message,now=Date.now()){u.adminNotices=[{id:crypto.randomUUID(),title:'GAMEMASTER',message:clean(message,600),timestamp:now},...notices(u,now)].slice(0,30);}
+function notice(u,message,now=Date.now(),title='GAMEMASTER'){u.adminNotices=[{id:crypto.randomUUID(),title:clean(title,100),message:clean(message,600),timestamp:now},...notices(u,now)].slice(0,30);}
 const ACTIONS=['warn','mute','unmute','ban-chat','unban-chat','kick','suspend','ban','restore','grant-energy','take-energy','grant-specimen','grant-cosmetic','grant-resource','ranking-exclude','ranking-restore','notice'];
 function apply(u,p,c,now=Date.now()){
  const a=clean(p.action,40),reason=clean(p.reason),item=clean(p.item,100),amount=Number(p.amount),hours=Number(p.hours);
@@ -34,7 +34,7 @@ function apply(u,p,c,now=Date.now()){
  u.adminUpdatedAt=now;notice(u,result+'. Motivo: '+reason,now);return {action:a,reason,item,amount:Number.isFinite(amount)?amount:null,hours:Number.isFinite(hours)?hours:null,before,after,result};
 }
 function summary(key,u,online,detail=false){const data={key,nickname:u.nickname,accountId:u.accountId||null,online,energy:Math.max(0,Number(u.energy)||0),warnings:Number(u.chatWarnings)||0,mutedUntil:Number(u.chatMutedUntil)||0,chatBanned:!!u.chatBanned,banned:!!u.adminBanned,suspendedUntil:Number(u.adminSuspendedUntil)||0,rankingExcluded:!!u.adminRankingExcluded,reportCount:Number(u.moderationReportCount)||0};if(detail)Object.assign(data,{ownedSkins:u.ownedSkins||['default'],cosmetics:u.ownedAvatarCosmetics||[],inventory:u.resourceInventory||{},matchHistory:(u.matchHistory||[]).slice(0,10)});return data;}
-function createAdmin({getUsers,isDeveloper,persist,onlineKeys,catalog,onAction}){
+function createAdmin({getUsers,isDeveloper,persist,onlineKeys,catalog,onAction,inRoom=key=>onlineKeys().has(key)}){
  let busy=false;
  function attach(socket){socket.on('gamemaster-admin',async(p={},ack)=>{
   const reply=x=>{if(typeof ack==='function')ack(x);},fail=message=>reply({ok:false,message});
@@ -56,8 +56,8 @@ function createAdmin({getUsers,isDeveloper,persist,onlineKeys,catalog,onAction})
    if(prior){if(prior.signature!==signature)return fail('Identificador já utilizado.');await persist();return reply({ok:true,message:prior.result,duplicate:true});}
    let row;
    if(op==='action'){
-    if(!u||key===actor||isDeveloper(u))return fail('Conta protegida ou inexistente.');
-    if(p.action==='kick'&&!onlineKeys().has(key))return fail('Jogador não conectado.');
+    if(!u||key===actor||isDeveloper(u)||u.reviewAccount)return fail('Conta protegida ou inexistente.');
+    if(p.action==='kick'&&!inRoom(key))return fail('Jogador não está em uma partida.');
     row={id,signature,at:Date.now(),actor,target:key,nickname:u.nickname,...apply(u,p,catalog())};
    }else{
     const report=(gm.adminUgcReports||[]).find(x=>x.id===p.reportId),reason=clean(p.reason);
@@ -65,7 +65,7 @@ function createAdmin({getUsers,isDeveloper,persist,onlineKeys,catalog,onAction})
     report.status=p.resolution;report.resolution=reason;report.moderator=actor;report.closedAt=p.resolution==='followup'?null:Date.now();
     row={id,signature,at:Date.now(),actor,target:report.targetKey,nickname:report.targetLabel,reportId:report.id,action:'report-'+p.resolution,reason,result:'Denúncia atualizada: '+p.resolution};
    }
-   gm.adminAudit=[row,...(gm.adminAudit||[])].slice(0,2000);
+   gm.adminAudit=[row,...(gm.adminAudit||[])].slice(0,2000);gm.adminUpdatedAt=Date.now();
    if(op==='action')onAction(key,u,row);
    await persist();reply({ok:true,message:row.result});
   }catch(e){fail(e.message||'Falha administrativa.');}finally{busy=false;}
