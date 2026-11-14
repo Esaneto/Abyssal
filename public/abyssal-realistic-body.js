@@ -21,8 +21,15 @@ function body(c,t,options,look={}){
   const shade=grad([0,-w],[0,w],[[0,'#0a131b'],[.25,highlight],[.45,base],[.82,base],[1,'#09141d']]);
   path(()=>{c.moveTo(-1,-w*.65);c.quadraticCurveTo(len*.34,-w,len,-v);c.quadraticCurveTo(len+v,0,len,v);c.quadraticCurveTo(len*.36,w*.87,-1,w*.65);c.quadraticCurveTo(-w,0,-1,-w*.65);},shade,'#071019',.95);
   line([len*.18,-w*.54],[len*.78,-v*.6],'#c8e0df40',.55);
-  for(let j=0;j<2;j++)path(()=>{const q=len*(.53+j*.12);c.moveTo(q,-v*.75);c.quadraticCurveTo(q+2,0,q-1,v*.76);},null,'#07131b66',.65);
+  for(let j=0;j<(options.detail===false?0:2);j++)path(()=>{const q=len*(.53+j*.12);c.moveTo(q,-v*.75);c.quadraticCurveTo(q+2,0,q-1,v*.76);},null,'#07131b66',.65);
   c.restore();
+ }
+ // Rear hair is composited before the suit, cylinders and helmet.
+ if(look.hairStyle!=='shaved'){
+  const long=look.hairStyle==='long'||(look.hairStyle!=='short'&&female),len=long?43:13;
+  const drift=Math.sin(phase*.54)*3.5*weight+Math.sin((Number(t)||0)*.0016)*.65;
+  path(()=>{c.moveTo(30,-8);c.quadraticCurveTo(27,-14,23,-10);c.bezierCurveTo(17,-13,12-len*.5,-17+drift,24-len,-12+drift);c.quadraticCurveTo(17-len,-9,24-len,-6+drift);c.bezierCurveTo(19,-8,24,-5,27,-7);c.closePath();},hair[0],'#070e15',.5);
+  for(let i=0;i<(long?7:4);i++){const y=-10+i*.68;path(()=>{c.moveTo(27,y);c.bezierCurveTo(20,-14+i,18-len*.3,-17+i+drift,24-len,-12+i*.9+drift);},null,i%3===0?hair[1]:hair[2],.7);}
  }
  // Far leg first. Tapered thigh/calf, flexible boot and rubber blades.
  for(const side of [-1,1]){
@@ -45,7 +52,7 @@ function body(c,t,options,look={}){
   box(-21,ty,39,10,4.5,grad([-21,ty],[-21,ty+10],[[0,tank[0]],[.23,tank[1]],[.48,tank[2]],[.8,tank[3]],[1,tank[4]]]),'#0a1720',.9);
   for(const x of [-13,7])box(x,ty+.3,3.5,9.4,.8,'#101d26','#6f8288',.55);
   box(17,ty+2.3,5,5,1,'#a3aca5','#354b52');line([20,ty+1],[20,ty+8],'#667b7f',1.4);
-  line([-17,ty+2],[-1,ty+2],'#d7eeee55',.75);c.restore();
+  line([-17,ty+2],[-1,ty+2],'#d7eeee55',.75);box(-21,ty+1.4,4,7.2,1.8,'#152630','#647d85',.55);box(12,ty+2.5,3.5,5,1,'#14242b','#7a9194',.55);c.restore();
  }
  // Undersuit neck, waist and harness. Rounded anatomy rather than flat plates.
  const suit=grad([-12,-13],[-8,13],[[0,'#0c1721'],[.18,s[2]],[.38,s[1]],[.68,s[0]],[1,'#09131b']]);
@@ -61,6 +68,13 @@ function body(c,t,options,look={}){
   path(()=>{c.moveTo(-12,side*7);c.quadraticCurveTo(1,side*11,15,side*8);},null,'#85979d',.85);
   box(1,side*8-1.5,4.5,3,1,'#79888a','#152630',.6);
  }
+ // Flexible reinforced suit seams and a small pressure-release valve.
+ if(options.detail!==false){
+  path(()=>{c.moveTo(-17,-5);c.bezierCurveTo(-10,-4,-2,-4,2,-5);},null,'#b4ced344',.65);
+  path(()=>{c.moveTo(-17,5);c.bezierCurveTo(-10,4,-2,4,2,5);},null,'#07131ba0',.85);
+  oval(-14,7,2.2,2.2,'#243b47','#78919a',.65);oval(-14,7,.8,.8,'#9eb8b8');
+  for(let i=0;i<3;i++)line([9+i*2,-5.5],[10+i*2,-3.5],'#b1c7c544',.65);
+ }
  // Breathing hose from shoulder valve to helmet; restrained illumination.
  path(()=>{c.moveTo(20,-18);c.bezierCurveTo(30,-22,35,-14,32,-7);},null,'#070f15',4.3);
  path(()=>{c.moveTo(20,-18);c.bezierCurveTo(30,-22,35,-14,32,-7);},null,'#455b63',2.4);
@@ -73,20 +87,24 @@ function body(c,t,options,look={}){
  box(18,-5,7,10,2.5,'#263d49','#0a1720');
  const skull=grad([21,-10],[35,10],[[0,'#526570'],[.28,'#243541'],[.65,'#14232e'],[1,'#0b151e']]);
  path(()=>{c.moveTo(21,-7.5);c.quadraticCurveTo(23,-11,30,-10);c.quadraticCurveTo(39,-9,39,0);c.quadraticCurveTo(38,9,30,10);c.quadraticCurveTo(22,10,21,6);c.closePath();},skull,'#09131b',1.1);
+ // Human face is seen through a tinted pressure mask, not a solid blue plate.
+ const face=grad([25,-7],[36,7],[[0,'#c5a18a'],[.42,'#967768'],[1,'#4a4143']]);
+ path(()=>{c.moveTo(26,-7);c.quadraticCurveTo(33,-8,34,-4);c.lineTo(36,-1);c.lineTo(34.4,.7);c.quadraticCurveTo(35,4,31,6.6);c.lineTo(27,5);c.lineTo(25,-2);c.closePath();},face,'#26303a',.5);
+ path(()=>{c.moveTo(29,-3.2);c.quadraticCurveTo(31.5,-4.4,33,-3.1);},null,'#302b2c',.75);
+ oval(31.9,-2.4,.75,.55,'#263940');
  const mask=grad([24,-8],[35,8],[[0,glass[0]],[.27,glass[1]],[.62,glass[2]],[1,glass[3]]]);
- path(()=>{c.moveTo(27,-7.5);c.quadraticCurveTo(34,-9,35.5,-5);c.lineTo(36,4);c.quadraticCurveTo(35,8,28,8);c.lineTo(25,4);c.lineTo(25,-4);c.closePath();},mask,'#a2b5b9',.85);
+ c.save();c.globalAlpha=.60;
+ path(()=>{c.moveTo(27,-7.5);c.quadraticCurveTo(34,-9,35.5,-5);c.lineTo(36,4);c.quadraticCurveTo(35,8,28,8);c.lineTo(25,4);c.lineTo(25,-4);c.closePath();},mask,null);c.restore();
+ path(()=>{c.moveTo(27,-7.5);c.quadraticCurveTo(34,-9,35.5,-5);c.lineTo(36,4);c.quadraticCurveTo(35,8,28,8);c.lineTo(25,4);c.lineTo(25,-4);c.closePath();},null,'#a2b5b9',.85);
  path(()=>{c.moveTo(32,-6.4);c.quadraticCurveTo(34,-1,33,4.6);},null,'#e5faffaa',1.05);
  line([26.5,-5.4],[26.5,5.1],'#132d3d',.7);
- box(21,-4,5.3,8,2,'#1b2b35','#71888e',.75);oval(23.1,0,1.4,2,'#60777c');
- for(const off of [-2,0,2])line([21.5,off],[23.5,off],'#b6c5c4',.45);
+ // Front-mounted regulator and hose coupling follow the actual face.
+ path(()=>{c.moveTo(22,5);c.quadraticCurveTo(25,13,34.5,5.7);},null,'#080f17',3.1);
+ path(()=>{c.moveTo(22,5);c.quadraticCurveTo(25,13,34.5,5.7);},null,'#5e727b',1.6);
+ box(32.5,2.2,6.3,5.8,2,'#1b2b35','#71888e',.75);oval(37,5,1.3,1.6,'#60777c');
+ for(const off of [-1,0,1])line([34,5+off],[36,5+off],'#b6c5c4',.45);
+ if(look.hairStyle!=='shaved'){path(()=>{c.moveTo(22,-8);c.quadraticCurveTo(26,-13,31,-9);c.lineTo(28,-7.5);c.quadraticCurveTo(25,-9,22,-6.5);c.closePath();},hair[0],'#0a141c',.45);}
  if(options.helmetLamp){box(33,-12,7,4.6,1.4,'#384d58','#a5b9b9',.8);oval(39,-9.7,1.8,1.6,'#d6ffed');}
- // Hair is independent of gender and wraps behind the helmet.
- if(look.hairStyle!=='shaved'){
-  const long=look.hairStyle==='long'||(look.hairStyle!=='short'&&female),len=long?43:13;
-  const drift=Math.sin(phase*.54)*3.5*weight+Math.sin((Number(t)||0)*.0016)*.65;
-  path(()=>{c.moveTo(30,-8);c.quadraticCurveTo(27,-14,23,-10);c.bezierCurveTo(17,-13,12-len*.5,-17+drift,24-len,-12+drift);c.quadraticCurveTo(17-len,-9,24-len,-6+drift);c.bezierCurveTo(19,-8,24,-5,27,-7);c.closePath();},hair[0],'#070e15',.5);
-  for(let i=0;i<(long?7:4);i++){const y=-10+i*.68;path(()=>{c.moveTo(27,y);c.bezierCurveTo(20,-14+i,18-len*.3,-17+i+drift,24-len,-12+i*.9+drift);},null,i%3===0?hair[1]:hair[2],.7);}
- }
  return limb;
 }
 root.AbyssalRealisticBody=Object.freeze({draw:body});

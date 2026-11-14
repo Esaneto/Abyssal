@@ -26,3 +26,7 @@
 /* Realistic portrait: taller inspection surface with dim industrial lighting. */
 #submarineWorkshop .aw-canvas{max-height:460px;background:radial-gradient(ellipse at 50% 38%,#35535d 0%,#1b3441 42%,#0b1824 78%);border-color:#4c6570;box-shadow:inset 0 0 30px #07131b99}
 @media(max-width:850px){#submarineWorkshop .aw-canvas{max-height:340px}}
+
+/* Inspection controls retain their labels on touch and narrow screens. */
+#submarineWorkshop .aw-view button{flex:1 1 110px}
+#submarineWorkshop .aw-canvas{background:radial-gradient(ellipse at 48% 40%,#3b5660 0%,#243d49 35%,#101f2c 72%,#0b1721 100%)}

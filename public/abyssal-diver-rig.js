@@ -33,7 +33,21 @@
   const elbow=distance>upper+lower?[shoulder[0]+dx*.46,shoulder[1]+dy*.46]:[shoulder[0]+ux*along-uy*height*side,shoulder[1]+uy*along+ux*height*side];
   return {shoulder,elbow,hand:[...grip]};
  }
+ // Bounds in renderer coordinates; fit the same playable art, not a replacement sprite.
+ function previewFrame(width,height,heading=0,aim=heading,held='none',powered=false){
+  width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));heading=finite(heading);aim=finite(aim,heading);
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  function include(x0,y0,x1,y1,a){
+   const co=Math.cos(a),si=Math.sin(a);
+   for(const x of [x0,x1])for(const y of [y0,y1]){const px=x*co-y*si,py=x*si+y*co;minX=Math.min(minX,px);maxX=Math.max(maxX,px);minY=Math.min(minY,py);maxY=Math.max(maxY,py);}
+  }
+  include(-84,-33,43,32,heading);
+  if(held==='abyssWeapon')include(-3,-2,72,32,aim);
+  else if(held!=='none')include(powered?-116:0,-17,67,23,aim);
+  const scale=Math.min(width*.85/(maxX-minX),height*.84/(maxY-minY));
+  return {x:width/2-(minX+maxX)*scale/2,y:height/2-(minY+maxY)*scale/2,r:scale*14/.60};
+ }
  const rifleGrips=Object.freeze([Object.freeze([31,-6]),Object.freeze([24,8])]);
  const toolGrips=Object.freeze([Object.freeze([27,-2]),Object.freeze([27,3])]);
- return Object.freeze({advance,leg,arm,rifleGrips,toolGrips});
+ return Object.freeze({advance,leg,arm,previewFrame,rifleGrips,toolGrips});
 });
