@@ -4,6 +4,8 @@
  const textField='input:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]):not([type=color]),textarea,[contenteditable]:not([contenteditable=false])';
  const editing=()=>Boolean(document.activeElement?.matches?.(textField)&&!document.activeElement.disabled&&!document.activeElement.readOnly);
  function physicalLandscape(){
+ // Use the available viewport for layout, except while a keyboard is editing.
+ if(!editing()&&root.innerWidth>0&&root.innerHeight>0)return root.innerWidth>root.innerHeight;
  const type=root.screen?.orientation?.type;
  if(typeof type==='string'&&/^(portrait|landscape)-/.test(type))return type.startsWith('landscape');
  if(typeof root.orientation==='number')return Math.abs(root.orientation)%180===90;
