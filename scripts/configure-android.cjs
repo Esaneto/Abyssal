@@ -290,6 +290,35 @@ public class AbyssalUpdaterPlugin extends Plugin {
 }
 `);
 
+fs.writeFileSync(path.join(javaDir,'AbyssalFullscreenPlugin.java'),`package com.esaneto.abyssal;
+
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+@CapacitorPlugin(name = "AbyssalFullscreen")
+public class AbyssalFullscreenPlugin extends Plugin {
+  @PluginMethod public void getState(PluginCall call) {
+    getActivity().runOnUiThread(() -> {
+      JSObject result = new JSObject();
+      result.put("active", ((MainActivity)getActivity()).isImmersive());
+      call.resolve(result);
+    });
+  }
+  @PluginMethod public void setEnabled(PluginCall call) {
+    getActivity().runOnUiThread(() -> {
+      MainActivity activity = (MainActivity)getActivity();
+      activity.setImmersive(Boolean.TRUE.equals(call.getBoolean("enabled", true)));
+      JSObject result = new JSObject();
+      result.put("active", activity.isImmersive());
+      call.resolve(result);
+    });
+  }
+}
+`);
+
 const java=path.join(javaDir,'MainActivity.java');
 if(fs.existsSync(java)){
  const src=`package com.esaneto.abyssal;
@@ -307,27 +336,51 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+  private boolean immersive = true;
+  private boolean keyboardVisible = false;
+  public boolean isImmersive() { return immersive; }
+  public void setImmersive(boolean enabled) {
+    immersive = enabled;
+    getPreferences(MODE_PRIVATE).edit().putBoolean("abyssalImmersive", enabled).apply();
+    applySystemBars();
+    ViewCompat.requestApplyInsets(findViewById(android.R.id.content));
+  }
+  private void applySystemBars() {
+    View content = findViewById(android.R.id.content);
+    WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), content);
+    controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+    if (immersive && !keyboardVisible) controller.hide(WindowInsetsCompat.Type.systemBars());
+    else controller.show(WindowInsetsCompat.Type.systemBars());
+    controller.setAppearanceLightStatusBars(false);
+    controller.setAppearanceLightNavigationBars(false);
+  }
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     registerPlugin(AbyssalUpdaterPlugin.class);
+    registerPlugin(AbyssalFullscreenPlugin.class);
     super.onCreate(savedInstanceState);
+    immersive = getPreferences(MODE_PRIVATE).getBoolean("abyssalImmersive", true);
     Window window = getWindow();
     WindowCompat.setDecorFitsSystemWindows(window, false);
     View content = findViewById(android.R.id.content);
     content.setBackgroundColor(Color.rgb(6, 21, 34));
     ViewCompat.setOnApplyWindowInsetsListener(content, (view, insets) -> {
-      Insets safe = insets.getInsets(WindowInsetsCompat.Type.systemBars()
-          | WindowInsetsCompat.Type.displayCutout()
-          | WindowInsetsCompat.Type.systemGestures());
+      boolean nextKeyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
+      if (keyboardVisible != nextKeyboardVisible) {
+        keyboardVisible = nextKeyboardVisible;
+        view.post(() -> applySystemBars());
+      }
+      Insets safe = insets.getInsets(WindowInsetsCompat.Type.displayCutout());
+      if (!immersive || keyboardVisible) {
+        Insets normal = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.systemGestures());
+        safe = Insets.max(safe, normal);
+      }
       Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
       view.setPadding(safe.left, safe.top, safe.right, Math.max(safe.bottom, ime.bottom));
       return WindowInsetsCompat.CONSUMED;
     });
-    WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, content);
-    controller.show(WindowInsetsCompat.Type.systemBars());
-    controller.setAppearanceLightStatusBars(false);
-    controller.setAppearanceLightNavigationBars(false);
+    applySystemBars();
     ViewCompat.requestApplyInsets(content);
   }
   @Override
@@ -335,7 +388,7 @@ public class MainActivity extends BridgeActivity {
     super.onWindowFocusChanged(hasFocus);
     if (hasFocus) {
       View content = findViewById(android.R.id.content);
-      WindowCompat.getInsetsController(getWindow(), content).show(WindowInsetsCompat.Type.systemBars());
+      applySystemBars();
       ViewCompat.requestApplyInsets(content);
     }
   }

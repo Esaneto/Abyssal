@@ -219,6 +219,12 @@ jobs:
           grep -q 'Type.systemGestures()' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'controller.show(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'registerPlugin(AbyssalUpdaterPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+          grep -q 'registerPlugin(AbyssalFullscreenPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+          grep -q 'controller.hide(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+          cmp public/abyssal-avatar-base.js android/app/src/main/assets/public/abyssal-avatar-base.js 2>/dev/null || cmp public/avatar-base.js android/app/src/main/assets/public/avatar-base.js
+          cmp public/avatar-wardrobe.js android/app/src/main/assets/public/avatar-wardrobe.js
+          cmp public/abyssal-realistic-body.js android/app/src/main/assets/public/abyssal-realistic-body.js
+          cmp public/index.html android/app/src/main/assets/public/index.html
           grep -q 'registerPlugin(AbyssalAdMobPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           test -s android/app/src/main/assets/public/abyssal-admob.js
           test -s android/app/src/main/java/com/esaneto/abyssal/AbyssalUpdaterPlugin.java

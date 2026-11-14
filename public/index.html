@@ -726,7 +726,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=2026.11.14.playable-v225"></script>
+<script src="client-build.js?v=2026.11.14.playable-v226"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=1"></script>
 <script src="age-slider.js?v=1"></script>
@@ -794,17 +794,24 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script>
 (()=>{
   if(window.__abyssalFullscreenHandlerReady)return;
+  window.__abyssalFullscreenHandlerReady=true;
   const button=document.getElementById('fullscreenBtn');
+  const nativeBridge=()=>window.Capacitor?.getPlatform?.()==='android'?window.Capacitor?.Plugins?.AbyssalFullscreen:null;
+  let nativeActive=true;
+  const isActive=()=>nativeBridge()?nativeActive:Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+  window.AbyssalFullscreen=Object.freeze({isActive});
   const update=()=>{
     if(!button)return;
-    const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+    const active=isActive();
     button.textContent=active?'⤢':'⛶';
     button.title=active?'Sair da tela cheia (Esc)':'Ativar tela cheia';
     button.setAttribute('aria-label',active?'Sair da tela cheia':'Ativar tela cheia');
   };
   button?.addEventListener('click',async()=>{
     try{
-      const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+      const active=isActive();
+      const bridge=nativeBridge();
+      if(bridge?.setEnabled){const state=await bridge.setEnabled({enabled:!active});nativeActive=Boolean(state.active);update();document.dispatchEvent(new Event('abyssal-fullscreen-change'));return;}
       if(active){
         if(document.exitFullscreen)await document.exitFullscreen();
         else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
@@ -825,6 +832,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
   });
   document.addEventListener('fullscreenchange',update);
   document.addEventListener('webkitfullscreenchange',update);
+  nativeBridge()?.getState?.().then(state=>{nativeActive=Boolean(state.active);update();document.dispatchEvent(new Event('abyssal-fullscreen-change'));}).catch(()=>{});
   update();
 })();
 </script>
@@ -833,7 +841,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
 <script src="ocean-menu-scenery.js?v=2026.11.12.18"></script>
 <script src="abyssal-menu-ocean.js?v=2026.11.13.hub-v190"></script>
-<script src="abyssal-submarine-cockpit.js?v=2026.11.13.ocean-design-v184"></script>
+<script src="abyssal-submarine-cockpit.js?v=2026.11.14.playable-v226"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
 <script src="abyssal-exploration-runtime.js?v=2026.11.14.playable-v220"></script>
