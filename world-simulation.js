@@ -675,7 +675,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   }
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
-  const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: (world.width||WORLD_WIDTH) - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: (mapLayout?.height||world.height||WORLD_HEIGHT) - 8 / WORLD_ZOOM, stopDistance: 0 };
+  const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: (world.width||WORLD_WIDTH) - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: (mapLayout?.height||world.height||WORLD_HEIGHT) - 8 / WORLD_ZOOM, stopDistance: 0, enemyRadiusScale: 1 / WORLD_ZOOM };
   const terrainClear=(ax,ay,bx,by,padding=2)=>riftMode&&mapLayout?AbyssalMap.segmentWalkable(mapLayout,ax,ay,bx,by,padding):world.mode==='open-sea'?OceanGeography.segmentClear(ax,ay,bx,by,padding):world.mode==='classic'?!SoloCavern.segmentBlocked(classicCavernRocks(world),ax,ay,bx,by,padding):true;
   const sharkNavigation=(enemy,target,pad)=>riftMode&&mapLayout?AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,target.x,target.y,{padding:pad,includePortal:false}):world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,target,pad,now):world.mode==='classic'?SoloCavern.navigationTarget(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,enemy.x,enemy.y,target.x,target.y,pad):target;
   const contactTarget = { x: 0, y: 0, r: 13 / WORLD_ZOOM };

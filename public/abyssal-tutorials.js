@@ -98,8 +98,8 @@
   coop:['team','combat','progress','energy','submarine','bonus','ranking','skills'],
   pvp:['duel','cover','aim','skills','energy'],
   'open-sea':['map','oxygen','inventory','energy','submarine'],
-  rift:['map','portals','chest','combat','volcano','checkpoint','final'],
-  'rift-solo':['map','portals','chest','skills','poison','checkpoint','final']
+  rift:['map','portals','chest','combat','volcano','checkpoint','combat'],
+  'rift-solo':['map','portals','chest','skills','poison','checkpoint','combat']
  });
  const STEP_NAMES=Object.freeze({
   move:'CONTROLES',combat:'CRIATURAS E DISPAROS',progress:'BARRA DE BOSSES',
