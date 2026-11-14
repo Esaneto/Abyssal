@@ -28,7 +28,7 @@
   c.lineJoin='round';c.lineCap='round';
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
   let limb;
-  if(globalThis.AbyssalRealisticBody)limb=globalThis.AbyssalRealisticBody.draw(c,t,options,look);
+  if(globalThis.AbyssalRealisticBody)limb=globalThis.AbyssalRealisticBody.draw(c,t,{...options,heading:a},look);
   else{
   limb=(start,end,thickness,base,glow)=>{
    line(start[0],start[1],end[0],end[1],'#060e19',thickness+3);
@@ -186,7 +186,7 @@
   // so the rifle pose can never leak underneath a pickaxe or container.
   const held=String(options.heldItem||'abyssWeapon'),relativeAim=(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig;
   const gripHands=[];
-  const drawGripArms=(offset,grips,turn=relativeAim,indices=[0,1])=>{gripHands.length=0;for(const i of indices){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,turn,offset,grip,held==='abyssWelder'?'welder':'standard')||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};if(held==='abyssWelder'&&limb.joint)limb.joint(pose.shoulder,4.5);limb(pose.shoulder,pose.elbow,i?7.4:6.8,suitTone('#263847',1),suitTone('#668293',3));if(limb.joint)limb.joint(pose.elbow,3.3);limb(pose.elbow,pose.hand,i?6.0:5.4,suitTone('#101923',0),suitTone('#39536a',2));gripHands.push(pose);}};
+  const drawGripArms=(offset,grips,turn=relativeAim,indices=[0,1])=>{gripHands.length=0;for(const i of indices){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,turn,offset,grip,held==='abyssWelder'?'welder':'standard')||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};if(limb.joint)limb.joint(pose.shoulder,4.5);limb(pose.shoulder,pose.elbow,i?7.4:6.8,suitTone('#263847',1),suitTone('#668293',3));if(limb.joint)limb.joint(pose.elbow,3.1);limb(pose.elbow,pose.hand,i?6.0:5.4,suitTone('#101923',0),suitTone('#39536a',2));gripHands.push(pose);}};
   const drawGloves=(xOffset=0)=>{if(limb.glove)for(const p of gripHands)limb.glove([p.hand[0]-xOffset,p.hand[1]],[p.elbow[0]-xOffset,p.elbow[1]],true);};
   // A compact welding torch is a one-handed tool. The free arm rests beside the body.
   if(held==='abyssWelder'){const p=rig?.idleArm(-1,options.motion?.phase||phase,options.motion?.weight||0);if(p){limb(p.shoulder,p.elbow,7.2,suitTone('#263847',1),suitTone('#668293',3));limb(p.elbow,p.hand,5.8,suitTone('#101923',0),suitTone('#39536a',2));if(limb.glove)limb.glove(p.hand,p.elbow);}}

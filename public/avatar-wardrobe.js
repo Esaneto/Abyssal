@@ -34,7 +34,7 @@
    const angle=swim?-.10:-Math.PI/2,aim=held==='none'||swim?angle:held==='abyssWelder'?-.20:0,powered=swim&&held==='abyssPropulsorIdle';
    const frame=window.AbyssalDiverRig?.previewFrame(w,h,angle,aim,held,powered,draft.hair)||{x:w/2,y:h*.42,r:h*.12};
    ctx.save();ctx.translate(flipped?w-frame.x:frame.x,frame.y);if(flipped)ctx.scale(-1,1);const r=frame.r;
-   motion=window.AbyssalDiverRig?.advance(motion,swim?1:0,poseAt?Math.min(.10,(now-poseAt)/1000):0,swim&&held==='abyssPropulsorIdle');poseAt=now;
+   motion=window.AbyssalDiverRig?.advance(motion,swim?1:0,poseAt?Math.min(.10,(now-poseAt)/1000):0,swim&&held==='abyssPropulsorIdle',{heading:angle,vx:swim?Math.cos(angle)*(powered?3:1):0,vy:swim?Math.sin(angle)*(powered?3:1):0});poseAt=now;
    window.AbyssalDiverArt?.draw(ctx,0,reduceMotion?.matches?0:Math.sin(now*.0015)*4,r,angle,aim,now,{gender,appearance:draft,motion,moving:swim,heldItem:swim&&held==='abyssPropulsorIdle'?'abyssPropulsor':held,propulsorActive:swim&&held==='abyssPropulsorIdle',reducedMotion:Boolean(reduceMotion?.matches&&!swim),helmetLamp:true});ctx.restore();
   }
   function tick(now){raf=0;if(!page.isConnected||page.closest('[hidden]')||document.hidden)return;if(now-last>=42){last=now;paint(now);}if(!reduceMotion?.matches||swim)raf=requestAnimationFrame(tick);}

@@ -97,174 +97,147 @@ function drawHairLayer(c,locks,layer,hair,detail=true){
  }
 }
 
+
+// Lightweight world-oriented strand solver. Five nodes per lock, semi-implicit
+// integration, fixed root, rest-length projection and spring bending. Visual only.
+function simulateHair(style,t,heading,motion,weight,flow,reduced=false){
+ const rest=hairGeometry(style,0,0,0);
+ if(reduced)return rest;
+ if(!motion)return hairGeometry(style,t,weight,flow);
+ const co=Math.cos(heading),si=Math.sin(heading),toWorld=p=>[p[0]*co-p[1]*si,p[0]*si+p[1]*co],toLocal=p=>[p[0]*co+p[1]*si,-p[0]*si+p[1]*co];
+ let state=motion.hairState;
+ if(!state||state.style!==style||state.locks.length!==rest.length||!Number.isFinite(state.time)||Math.abs(t-state.time)>400){
+  state={style,time:t,locks:rest.map(l=>{const nodes=[0,4,8,12,16].map(i=>toWorld(l.points[i]));return {nodes,vel:nodes.map(()=>[0,0])};})};motion.hairState=state;
+ }
+ const elapsed=clamp((t-state.time)/1000,0,.065),steps=Math.max(1,Math.ceil(elapsed/.016)),dt=elapsed/steps;state.time=t;
+ const vx=Number(motion.flowX)||0,vy=Number(motion.flowY)||0;
+ for(let k=0;k<rest.length;k++){
+  const l=rest[k],q=state.locks[k],target=[0,4,8,12,16].map(i=>toWorld(l.points[i])),lengths=target.slice(1).map((p,i)=>Math.hypot(p[0]-target[i][0],p[1]-target[i][1]));
+  const stiff=l.layer==='knot'?24:l.layer==='braid'?8:l.layer==='crown'?15:5.5,drag=l.layer==='knot'?11:7.5;
+  for(let step=0;step<steps;step++){
+   const before=q.nodes.map(p=>[...p]);q.nodes[0]=target[0];q.vel[0]=[0,0];
+   for(let i=1;i<5;i++){
+    const p=q.nodes[i],v=q.vel[i],u=i/4,ambientX=Math.sin(t*.0011+k*.47+i*.65)*2.1,ambientY=Math.cos(t*.0014+k*.33+i*.82)*1.6;
+    // Relative fluid flow opposes actual velocity. Weak net downward weight:
+    // water offsets most, not all, gravitational acceleration.
+    const ax=(target[i][0]-p[0])*stiff+(-vx*22+ambientX-v[0])*drag*u;
+    const ay=(target[i][1]-p[1])*stiff+(-vy*22+ambientY-v[1])*drag*u+8*u;
+    v[0]=clamp(v[0]+ax*dt,-125,125);v[1]=clamp(v[1]+ay*dt,-125,125);p[0]+=v[0]*dt;p[1]+=v[1]*dt;
+   }
+   // Project every segment to its original length, keeping root fixed.
+   for(let i=1;i<5;i++){const a=q.nodes[i-1],b=q.nodes[i],dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy)||1e-6,L=lengths[i-1];b[0]=a[0]+dx/d*L;b[1]=a[1]+dy/d*L;}
+   if(dt>0)for(let i=1;i<5;i++){q.vel[i][0]=clamp((q.nodes[i][0]-before[i][0])/dt,-125,125);q.vel[i][1]=clamp((q.nodes[i][1]-before[i][1])/dt,-125,125);}
+  }
+  q.nodes[0]=target[0];
+  // Interpolate node displacement on the detailed original curve, preserving
+  // the haircut's shape and fixed root while avoiding angular polyline locks.
+  const offsets=q.nodes.map((p,i)=>[p[0]-target[i][0],p[1]-target[i][1]]);
+  l.points=l.points.map((p,i)=>{if(!i)return [...l.root];const j=Math.min(3,Math.floor(i/4)),u=(i-j*4)/4,s=u*u*(3-2*u),a=offsets[j],b=offsets[j+1],w=toWorld(p);return toLocal([w[0]+a[0]+(b[0]-a[0])*s,w[1]+a[1]+(b[1]-a[1])*s]);});
+ }
+ return rest;
+}
+
 function body(c,t,options,look={}){
  const rig=root.AbyssalDiverRig,phase=Number.isFinite(options.motion?.phase)?options.motion.phase:(Number(t)||0)*.008,swim=options.moving!==false,female=options.gender==='female';
- const weight=Number.isFinite(options.motion?.weight)?options.motion.weight:(swim?1:0),powered=Boolean(options.motion?.powered||options.propulsorActive);
+ const weight=Number.isFinite(options.motion?.weight)?options.motion.weight:(swim?1:0),powered=Boolean(options.motion?.powered||options.propulsorActive),heading=Number(options.heading)||0;
  const kind=look.outfitId||'navy',industrial=kind==='rust',polar=kind==='ice',scout=kind==='olive';
- const s=look.outfit||['#101923','#263847','#39536a','#668293','#b4c8cc'];
- const f=look.fins||['#15242c','#60858e','#9db6b8'];
- const tank=look.back||['#14252e','#77929b','#455e69','#263e49','#101b24'];
- const hair=look.hair||['#121920','#46505b','#232b34'];
- const glass=look.visor||['#b5d8d9','#568a99','#264b60','#102631'];
+ const s=look.outfit||['#101923','#263847','#39536a','#668293','#b4c8cc'],f=look.fins||['#15242c','#60858e','#9db6b8'],tank=look.back||['#14252e','#77929b','#455e69','#263e49','#101b24'],hair=look.hair||['#121920','#46505b','#232b34'],glass=look.visor||['#b5d8d9','#568a99','#264b60','#102631'];
  const path=(fn,fill,stroke,width=.7)=>{c.beginPath();fn();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}};
  const line=(a,b,color,width=.7)=>path(()=>{c.moveTo(...a);c.lineTo(...b);},null,color,width);
  const grad=(a,b,stops)=>{const g=c.createLinearGradient(...a,...b);for(const [p,v] of stops)g.addColorStop(p,v);return g;};
  const oval=(x,y,rx,ry,fill,stroke,width=.7)=>path(()=>c.ellipse(x,y,rx,ry,0,0,Math.PI*2),fill,stroke,width);
  const box=(x,y,w,h,r,fill,stroke,width=.7)=>path(()=>c.roundRect(x,y,w,h,r),fill,stroke,width);
+ const detail=options.detail!==false,bulk=industrial?1.10:polar?1.13:scout?.96:1;
+ // Continuous tapered anatomical limbs: shoulder/hip volume, muscle belly,
+ // narrowed joint, then wrist/ankle. No spherical robot joints.
  function limb(a,b,thickness,base,highlight){
-  const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy)||1;
+  const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy)||1,w=thickness*.59*bulk,v=w*.57;
   c.save();c.translate(...a);c.rotate(Math.atan2(dy,dx));
-  const bulk=industrial?1.12:polar?1.18:scout?.92:1;
-  const w=thickness*.70*bulk,v=thickness*.43*bulk;
-  const shade=grad([0,-w],[0,w],[[0,'#101d28'],[.18,base],[.36,highlight],[.57,base],[.79,base],[1,'#071019']]);
-  path(()=>{c.moveTo(-1.5,-w*.70);c.bezierCurveTo(len*.12,-w*1.17,len*.42,-w*1.05,len*.68,-v*1.12);c.quadraticCurveTo(len*.93,-v*.94,len,-v);c.quadraticCurveTo(len+v*.85,0,len,v);c.bezierCurveTo(len*.68,v*1.15,len*.38,w*.98,-1.5,w*.70);c.quadraticCurveTo(-w*.78,0,-1.5,-w*.70);},shade,'#071019',.95);
-  path(()=>{c.moveTo(len*.10,-w*.42);c.quadraticCurveTo(len*.36,-w*.85,len*.76,-v*.57);},null,'#c8e0df40',.7);
-  for(let j=0;j<(options.detail===false?0:2);j++)path(()=>{const q=len*(.53+j*.12);c.moveTo(q,-v*.75);c.quadraticCurveTo(q+2,0,q-1,v*.76);},null,'#07131b66',.65);
-  // Variant-specific panels follow every articulated limb, including weapon arms.
-  if(industrial||polar){
-   const top=grad([0,-w],[0,w],[[0,s[4]],[.24,s[3]],[.52,s[2]],[1,s[0]]]);
-   path(()=>{c.moveTo(len*.13,-w*.88);c.lineTo(len*.42,-w*.98);c.lineTo(len*.67,-w*.62);c.lineTo(len*.61,w*.56);c.lineTo(len*.28,w*.78);c.lineTo(len*.1,w*.35);c.closePath();},top,'#101c24',.65);
-   if(industrial){line([len*.22,-w*.65],[len*.47,-w*.55],'#e6b074',.9);line([len*.22,w*.4],[len*.47,w*.3],'#131b22',.85);}
-   else{for(const at of [.72,.84])line([len*at,-v*.74],[len*at,v*.72],'#b8d5db',.65);}
-  }else if(scout){line([len*.2,-w*.55],[len*.84,-v*.7],s[3],.75);}
+  const shade=grad([0,-w],[0,w],[[0,'#101d28'],[.22,base],[.40,highlight],[.64,base],[1,'#08131c']]);
+  path(()=>{c.moveTo(-1,-w*.75);c.bezierCurveTo(len*.14,-w*1.10,len*.42,-w*.94,len*.72,-v*.91);c.quadraticCurveTo(len*.94,-v,len,-v);c.quadraticCurveTo(len+v*.66,0,len,v);c.bezierCurveTo(len*.72,v*.98,len*.35,w*.88,-1,w*.73);c.quadraticCurveTo(-w*.65,0,-1,-w*.75);c.closePath();},shade,'#0a151e',.65);
+  if(detail){path(()=>{c.moveTo(len*.15,-w*.50);c.quadraticCurveTo(len*.38,-w*.70,len*.77,-v*.46);},null,'#b8d0d43b',.55);path(()=>{c.moveTo(len*.78,-v*.85);c.quadraticCurveTo(len*.81,0,len*.77,v*.85);},null,'#07131b99',.5);}
+  if(industrial||polar){const panel=grad([0,-w],[0,w],[[0,s[1]],[.38,s[3]],[.72,s[2]],[1,s[0]]]);path(()=>{c.moveTo(len*.14,-w*.70);c.lineTo(len*.38,-w*.78);c.lineTo(len*.65,-v*.70);c.lineTo(len*.58,v*.69);c.lineTo(len*.22,w*.65);c.closePath();},panel,'#182a33',.45);}
   c.restore();
  }
- // Hair is independent of gender, suit, equipment and collision.
- const hairStyle=look.hairStyle||'classic',hairFlow=Number.isFinite(options.motion?.hairFlow)?options.motion.hairFlow:(powered?1:0);
- const locks=hairGeometry(hairStyle,options.reducedMotion?0:t,options.reducedMotion?0:weight,options.reducedMotion?0:hairFlow);
- c.save();drawHairLayer(c,locks,'back',hair,options.detail!==false);c.restore();
- // Far leg first. Tapered thigh/calf, flexible boot and rubber blades.
+ const hairStyle=look.hairStyle||'classic',hairFlow=Number.isFinite(options.motion?.hairFlow)?options.motion.hairFlow:(powered?1:0),locks=simulateHair(hairStyle,Number(t)||0,heading,options.motion,weight,hairFlow,options.reducedMotion);
+ c.save();drawHairLayer(c,locks,'back',hair,detail);c.restore();
+ // Low-profile paired tanks sit behind the rib cage; their outer edges alone
+ // appear from the front. Equipment does not replace the anatomy.
+ for(const side of [-1,1]){const y=side*13.3-4.2;c.save();if(side<0)c.globalAlpha=.78;box(-17,y,34,8.4,3.8,grad([0,y],[0,y+8.4],[[0,tank[0]],[.24,tank[1]],[.51,tank[2]],[1,tank[4]]]),'#0b1922',.7);for(const x of [-10,7])box(x,y+.3,2.8,7.8,.7,'#152530','#829298',.42);box(15,y+2,4.2,4.5,1,'#75898c','#253b42',.55);c.restore();}
+ // Legs: the pelvis is drawn over the thigh roots, with separate crotch
+ // and knee landmarks. Full leg length is nearly half of standing stature.
  for(const side of [-1,1]){
-  const pose=rig?.leg(side,phase,weight,powered)||{hip:[-16,side*5.5],knee:[-34,side*7.5],ankle:[-53,side*8],finAngle:0};
-  const {hip,knee,ankle}=pose;
-  c.save();if(side<0)c.globalAlpha=.86;
-  limb(hip,knee,11.2,s[1],s[3]);limb(knee,ankle,8.7,s[0],s[2]);
-  oval(knee[0],knee[1],5.0,4.2,grad([knee[0]-4,knee[1]-4],[knee[0]+3,knee[1]+3],[[0,s[3]],[.45,s[2]],[1,'#0c1922']]),'#0a141c',.9);
-  path(()=>{c.moveTo(knee[0]-2,knee[1]-2.4);c.lineTo(knee[0]+2,knee[1]-2.8);c.lineTo(knee[0]+3,knee[1]+1);},null,'#9db6ba75',.7);
+  const pose=rig?.leg(side,phase,weight,powered)||{hip:[-19,side*7],knee:[-43,side*9],ankle:[-67,side*10],finAngle:0}, {hip,knee,ankle}=pose;
+  c.save();if(side<0)c.globalAlpha=.87;
+  limb(hip,knee,10.4,s[1],s[3]);limb(knee,ankle,7.8,s[0],s[2]);
+  const joint=grad([knee[0]-4,knee[1]-3],[knee[0]+4,knee[1]+3],[[0,s[1]],[.43,s[2]],[1,s[0]]]);
+  path(()=>{c.moveTo(knee[0]+4,knee[1]-3);c.quadraticCurveTo(knee[0],knee[1]-4.3,knee[0]-4,knee[1]-2.6);c.lineTo(knee[0]-3,knee[1]+2.8);c.quadraticCurveTo(knee[0]+1,knee[1]+4,knee[0]+4,knee[1]+2.5);c.closePath();},joint,'#172733',.55);
   c.save();c.translate(...ankle);c.rotate(-pose.finAngle);
-  box(-4,-3.9,9,7.8,2.8,grad([-4,-4],[-4,4],[[0,'#5c717a'],[.35,'#263845'],[1,'#0b1620']]),'#09121a');
-  const blade=grad([-12,-8],[-12,8],[[0,'#0a141c'],[.3,f[1]],[.48,f[0]],[.78,f[0]],[1,'#071219']]);
-  path(()=>{c.moveTo(-1,-3);c.bezierCurveTo(-9,-4,-18,-7,-24,-7);c.quadraticCurveTo(-29,0,-24,7);c.bezierCurveTo(-18,7,-8,4,-1,3);c.closePath();},blade,f[1],.9);
-  for(const off of [-4,0,4])path(()=>{c.moveTo(-6,off*.45);c.quadraticCurveTo(-15,off*.5,-23,off);},null,f[2],.75);
+  box(-5,-3.1,9.5,6.2,2.1,grad([0,-3],[0,3],[[0,s[2]],[.45,s[1]],[1,s[0]]]),'#0b1821',.55);
+  const blade=grad([-12,-6],[-12,6],[[0,'#0a141c'],[.23,f[1]],[.45,f[0]],[.8,f[0]],[1,'#071219']]);
+  path(()=>{c.moveTo(-2,-3);c.bezierCurveTo(-9,-3.5,-17,-5.8,-22,-6);c.quadraticCurveTo(-25,0,-22,6);c.bezierCurveTo(-17,5.8,-9,3.5,-2,3);c.closePath();},blade,f[1],.7);
+  for(const off of [-3,0,3])path(()=>{c.moveTo(-6,off*.45);c.quadraticCurveTo(-14,off*.6,-21,off);},null,f[2],.55);
   c.restore();c.restore();
  }
- // Twin composite cylinders: shaded metal, retaining straps, valves and hoses.
- for(const ty of [-23,-14]){
-  c.save();if(ty===-23)c.globalAlpha=.83;
-  box(-21,ty,39,10,4.5,grad([-21,ty],[-21,ty+10],[[0,tank[0]],[.23,tank[1]],[.48,tank[2]],[.8,tank[3]],[1,tank[4]]]),'#0a1720',.9);
-  for(const x of [-13,7])box(x,ty+.3,3.5,9.4,.8,'#101d26','#6f8288',.55);
-  box(17,ty+2.3,5,5,1,'#a3aca5','#354b52');line([20,ty+1],[20,ty+8],'#667b7f',1.4);
-  line([-17,ty+2],[-1,ty+2],'#d7eeee55',.75);box(-21,ty+1.4,4,7.2,1.8,'#152630','#647d85',.55);box(12,ty+2.5,3.5,5,1,'#14242b','#7a9194',.55);c.restore();
- }
- // Undersuit neck, waist and harness. Rounded anatomy rather than flat plates.
- const suit=grad([-12,-13],[-8,13],[[0,'#0c1721'],[.18,s[2]],[.38,s[1]],[.68,s[0]],[1,'#09131b']]);
- path(()=>{c.moveTo(-23,-8);c.quadraticCurveTo(-24,-13,-16,-12.5);c.bezierCurveTo(-5,-10,1,-15.5,10,-16);c.quadraticCurveTo(19,-16,22,-9);c.quadraticCurveTo(24,0,22,9);c.quadraticCurveTo(18,16,10,15.5);c.bezierCurveTo(0,14,-6,10.5,-16,12.5);c.quadraticCurveTo(-24,13,-23,8);c.closePath();},suit,'#07131b',1.1);
- box(-20,-8.5,6,17,2.5,'#14252e','#526b77',.65);
- box(-20,-2,5,4,1,'#9da7a5','#273c46',.6);
- for(let x=-12;x<=-6;x+=3)path(()=>{c.moveTo(x,-7);c.quadraticCurveTo(x-1,0,x,7);},null,'#758a9144',.9);
- const chest=grad([0,-14],[12,13],[[0,s[2]],[.23,s[3]],[.45,s[2]],[.74,s[1]],[1,s[0]]]);
- path(()=>{c.moveTo(-7,-8);c.bezierCurveTo(0,-10,7,-13,14,-11.5);c.quadraticCurveTo(19,-8,19,-2);c.quadraticCurveTo(19,8,13,10.5);c.quadraticCurveTo(3,12,-7,8);c.quadraticCurveTo(-9,0,-7,-8);c.closePath();},chest,'#526b77',.8);
- path(()=>{c.moveTo(-5,0);c.quadraticCurveTo(7,-1.4,16,0);},null,'#091b28',.85);
- // Contoured shoulder and hip transition: continuous neoprene under the plates.
+ const shoulder=female?13.2:14.2,hipWidth=female?12.4:11.3,waist=female?8.0:8.8;
+ const suit=grad([0,-shoulder],[2,shoulder],[[0,'#0b1821'],[.20,s[2]],[.42,s[1]],[.68,s[0]],[1,'#09131b']]);
+ // One continuous skin-tight suit silhouette with distinct neck, trapezius,
+ // rib cage, waist, iliac crest and crotch. Positive x points toward head.
+ path(()=>{c.moveTo(22,-4.3);c.bezierCurveTo(18,-5.5,17,-11.8,13,-shoulder);c.bezierCurveTo(8,-shoulder-1,2,-11.8,-3,-waist-1);c.bezierCurveTo(-8,-waist,-10,-waist,-14,-hipWidth);c.quadraticCurveTo(-19,-hipWidth-1,-24,-8.2);c.quadraticCurveTo(-25,-5.8,-23,-2.8);c.lineTo(-20,0);c.lineTo(-23,2.8);c.quadraticCurveTo(-25,5.8,-24,8.2);c.quadraticCurveTo(-19,hipWidth+1,-14,hipWidth);c.bezierCurveTo(-10,waist,-8,waist,-3,waist+1);c.bezierCurveTo(2,11.8,8,shoulder+1,13,shoulder);c.bezierCurveTo(17,11.8,18,5.5,22,4.3);c.closePath();},suit,'#07131b',.85);
+ // Sculpted pectoral and abdominal volumes, not a solid rectangular breastplate.
+ const chest=grad([8,-11],[8,11],[[0,s[1]],[.32,s[3]],[.52,s[2]],[1,s[0]]]);
  for(const side of [-1,1]){
-  path(()=>{c.moveTo(4,side*9);c.quadraticCurveTo(10,side*15,16,side*12);c.quadraticCurveTo(19,side*9,16,side*7);},null,'#9dbac247',.9);
-  path(()=>{c.moveTo(-19,side*9);c.quadraticCurveTo(-13,side*12,-9,side*8);},null,'#0a1723',1.2);
+  path(()=>{c.moveTo(15,side*3);c.quadraticCurveTo(15,side*10,10,side*11.1);c.bezierCurveTo(6,side*11.8,2,side*8.6,1,side*2.4);c.quadraticCurveTo(8,side*1.1,15,side*3);c.closePath();},chest,null);
+  if(detail){path(()=>{c.moveTo(14,side*9.7);c.quadraticCurveTo(8,side*13,3,side*9.5);},null,'#9dbac22e',.55);path(()=>{c.moveTo(-3,side*7.2);c.quadraticCurveTo(-8,side*5.8,-14,side*8.8);},null,'#08151e99',.65);}
  }
- for(const x of [-12,-9])path(()=>{c.moveTo(x,-7);c.quadraticCurveTo(x-1,0,x,7);},null,'#91a9ad35',.7);
+ path(()=>{c.moveTo(15,0);c.quadraticCurveTo(5,-.7,-13,0);},null,'#10232f',.65);
+ for(const x of [-2,-6,-10])path(()=>{c.moveTo(x,-5);c.quadraticCurveTo(x-1,0,x,5);},null,'#a0b6b82b',.5);
+ // Waist harness follows the iliac crest, not the abdomen.
+ path(()=>{c.moveTo(-16,-10);c.lineTo(-19,-9.5);c.quadraticCurveTo(-20,0,-19,9.5);c.lineTo(-16,10);c.quadraticCurveTo(-17,0,-16,-10);c.closePath();},'#172a32','#5c747a',.55);
+ box(-19,-2.4,4.4,4.8,1,'#839ca0','#142832',.55);
  for(const side of [-1,1]){
-  path(()=>{c.moveTo(-12,side*7);c.quadraticCurveTo(1,side*11,15,side*8);},null,'#0b151c',3.2);
-  path(()=>{c.moveTo(-12,side*7);c.quadraticCurveTo(1,side*11,15,side*8);},null,'#85979d',.85);
-  box(1,side*8-1.5,4.5,3,1,'#79888a','#152630',.6);
+  path(()=>{c.moveTo(15,side*10.4);c.quadraticCurveTo(5,side*9.2,-5,side*6.8);c.lineTo(-16,side*8.6);},null,'#10212b',2.7);
+  path(()=>{c.moveTo(15,side*10.4);c.quadraticCurveTo(5,side*9.2,-5,side*6.8);c.lineTo(-16,side*8.6);},null,'#819a9e',.52);
+  box(4,side*9.2-1.4,3.8,2.8,.7,'#70898d','#152b36',.42);
  }
- // Flexible reinforced suit seams and a small pressure-release valve.
- if(options.detail!==false){
-  path(()=>{c.moveTo(-17,-5);c.bezierCurveTo(-10,-4,-2,-4,2,-5);},null,'#b4ced344',.65);
-  path(()=>{c.moveTo(-17,5);c.bezierCurveTo(-10,4,-2,4,2,5);},null,'#07131ba0',.85);
-  oval(-14,7,2.2,2.2,'#243b47','#78919a',.65);oval(-14,7,.8,.8,'#9eb8b8');
-  for(let i=0;i<3;i++)line([9+i*2,-5.5],[10+i*2,-3.5],'#b1c7c544',.65);
- }
- // Interchangeable silhouette modules. All remain inside the existing body envelope.
- const panelShade=grad([-11,-10],[15,10],[[0,s[4]],[.22,s[3]],[.55,s[2]],[1,s[0]]]);
- if(industrial){
-  // Armoured shoulder yokes, central metal breastplate and utility belt.
-  for(const side of [-1,1]){
-   path(()=>{c.moveTo(6,side*7);c.lineTo(9,side*13.5);c.lineTo(17,side*14.5);c.lineTo(21,side*9);c.lineTo(18,side*5);c.closePath();},panelShade,'#10191f',1);
-   line([11,side*11],[17,side*11],'#f4b568',1.1);
-   box(-15,side<0?-13:7,8,6,1.3,'#47372e','#b1805c',.7);
-  }
-  path(()=>{c.moveTo(-5,-8);c.lineTo(13,-9);c.lineTo(18,-3);c.lineTo(16,6);c.lineTo(5,9);c.lineTo(-7,6);c.closePath();},panelShade,'#19252d',1);
-  for(const y of [-3,1,5])line([-2,y],[12,y-1],'#32251e',.85);
-  box(-20,-9,7,18,1.5,'#26323a','#b78b67',.8);
- }else if(polar){
-  // Insulated pressure shell, raised collar and quilted abdominal segments.
-  path(()=>{c.moveTo(4,-12);c.quadraticCurveTo(13,-15,20,-10);c.lineTo(22,7);c.quadraticCurveTo(14,15,4,12);c.lineTo(0,7);c.lineTo(0,-7);c.closePath();},panelShade,'#56727c',.85);
-  box(16,-12,7,24,3,'#6d8791','#c5e1e0',.85);
-  for(const x of [-14,-9,-4])box(x,-7,4,14,1.5,s[2],'#304b57',.65);
-  line([7,-8],[15,-8],'#e2f5f5',1.1);line([7,8],[15,8],'#c6e3e6',1);
- }else if(scout){
-  // Soft expedition vest, distinct side-mounted cargo pockets.
-  for(const side of [-1,1]){
-   box(-12,side<0?-12:6,12,6,1.7,s[1],'#1c2c25',.8);
-   box(-10,side<0?-11:7,8,2,1,s[3],'#273a2c',.5);
-   path(()=>{c.moveTo(2,side*8);c.lineTo(12,side*9);c.lineTo(15,side*5);c.lineTo(5,side*3);c.closePath();},s[2],'#233b2a',.75);
-  }
-  box(-2,-3,12,6,1.4,'#263b30','#8ba47c',.7);
-  line([0,0],[8,0],'#b7cda2',.8);
- }
- // Breathing hose from shoulder valve to helmet; restrained illumination.
- path(()=>{c.moveTo(20,-18);c.bezierCurveTo(30,-22,35,-14,32,-7);},null,'#070f15',4.3);
- path(()=>{c.moveTo(20,-18);c.bezierCurveTo(30,-22,35,-14,32,-7);},null,'#455b63',2.4);
- for(const x of [23,27,31])line([x,-17],[x+1,-14],'#9daeb0',.7);
- oval(8,7.5,1.2,1.2,'#7cc9d1');
- // Readable identity panel and seam detail, only at meaningful render size.
- if(options.detail!==false){box(-10,-3.1,5.8,6.2,1,'#122732','#56717b',.5);line([-9,-1.5],[-6,-1.5],'#a3c5c7',.65);line([-9,0],[-6.7,0],'#a3c5c7',.55);}
- path(()=>{c.moveTo(16,-10);c.quadraticCurveTo(19,-7,19,-4);},null,'#a6c9cc77',.8);
- // Helmet: compact human cranium, face under curved panoramic mask, regulator.
- box(18,-5,7,10,2.5,'#263d49','#0a1720');
- const skull=grad([21,-10],[35,10],[[0,'#526570'],[.28,'#243541'],[.65,'#14232e'],[1,'#0b151e']]);
- path(()=>{c.moveTo(21,-7.5);c.quadraticCurveTo(23,-11,30,-10);c.quadraticCurveTo(39,-9,39,0);c.quadraticCurveTo(38,9,30,10);c.quadraticCurveTo(22,10,21,6);c.closePath();},skull,'#09131b',1.1);
- // Distinct helmets preserve the common human head and visor mounts.
- if(industrial){
-  path(()=>{c.moveTo(21,-8);c.lineTo(23,-12);c.lineTo(33,-12);c.lineTo(38,-7);c.lineTo(37,-5);c.lineTo(30,-8);c.lineTo(23,-5);c.closePath();},panelShade,'#17232a',.8);
-  box(20,-5,4,10,1.2,s[2],'#1c272e',.75);
- }else if(polar){
-  path(()=>{c.moveTo(21,-8);c.quadraticCurveTo(23,-13,33,-12);c.quadraticCurveTo(40,-10,40,-2);c.lineTo(37,-3);c.quadraticCurveTo(35,-9,28,-8);c.lineTo(22,-5);c.closePath();},panelShade,'#3b5866',.85);
- }else if(scout){line([23,-7],[31,-9],'#a4b68a',1.3);}
- // Crown locks attach to the skull before the mask, keeping eyewear and lamp in front.
- c.save();if(hairStyle!=='shaved'){const cap=grad([33,-10],[43,10],[[0,hair[0]],[.44,hair[2]],[.7,hair[1]],[1,hair[0]]]);path(()=>{c.moveTo(32,-8);c.quadraticCurveTo(35,-13,40,-9);c.quadraticCurveTo(46,-2,41,8);c.quadraticCurveTo(37,11,32,8);c.quadraticCurveTo(36,0,32,-8);c.closePath();},cap,hair[0],.45);}
- c.restore();c.save();drawHairLayer(c,locks,'knot',hair,options.detail!==false);drawHairLayer(c,locks,'crown',hair,options.detail!==false);c.restore();
- if(hairStyle==='greenUndercut'){for(let i=0;i<3;i++)line([24+i*2,6],[25+i*2,8],hair[2],.55);}
- // Human face is seen through a tinted pressure mask, not a solid blue plate.
- const face=grad([25,-7],[36,7],[[0,'#c5a18a'],[.42,'#967768'],[1,'#4a4143']]);
- path(()=>{c.moveTo(26,-7);c.quadraticCurveTo(33,-8,34,-4);c.lineTo(36,-1);c.lineTo(34.4,.7);c.quadraticCurveTo(35,4,31,6.6);c.lineTo(27,5);c.lineTo(25,-2);c.closePath();},face,'#26303a',.5);
- path(()=>{c.moveTo(29,-3.2);c.quadraticCurveTo(31.5,-4.4,33,-3.1);},null,'#302b2c',.75);
- oval(31.9,-2.4,.75,.55,'#263940');
- const mask=grad([24,-8],[35,8],[[0,glass[0]],[.27,glass[1]],[.62,glass[2]],[1,glass[3]]]);
- c.save();c.globalAlpha=.60;
- path(()=>{c.moveTo(27,-7.5);c.quadraticCurveTo(34,-9,35.5,-5);c.lineTo(36,4);c.quadraticCurveTo(35,8,28,8);c.lineTo(25,4);c.lineTo(25,-4);c.closePath();},mask,null);c.restore();
- path(()=>{c.moveTo(27,-7.5);c.quadraticCurveTo(34,-9,35.5,-5);c.lineTo(36,4);c.quadraticCurveTo(35,8,28,8);c.lineTo(25,4);c.lineTo(25,-4);c.closePath();},null,'#a2b5b9',.85);
- path(()=>{c.moveTo(32,-6.4);c.quadraticCurveTo(34,-1,33,4.6);},null,'#e5faffaa',1.05);
- line([26.5,-5.4],[26.5,5.1],'#132d3d',.7);
- // Front-mounted regulator and hose coupling follow the actual face.
- path(()=>{c.moveTo(22,5);c.quadraticCurveTo(25,13,34.5,5.7);},null,'#080f17',3.1);
- path(()=>{c.moveTo(22,5);c.quadraticCurveTo(25,13,34.5,5.7);},null,'#5e727b',1.6);
- box(32.5,2.2,6.3,5.8,2,'#1b2b35','#71888e',.75);oval(37,5,1.3,1.6,'#60777c');
- for(const off of [-1,0,1])line([34,5+off],[36,5+off],'#b6c5c4',.45);
- // Braids drape over the shoulder, never across the pressure mask.
- c.save();drawHairLayer(c,locks,'braid',hair,options.detail!==false);c.restore();
- if(options.helmetLamp){box(33,-12,7,4.6,1.4,'#384d58','#a5b9b9',.8);oval(39,-9.7,1.8,1.6,'#d6ffed');}
- limb.joint=(p,r)=>{oval(p[0],p[1],r,r*.85,grad([p[0]-r,p[1]-r],[p[0]+r,p[1]+r],[[0,s[2]],[.48,s[1]],[1,s[0]]]),'#182733',.42);};
- // Glove geometry follows the wrist-to-hand vector and preserves the grip center.
- limb.glove=(hand,wrist,gripping=false)=>{
-  const angle=Math.atan2(hand[1]-wrist[1],hand[0]-wrist[0]);c.save();c.translate(...hand);c.rotate(angle);
-  const g=grad([-3,-3],[2,3],[[0,'#5d737c'],[.26,'#344a55'],[.55,'#1c303d'],[1,'#07131b']]);
-  path(()=>{c.moveTo(-4,-2.4);c.quadraticCurveTo(-1,-3.6,2,-2.8);c.quadraticCurveTo(4,-2.4,4.2,0);c.quadraticCurveTo(4.2,2.9,1.4,3);c.lineTo(-3,2.4);c.quadraticCurveTo(-4.8,0,-4,-2.4);c.closePath();},g,'#07111a',.75);
-  if(gripping){path(()=>{c.moveTo(-1,-2.4);c.quadraticCurveTo(1,-4,2.7,-2);c.lineTo(1.4,-.2);c.quadraticCurveTo(.2,-.2,-1,-2.4);c.closePath();},'#536a74','#0a1720',.5);}
-  path(()=>{c.moveTo(-1,1.8);c.quadraticCurveTo(0,4,2.5,2.4);},null,'#6c8187',.6);
-  for(const x of [0,1.5,3])line([x,-1.9],[x,gripping?.6:1.5],'#9bb3b74c',.55);
-  box(-4.3,-2.6,1.7,5.2,.7,'#21333e','#69818a',.5);c.restore();
+ // Modular suit shells respect the same human silhouette.
+ const panel=grad([5,-12],[5,12],[[0,s[1]],[.30,s[3]],[.54,s[2]],[1,s[0]]]);
+ if(industrial){for(const side of [-1,1]){path(()=>{c.moveTo(14,side*8);c.lineTo(13,side*14);c.lineTo(6,side*12.6);c.lineTo(4,side*7.5);c.closePath();},panel,'#18282f',.65);line([11,side*11.4],[7,side*10.6],'#edbe7e',.65);box(-15,side<0?-11:6,6,5,1,s[1],s[3],.5);}}
+ else if(polar){path(()=>{c.moveTo(14,-9);c.quadraticCurveTo(19,-3,14,9);c.lineTo(1,8.5);c.lineTo(1,-8.5);c.closePath();},panel,'#66818a',.65);for(const x of [-3,-7,-11])line([x,-6],[x,6],'#b7d3d6',.52);}
+ else if(scout){for(const side of [-1,1]){box(-11,side<0?-9.5:4,8,5.5,1.2,s[1],'#182c26',.6);line([-10,side*7],[-5,side*7],s[3],.65);}box(2,-2.5,8,5,1,s[1],s[3],.5);}
+ else if(detail){box(3,-2,6.4,4,1,'#132b37','#6c8e96',.45);line([5,-.8],[7,-.8],'#b3e6df',.65);}
+ // Neck and rounded anatomical head. Mask sits on a face, rather than a
+ // rectangular head replacing the face. Hair roots retain original mounts.
+ box(18,-4.1,7.1,8.2,2.3,grad([0,-4],[0,4],[[0,s[2]],[.5,s[1]],[1,s[0]]]),'#142631',.55);
+ const skull=grad([31,-8],[31,8],[[0,'#1c303a'],[.25,'#607580'],[.55,'#2d414e'],[1,'#111f28']]);
+ path(()=>{c.moveTo(23,-3.8);c.quadraticCurveTo(25,-7.3,31,-7.8);c.bezierCurveTo(38,-8.2,41,-4.6,40,0);c.bezierCurveTo(41,4.6,38,8.2,31,7.8);c.quadraticCurveTo(25,7.3,23,3.8);c.quadraticCurveTo(22.5,0,23,-3.8);c.closePath();},skull,'#0b151e',.8);
+ if(hairStyle!=='shaved'){const cap=grad([34,-8],[42,7],[[0,hair[0]],[.43,hair[2]],[.72,hair[1]],[1,hair[0]]]);path(()=>{c.moveTo(33,-7);c.quadraticCurveTo(38,-10,41,-6);c.quadraticCurveTo(44,0,41,6);c.quadraticCurveTo(37,9,33,7);c.quadraticCurveTo(36,0,33,-7);c.closePath();},cap,hair[0],.4);}
+ c.save();drawHairLayer(c,locks,'knot',hair,detail);drawHairLayer(c,locks,'crown',hair,detail);c.restore();
+ const face=grad([30,-6],[30,6],[[0,'#8b6b59'],[.35,'#c6a38c'],[.66,'#ac8a75'],[1,'#695655']]);
+ path(()=>{c.moveTo(36,-5);c.quadraticCurveTo(34,-6.5,30,-6);c.quadraticCurveTo(25,-5.8,24.5,0);c.quadraticCurveTo(25,5.8,30,6);c.quadraticCurveTo(34,6.5,36,5);c.closePath();},face,'#34414a',.4);
+ for(const side of [-1,1]){path(()=>{c.moveTo(33.5,side*1.8);c.quadraticCurveTo(34,side*3.7,33,side*4.7);},null,'#51413c',.45);oval(32.2,side*3.1,.55,1.05,'#d4c7b3');oval(32.2,side*3.1,.42,.42,'#223c45');}
+ path(()=>{c.moveTo(32,0);c.lineTo(29.4,-.65);c.lineTo(29.2,.5);},null,'#70584c',.4);
+ // Panoramic transparent mask, twin eyes remain readable under tinted glass.
+ const mask=grad([35,-7],[28,7],[[0,glass[0]],[.30,glass[1]],[.67,glass[2]],[1,glass[3]]]);
+ const maskShape=()=>{c.moveTo(35.2,-6.6);c.quadraticCurveTo(37,-3.4,35.7,0);c.quadraticCurveTo(37,3.4,35.2,6.6);c.lineTo(30.2,6.5);c.quadraticCurveTo(28.8,3.4,30.5,0);c.quadraticCurveTo(28.8,-3.4,30.2,-6.5);c.closePath();};
+ path(maskShape,null,'#0b1e29',2.0);c.save();c.globalAlpha=.48;path(maskShape,mask,null);c.restore();path(maskShape,null,'#a2c3c8',.65);
+ path(()=>{c.moveTo(34.8,-5.2);c.quadraticCurveTo(35.5,-3.7,34.6,-1.2);},null,'#e2f8f6ac',.7);
+ // Regulator centered at the mouth and hose routed behind the shoulder.
+ path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#09131b',3.0);path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#55707a',1.55);
+ box(23.6,-3.5,5.4,7,2.0,'#1b303c','#7a939b',.6);oval(26.2,0,1.7,2.2,'#405762','#15252f',.5);for(const y of [-1,0,1])line([25.7,y],[26.8,y],'#a3c1c3',.35);
+ c.save();drawHairLayer(c,locks,'braid',hair,detail);c.restore();
+ if(options.helmetLamp){box(35,-9.7,5.2,3.7,1.1,'#354b57','#8eafb7',.55);oval(39,-7.9,1.25,1.2,'#d9fff0');}
+ limb.joint=(p,r)=>{oval(p[0],p[1],r*.83,r*.72,grad([p[0]-r,p[1]-r],[p[0]+r,p[1]+r],[[0,s[2]],[.55,s[1]],[1,s[0]]]),'#16252e',.35);};
+ // Flattened palms, thumb and fingers follow the forearm; hand center is
+ // shared with the equipment grip. Resting fingers are longer than a fist.
+ limb.glove=(hand,wrist,gripping=false)=>{const angle=Math.atan2(hand[1]-wrist[1],hand[0]-wrist[0]);c.save();c.translate(...hand);c.rotate(angle);
+  const g=grad([-3,-2.5],[3,2.5],[[0,'#657d83'],[.32,'#344a55'],[.68,'#1c303b'],[1,'#0b1720']]),end=gripping?3.4:5.2;
+  path(()=>{c.moveTo(-4,-1.8);c.quadraticCurveTo(-2,-2.8,.7,-2.4);c.quadraticCurveTo(end,-2.5,end,0);c.quadraticCurveTo(end,2.4,1,2.6);c.lineTo(-3,1.9);c.closePath();},g,'#0b1720',.55);
+  path(()=>{c.moveTo(-1,1.8);c.quadraticCurveTo(0,3.5,2.2,2.4);c.lineTo(gripping?1.2:3.4,1.3);},null,'#81979a',.5);
+  for(const x of [1.4,2.6,3.6])line([x,-1.7],[x,gripping?.3:1.3],'#a9c0c14c',.35);
+  box(-4.4,-2.2,1.9,4.4,.6,'#20333e','#58717d',.42);c.restore();
  };
  return limb;
 }
-root.AbyssalRealisticBody=Object.freeze({draw:body,hairGeometry,HAIR_STYLES,HAIR_ANCHOR});
+root.AbyssalRealisticBody=Object.freeze({draw:body,hairGeometry,simulateHair,HAIR_STYLES,HAIR_ANCHOR});
 })(typeof globalThis!=='undefined'?globalThis:this);

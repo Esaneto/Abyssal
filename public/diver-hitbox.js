@@ -30,13 +30,13 @@
    return {name,ax:a.x,ay:a.y,bx:b.x,by:b.y,r:r*scale};
   };
   return [
-   limb('torso',-16,0,17,0,13),
-   limb('head',25,-1,29,-1,13),
+   limb('torso',-19,0,13,0,12.5),
+   limb('head',27,0,35,0,8.5),
    ...arms.flatMap((arm,i)=>{const name=i?'right':'left';return [limb(name+'-arm',arm.shoulder[0],arm.shoulder[1]+offset,arm.elbow[0],arm.elbow[1]+offset,6,true),limb(name+'-forearm',arm.elbow[0],arm.elbow[1]+offset,arm.hand[0],arm.hand[1]+offset,5.3,true)];}),
-   limb('left-thigh',...left.hip,...left.knee,8.6),
-   limb('left-leg',...left.knee,...left.ankle,8.5),
-   limb('right-thigh',...right.hip,...right.knee,8.6),
-   limb('right-leg',...right.knee,...right.ankle,8.5)
+   limb('left-thigh',...left.hip,...left.knee,7.4),
+   limb('left-leg',...left.knee,...left.ankle,5.6),
+   limb('right-thigh',...right.hip,...right.knee,7.4),
+   limb('right-leg',...right.knee,...right.ankle,5.6)
   ];
  }
  function pointSegmentDistance(x,y,ax,ay,bx,by){

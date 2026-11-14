@@ -3208,7 +3208,7 @@ function update(dt){
      particles.push(p);
     }
    }}else{player.propulsorEnergy=prop.step(player.propulsorEnergy,dt,player.propulsorEquipped,false);}
-   player.swimPose=window.AbyssalDiverRig?.advance(player.swimPose,swimVisualSpeed,dt,player.propulsorMoving);
+   player.swimPose=window.AbyssalDiverRig?.advance(player.swimPose,swimVisualSpeed,dt,player.propulsorMoving,{x:player.x,y:player.y,heading:player.bodyAngle,unit:150/GAME_WORLD_ZOOM});
    player.swimming=swimVisualSpeed>.045;
    if(soloSubmarine.repair)updateSoloHullRepair(dt);else updateAutomaticWeaponAim(dt);
    // No pointer/touch event may reset this timer. Upgrades alone increase cadence.
@@ -4911,7 +4911,7 @@ function draw(t){
        if(progress>=1)remoteSpecimenDashes.delete(peerVisualId);
       }
       const remoteSpeed=dtRemote>0?Math.hypot(vx,vy)/dtRemote/(150/GAME_WORLD_ZOOM):0;
-      const motion=window.AbyssalDiverRig?.advance(previous.motion,remoteSpeed,dtRemote,Boolean(peer.propulsorMoving));
+      const motion=window.AbyssalDiverRig?.advance(previous.motion,remoteSpeed,dtRemote,Boolean(peer.propulsorMoving),{x:px,y:py,heading,unit:150/GAME_WORLD_ZOOM});
       remoteDiverMotion.set(peerVisualId,{x:px,y:py,angle:heading,sx,sy,lastAt:t,motion});
       remoteDiveLights.push({x:px,y:py,active:true,radius:285,strength:.84,color:'#78dfff',diver:true,heading,r:12/GAME_WORLD_ZOOM,lampLevel:1});
       drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,Number.isFinite(peer.angle)?peer.angle:heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance,motion);
