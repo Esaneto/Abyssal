@@ -10,8 +10,8 @@
  'use strict';
  const TAU=Math.PI*2,DRAW_SCALE=.60,BARREL_TIP_X=69,GUN_OFFSET_Y=12,WELDER_TIP_X=57;
  const weaponSide=angle=>Math.cos(Number(angle)||0)< -1e-9?-1:1;
- // Smooth 2.5D gun roll around the barrel; full side silhouette beyond 22 degrees.
- const weaponRoll=angle=>{const x=Math.cos(Number(angle)||0),v=Math.max(-1,Math.min(1,x/.38));return v*(1.5-.5*v*v);};
+ // Smooth projection of the weapon around its barrel. Continuous even at vertical aim.
+ const weaponRoll=angle=>Math.cos(Number(angle)||0);
  const genderOf=value=>value==='female'?'female':'male';
  function muzzle(x,y,r,aim){
   const distance=(Number(r)||13)*DRAW_SCALE*BARREL_TIP_X/14;
@@ -105,7 +105,7 @@ function rifleTop(c,id,alpha){
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
   const held=String(options.heldItem||'abyssWeapon'),relativeAim=(held==='abyssPropulsor'||held==='abyssPropulsorIdle')?0:(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=options.gameplay&&options.viewYaw==null?rig?.gameplayView?.(options.motion?.viewHeading??a):rig?.viewFor?.(options.viewYaw??.65,a),itemSide=weaponSide(a+relativeAim),gunRoll=held==='abyssWeapon'?weaponRoll(a+relativeAim):itemSide;
   const offset=(held==='abyssWeapon'?GUN_OFFSET_Y:5)*gunRoll,tool=rig?.toolPose(held,Number(options.swing)||0,view)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
-  const grips=(held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[21,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co])).map(([x,y])=>[x,y*gunRoll]);
+  const grips=(held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[22,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co])).map(([x,y])=>[x,y*gunRoll]);
   const pair=(held!=='abyssWelder'&&held!=='none'?rig?.armPair?.(relativeAim,offset,grips,'standard',view):null)||grips.map((g,i)=>rig?.arm(i?1:-1,relativeAim,offset,g,held==='abyssWelder'?'welder':'standard',view)||{shoulder:[6,i?7:-7],elbow:[16,i?12:-12],hand:g});
   const idle=side=>rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0,options.motion,view,held==='abyssWelder'?'tool':'free')||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};
   let farPainted=false;
@@ -343,7 +343,7 @@ function rifleTop(c,id,alpha){
   // Gloves settle on two separate contact points, never doubling the arm.
   c.restore();rifleTop(c,look.weaponId,1-Math.abs(gunRoll));if(limb.glove)drawGloves();else{c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
   c.beginPath();c.ellipse(34,2*gunRoll,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
-  c.beginPath();c.ellipse(21,11*gunRoll,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
+  c.beginPath();c.ellipse(22,11*gunRoll,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
   c.restore();c.restore();
  }
  return Object.freeze({draw,rifleShell,muzzle,weaponSide,weaponRoll,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});

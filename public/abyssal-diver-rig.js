@@ -58,14 +58,14 @@
  // Convert actual shoulder into the weapon-local space, then solve a bent
  // two-link arm toward the fixed grip. The barrel and tool anchors never move.
  function armCandidates(side,relativeAim,offset,grip,profile='standard',view=null,projectedTotal=null){
-  const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),torch=profile==='welder',[sx,sy]=project([13,side*13],view);
+  const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),torch=profile==='welder',[sx,sy]=project([13,side*13*(view?.directional?view.facing:1)],view);
   const shoulder=[sx*ca+sy*sa,-sx*sa+sy*ca-offset],dx=grip[0]-shoulder[0],dy=grip[1]-shoulder[1];
   const d=Math.max(.001,Math.hypot(dx,dy)),ux=dx/d,uy=dy/d,min=torch?31:36,total=clamp(Math.max(projectedTotal??min,d+1.8),min,56),upper=total*.53,lower=total*.47,reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
   const along=(upper*upper-lower*lower+reach*reach)/(2*reach),height=Math.sqrt(Math.max(0,upper*upper-along*along));
   return [-1,1].map(sign=>{const elbow=[shoulder[0]+ux*along-uy*height*sign,shoulder[1]+uy*along+ux*height*sign],ex=elbow[0]*ca-(elbow[1]+offset)*sa,ey=elbow[0]*sa+(elbow[1]+offset)*ca;
    // The elbow hint belongs to the BODY, not to the rotating weapon.
    // Prefer an ipsilateral, low elbow and penalize bending into the head.
-   const pole=project([3,side*24],view),score=Math.hypot(ex-pole[0],ey-pole[1])+.85*Math.max(0,ex-21)+1.7*Math.max(0,5-side*ey*(view?.facing||1));
+   const pole=project([3,side*24*(view?.directional?view.facing:1)],view),score=Math.hypot(ex-pole[0],ey-pole[1])+.85*Math.max(0,ex-21)+1.7*Math.max(0,5-side*ey*(view?.directional?1:(view?.facing||1)));
    return {shoulder,elbow,hand:[...grip],score,side,depth:side,projectedTotal:total};
   });
  }
@@ -112,7 +112,7 @@
  function hairPortraitFrame(width,height,style='all'){width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));if(style==='animated'){const scale=Math.min(width/160,height/158);return {x:width/2,y:height*.55,r:scale*14/.60};}const small=['classic','short','shaved','mohawk','tealSpikes'].includes(style);const scale=Math.min(width/(small?70:106),height/(small?91:126));return {x:width/2,y:height*(small?.72:.56),r:scale*14/.60};}
  const pair=(a,b)=>Object.freeze([Object.freeze(a),Object.freeze(b)]);
  // Contacts lie on the actual receiver handle, pistol grip and tool handles.
- const rifleGrips=pair([34,2],[21,11]);
+ const rifleGrips=pair([34,2],[22,11]);
  const toolGrips=pair([24,-8],[34,9]);
  const gripSets=Object.freeze({
   abyssWeapon:rifleGrips,abyssPropulsor:toolGrips,abyssPropulsorIdle:toolGrips,
@@ -132,7 +132,7 @@
  }
  function idleArm(side,phase=0,weight=0,motion=null,view=null,mode='free'){
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
-  const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.profile>.5){const tucked=mode==='tool';return {shoulder:project([13,side*13],view),elbow:project([tucked?-5:0,side<0?2:19+brake*2],view),hand:project([tucked?-26:18-brake*3,side<0?8:16+sway*.35+brake*2],view)};}return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
+  const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.directional){const mix=view.profile,sideView=idleArm(side,phase,weight,motion,{...view,directional:false,profile:1},mode),frontView=idleArm(side*view.facing,phase,weight,motion,{...view,directional:false,profile:0},mode);return Object.fromEntries(['shoulder','elbow','hand'].map(k=>[k,frontView[k].map((v,i)=>v+(sideView[k][i]-v)*mix)]));}if(view?.profile>.5){const tucked=mode==='tool';return {shoulder:project([13,side*13],view),elbow:project([tucked?-5:0,side<0?2:19+brake*2],view),hand:project([tucked?-26:18-brake*3,side<0?8:16+sway*.35+brake*2],view)};}return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
  return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });
