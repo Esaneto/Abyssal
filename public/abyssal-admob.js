@@ -4,18 +4,20 @@
  if(!isAndroid())return;
  const bridge=()=>root.Capacitor?.Plugins?.AbyssalAdMob;
  let active=false,nativeStatus=null;
+ // Until teen-specific native consent/ad request configuration is validated, only adults may request ads.
+ const adultEligible=()=>{try{return root.AbyssalAgeBand==='adult'||(!root.AbyssalAgeBand&&JSON.parse(localStorage.getItem('abyssalAgeProfile')||'null')?.band==='adult');}catch{return false;}};
  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  function refreshPrivacy(status){
   const button=document.getElementById('adPrivacyOptionsBtn');
   if(button)button.hidden=!status?.privacyRequired;
  }
  function prepare(){
-  if(!bridge()?.initialize||navigator.onLine===false)return;
+  if(!adultEligible()||!bridge()?.initialize||navigator.onLine===false)return;
   bridge().initialize().then(status=>{nativeStatus=status;refreshPrivacy(status);}).catch(()=>{});
  }
  root.adBreak=function(options={}){
   const finish=status=>options.adBreakDone?.({breakStatus:status});
-  if(options.type!=='reward'||active||!bridge()?.showRewarded||navigator.onLine===false){finish('notReady');return;}
+  if(!adultEligible()||options.type!=='reward'||active||!bridge()?.showRewarded||navigator.onLine===false){finish('notReady');return;}
   let started=false;
   const show=async()=>{
    if(started||active)return;started=true;active=true;
@@ -55,4 +57,5 @@
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
  root.addEventListener('online',prepare);
+ document.getElementById('ageTermsContinue')?.addEventListener('click',()=>queueMicrotask(prepare));
 })(window);
