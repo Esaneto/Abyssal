@@ -5617,21 +5617,22 @@ function openSkinPurchaseConfirm(skin, name, priceFormatted, isBundle = false) {
   const skinId = typeof skin === 'string' ? skin : skin?.id;
   if(!skinId||stripeCheckoutBusy)return;
   const modal = $('skinPurchaseConfirmModal');
-  if (!modal) { window.AbyssalOnline?.purchaseStripe(skinId,'brl',gameLanguage);return; }
+  if (!modal) {showToast('Confirmação de compra indisponível. Recarregue o jogo.');return false;}
   // In the cabin, checkout confirmation belongs in the visor. Outside, retain the existing modal.
   window.AbyssalCockpitNavigation?.routeScreen?.('skinPurchaseConfirmModal',true);
   if(!window.AbyssalCockpitNavigation?.isEmbedded?.('skinPurchaseConfirmModal')&&modal.parentElement!==document.body)document.body.append(modal);
   pendingStripePurchase = { skin: { id: skinId, name }, name, priceFormatted, isBundle };
   const desc = $('skinPurchaseConfirmDesc');
   if (desc) {
-    desc.textContent = `Você está prestes a adquirir ${name || 'este cosmético'} por ${priceFormatted || ''}. Esta transação será realizada em ambiente seguro da Stripe e adicionará o cosmético permanentemente à sua conta.`;
+    desc.textContent = `Você está prestes a adquirir ${name || 'este cosmético'} por ${priceFormatted || ''}. O pagamento será aberto em outro navegador ou aba, sem fechar o jogo. O item será vinculado à sua conta após a confirmação do pagamento.`;
   }
   const check1 = $('skinBuyCheck1'), confirmBtn = $('skinPurchaseConfirmBtn');
   if (check1) check1.checked = false;
   if (confirmBtn) confirmBtn.disabled = true;
   const status=$('skinPurchaseStatus');if(status)status.textContent='';
-  modal.hidden = false;
+  modal.hidden = false;return true;
 }
+window.AbyssalPurchaseConfirm=Object.freeze({open:openSkinPurchaseConfirm});
 function closeSkinPurchaseConfirm() {
   if(stripeCheckoutBusy)return;
   const modal = $('skinPurchaseConfirmModal');
@@ -5658,7 +5659,7 @@ $('skinPurchaseConfirmModal')?.addEventListener('click', (e) => {
   if (e.target === $('skinPurchaseConfirmModal')) closeSkinPurchaseConfirm();
 });
 
-window.addEventListener('abyssal-payment-result',event=>{stripeCheckoutBusy=false;updateSkinPurchaseBtn();const status=$('skinPurchaseStatus'),modal=$('skinPurchaseConfirmModal');if(!event.detail?.ok){const message=event.detail?.message||'Pagamento indisponível.';if(status&&modal&&!modal.hidden)status.textContent=message;else showToast(message);if(event.detail?.requiresLogin){closeSkinPurchaseConfirm();window.AbyssalOnline?.openLogin?.();}}});
+window.addEventListener('abyssal-payment-result',event=>{stripeCheckoutBusy=false;updateSkinPurchaseBtn();if(event.detail?.opened){closeSkinPurchaseConfirm();showToast(event.detail.message);return;}const status=$('skinPurchaseStatus'),modal=$('skinPurchaseConfirmModal');if(!event.detail?.ok){const message=event.detail?.message||'Pagamento indisponível.';if(status&&modal&&!modal.hidden)status.textContent=message;else showToast(message);if(event.detail?.requiresLogin){closeSkinPurchaseConfirm();window.AbyssalOnline?.openLogin?.();}}});
 const redeemCodeBtn=$('redeemCodeBtn');
 $('shopRedeemShortcut')?.addEventListener('click',()=>{
  const target=$('openRedeemCodeBtn');if(!target||!target.getClientRects().length)return;

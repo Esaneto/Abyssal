@@ -695,17 +695,39 @@ function loadRankings(){
 }
 function purchaseSkin(id){if(socket?.connected&&authenticated)socket.emit('purchase-skin',{id});else window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:{ok:false,message:'Entre na sua conta para comprar skins e salvar a compra nela.'}}));}
 
+let checkoutPreparing=false,checkoutRefreshTimer=0,checkoutRefreshUntil=0;
+function refreshCheckoutAccount(){if(Date.now()<checkoutRefreshUntil&&socket?.connected&&authenticated)refreshAccount();}
+function watchCheckout(){checkoutRefreshUntil=Date.now()+5*60*1000;clearInterval(checkoutRefreshTimer);checkoutRefreshTimer=setInterval(()=>{if(Date.now()>=checkoutRefreshUntil){clearInterval(checkoutRefreshTimer);checkoutRefreshTimer=0;return;}if(!document.hidden)refreshCheckoutAccount();},8000);}
+window.addEventListener('focus',refreshCheckoutAccount);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshCheckoutAccount();});
 async function purchaseStripe(productId,currency,language='pt'){
- const nativeAndroid=Boolean(window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='android');
- if(nativeAndroid){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:language==='en'?'Purchases in the Google Play version use Google Play Billing and will be enabled when the store catalog is connected.':'As compras na versão Google Play usam o Google Play Billing e serão liberadas quando o catálogo da loja for conectado.'}}));return;}
- if(!sessionToken){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,requiresLogin:true,message:'Entre na sua conta antes de comprar.'}}));return;}
+ const report=detail=>window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{productId,...detail}}));
+ const nativeAndroid=Boolean(window.Capacitor?.getPlatform?.()==='android');
+ if(nativeAndroid){report({ok:false,message:language==='en'?'Purchases in the Google Play version use Google Play Billing and will be enabled when the store catalog is connected.':'As compras na versão Google Play usam o Google Play Billing e serão liberadas quando o catálogo da loja for conectado.'});return;}
+ if(!sessionToken){report({ok:false,requiresLogin:true,message:'Entre na sua conta antes de comprar.'});return;}
+ if(checkoutPreparing)return;
+ checkoutPreparing=true;
+ let tab=null;
  try{
+  const desktop=Boolean(window.AbyssalOffline?.localDesktop||window.AbyssalNativeUpdater);
+  // Reserve a new browsing context within the confirmation click, before the asynchronous request.
+  if(!desktop){
+   tab=window.open('about:blank','_blank');
+   if(!tab)throw Error('Permita a abertura de novas abas para realizar a compra. O jogo continuará aberto.');
+   tab.opener=null;
+   try{tab.document.title='Abyssal | Pagamento';tab.document.body.textContent='Preparando pagamento seguro…';}catch(_){}
+  }
   const headers={'Content-Type':'application/json',Authorization:'Bearer '+sessionToken};
   const response=await fetch(SERVER_URL+'/api/payments/checkout',{method:'POST',headers,body:JSON.stringify({productId,currency:'brl',language}),signal:AbortSignal.timeout(35000)});
-  const result=await response.json().catch(()=>({message:'O servidor não retornou uma resposta de pagamento válida.'}));if(response.status===401){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,requiresLogin:true,message:result.message||'Entre novamente na sua conta.'}}));return;}if(!response.ok||!result.ok||!result.url)throw new Error(result.message||'Checkout indisponível.');
-  const checkoutUrl=new URL(result.url);if(checkoutUrl.protocol!=='https:'||checkoutUrl.hostname!=='checkout.stripe.com')throw new Error('Endereço de pagamento inválido.');
-  window.location.assign(checkoutUrl.href);
- }catch(error){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:error.message}}));}
+  const result=await response.json().catch(()=>({message:'O servidor não retornou uma resposta de pagamento válida.'}));
+  if(response.status===401){tab?.close();report({ok:false,requiresLogin:true,message:result.message||'Entre novamente na sua conta.'});return;}
+  if(!response.ok||!result.ok||!result.url)throw Error(result.message||'Checkout indisponível.');
+  const checkoutUrl=new URL(result.url);if(checkoutUrl.protocol!=='https:'||checkoutUrl.hostname!=='checkout.stripe.com'||checkoutUrl.username||checkoutUrl.password||checkoutUrl.port)throw Error('Endereço de pagamento inválido.');
+  if(desktop){window.open(checkoutUrl.href,'_blank','noopener,noreferrer');}
+  else{if(tab.closed)throw Error('A aba de pagamento foi fechada. Confirme novamente para reabrir.');tab.location.replace(checkoutUrl.href);}
+  watchCheckout();report({ok:true,opened:true,message:'Pagamento aberto no navegador. Volte ao jogo após concluir; a compra será liberada após confirmação.'});
+ }catch(error){try{tab?.close();}catch(_){}report({ok:false,message:error.message});}
+ finally{checkoutPreparing=false;}
 }
 function explorationScan(callback){
  if(!socket?.connected||!authenticated||!currentRoom){callback?.({ok:false,reason:'offline'});return;}
@@ -979,7 +1001,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  // Handle return from Stripe checkout
  const urlParams = new URLSearchParams(window.location.search);
  if (urlParams.get('payment') === 'success') {
-  showToast('PAGAMENTO CONFIRMADO! ATUALIZANDO CONTEÚDO...');
+  showToast('PAGAMENTO EM VERIFICAÇÃO. VOLTE AO JOGO PARA ATUALIZAR SEUS ITENS.');
   window.history.replaceState({}, document.title, window.location.pathname);
   setTimeout(() => {
    if (socket?.connected && authenticated) socket.emit('get-account');
