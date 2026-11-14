@@ -303,30 +303,36 @@ async function ensureGameMasterAccount(){
  users[key]=user;saveUsers();await flushPersistence();console.log('[developer] Conta GameMaster pronta com privilégios server-side.');return true;
 }
 const REVIEW_ACCOUNTS=[['googlereviewer01','GoogleReviewer01','ABYSSAL_REVIEW_PASSWORD_01'],['googlereviewer02','GoogleReviewer02','ABYSSAL_REVIEW_PASSWORD_02']];
+function syncReviewEntitlements(user){
+ if(!user?.reviewAccount)return false;
+ const before=JSON.stringify([user.ownedSkins,user.discoveredSpecimens,user.ownedAvatarCosmetics,user.energy,user.researchLevels,user.resourceInventory,user.role,user.developerAccess]);
+ user.ownedSkins=[...allowedSkinIds];
+ user.discoveredSpecimens=[...allowedSkinIds];
+ user.ownedAvatarCosmetics=AvatarBase.normalizeOwned(AvatarBase.products.map(p=>p.key));
+ user.energy=Math.max(100000,Number(user.energy)||0);
+ user.researchLevels=ResearchSystem.sanitizeLevels(Object.fromEntries(Object.entries(ResearchSystem.DEFINITIONS).map(([id,def])=>[id,def.max])));
+ user.resourceInventory=ResearchSystem.sanitizeInventory(Object.fromEntries(Object.keys(ExplorationConfig.RESOURCES).map(id=>[id,Math.max(1000,Number(user.resourceInventory?.[id])||0)])));
+ user.role='player';user.developerAccess=false;
+ return before!==JSON.stringify([user.ownedSkins,user.discoveredSpecimens,user.ownedAvatarCosmetics,user.energy,user.researchLevels,user.resourceInventory,user.role,user.developerAccess]);
+}
 async function ensureReviewAccounts(){
  for(const [key,nickname,env] of REVIEW_ACCOUNTS){
   const password=String(process.env[env]||'');
-  if(!password)continue;
-  if(password.length<16||password.length>128)throw new Error(env+' must contain 16–128 characters');
   const existing=users[key];
   if(existing&&!existing.reviewAccount)throw new Error('Reviewer nickname already occupied: '+nickname);
-  if(existing&&existing.salt&&existing.passwordHash){
-   const candidate=await hashPassword(password,existing.salt);
-   if(candidate&&safeEqual(candidate,existing.passwordHash))continue;
+  if(!password&&!existing)continue;
+  if(password&&(password.length<16||password.length>128))throw new Error(env+' must contain 16–128 characters');
+  const user=existing||{accountId:crypto.randomUUID(),nickname,email:key+'@review.abyssal.invalid',createdAt:new Date().toISOString(),equippedSkin:'default',metaUpgrades:{},lastWheelAt:0,reviewAccount:true};
+  let changed=syncReviewEntitlements(user);
+  if(password){
+   const candidate=user.salt&&user.passwordHash?await hashPassword(password,user.salt):null;
+   if(!candidate||!safeEqual(candidate,user.passwordHash)){
+    const salt=crypto.randomBytes(16).toString('hex'),passwordHash=await hashPassword(password,salt);
+    if(!passwordHash)throw new Error('Reviewer password hashing failed');
+    Object.assign(user,{salt,passwordHash,sessionTokens:[]});changed=true;
+   }
   }
-  const salt=crypto.randomBytes(16).toString('hex'),passwordHash=await hashPassword(password,salt);
-  if(!passwordHash)throw new Error('Reviewer password hashing failed');
-  const user=existing||{
-   accountId:crypto.randomUUID(),nickname,email:key+'@review.abyssal.invalid',
-   createdAt:new Date().toISOString(),energy:100000,
-   ownedSkins:[...allowedSkinIds],discoveredSpecimens:[...allowedSkinIds],
-   equippedSkin:'default',metaUpgrades:{},lastWheelAt:0,
-   researchLevels:ResearchSystem.sanitizeLevels(Object.fromEntries(Object.keys(ResearchSystem.DEFINITIONS).map(id=>[id,1]))),
-   resourceInventory:ResearchSystem.sanitizeInventory(Object.fromEntries(Object.keys(ExplorationConfig.RESOURCES).map(id=>[id,1000])))
-  };
-  Object.assign(user,{reviewAccount:true,role:'player',developerAccess:false,salt,passwordHash,sessionTokens:[]});
-  users[key]=user;saveUsers();await flushPersistence();
-  console.log('[review] Provisioned '+nickname);
+  if(!existing||changed){users[key]=user;saveUsers();await flushPersistence();console.log('[review] Provisioned '+nickname);}
  }
 }
 function hashSessionToken(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
@@ -355,7 +361,7 @@ const TITLE_DEFINITIONS=[
   {id:'living-legend',kind:'likesReceived',required:100},
   {id:'abyssal-patron',kind:'storeSupporter',required:1},{id:'boss-abyssal',kind:'bossAbyssal',required:1},{id:'abyssal-conqueror',kind:'conqueror',required:1}
  ];
- function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
+ function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.reviewAccount||u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  const HALL_TITLE_PATTERN=/^hall-top-(10|[1-9])$/;
  let hallPositions=new Map();
  function hallPosition(u){return hallPositions.get(String(u?.nickname||'').toLowerCase())||0;}
