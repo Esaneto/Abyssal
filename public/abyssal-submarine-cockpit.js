@@ -10,7 +10,7 @@
  if(!screen||!canvas)return;
  const main=canvas.getContext('2d');if(!main)return;
  // Each overhead key selects a page in the physical central visor.
- const commands=screen.querySelector('.abyss-cockpit-top-actions');
+ const commands=screen.querySelector?.('.abyss-cockpit-top-actions');
  const store=(key,value)=>{try{localStorage.setItem(key,String(value));}catch(_){}};
  const read=(key,fallback)=>{try{return localStorage.getItem(key)??fallback;}catch(_){return fallback;}};
  function field(label,options,value,change){const wrap=document.createElement('label'),select=document.createElement('select'),caption=document.createElement('span');wrap.className='cockpit-setting-field';caption.textContent=label;wrap.append(caption,select);for(const [id,name] of options){const option=document.createElement('option');option.value=id;option.textContent=name;select.append(option);}select.value=value;select.addEventListener('change',()=>change(select.value));return wrap;}
