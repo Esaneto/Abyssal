@@ -66,11 +66,12 @@ test('web boot loads branded startup and updater locally and therefore remains o
 test('Android CI publishes versioned stable metadata after building the APK',()=>{
  const ci=read('.github/workflows/ci.yml');
  assert.match(ci,/CLIENT_VERSION=\$\(node -p "require\('\.\/package\.json'\)\.version"\)/);
- assert.match(ci,/\"updatable\":true,\"signing\":\"release\"/);
+ assert.match(read('scripts/publish-android-stable.cjs'),/updatable:true,signing:'release'/);
  assert.match(ci,/apksigner.*verify Abyssal-Android\.apk/);
- assert.match(ci,/CURRENT_MAIN.*GITHUB_SHA/);
+ assert.match(ci,/group: abyssal-stable-android/);
+ assert.match(read('scripts/publish-android-stable.cjs'),/versionCode/);
  assert.match(ci,/assembleRelease/);
- assert.match(ci,/gh release upload downloads-2 Abyssal-Android\.apk Abyssal-Android-build\.json --clobber/);
+ assert.match(read('scripts/publish-android-stable.cjs'),/publishStable/);
  assert.match(ci,/android\/app\/src\/main\/assets\/public\/update-manager\.js/);
 });
 

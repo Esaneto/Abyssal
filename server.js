@@ -504,7 +504,9 @@ async function publishedNativeRelease(platform){
   if(!response.ok)throw new Error('metadata-http-'+response.status);
   const data=await response.json();
   if(data.platform!==platform||!/^\d+\.\d+\.\d+$/.test(String(data.version||''))||!/^[a-f0-9]{64}$/i.test(String(data.sha256||'')))throw new Error('invalid-release-metadata');
-  const verified={version:String(data.version),platform,sha256:String(data.sha256).toLowerCase(),updatable:data.updatable===true,signing:String(data.signing||'')};
+  const url=String(data.url||NATIVE_DOWNLOADS[platform].url),expectedName=platform==='android'?'Abyssal-Android.apk':'Abyssal-Setup.exe';
+  const parsed=new URL(url);if(parsed.protocol!=='https:'||parsed.hostname!=='github.com'||parsed.username||parsed.password||parsed.port||!parsed.pathname.startsWith('/Esaneto/Abyssal/releases/download/')||!parsed.pathname.endsWith('/'+expectedName))throw Error('invalid-release-url');
+  const verified={version:String(data.version),platform,url,sha256:String(data.sha256).toLowerCase(),updatable:data.updatable===true,signing:String(data.signing||'')};
   nativeReleaseCache.set(platform,{at:Date.now(),data:verified});return verified;
  }catch(error){console.warn('[native-update]',platform,error.message);return null;}finally{nativeReleasePending.delete(platform);}})();
  nativeReleasePending.set(platform,pending);return pending;
@@ -521,7 +523,7 @@ app.get('/api/client-update',async(req,res)=>{
  const published=await publishedNativeRelease(platform);
  if(!published)return res.status(503).json({ok:false,message:'Pacote em publicação.'});
  const origin=String(process.env.PUBLIC_BASE_URL||'https://abyssalgame.duckdns.org').replace(/\/+$/,'');
- res.json({ok:true,platform,latestVersion:published.version,serverVersion:APP_VERSION,minimumVersion:'3.6.0',required:false,updatable:published.updatable,sha256:published.sha256,releaseNotes:'Atualização oficial do Abyssal.',url:NATIVE_DOWNLOADS[platform].url,metadataUrl:origin+'/api/native-release/'+platform});
+ res.json({ok:true,platform,latestVersion:published.version,serverVersion:APP_VERSION,minimumVersion:'3.6.0',required:false,updatable:published.updatable,sha256:published.sha256,releaseNotes:'Atualização oficial do Abyssal.',url:published.url,metadataUrl:origin+'/api/native-release/'+platform});
 });
 app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 

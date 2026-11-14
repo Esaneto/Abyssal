@@ -78,7 +78,14 @@
   }catch(error){console.warn('[Abyssal] Falha ao verificar atualização web:',error?.message||error);return null;}
  }
  const gameplayBlocked=()=>Boolean(root.AbyssalGameHooks?.browserUpdateBlocked?.()??document.body?.classList.contains('game-active'));
- let installingNative=false;
+ let installingNative=false,permissionResume=null;
+ async function resumeAcceptedAndroidUpdate(){
+  const pending=permissionResume;if(!pending||installingNative||document.visibilityState==='hidden'||gameplayBlocked())return;
+  if(Date.now()-pending.at>10*60*1000){permissionResume=null;return;}
+  try{if(!(await androidBridge()?.canInstallApk?.())?.allowed)return;if(permissionResume!==pending||installingNative)return;permissionResume=null;await installNative(pending.data,pending.status,pending.button);}catch(_){}
+ }
+ root.addEventListener('focus',resumeAcceptedAndroidUpdate);
+ document.addEventListener('visibilitychange',resumeAcceptedAndroidUpdate);
  async function installNative(data,status,button){
   if(installingNative)return {ok:false,busy:true};
   if(gameplayBlocked()){if(status)status.textContent='Encerre o mergulho antes de instalar a atualização.';return {ok:false,gameplayActive:true};}
@@ -99,11 +106,13 @@
    if(data.platform==='android'&&androidBridge()?.installApk){
     result=await androidBridge().installApk({url:data.url,sha256:data.sha256||'',version:data.latestVersion||''});
     if(result?.permissionRequired){
+     permissionResume={data,status,button,at:Date.now()};
      root.AbyssalLoadingScreen?.releaseAfterUpdate('Autorize o Abyssal a instalar atualizações e volte ao jogo.');
-     if(status)status.textContent='Autorize o Abyssal a instalar atualizações e volte ao jogo. Depois toque em ATUALIZAR AGORA novamente.';
+     if(status)status.textContent='Autorize o Abyssal a instalar atualizações e volte ao jogo. Após autorizar, volte ao jogo para continuar automaticamente. Se necessário, toque novamente em ATUALIZAR AGORA.';
      return result;
     }
     if(!result?.ok||!result?.launched)throw new Error('android-installer-not-launched');
+    permissionResume=null;
     root.AbyssalLoadingScreen?.releaseAfterUpdate('Download concluído. Confirme a instalação na tela do Android.');
     if(status)status.textContent='Download concluído. Confirme a instalação na tela do Android.';
     return result;
@@ -146,7 +155,7 @@
   const now=document.createElement('button');now.type='button';now.className='primary-btn';now.dataset.updateNow='';now.textContent='ATUALIZAR AGORA';actions.appendChild(now);
   if(!data.required){
    const later=document.createElement('button');later.type='button';later.className='secondary-btn';later.dataset.updateLater='';later.textContent='DEPOIS';actions.appendChild(later);
-   later.addEventListener('click',()=>{if(installingNative)return;try{sessionStorage.setItem('abyssalUpdateDeferred',String(data.latestVersion||''));}catch(_){}root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização adiada. Abrindo a versão instalada.');el.remove();});
+   later.addEventListener('click',()=>{if(installingNative)return;permissionResume=null;try{sessionStorage.setItem('abyssalUpdateDeferred',String(data.latestVersion||''));}catch(_){}root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização adiada. Abrindo a versão instalada.');el.remove();});
   }
   const help=document.createElement('p');help.className='abyssal-update-help';help.textContent=data.platform==='play'?'A Google Play fará a atualização na instalação existente, sem baixar outro aplicativo.':data.platform==='android'
    ?'O Abyssal baixa o APK oficial dentro do aplicativo. O Android pedirá sua confirmação para instalar a atualização.'
@@ -272,7 +281,7 @@
    if(message){
     if(!data)message.textContent=navigator.onLine===false?'Conecte-se à internet para verificar atualizações.':'Não foi possível verificar agora.';
     else if(data.platform==='play'&&String(data.latestVersion).startsWith('play-'))message.textContent='Nova versão encontrada na Google Play. Confira a janela de atualização.';
-    else if(cmp(data.latestVersion,build.version)<=0)message.textContent='Você já está usando a versão mais recente do Abyssal.';
+    else if(cmp(data.latestVersion,build.version)<=0)message.textContent=cmp(data.serverVersion,build.version)>0?'A versão web é mais recente. O novo instalador ainda não foi publicado. Sua instalação continua segura.':'Você já está usando a versão mais recente publicada do Abyssal.';
     else if(data.updatable===false)message.textContent='O pacote estável ainda não está disponível para atualização.';
     else if(!data.sha256)message.textContent='A nova versão ainda está sendo preparada. Tente novamente em instantes.';
     else message.textContent='Nova versão encontrada. Confira a janela de atualização.';

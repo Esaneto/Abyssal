@@ -137,6 +137,9 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    concurrency:
+      group: abyssal-stable-android
+      cancel-in-progress: false
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
@@ -171,6 +174,10 @@ jobs:
           sed -i "s/minSdkVersion = .*/minSdkVersion = 24/" android/variables.gradle
           sed -i "s/compileSdkVersion = .*/compileSdkVersion = 36/" android/variables.gradle
           sed -i "s/targetSdkVersion = .*/targetSdkVersion = 36/" android/variables.gradle
+      - name: Resolve Android version code from previous stable build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/resolve-android-version.cjs
       - name: Configure Android runtime
         run: node scripts/configure-android.cjs
       - name: Configure native AdMob bridge
@@ -255,6 +262,28 @@ jobs:
           cd ..
           node scripts/configure-android-direct-update.cjs --disable
 
+      - name: Require permanent signing credentials for stable Android
+        if: github.ref == 'refs/heads/main' && vars.ABYSSAL_ADMOB_TEST_MODE != 'true'
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Stable APK cannot be published without the permanent Android signing key and all four signing secrets."
+            exit 1
+          fi
+      - name: Promote signed APK to stable download release
+        if: github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_BASE64 != '' && vars.ABYSSAL_ADMOB_TEST_MODE != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CLIENT_VERSION=$(node -p "require('./package.json').version")
+          test -s android/app/build/outputs/apk/release/app-release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk Abyssal-Android.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify Abyssal-Android.apk
+          node scripts/publish-android-stable.cjs
       - name: Validate unsigned release AAB
         if: env.ANDROID_KEYSTORE_BASE64 == ''
         working-directory: android
@@ -314,24 +343,6 @@ jobs:
         with:
           name: abyssal-android-build-metadata
           path: android-build.txt
-      - name: Promote signed APK to stable download release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_BASE64 != '' && vars.ABYSSAL_ADMOB_TEST_MODE != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          CURRENT_MAIN=$(gh api repos/$GITHUB_REPOSITORY/git/ref/heads/main --jq .object.sha)
-          if [ "$CURRENT_MAIN" != "$GITHUB_SHA" ]; then echo "A newer commit is available; skipping stale stable promotion."; exit 0; fi
-          CLIENT_VERSION=$(node -p "require('./package.json').version")
-          test -s android/app/build/outputs/apk/release/app-release.apk
-          cp android/app/build/outputs/apk/release/app-release.apk Abyssal-Android.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify Abyssal-Android.apk
-          APK_SHA=$(sha256sum Abyssal-Android.apk | cut -d ' ' -f1)
-          printf '{"version":"%s","commit":"%s","sha256":"%s","platform":"android","updatable":true,"signing":"release"}\n' "$CLIENT_VERSION" "$GITHUB_SHA" "$APK_SHA" > Abyssal-Android-build.json
-          gh release upload downloads-2 Abyssal-Android.apk Abyssal-Android-build.json --clobber
-      - name: Explain stable signing requirement
-        if: env.ANDROID_KEYSTORE_BASE64 == ''
-        run: echo "::warning::Production signing is missing. Debug APK is available as a workflow artifact; stable download is not overwritten."
 
 
 

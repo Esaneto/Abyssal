@@ -120,6 +120,13 @@ public class AbyssalUpdaterPlugin extends Plugin {
   }
 
   @PluginMethod
+  public void canInstallApk(PluginCall call) {
+    JSObject result = new JSObject();
+    result.put("allowed", Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getContext().getPackageManager().canRequestPackageInstalls());
+    call.resolve(result);
+  }
+
+  @PluginMethod
   public void installApk(PluginCall call) {
     // Google Play builds never enter the sideload flow, even if JavaScript calls this bridge.
     try {
@@ -196,6 +203,7 @@ public class AbyssalUpdaterPlugin extends Plugin {
         if (!actualSha.equals(expectedSha)) throw new Exception("update-sha256-mismatch");
         if (apk.exists() && !apk.delete()) throw new Exception("cannot-replace-update");
         if (!partial.renameTo(apk)) throw new Exception("cannot-finalize-update");
+        validatePackage(apk, version);
 
         Uri uri = FileProvider.getUriForFile(
             getContext(),
@@ -222,6 +230,19 @@ public class AbyssalUpdaterPlugin extends Plugin {
         call.reject(error.getMessage() == null ? "update-failed" : error.getMessage(), error);
       }
     }, "abyssal-apk-updater").start();
+  }
+
+  private void validatePackage(File apk, String expectedVersion) throws Exception {
+    PackageManager pm = getContext().getPackageManager();
+    int flags = PackageManager.GET_SIGNATURES;
+    PackageInfo installed = pm.getPackageInfo(getContext().getPackageName(), flags);
+    PackageInfo incoming = pm.getPackageArchiveInfo(apk.getAbsolutePath(), flags);
+    if (incoming == null || !getContext().getPackageName().equals(incoming.packageName)) throw new Exception("update-package-mismatch");
+    if (!expectedVersion.isEmpty() && !expectedVersion.equals(incoming.versionName)) throw new Exception("update-version-mismatch");
+    long oldCode = Build.VERSION.SDK_INT >= 28 ? installed.getLongVersionCode() : installed.versionCode;
+    long newCode = Build.VERSION.SDK_INT >= 28 ? incoming.getLongVersionCode() : incoming.versionCode;
+    if (newCode <= oldCode) throw new Exception("update-version-code-not-newer");
+    if (installed.signatures == null || incoming.signatures == null || !new java.util.HashSet<>(java.util.Arrays.asList(installed.signatures)).equals(new java.util.HashSet<>(java.util.Arrays.asList(incoming.signatures)))) throw new Exception("update-signing-key-mismatch");
   }
 
   private HttpURLConnection openFollowingRedirects(String rawUrl) throws Exception {

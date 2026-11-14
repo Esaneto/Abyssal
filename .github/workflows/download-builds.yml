@@ -11,6 +11,9 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    concurrency:
+      group: abyssal-stable-windows
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -120,16 +123,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
       - name: Promote validated installer to stable release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: pwsh
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          $current = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha'
-          if ($LASTEXITCODE -ne 0) { throw 'Could not verify current main' }
-          if ($current -ne $env:GITHUB_SHA) { Write-Host 'Newer main available; skipping stale release.'; exit 0 }
-          $hash = (Get-FileHash desktop/dist/Abyssal-Setup.exe -Algorithm SHA256).Hash.ToLower()
-          $version = (Get-Content package.json | ConvertFrom-Json).version
-          @{version=$version; commit=$env:GITHUB_SHA; sha256=$hash; platform='windows'; updatable=$true} | ConvertTo-Json -Compress | Set-Content -Encoding utf8 desktop/dist/Abyssal-Windows-build.json
-          gh release upload downloads-2 desktop/dist/Abyssal-Setup.exe desktop/dist/Abyssal-Windows-build.json --clobber
-          if ($LASTEXITCODE -ne 0) { throw 'Stable Windows release upload failed' }
+        run: node scripts/publish-windows-stable.cjs
