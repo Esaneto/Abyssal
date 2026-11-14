@@ -10,7 +10,8 @@
   const weight=clamp(finite(old.weight)+(target-finite(old.weight))*(1-Math.exp(-dt*(target>old.weight?12:7))),0,1);
   const cadence=powered?2.8:4.1+Math.min(1.8,speed)*1.6;
   const phase=(finite(old.phase)+dt*cadence*(.25+.75*weight))%TAU;
-  return {phase,weight,powered:Boolean(powered)};
+  const hairFlow=clamp(finite(old.hairFlow)+(Number(Boolean(powered))-finite(old.hairFlow))*(1-Math.exp(-dt*3.8)),0,1);
+  return {phase,weight,powered:Boolean(powered),hairFlow};
  }
  function leg(side,phase,weight=1,powered=false){
   const a=clamp(finite(weight),0,1)*(powered?.23:1);
@@ -34,7 +35,7 @@
   return {shoulder,elbow,hand:[...grip]};
  }
  // Bounds in renderer coordinates; fit the same playable art, not a replacement sprite.
- function previewFrame(width,height,heading=0,aim=heading,held='none',powered=false){
+ function previewFrame(width,height,heading=0,aim=heading,held='none',powered=false,hairStyle='classic'){
   width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));heading=finite(heading);aim=finite(aim,heading);
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   function include(x0,y0,x1,y1,a){
@@ -42,6 +43,7 @@
    for(const x of [x0,x1])for(const y of [y0,y1]){const px=x*co-y*si,py=x*si+y*co;minX=Math.min(minX,px);maxX=Math.max(maxX,px);minY=Math.min(minY,py);maxY=Math.max(maxY,py);}
   }
   include(-86,-35,44,34,heading);
+  if(!['classic','short','shaved'].includes(hairStyle))include(-53,-45,64,45,heading);
   if(held==='abyssWeapon')include(-6,-6,73,34,aim);
   else if(held!=='none')include(powered?-116:-6,-19,68,25,aim);
   const scale=Math.min(width*.85/(maxX-minX),height*.84/(maxY-minY));

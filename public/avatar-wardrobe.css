@@ -38,3 +38,8 @@
 #submarineWorkshop .aw-option-copy small{font-size:11px;line-height:1.35;font-weight:500;color:#a6c1c8}
 #submarineWorkshop .aw-option:has(.aw-option-copy small){padding:10px;min-height:58px}
 #submarineWorkshop .aw-option:has(.aw-option-copy small) .aw-swatch{width:28px;height:28px;border-radius:6px}
+
+/* Hair cards use the actual shared diver renderer, not concept thumbnails. */
+#submarineWorkshop .aw-choices[data-category=hair]{grid-template-columns:repeat(2,minmax(0,1fr))}
+#submarineWorkshop .aw-choices[data-category=hair] .aw-option{flex-direction:column;text-align:center;gap:4px;padding:5px;min-height:92px}
+#submarineWorkshop .aw-hair-thumb{display:block;position:relative!important;inset:auto!important;width:100%!important;height:auto!important;max-width:112px;aspect-ratio:1;background:radial-gradient(ellipse,#31515c,#0b1b27 75%);border-radius:5px}

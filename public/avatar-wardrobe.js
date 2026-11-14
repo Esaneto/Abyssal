@@ -19,9 +19,11 @@
   const footer=element('div','aw-footer'),reset=element('button','aw-secondary','Restaurar padrão'),save=element('button','aw-primary','Salvar aparência');reset.type=save.type='button';footer.append(reset,save);
   for(const key of [...Object.keys(base.slots),'equipment']){const b=element('button','',labels[key]);b.type='button';b.dataset.category=key;b.onclick=()=>{category=key;renderChoices();};tabs.append(b);}
   function renderChoices(){
+   choices.dataset.category=category;
    for(const b of tabs.children)b.setAttribute('aria-pressed',String(b.dataset.category===category));choices.replaceChildren();
    for(const item of category==='equipment'?tools:base.slots[category]){
     const b=element('button','aw-option');b.type='button';b.setAttribute('aria-pressed',String((category==='equipment'?held:draft[category])===item.id));
+    if(category==='hair'){const thumb=element('canvas','aw-hair-thumb');thumb.width=100;thumb.height=100;thumb.setAttribute('aria-hidden','true');b.append(thumb);const tc=thumb.getContext('2d');if(tc){const appearance=base.select(draft,'hair',item.id);window.AbyssalDiverArt?.draw(tc,50,83,77,-Math.PI/2,-Math.PI/2,0,{gender,appearance,heldItem:'none',moving:false,reducedMotion:true,helmetLamp:true});}}
     if(item.swatch){const swatch=element('span','aw-swatch');swatch.style.background=item.swatch;b.append(swatch);}
     const copy=element('span','aw-option-copy');copy.append(element('strong','',item.name));if(item.description)copy.append(element('small','',item.description));b.append(copy);
     b.onclick=()=>{if(category==='equipment')held=item.id;else draft=base.select(draft,category,item.id);message.textContent=category==='equipment'?'Equipamento apenas para prévia.':'Alterações em prévia.';renderChoices();paint(performance.now());};choices.append(b);
@@ -30,10 +32,10 @@
   function paint(now){
    const ctx=canvas.getContext('2d');if(!ctx)return;const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);
    const angle=swim?-.10:-Math.PI/2,aim=held==='none'||swim?angle:0,powered=swim&&held==='abyssPropulsorIdle';
-   const frame=window.AbyssalDiverRig?.previewFrame(w,h,angle,aim,held,powered)||{x:w/2,y:h*.42,r:h*.12};
+   const frame=window.AbyssalDiverRig?.previewFrame(w,h,angle,aim,held,powered,draft.hair)||{x:w/2,y:h*.42,r:h*.12};
    ctx.save();ctx.translate(flipped?w-frame.x:frame.x,frame.y);if(flipped)ctx.scale(-1,1);const r=frame.r;
    motion=window.AbyssalDiverRig?.advance(motion,swim?1:0,poseAt?Math.min(.10,(now-poseAt)/1000):0,swim&&held==='abyssPropulsorIdle');poseAt=now;
-   window.AbyssalDiverArt?.draw(ctx,0,reduceMotion?.matches?0:Math.sin(now*.0015)*4,r,angle,aim,now,{gender,appearance:draft,motion,moving:swim,heldItem:swim&&held==='abyssPropulsorIdle'?'abyssPropulsor':held,propulsorActive:swim&&held==='abyssPropulsorIdle',helmetLamp:true});ctx.restore();
+   window.AbyssalDiverArt?.draw(ctx,0,reduceMotion?.matches?0:Math.sin(now*.0015)*4,r,angle,aim,now,{gender,appearance:draft,motion,moving:swim,heldItem:swim&&held==='abyssPropulsorIdle'?'abyssPropulsor':held,propulsorActive:swim&&held==='abyssPropulsorIdle',reducedMotion:Boolean(reduceMotion?.matches&&!swim),helmetLamp:true});ctx.restore();
   }
   function tick(now){raf=0;if(!page.isConnected||page.closest('[hidden]')||document.hidden)return;if(now-last>=42){last=now;paint(now);}if(!reduceMotion?.matches||swim)raf=requestAnimationFrame(tick);}
   function start(){if(!raf&&page.isConnected&&!page.closest('[hidden]')&&!document.hidden)raf=requestAnimationFrame(tick);}

@@ -1,6 +1,87 @@
 /* Abyssal anatomical pressure suit. Coordinates are shared with diver-art's
  * existing weapon rig; geometry, gameplay scale and equipment anchors stay intact. */
 (function(root){'use strict';
+
+// All positions use the original head coordinate system (+x toward the crown).
+// Each lock has a fixed root; only the free length is deformed by water.
+// Layers are intentionally separate so future eyewear and head accessories can
+// be added without baking them into the hair or changing combat geometry.
+const HAIR_STYLES=Object.freeze(['classic','short','long','shaved','whiteLong','wildGreen','silverBraid','tealSpikes','whiteCurls','greenUndercut','ghostStraight','abyssPunk']);
+const HAIR_ANCHOR=Object.freeze([31,0]);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function hairGeometry(style,time=0,weight=0,flow=0){
+ if(!HAIR_STYLES.includes(style))style='classic';
+ time=Number.isFinite(time)?time:0;weight=clamp(Number(weight)||0,0,1);flow=clamp(Number(flow)||0,0,1);
+ const seconds=time*.001,locks=[];
+ // Cubic centreline sampled in normalized distance. Displacement is zero
+ // at the root and grows quadratically toward the tip. No whole-hair rotation.
+ function lock(layer,root,a,b,tip,width,flex=1,accent=false){
+  const seed=locks.length*1.71,points=[],count=10;
+  for(let i=0;i<=count;i++){
+   const u=i/count,v=1-u,env=u*u,osc=Math.sin(seconds*1.9+seed-u*4.2),slow=Math.sin(seconds*1.1+seed*.71-u*2.5);
+   const x=v*v*v*root[0]+3*v*v*u*a[0]+3*v*u*u*b[0]+u*u*u*tip[0] +env*flex*(slow*1.6-weight*3.4-flow*5.5);
+   const y=v*v*v*root[1]+3*v*v*u*a[1]+3*v*u*u*b[1]+u*u*u*tip[1]+env*flex*(osc*(1.5+weight*1.7+flow*2.8));
+   points.push([x,y]);
+  }
+  locks.push({layer,root:[...root],points,width,accent});
+ }
+ const crown=(side,reach=12,width=5,accent=false)=>lock('crown',[34,side*4],[43,side*4],[43+reach*.65,side*12],[38+reach,side*17],width,.42,accent);
+ const tail=(side,len,spread,width,i=0,accent=false)=>lock('back',[28,side*6],[22,side*(12+i*2)],[12-len*.36,side*(spread+i*2)], [26-len,side*(spread+i*2)],width,1,accent);
+ if(style==='shaved')return locks;
+ if(style==='classic'||style==='short'){
+  for(const side of [-1,1])lock('crown',[33,side*3],[40,side*2],[41,side*7],[34,side*10],style==='short'?2.2:3.3,.22);
+  if(style==='classic')tail(-1,20,15,3.5);
+ }else if(style==='long'||style==='whiteLong'){
+  const n=style==='whiteLong'?5:3;
+  for(const side of [-1,1]){for(let i=0;i<n;i++)tail(side,style==='whiteLong'?45+i*3:34+i*3,18+i*2,5.2-i*.5,i*.3);crown(side,style==='whiteLong'?9:5,5);}
+  lock('crown',[34,0],[43,-3],[54,-12],[48,-22],5.5,.65);
+ }else if(style==='wildGreen'){
+  for(const side of [-1,1]){for(let i=0;i<4;i++)lock('back',[28,side*5],[24+i,side*(19+i*2)],[3-i*5,side*(39-i*2)],[-7-i*5,side*(20+i*3)],5.2-i*.5,1.15);crown(side,14,5);}
+  lock('crown',[33,0],[45,-4],[52,6],[56,-14],6,.8);
+ }else if(style==='silverBraid'){
+  crown(-1,7,5);crown(1,5,4);tail(-1,26,15,4);
+  lock('braid',[28,8],[18,15],[0,21],[-24,19],4.5,.72);
+ }else if(style==='tealSpikes'){
+  for(let i=0;i<9;i++){const k=(i-4)/4;lock('crown',[33, k*6],[41,k*8],[48+7*(1-Math.abs(k)),k*17],[52+7*(1-Math.abs(k)),k*25],3.4,.26);}
+  for(const side of [-1,1])tail(side,20,19,3);
+ }else if(style==='whiteCurls'){
+  for(let i=0;i<11;i++){const a=i*Math.PI*2/11,dx=Math.cos(a),dy=Math.sin(a),r=17+(i%3)*3;
+   // Rear curls keep the face clear; crown curls sit around the exposed scalp.
+   lock(dx>-.15?'crown':'back',[31+dx*4,dy*5],[33+dx*r*.8,dy*r*.9],[31+dx*r-dy*10,dy*r+dx*10],[31+dx*r*.76+dy*4,dy*r*.8-dx*6],4.5,.65);
+  }
+ }else if(style==='greenUndercut'){
+  for(let i=0;i<5;i++)lock('crown',[34,-2+i*1.3],[47,0-i*2],[48-i*3,-19-i*2],[29-i*5,-24-i*2],4.6-i*.4,.7);
+  tail(-1,36,24,4);
+ }else if(style==='ghostStraight'){
+  for(const side of [-1,1]){for(let i=0;i<4;i++)lock('back',[31,side*(2+i)],[22,side*(13+i*2)],[0,side*(18+i*4)],[-34+i*4,side*(20+i*3)],4.3-i*.45,.62);crown(side,4,4);}
+ }else if(style==='abyssPunk'){
+  for(let i=0;i<6;i++)lock('crown',[34,-4+i*1.6],[45,-2+i],[51-i*2,-14-i*2],[45-i*5,-26-i],4.7-i*.35,.65,i%3===1);
+  for(let i=0;i<4;i++)tail(-1,33+i*5,24+i*2,4.5-i*.5,i*.2,i%2===0);
+  lock('braid',[29,8],[18,14],[2,22],[-18,17],3.2,.65,true);
+ }
+ return locks;
+}
+function drawHairLayer(c,locks,layer,hair,detail=true){
+ const color=hair||['#121920','#46505b','#232b34'];
+ for(const lock of locks){
+  if(lock.layer!==layer)continue;
+  const p=lock.points,n=p.length,w=lock.width,pal=lock.accent?['#163b2a','#a1ed69','#419d54']:color;
+  const root=p[0],tip=p[n-1],g=c.createLinearGradient(root[0],root[1],tip[0],tip[1]);
+  g.addColorStop(0,pal[0]);g.addColorStop(.23,pal[2]);g.addColorStop(.49,pal[1]);g.addColorStop(.82,pal[2]);g.addColorStop(1,pal[0]);
+  if(layer==='braid'){
+   for(let i=0;i<n-1;i++){const a=p[i],b=p[i+1],angle=Math.atan2(b[1]-a[1],b[0]-a[0]),size=w*(1-i/n*.58);c.save();c.translate(a[0],a[1]);c.rotate(angle+(i%2?.35:-.35));c.fillStyle=g;c.strokeStyle=pal[0];c.lineWidth=.6;c.beginPath();c.ellipse(0,0,Math.max(2,size*1.13),Math.max(1.3,size*.67),0,0,Math.PI*2);c.fill();c.stroke();c.restore();}
+   const q=p[n-2];c.save();c.translate(q[0],q[1]);c.rotate(Math.atan2(tip[1]-q[1],tip[0]-q[0]));c.fillStyle='#a0d5bd';c.fillRect(-1.2,-2.2,2.4,4.4);c.restore();continue;
+  }
+  const left=[],right=[];
+  for(let i=0;i<n;i++){
+   const a=p[Math.max(0,i-1)],b=p[Math.min(n-1,i+1)],dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy)||1,u=i/(n-1),radius=w*(.64+.36*Math.sin(u*Math.PI))*Math.pow(1-u,.72)+.11;
+   left.push([p[i][0]-dy/len*radius,p[i][1]+dx/len*radius]);right.push([p[i][0]+dy/len*radius,p[i][1]-dx/len*radius]);
+  }
+  c.beginPath();c.moveTo(...left[0]);for(let i=1;i<n;i++)c.lineTo(...left[i]);for(let i=n-1;i>=0;i--)c.lineTo(...right[i]);c.closePath();c.fillStyle=g;c.fill();c.strokeStyle=pal[0];c.lineWidth=.48;c.stroke();
+  if(detail){c.beginPath();c.moveTo(...p[0]);for(let i=1;i<n;i++)c.lineTo(...p[i]);c.strokeStyle=pal[1];c.lineWidth=.58;c.globalAlpha=.56;c.stroke();c.globalAlpha=1;}
+ }
+}
+
 function body(c,t,options,look={}){
  const rig=root.AbyssalDiverRig,phase=Number.isFinite(options.motion?.phase)?options.motion.phase:(Number(t)||0)*.008,swim=options.moving!==false,female=options.gender==='female';
  const weight=Number.isFinite(options.motion?.weight)?options.motion.weight:(swim?1:0),powered=Boolean(options.motion?.powered||options.propulsorActive);
@@ -33,13 +114,10 @@ function body(c,t,options,look={}){
   }else if(scout){line([len*.2,-w*.55],[len*.84,-v*.7],s[3],.75);}
   c.restore();
  }
- // Rear hair is composited before the suit, cylinders and helmet.
- if(look.hairStyle!=='shaved'){
-  const long=look.hairStyle==='long'||(look.hairStyle!=='short'&&female),len=long?43:13;
-  const drift=Math.sin(phase*.54)*3.5*weight+Math.sin((Number(t)||0)*.0016)*.65;
-  path(()=>{c.moveTo(30,-8);c.quadraticCurveTo(27,-14,23,-10);c.bezierCurveTo(17,-13,12-len*.5,-17+drift,24-len,-12+drift);c.quadraticCurveTo(17-len,-9,24-len,-6+drift);c.bezierCurveTo(19,-8,24,-5,27,-7);c.closePath();},hair[0],'#070e15',.5);
-  for(let i=0;i<(long?7:4);i++){const y=-10+i*.68;path(()=>{c.moveTo(27,y);c.bezierCurveTo(20,-14+i,18-len*.3,-17+i+drift,24-len,-12+i*.9+drift);},null,i%3===0?hair[1]:hair[2],.7);}
- }
+ // Hair is independent of gender, suit, equipment and collision.
+ const hairStyle=look.hairStyle||'classic',hairFlow=Number.isFinite(options.motion?.hairFlow)?options.motion.hairFlow:(powered?1:0);
+ const locks=hairGeometry(hairStyle,options.reducedMotion?0:t,options.reducedMotion?0:weight,options.reducedMotion?0:hairFlow);
+ c.save();drawHairLayer(c,locks,'back',hair,options.detail!==false);c.restore();
  // Far leg first. Tapered thigh/calf, flexible boot and rubber blades.
  for(const side of [-1,1]){
   const pose=rig?.leg(side,phase,weight,powered)||{hip:[-16,side*5.5],knee:[-34,side*7.5],ankle:[-53,side*8],finAngle:0};
@@ -137,6 +215,9 @@ function body(c,t,options,look={}){
  }else if(polar){
   path(()=>{c.moveTo(21,-8);c.quadraticCurveTo(23,-13,33,-12);c.quadraticCurveTo(40,-10,40,-2);c.lineTo(37,-3);c.quadraticCurveTo(35,-9,28,-8);c.lineTo(22,-5);c.closePath();},panelShade,'#3b5866',.85);
  }else if(scout){line([23,-7],[31,-9],'#a4b68a',1.3);}
+ // Crown locks attach to the skull before the mask, keeping eyewear and lamp in front.
+ c.save();drawHairLayer(c,locks,'crown',hair,options.detail!==false);c.restore();
+ if(hairStyle==='greenUndercut'){for(let i=0;i<3;i++)line([24+i*2,6],[25+i*2,8],hair[2],.55);}
  // Human face is seen through a tinted pressure mask, not a solid blue plate.
  const face=grad([25,-7],[36,7],[[0,'#c5a18a'],[.42,'#967768'],[1,'#4a4143']]);
  path(()=>{c.moveTo(26,-7);c.quadraticCurveTo(33,-8,34,-4);c.lineTo(36,-1);c.lineTo(34.4,.7);c.quadraticCurveTo(35,4,31,6.6);c.lineTo(27,5);c.lineTo(25,-2);c.closePath();},face,'#26303a',.5);
@@ -153,7 +234,8 @@ function body(c,t,options,look={}){
  path(()=>{c.moveTo(22,5);c.quadraticCurveTo(25,13,34.5,5.7);},null,'#5e727b',1.6);
  box(32.5,2.2,6.3,5.8,2,'#1b2b35','#71888e',.75);oval(37,5,1.3,1.6,'#60777c');
  for(const off of [-1,0,1])line([34,5+off],[36,5+off],'#b6c5c4',.45);
- if(look.hairStyle!=='shaved'){path(()=>{c.moveTo(22,-8);c.quadraticCurveTo(26,-13,31,-9);c.lineTo(28,-7.5);c.quadraticCurveTo(25,-9,22,-6.5);c.closePath();},hair[0],'#0a141c',.45);}
+ // Braids drape over the shoulder, never across the pressure mask.
+ c.save();drawHairLayer(c,locks,'braid',hair,options.detail!==false);c.restore();
  if(options.helmetLamp){box(33,-12,7,4.6,1.4,'#384d58','#a5b9b9',.8);oval(39,-9.7,1.8,1.6,'#d6ffed');}
  // Glove geometry follows the wrist-to-hand vector and preserves the grip center.
  limb.glove=(hand,wrist,gripping=false)=>{
@@ -167,5 +249,5 @@ function body(c,t,options,look={}){
  };
  return limb;
 }
-root.AbyssalRealisticBody=Object.freeze({draw:body});
+root.AbyssalRealisticBody=Object.freeze({draw:body,hairGeometry,HAIR_STYLES,HAIR_ANCHOR});
 })(typeof globalThis!=='undefined'?globalThis:this);
