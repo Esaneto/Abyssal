@@ -79,3 +79,7 @@
 #submarineWorkshop .aw-footer{padding-top:7px}
 #submarineWorkshop .aw-empty{grid-column:1/-1;color:#b3c7ce;padding:14px 8px}
 @media(max-width:850px){#submarineWorkshop .abyss-wardrobe{grid-template-columns:1fr;gap:8px}#submarineWorkshop .aw-stage{position:relative;top:auto}#submarineWorkshop .aw-canvas{max-height:clamp(190px,32vh,280px)}#submarineWorkshop .aw-choices{max-height:clamp(180px,38vh,330px)}#submarineWorkshop .aw-view{grid-template-columns:repeat(3,minmax(0,1fr))}#submarineWorkshop .aw-view button{min-height:40px}#submarineWorkshop .aw-groups button{min-height:44px}}
+
+#submarineWorkshop .aw-selected{min-width:0;border-top:1px solid #38545f;padding:7px 2px 0;display:grid;gap:3px}
+#submarineWorkshop .aw-selected strong{font-size:12px;color:#e4f7f7}
+#submarineWorkshop .aw-selected small{font-size:11px;color:#aec5ce;line-height:1.35}

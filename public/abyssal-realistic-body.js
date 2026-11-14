@@ -306,11 +306,11 @@ function body(c,t,options,look={}){
   path(()=>{c.moveTo(34.3,3.4);c.quadraticCurveTo(34.8,5.3,34,6.5);},null,'#51413c',.6);
   if(look.eyewear&&look.eyewear!=='none'){const col=look.eyewear==='tactical'?'#83e4e8':look.eyewear==='square'?'#b19a79':'#b6c9cc';oval(32.8,5,1.9,2.4,null,col,.65);line([33.5,2.8],[32,-.4],col,.65);}
   const sideMask=()=>{c.moveTo(36,1.5);c.quadraticCurveTo(37,7.2,34.4,10.5);c.lineTo(29.8,10.6);c.quadraticCurveTo(28.6,5.5,30.3,1.5);c.closePath();};
-  path(sideMask,null,'#0b1e29',2);c.save();c.globalAlpha=.53;path(sideMask,grad([35,2],[30,11],[[0,glass[0]],[.4,glass[1]],[1,glass[3]]]),null);c.restore();path(sideMask,null,'#a2c3c8',.7);
-  line([35,3.5],[34.5,7.5],'#e2f8f6ac',.75);
+  if(!masks[look.maskId]){path(sideMask,null,'#0b1e29',2);c.save();c.globalAlpha=.53;path(sideMask,grad([35,2],[30,11],[[0,glass[0]],[.4,glass[1]],[1,glass[3]]]),null);c.restore();path(sideMask,null,'#a2c3c8',.7);
+  line([35,3.5],[34.5,7.5],'#e2f8f6ac',.75);}
   path(()=>{c.moveTo(31,1.5);c.lineTo(31,-7);},null,'#1b303c',2.7);line([31,-6],[31,1],'#58717b',.55);
   path(()=>{c.moveTo(18,-13);c.bezierCurveTo(22,-19,26,-4,26,7);},null,'#09131b',3);path(()=>{c.moveTo(18,-13);c.bezierCurveTo(22,-19,26,-4,26,7);},null,'#55707a',1.45);
-  box(23.8,5.5,5.2,8,2.1,'#1b303c','#7a939b',.65);oval(26.3,10.7,1.7,2.3,'#405762','#15252f',.5);customMask();
+  if(!masks[look.maskId]){box(23.8,5.5,5.2,8,2.1,'#1b303c','#7a939b',.65);oval(26.3,10.7,1.7,2.3,'#405762','#15252f',.5);}else customMask();
  }else{
  c.translate(0,-1.25*yaw);c.scale(1,1-.12*yaw);
  const face=grad([30,-6],[30,6],[[0,skin[0]],[.35,skin[1]],[.66,skin[2]],[1,skin[3]]]);
@@ -322,11 +322,11 @@ function body(c,t,options,look={}){
  // Panoramic transparent mask, twin eyes remain readable under tinted glass.
  const mask=grad([35,-7],[28,7],[[0,glass[0]],[.30,glass[1]],[.67,glass[2]],[1,glass[3]]]);
  const maskShape=()=>{c.moveTo(35.2,-6.6);c.quadraticCurveTo(37,-3.4,35.7,0);c.quadraticCurveTo(37,3.4,35.2,6.6);c.lineTo(30.2,6.5);c.quadraticCurveTo(28.8,3.4,30.5,0);c.quadraticCurveTo(28.8,-3.4,30.2,-6.5);c.closePath();};
- path(maskShape,null,'#0b1e29',2.0);c.save();c.globalAlpha=.48;path(maskShape,mask,null);c.restore();path(maskShape,null,'#a2c3c8',.65);
- path(()=>{c.moveTo(34.8,-5.2);c.quadraticCurveTo(35.5,-3.7,34.6,-1.2);},null,'#e2f8f6ac',.7);
+ if(!masks[look.maskId]){path(maskShape,null,'#0b1e29',2.0);c.save();c.globalAlpha=.48;path(maskShape,mask,null);c.restore();path(maskShape,null,'#a2c3c8',.65);
+ path(()=>{c.moveTo(34.8,-5.2);c.quadraticCurveTo(35.5,-3.7,34.6,-1.2);},null,'#e2f8f6ac',.7);}
  // Regulator centered at the mouth and hose routed behind the shoulder.
  path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#09131b',3.0);path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#55707a',1.55);
- box(23.6,-3.5,5.4,7,2.0,'#1b303c','#7a939b',.6);oval(26.2,0,1.7,2.2,'#405762','#15252f',.5);for(const y of [-1,0,1])line([25.7,y],[26.8,y],'#a3c1c3',.35);customMask();
+ if(!masks[look.maskId]){box(23.6,-3.5,5.4,7,2.0,'#1b303c','#7a939b',.6);oval(26.2,0,1.7,2.2,'#405762','#15252f',.5);for(const y of [-1,0,1])line([25.7,y],[26.8,y],'#a3c1c3',.35);}else customMask();
  }
  c.restore();
  if(look.headgear==='comms'){box(27,-9.2,5.5,3.5,1.1,'#273d47','#8da9b0',.55);path(()=>{c.moveTo(30,-9);c.lineTo(38,-11.5);},null,'#78949b',.8);oval(38,-11.5,.65,.65,'#91ead9');}else if(look.headgear==='temple'){box(33,7.1,4,3.1,.7,'#2f4955','#87b6b8',.5);line([34,8.5],[36,8.5],'#a2fff1',.8);}else if(look.headgear==='clip'&&hairStyle!=='shaved'){line([38,-5],[35,-8],'#e1be7e',1.1);line([39,-5],[36,-8],'#b28f54',.7);}
