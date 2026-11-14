@@ -121,6 +121,15 @@ public class AbyssalUpdaterPlugin extends Plugin {
 
   @PluginMethod
   public void installApk(PluginCall call) {
+    // Google Play builds never enter the sideload flow, even if JavaScript calls this bridge.
+    try {
+      PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), PackageManager.GET_PERMISSIONS);
+      boolean direct = false;
+      if (info.requestedPermissions != null) for (String permission : info.requestedPermissions) {
+        if ("android.permission.REQUEST_INSTALL_PACKAGES".equals(permission)) direct = true;
+      }
+      if (!direct) { call.reject("play-build-use-google-play-update"); return; }
+    } catch (Exception error) { call.reject("update-channel-unavailable", error); return; }
     String rawUrl = call.getString("url", "");
     String expectedSha = call.getString("sha256", "").toLowerCase(Locale.ROOT).trim();
     String version = call.getString("version", "latest").replaceAll("[^0-9A-Za-z._-]", "");

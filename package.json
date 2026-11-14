@@ -1,6 +1,6 @@
 {
   "name": "abyssal-ecos-das-profundezas",
-  "version": "3.6.80",
+  "version": "3.6.81",
   "private": true,
   "description": "Abyssal: lobby compartilhado, combate online autoritativo, simulação e combate autoritativos no servidor, ressincronização de vida ao retornar da aba, correção de hits invisíveis e interpolação autoritativa",
   "main": "server.js",
@@ -10,7 +10,9 @@
     "test": "node scripts/test-current.cjs",
     "capacity:sample": "node scripts/capacity-sample.cjs",
     "preflight:roxycloud": "node scripts/roxycloud-preflight.cjs",
-    "test:legacy": "node --test"
+    "test:legacy": "node --test",
+    "play:catalog": "node scripts/play-catalog.cjs",
+    "play:catalog:check": "node scripts/play-catalog.cjs --check"
   },
   "engines": {
     "node": ">=22 <27"

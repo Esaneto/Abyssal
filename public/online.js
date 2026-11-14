@@ -958,6 +958,8 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
   if(/android/i.test(ua)){message.textContent='No Android: abra no Chrome, toque no menu ⋮ e escolha “Instalar app” ou “Adicionar à tela inicial”.';return;}
   message.textContent='No Chrome/Edge: abra o menu do navegador e procure “Instalar Abyssal” ou “Instalar esta página como aplicativo”.';
  });
+ // The installed Android game must not advertise an alternative APK installer.
+ if(window.Capacitor?.getPlatform?.()==='android')document.querySelectorAll('[data-platform="android"]').forEach(button=>{button.hidden=true;button.removeAttribute('href');button.setAttribute('aria-hidden','true');});
  document.querySelectorAll('[data-platform]').forEach(button=>button.addEventListener('click',()=>{
   if(button.tagName==='A')return;
   const platform=button.dataset.platform,message=$('downloadInstallMessage');if(!message)return;

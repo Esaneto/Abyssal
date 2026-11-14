@@ -1,0 +1,574 @@
+{
+  "packageName": "com.esaneto.abyssal",
+  "currency": "BRL",
+  "status": "planned_not_registered",
+  "products": [
+    {
+      "productId": "cosmetic_fins_ion",
+      "gameId": "avatar:fins:ion",
+      "title": "Rastro de Íons",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "fins"
+    },
+    {
+      "productId": "cosmetic_fins_leviathan",
+      "gameId": "avatar:fins:leviathan",
+      "title": "Cauda do Leviatã",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "fins"
+    },
+    {
+      "productId": "cosmetic_fins_medusa",
+      "gameId": "avatar:fins:medusa",
+      "title": "Véu de Medusa",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "fins"
+    },
+    {
+      "productId": "cosmetic_fins_nautilus",
+      "gameId": "avatar:fins:nautilus",
+      "title": "Coroa Náutilo",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "fins"
+    },
+    {
+      "productId": "cosmetic_fins_specter",
+      "gameId": "avatar:fins:specter",
+      "title": "Asas do Espectro",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "fins"
+    },
+    {
+      "productId": "cosmetic_fins_white",
+      "gameId": "avatar:fins:white",
+      "title": "Nadadeiras Boreais",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "fins"
+    },
+    {
+      "productId": "cosmetic_hair_abysspunk",
+      "gameId": "avatar:hair:abyssPunk",
+      "title": "Rebelde das Profundezas",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_asymbob",
+      "gameId": "avatar:hair:asymBob",
+      "title": "Corte Sereia",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_dreadlocks",
+      "gameId": "avatar:hair:dreadlocks",
+      "title": "Raízes do Oceano",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_ghoststraight",
+      "gameId": "avatar:hair:ghostStraight",
+      "title": "Véu da Fossa",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_greenundercut",
+      "gameId": "avatar:hair:greenUndercut",
+      "title": "Corrente Lateral",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_mohawk",
+      "gameId": "avatar:hair:mohawk",
+      "title": "Crista de Tempestade",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_sidesweep",
+      "gameId": "avatar:hair:sideSweep",
+      "title": "Onda Obsidiana",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_silverbraid",
+      "gameId": "avatar:hair:silverBraid",
+      "title": "Trança de Náutilo",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_tealspikes",
+      "gameId": "avatar:hair:tealSpikes",
+      "title": "Crista Abissal",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_topknot",
+      "gameId": "avatar:hair:topKnot",
+      "title": "Dreads Abissais",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_twinbraids",
+      "gameId": "avatar:hair:twinBraids",
+      "title": "Tranças de Corrente",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_whitelong",
+      "gameId": "avatar:hair:whiteLong",
+      "title": "Véu do Leviatã",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_hair_wildgreen",
+      "gameId": "avatar:hair:wildGreen",
+      "title": "Maré Selvagem",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "hair"
+    },
+    {
+      "productId": "cosmetic_mask_depth",
+      "gameId": "avatar:mask:depth",
+      "title": "Máscara de Profundidade",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "mask"
+    },
+    {
+      "productId": "cosmetic_mask_leviathan",
+      "gameId": "avatar:mask:leviathan",
+      "title": "Máscara Leviatã",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "mask"
+    },
+    {
+      "productId": "cosmetic_mask_nautilus",
+      "gameId": "avatar:mask:nautilus",
+      "title": "Máscara Náutilo",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "mask"
+    },
+    {
+      "productId": "cosmetic_mask_resonant",
+      "gameId": "avatar:mask:resonant",
+      "title": "Máscara Ressonante",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "mask"
+    },
+    {
+      "productId": "cosmetic_mask_sentinel",
+      "gameId": "avatar:mask:sentinel",
+      "title": "Máscara Sentinela",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "mask"
+    },
+    {
+      "productId": "cosmetic_mask_specter",
+      "gameId": "avatar:mask:specter",
+      "title": "Máscara Espectro",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "mask"
+    },
+    {
+      "productId": "cosmetic_outfit_ice",
+      "gameId": "avatar:outfit:ice",
+      "title": "Ressonância Polar",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "outfit"
+    },
+    {
+      "productId": "cosmetic_outfit_nautilus",
+      "gameId": "avatar:outfit:nautilus",
+      "title": "Náutilo Elite",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "outfit"
+    },
+    {
+      "productId": "cosmetic_outfit_olive",
+      "gameId": "avatar:outfit:olive",
+      "title": "Rastreador de Maré",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "outfit"
+    },
+    {
+      "productId": "cosmetic_outfit_phantom",
+      "gameId": "avatar:outfit:phantom",
+      "title": "Fantasma de Salmoura",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "outfit"
+    },
+    {
+      "productId": "cosmetic_outfit_rust",
+      "gameId": "avatar:outfit:rust",
+      "title": "Forjador de Fossa",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "outfit"
+    },
+    {
+      "productId": "cosmetic_weapon_forge",
+      "gameId": "avatar:weapon:forge",
+      "title": "Martelo de Fossa",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "weapon"
+    },
+    {
+      "productId": "cosmetic_weapon_nautilus",
+      "gameId": "avatar:weapon:nautilus",
+      "title": "Tridente Náutilo",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "weapon"
+    },
+    {
+      "productId": "cosmetic_weapon_polar",
+      "gameId": "avatar:weapon:polar",
+      "title": "Zero Absoluto",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "weapon"
+    },
+    {
+      "productId": "cosmetic_weapon_specter",
+      "gameId": "avatar:weapon:specter",
+      "title": "Corte Espectral",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "weapon"
+    },
+    {
+      "productId": "cosmetic_weapon_tracker",
+      "gameId": "avatar:weapon:tracker",
+      "title": "Predador Pelágico",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "weapon"
+    },
+    {
+      "productId": "specimen_aberration",
+      "gameId": "aberration",
+      "title": "Eco do Polvo-de-Anéis-Azuis",
+      "priceMinorBRL": 999,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_abysscroc",
+      "gameId": "abysscroc",
+      "title": "Tubarão-Touro Estuarino",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_angler",
+      "gameId": "angler",
+      "title": "Núcleo do Peixe-Pescador",
+      "priceMinorBRL": 999,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_armoredgator",
+      "gameId": "armoredgator",
+      "title": "Caranguejo-Ferradura Couraçado",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_atolla",
+      "gameId": "atolla",
+      "title": "Medusa-Atolla Carmesim",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_basketstar",
+      "gameId": "basketstar",
+      "title": "Estrela-Cesto",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_blackcaiman",
+      "gameId": "blackcaiman",
+      "title": "Jacaré-Açu",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_blanket",
+      "gameId": "blanket",
+      "title": "Polvo-Cobertor Sombrio",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_bloodmoon",
+      "gameId": "bloodmoon",
+      "title": "Lula-Vampira Carmesim",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_butterflyray",
+      "gameId": "butterflyray",
+      "title": "Raia-Borboleta",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_combjelly",
+      "gameId": "combjelly",
+      "title": "Medusa-Pente",
+      "priceMinorBRL": 999,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_devourer",
+      "gameId": "devourer",
+      "title": "Núcleo da Lula-Colossal",
+      "priceMinorBRL": 999,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_eagleray",
+      "gameId": "eagleray",
+      "title": "Raia-Águia das Fossas",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_electriceellegacy",
+      "gameId": "electriceellegacy",
+      "title": "Enguia-Elétrica Abissal",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_gharial",
+      "gameId": "gharial",
+      "title": "Gavial das Águas Negras",
+      "priceMinorBRL": 999,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_greenland",
+      "gameId": "greenland",
+      "title": "Tubarão-da-Groenlândia",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_hammerhead",
+      "gameId": "hammerhead",
+      "title": "Tubarão-martelo",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_hawksbill",
+      "gameId": "hawksbill",
+      "title": "Tartaruga-de-Pente",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_kraken",
+      "gameId": "kraken",
+      "title": "Eco da Lula-Kraken",
+      "priceMinorBRL": 999,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_leatherback",
+      "gameId": "leatherback",
+      "title": "Tartaruga-de-Couro",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_leviathan",
+      "gameId": "leviathan",
+      "title": "Eco do Peixe-Remo Leviatã",
+      "priceMinorBRL": 999,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_maw",
+      "gameId": "maw",
+      "title": "Fragmento da Enguia-Pelícano",
+      "priceMinorBRL": 999,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_phantomjelly",
+      "gameId": "phantomjelly",
+      "title": "Medusa-Fantasma Gigante",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_pistolshrimp",
+      "gameId": "pistolshrimp",
+      "title": "Camarão-Pistola",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_reefshark",
+      "gameId": "reefshark",
+      "title": "Tubarão-branco",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_saltcroc",
+      "gameId": "saltcroc",
+      "title": "Crocodilo-Marinho",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_scalyfoot",
+      "gameId": "scalyfoot",
+      "title": "Caramujo-Vulcânico",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_siphonophore",
+      "gameId": "siphonophore",
+      "title": "Caravela Abissal",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_stingray",
+      "gameId": "stingray",
+      "title": "Raia-Prego",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_toxic",
+      "gameId": "toxic",
+      "title": "Anêmona Tóxica",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_violet",
+      "gameId": "violet",
+      "title": "Medusa-Coroa Violeta",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_voidwing",
+      "gameId": "voidwing",
+      "title": "Manta do Nada",
+      "priceMinorBRL": 199,
+      "type": "non_consumable",
+      "category": "specimen"
+    },
+    {
+      "productId": "specimen_zebramoray",
+      "gameId": "zebramoray",
+      "title": "Moreia-Zebra",
+      "priceMinorBRL": 499,
+      "type": "non_consumable",
+      "category": "specimen"
+    }
+  ],
+  "excluded": [
+    {
+      "gameId": "boss_bundle",
+      "reason": "Preço proporcional às skins possuídas no checkout web; não criar SKU fixo até definir oferta Play e regra de propriedade."
+    }
+  ],
+  "energyOnly": [
+    {
+      "gameId": "avatar:hair:long",
+      "title": "Maré Livre",
+      "priceEnergy": 2999
+    },
+    {
+      "gameId": "avatar:hair:whiteCurls",
+      "title": "Coroa de Coral",
+      "priceEnergy": 2999
+    },
+    {
+      "gameId": "avatar:fins:amber",
+      "title": "Nadadeiras Manta",
+      "priceEnergy": 2999
+    }
+  ]
+}

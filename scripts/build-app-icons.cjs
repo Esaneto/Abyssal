@@ -144,10 +144,19 @@ async function buildAndroid(){
   // This script runs after cap add and before cap sync. The generated APK/AAB
   // therefore includes the icon in Android resources rather than only in WebView.
 }
+async function buildPlayListing(){
+  const icon=await sharp(sourceBytes).resize(512,512,{fit:'cover',position:'centre'}).ensureAlpha().png({compressionLevel:9}).toBuffer();
+  await assertVisibleAbyssalIcon(icon,'Google Play listing icon');
+  const meta=await sharp(icon).metadata();
+  if(meta.width!==512||meta.height!==512||meta.channels!==4||icon.length>1024*1024)throw new Error('Google Play icon must be 512x512 RGBA PNG, at most 1 MiB');
+  write(path.join(root,'dist','play-listing','icon-512.png'),icon);
+}
 (async()=>{
   const android=process.argv.includes('--android');
   const desktop=process.argv.includes('--desktop');
-  if(!android&&!desktop)throw new Error('Use --android and/or --desktop.');
+  const play=process.argv.includes('--play');
+  if(!android&&!desktop&&!play)throw new Error('Use --android, --desktop and/or --play.');
+  if(play)await buildPlayListing();
   if(android)await buildAndroid();
   if(desktop)await buildWindows();
 })().catch(e=>{console.error('[icon] generation failed:',e);process.exitCode=1;});
