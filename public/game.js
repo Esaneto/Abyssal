@@ -2760,10 +2760,10 @@ function nextShotVolleyId(){if(!player)return '';player.shotSequence=(Number(pla
 function pointSegmentDistance(x,y,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,t=clamp(((x-ax)*dx+(y-ay)*dy)/Math.max(1e-9,dx*dx+dy*dy),0,1);return Math.hypot(x-ax-dx*t,y-ay-dy*t);}
 function aimAtEnemy(target){
  const dx=target.x-player.x,dy=target.y-player.y,d=Math.hypot(dx,dy),heading=Math.atan2(dy,dx);
- // Solve the lateral barrel offset analytically; iterative muzzle correction
- // flips 180 degrees when an enemy is closer than the barrel length.
+ // Solve the shared continuous lateral muzzle offset with a bounded root search.
+ // The bracket never flips the aim 180 degrees at close range.
  const offset=player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14;
- if(d<=offset)return heading;const angle=Math.asin(clamp(offset/d,-1,1)),side=DIVER_ART?.weaponSide?.(heading)??1,first=heading-side*angle;if((DIVER_ART?.weaponSide?.(first)??1)===side)return first;const second=heading+side*angle;return (DIVER_ART?.weaponSide?.(second)??1)===-side?second:heading;
+ if(d<=offset)return heading;const bound=Math.asin(clamp(offset/d,0,1));let lo=heading-bound,hi=heading+bound;for(let i=0;i<14;i++){const a=(lo+hi)*.5,roll=DIVER_ART?.weaponRoll?.(a)??DIVER_ART?.weaponSide?.(a)??1;if(d*Math.sin(heading-a)-offset*roll>0)lo=a;else hi=a;}return (lo+hi)*.5;
 }
 function automaticWeaponTarget(){
  if(!player)return null;

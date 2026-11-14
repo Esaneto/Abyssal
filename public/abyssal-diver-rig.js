@@ -6,6 +6,12 @@
  const finite=(v,f=0)=>Number.isFinite(v)?v:f;
  const facing=angle=>Math.cos(finite(angle))< -1e-9?-1:1;
  const viewFor=(yaw=.65,heading=0)=>{yaw=clamp(finite(yaw,.65),0,1);const profile=clamp((yaw-.65)/.35,0,1),side=profile>.5?facing(heading):1;return {yaw,profile,facing:side,width:(1-.22*yaw-.10*profile)*side,shear:.055*yaw*(1-profile)*side,headTilt:-.72*profile};};
+ // Continuous projected body yaw from the movement heading. Vertical directions
+ // are full-width frontal/dorsal views, horizontal directions are profiles.
+ function gameplayView(heading=0){
+  const a=finite(heading),x=Math.cos(a),y=Math.sin(a),p=Math.abs(x),blend=p*p*(3-2*p),side=x<0?-1:1;
+  return {yaw:blend,profile:blend,facing:side,width:(1-.32*blend)*side,shear:.045*blend*(1-blend)*side,headTilt:-.72*blend,rear:Math.max(0,y)**2,front:Math.max(0,-y)**2,directional:true};
+ }
  const headPoint=(p,view)=>{const a=view?.headTilt||0,x=p[0]-22,y=p[1];return [22+x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)];};
  const GAMEPLAY_YAW=1;
  const project=(p,view)=>view?[p[0],p[1]*view.width+p[0]*view.shear]:[...p];
@@ -22,7 +28,8 @@
   const delta=Math.atan2(Math.sin(heading-finite(old.heading,heading)),Math.cos(heading-finite(old.heading,heading))),turn=finite(old.turn)+(clamp(delta/Math.max(.016,dt),-3,3)-finite(old.turn))*(1-Math.exp(-dt*6));
   const rollTarget=clamp(turn/3,-1,1)*.82+Math.sin(phase)*weight*(powered?.035:.10),roll=clamp(finite(old.roll)+(rollTarget-finite(old.roll))*(1-Math.exp(-dt*7)), -1,1);
   const breath=(finite(old.breath)+dt*(.31+.12*weight))%1;
-  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath};
+  const prevView=finite(old.viewHeading,heading),viewDelta=Math.atan2(Math.sin(heading-prevView),Math.cos(heading-prevView)),viewHeading=prevView+viewDelta*(1-Math.exp(-dt*16));
+  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,viewHeading,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath};
  }
  function leg(side,phase,weight=1,powered=false,motion=null,view=null){
   const a=clamp(finite(weight),0,1)*(powered?.23:1);
@@ -30,7 +37,7 @@
   const delay=Math.sin(finite(phase)-.72+(side>0?0:Math.PI));
   const brake=clamp(-finite(motion?.drive)/5,0,1),turn=clamp(finite(motion?.turn)/3,-1,1),thigh=side*(.055+.09*brake)+wave*.16*a+turn*.05,hip=[-19,side*7.3];
   const calf=side*(.075+.18*brake)+delay*.27*a+turn*.075;
-  if(view?.profile>.5){
+  if((view?.profile||0)>0){
    // Technical-diver trim: hips remain stable; the knees bend toward the
    // dorsal side, calves alternate, and the blade lags the ankle.
    const w=clamp(finite(weight),0,1),motor=Number.isFinite(motion?.hairFlow)?clamp(motion.hairFlow,0,1):(powered?1:0),braking=clamp(-finite(motion?.drive)/5,0,1);
@@ -39,7 +46,10 @@
    const stroke=.72*Math.sin(p-.55)+.28*Math.sin(2*(p-.55)),flex=(1-motor)*(.54+.22*(1-w)+.19*braking+.43*stroke*w)+motor*.08;
    const calfAngle=hipAngle-Math.max(.035,flex),knee=[hip[0]-24*Math.cos(hipAngle),hip[1]+24*Math.sin(hipAngle)],ankle=[knee[0]-24*Math.cos(calfAngle),knee[1]+24*Math.sin(calfAngle)];
    const ankleLag=(.27*Math.sin(p-1.05)+.07*Math.sin(2*p-1.8))*w,finAngle=calfAngle*motor+(1-motor)*(calfAngle*w-.10*(1-w)+ankleLag+.08*w);
-   return {hip,knee,ankle,finAngle,finFlex:(1-motor)*4.0*Math.sin(p-1.4)*w,finTwist:(1-motor)*(.12+.17*Math.sin(p-1.12)*w)};
+   const sidePose={hip,knee,ankle,finAngle,finFlex:(1-motor)*4.0*Math.sin(p-1.4)*w,finTwist:(1-motor)*(.12+.17*Math.sin(p-1.12)*w)};
+   const blend=view?.directional?clamp(view.profile,0,1):(view.profile>.5?1:0);if(blend>=.999)return sidePose;
+   const frontPose=leg(side,phase,weight,powered,motion,null),mix=(a,b)=>a+(b-a)*blend;
+   return {hip:frontPose.hip.map((v,i)=>mix(v,sidePose.hip[i])),knee:frontPose.knee.map((v,i)=>mix(v,sidePose.knee[i])),ankle:frontPose.ankle.map((v,i)=>mix(v,sidePose.ankle[i])),finAngle:mix(frontPose.finAngle,sidePose.finAngle),finFlex:sidePose.finFlex*blend,finTwist:sidePose.finTwist*blend};
   }
   const knee=[hip[0]-24*Math.cos(thigh),hip[1]+24*Math.sin(thigh)];
   const ankle=[knee[0]-24*Math.cos(calf),knee[1]+24*Math.sin(calf)];
@@ -99,10 +109,10 @@
   return {x:width/2-(minX+maxX)*scale/2,y:height/2-(minY+maxY)*scale/2,r:scale*14/.60};
  }
  // Portrait frame keeps the crown and every animated tip inside its tile.
- function hairPortraitFrame(width,height,style='all'){width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));if(style==='animated'){const scale=Math.min(width/160,height/158);return {x:width/2,y:height*.55,r:scale*14/.60};}const small=['classic','short','shaved','topKnot','mohawk','tealSpikes'].includes(style);const scale=Math.min(width/(small?70:106),height/(small?91:126));return {x:width/2,y:height*(small?.72:.56),r:scale*14/.60};}
+ function hairPortraitFrame(width,height,style='all'){width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));if(style==='animated'){const scale=Math.min(width/160,height/158);return {x:width/2,y:height*.55,r:scale*14/.60};}const small=['classic','short','shaved','mohawk','tealSpikes'].includes(style);const scale=Math.min(width/(small?70:106),height/(small?91:126));return {x:width/2,y:height*(small?.72:.56),r:scale*14/.60};}
  const pair=(a,b)=>Object.freeze([Object.freeze(a),Object.freeze(b)]);
  // Contacts lie on the actual receiver handle, pistol grip and tool handles.
- const rifleGrips=pair([34,2],[22,11]);
+ const rifleGrips=pair([34,2],[21,11]);
  const toolGrips=pair([24,-8],[34,9]);
  const gripSets=Object.freeze({
   abyssWeapon:rifleGrips,abyssPropulsor:toolGrips,abyssPropulsorIdle:toolGrips,
@@ -124,5 +134,5 @@
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
   const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.profile>.5){const tucked=mode==='tool';return {shoulder:project([13,side*13],view),elbow:project([tucked?-5:0,side<0?2:19+brake*2],view),hand:project([tucked?-26:18-brake*3,side<0?8:16+sway*.35+brake*2],view)};}return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
- return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
+ return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });

@@ -63,7 +63,8 @@ function hairGeometry(style,time=0,weight=0,flow=0){
  }else if(style==='asymBob'){
   crown(-1,4,4);crown(1,3,3);for(const side of [-1,1])for(let i=0;i<7;i++)tail(side,side<0?29+i*.8:19+i*.6,12+i*1.4,3.6,i*.3);
  }else if(style==='topKnot'){
-  lock('knot',[34,0],[39,0],[44,0],[47,0],8.0,.18);for(const side of [-1,1])for(let i=0;i<3;i++)lock('crown',[33+i*.5,side*(2+i)],[39,side*(4+i)],[43,side*(3+i)],[45,side*(1+i)],2.5,.19);tail(-1,16,12,2);
+  // Legacy cosmetic ID retained for existing accounts; the knot is replaced by thick individual locs.
+  for(const side of [-1,1]){for(let i=0;i<8;i++){const k=i/7;lock('back',[31+k*4,side*(2+k*5)],[25-k*3,side*(10+k*5)],[7-k*9,side*(15+k*8)],[-15-k*22,side*(17+k*9)],4.0+1.25*Math.sin(k*Math.PI),.74,false,'loc');}for(let i=0;i<5;i++){const k=i/4;lock('crown',[36+k*2,side*(1+k*4)],[44-k*2,side*(5+k*5)],[39-k*4,side*(11+k*5)],[27-k*6,side*(14+k*5)],3.5+.7*Math.sin(k*Math.PI),.48,false,'loc');}}
  }else if(style==='twinBraids'){
   crown(-1,5,4);crown(1,5,4);for(const side of [-1,1])lock('braid',[28,side*7],[19,side*17],[1,side*20],[-29,side*18],4.2,.74);
  }else if(style==='dreadlocks'){
@@ -159,8 +160,9 @@ function body(c,t,options,look={}){
  const grad=(a,b,stops)=>{const g=c.createLinearGradient(...a,...b),dir=(b[0]-a[0])*Math.cos(lightAngle)+(b[1]-a[1])*Math.sin(lightAngle),reverse=dir>0;for(const [p,v] of stops)g.addColorStop(p,tone(v,reverse?1-p:p));return g;};
  const oval=(x,y,rx,ry,fill,stroke,width=.7)=>path(()=>c.ellipse(x,y,rx,ry,0,0,Math.PI*2),fill,stroke,width);
  const box=(x,y,w,h,r,fill,stroke,width=.7)=>path(()=>c.roundRect(x,y,w,h,r),fill,stroke,width);
- const view=options.view||rig?.viewFor?.(0),yaw=view?.yaw||0,profile=(view?.profile||0)>.5,detail=options.detail!==false,roll=profile?clamp(Number(options.motion?.roll)||0,-1,1):0,breathing=profile?Math.sin((Number(options.motion?.breath)||0)*Math.PI*2)*.65:0,bulk=industrial?1.10:polar?1.13:scout?.96:elite?1.06:stealth?.99:1;
+ const view=options.view||rig?.viewFor?.(0),yaw=view?.yaw||0,profileBlend=clamp(view?.profile||0,0,1),rear=clamp(view?.rear||0,0,1),detail=options.detail!==false,roll=profileBlend*clamp(Number(options.motion?.roll)||0,-1,1),breathing=profileBlend*Math.sin((Number(options.motion?.breath)||0)*Math.PI*2)*.65,bulk=industrial?1.10:polar?1.13:scout?.96:elite?1.06:stealth?.99:1;
 
+ let profile=profileBlend>.5;
  // Emission is a deterministic two-pass stroke, not a light source or shader.
  // Both graphics-quality modes retain the same colors, geometry and brightness.
  const emission={rust:'#52e8ff',ice:'#8defff',olive:'#a7fa54',nautilus:'#ffc064',phantom:'#c084ff'}[kind];
@@ -299,6 +301,9 @@ function fantasyFin(id,pose,side){
  if(premium&&detail){const seam=industrial?'#e9b77e':polar?'#d9f4f6':scout?'#a6c08b':elite?'#a5f0d9':'#b7a2f0';for(const side of profile?[1]:[-1,1]){path(()=>{c.moveTo(-3,side*8);c.quadraticCurveTo(-7,side*6,-13,side*10);},null,seam,.62);box(13,side*7-1.3,2.9,2.6,.55,seam,'#15242c',.4);}}
  if(emission){for(const side of profile?[1]:[-1,1]){neon(()=>{c.moveTo(13,side*10.5);c.quadraticCurveTo(5,side*12.4,-2,side*7.9);c.lineTo(-11,side*8.2);},emission,1);neon(()=>{c.moveTo(-17,side*8.6);c.lineTo(-19,side*8.2);},emission,.8);}if(elite||stealth)neon(()=>{c.moveTo(13,-2);c.lineTo(10,0);c.lineTo(13,2);},emission,.8);}
  if(emission&&profile){neon(()=>{c.moveTo(16,-10);c.quadraticCurveTo(6,-12,-3,-9);c.lineTo(-14,-10);},emission,1.3);neon(()=>{c.moveTo(11,5);c.lineTo(7,2);c.lineTo(1,4);c.lineTo(-7,3);c.lineTo(-13,6);},emission,1.05);for(const x of [3,-3,-9])neon(()=>{c.moveTo(x,-5);c.lineTo(x-2,-2);},emission,.85);}
+ // Dorsal equipment is an actual visible surface, progressively occluding chest details.
+ if(rear>.001){c.save();c.globalAlpha*=rear;const plate=grad([0,-12],[0,12],[[0,s[0]],[.35,s[2]],[.65,s[1]],[1,'#0a141c']]);box(-17,-12,35,24,5,plate,'#0b1922',1);for(const side of [-1,1]){const y=side<0?-10:1;const metal=grad([0,y],[0,y+9],[[0,tank[0]],[.28,tank[1]],[.57,tank[2]],[1,tank[4]]]);box(-16,y,32,9,4,metal,'#0a1821',.8);for(const x of [-10,8])box(x,y,3,9,1,'#142630','#6c8790',.65);box(15,y+2,4,5,1,tank[2],'#182731',.6);line([-13,y+2],[12,y+2],tank[1],.8);if(emission)neon(()=>{c.moveTo(-12,y+5);c.lineTo(11,y+5);},emission,1);}
+ box(-3,-2.4,11,4.8,1.5,'#142b36','#607b84',.7);line([16,-6],[22,-4],'#4b6671',1.2);line([16,6],[22,4],'#4b6671',1.2);c.restore();}
  // Neck and rounded anatomical head. Mask sits on a face, rather than a
  // rectangular head replacing the face. Hair roots retain original mounts.
  box(18,-4.1,7.1,8.2,2.3,grad([0,-4],[0,4],[[0,s[2]],[.5,s[1]],[1,s[0]]]),'#142631',.55);
@@ -311,7 +316,8 @@ function fantasyFin(id,pose,side){
  if(hairStyle!=='shaved'){const cap=grad([34,-8],[42,7],[[0,hair[0]],[.43,hair[2]],[.72,hair[1]],[1,hair[0]]]);path(()=>{c.moveTo(33,-7);c.quadraticCurveTo(38,-10,41,-6);c.quadraticCurveTo(44,0,41,6);c.quadraticCurveTo(37,9,33,7);c.quadraticCurveTo(36,0,33,-7);c.closePath();},cap,hair[0],.4);}
  c.save();c.beginPath();c.rect(-150,-150,300,300);if(profile)c.roundRect(22,-.5,15.5,14.5,3);else c.roundRect(22,-8.4,15.4,16.8,3);c.clip('evenodd');unhead();drawHairLayer(c,locks,'knot',hair,detail);drawHairLayer(c,locks,'crown',hair,detail);c.restore();
  const skin={original:['#8b6b59','#c6a38c','#ac8a75','#695655'],light:['#a78372','#f0c9ae','#e3b99c','#987462'],bronze:['#70432e','#c79466','#a56f49','#593a2b'],deep:['#422d29','#946951','#694337','#362724']}[look.skin]||['#8b6b59','#c6a38c','#ac8a75','#695655'];const eye={original:'#223c45',hazel:'#aa8152',blue:'#6bc1ed',green:'#7eae74',violet:'#a48de1'}[look.eyes]||'#223c45';
- c.save();
+ const faceAlpha=1-rear;
+ const drawFace=(sideView,alpha)=>{if(alpha<=.001)return;c.save();c.globalAlpha*=alpha;profile=sideView;
  if(profile){
   // True side-facing facial landmarks: one eye, temple, cheek, nose and mouth.
   const sideFace=grad([31,0],[31,12],[[0,skin[0]],[.40,skin[1]],[.76,skin[2]],[1,skin[3]]]);
@@ -342,9 +348,12 @@ function fantasyFin(id,pose,side){
  path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#09131b',3.0);path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#55707a',1.55);
  if(!masks[look.maskId]){box(23.6,-3.5,5.4,7,2.0,'#1b303c','#7a939b',.6);oval(26.2,0,1.7,2.2,'#405762','#15252f',.5);for(const y of [-1,0,1])line([25.7,y],[26.8,y],'#a3c1c3',.35);}else customMask();
  }
- c.restore();
+ c.restore();};
+ if(view?.directional){drawFace(false,faceAlpha*(1-profileBlend));drawFace(true,faceAlpha*profileBlend);}else drawFace(profile,faceAlpha);profile=profileBlend>.5;
+ // Back of the hood, hair roots and regulator straps; no eyes or visor on a dorsal view.
+ if(rear>.001){c.save();c.globalAlpha*=rear;const hood=grad([28,-9],[37,9],[[0,'#101d26'],[.45,hairStyle==='shaved'?s[2]:hair[2]],[1,hairStyle==='shaved'?s[0]:hair[0]]]);path(()=>{c.moveTo(23,-4);c.quadraticCurveTo(23,-9,32,-9);c.bezierCurveTo(42,-9,44,0,40,6);c.quadraticCurveTo(33,10,25,6);c.closePath();},hood,'#0c1a23',.8);path(()=>{c.moveTo(30,-8);c.quadraticCurveTo(28,0,30,8);},null,'#647d87',1.5);if(hairStyle!=='shaved'){unhead();drawHairLayer(c,locks,'back',hair,detail);drawHairLayer(c,locks,'mane',hair,detail);drawHairLayer(c,locks,'crown',hair,detail);headTransform();}c.restore();}
  if(look.headgear==='comms'){box(27,-9.2,5.5,3.5,1.1,'#273d47','#8da9b0',.55);path(()=>{c.moveTo(30,-9);c.lineTo(38,-11.5);},null,'#78949b',.8);oval(38,-11.5,.65,.65,'#91ead9');}else if(look.headgear==='temple'){box(33,7.1,4,3.1,.7,'#2f4955','#87b6b8',.5);line([34,8.5],[36,8.5],'#a2fff1',.8);}else if(look.headgear==='clip'&&hairStyle!=='shaved'){line([38,-5],[35,-8],'#e1be7e',1.1);line([39,-5],[36,-8],'#b28f54',.7);}
- if(options.helmetLamp){box(35,-9.7,5.2,3.7,1.1,'#354b57','#8eafb7',.55);oval(39,-7.9,1.25,1.2,'#d9fff0');}
+ if(options.helmetLamp&&rear<.75){c.save();c.globalAlpha*=1-rear;box(35,-9.7,5.2,3.7,1.1,'#354b57','#8eafb7',.55);oval(39,-7.9,1.25,1.2,'#d9fff0');c.restore();}
  c.restore();c.restore();return limb;
 }
 root.AbyssalRealisticBody=Object.freeze({draw:body,hairGeometry,simulateHair,HAIR_STYLES,HAIR_ANCHOR});

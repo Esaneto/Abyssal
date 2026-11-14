@@ -10,29 +10,87 @@
  'use strict';
  const TAU=Math.PI*2,DRAW_SCALE=.60,BARREL_TIP_X=69,GUN_OFFSET_Y=12,WELDER_TIP_X=57;
  const weaponSide=angle=>Math.cos(Number(angle)||0)< -1e-9?-1:1;
+ // Smooth 2.5D gun roll around the barrel; full side silhouette beyond 22 degrees.
+ const weaponRoll=angle=>{const x=Math.cos(Number(angle)||0),v=Math.max(-1,Math.min(1,x/.38));return v*(1.5-.5*v*v);};
  const genderOf=value=>value==='female'?'female':'male';
  function muzzle(x,y,r,aim){
   const distance=(Number(r)||13)*DRAW_SCALE*BARREL_TIP_X/14;
   const angle=Number(aim)||0;
-  const below=(Number(r)||13)*DRAW_SCALE*GUN_OFFSET_Y/14*weaponSide(angle);
+  const below=(Number(r)||13)*DRAW_SCALE*GUN_OFFSET_Y/14*weaponRoll(angle);
   return {x:(Number(x)||0)+Math.cos(angle)*distance-Math.sin(angle)*below,y:(Number(y)||0)+Math.sin(angle)*distance+Math.cos(angle)*below};
  }
+// Original cosmetic weapon family: one canonical muzzle and two anatomical contacts.
+// Side silhouettes share the same receiver interface; top view is revealed during roll.
 function rifleShell(c,id='standard'){
- const styles={standard:['#263943','#82939a','#c1cbd0',null],forge:['#302d31','#9c684a','#d9b08a','#52e8ff'],polar:['#294957','#a8cdd4','#e4f6f5','#8defff'],tracker:['#243a29','#607d48','#a0bf79','#a7fa54'],nautilus:['#443125','#b68c51','#f0d099','#ffc064'],specter:['#252237','#665980','#b7a5d5','#c084ff']},[dark,mid,edge,glow]=styles[id]||styles.standard;
- const path=(fn,fill,stroke,w=1)=>{c.beginPath();fn();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=w;c.stroke();}};
- const poly=(pts,fill,stroke=edge,w=.8)=>path(()=>{pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();},fill,stroke,w);
- const box=(x,y,w,h,r,fill,stroke=edge)=>path(()=>c.roundRect(x,y,w,h,r),fill,stroke,.75);
- const oval=(x,y,rx,ry,fill,stroke=edge)=>path(()=>c.ellipse(x,y,rx,ry,0,0,Math.PI*2),fill,stroke,.7);
- const g=c.createLinearGradient(0,-10,0,12);g.addColorStop(0,edge);g.addColorStop(.22,mid);g.addColorStop(.53,dark);g.addColorStop(1,'#101a24');
- const neon=(fn,w=1)=>{if(!glow)return;c.save();c.globalAlpha*=.20;path(fn,null,glow,w+2.5);c.restore();path(fn,null,glow,w);};
- poly([[5,-6],[17,-5],[21,-2],[18,6],[6,8],[3,5],[3,-4]],dark);poly([[19,4],[26,5],[25,15],[21,16],[18,12]],dark);path(()=>{c.moveTo(25,7);c.quadraticCurveTo(29,15,32,8);},null,edge,1.2);
- if(id==='forge'){poly([[15,-7],[23,-10],[49,-10],[55,-5],[55,7],[38,10],[18,6]],g);for(const x of [26,32,38,44]){box(x,-7,3,14,1,dark);neon(()=>{c.moveTo(x+1,-5);c.lineTo(x+1,5);},.9);}box(48,-4,16,8,1,mid);box(63,-3,6,6,1,dark);}
- else if(id==='polar'){poly([[14,-5],[22,-12],[41,-9],[56,-4],[60,0],[54,6],[34,10],[18,6]],g);poly([[36,-4],[53,-3],[47,4],[37,5]],dark);neon(()=>{c.moveTo(23,-8);c.lineTo(37,-5);c.lineTo(54,-3);},1.2);box(55,-2.5,14,5,1,dark);}
- else if(id==='tracker'){path(()=>{c.moveTo(13,-4);c.bezierCurveTo(18,-13,32,-12,38,-6);c.bezierCurveTo(48,-14,58,-8,59,-3);c.lineTo(69,-1);c.lineTo(69,1);c.quadraticCurveTo(53,10,42,6);c.bezierCurveTo(34,13,18,11,13,-4);c.closePath();},g,edge,1);for(const x of [25,33,43,51]){oval(x,0,3,4,dark);neon(()=>{c.moveTo(x-1,-3);c.quadraticCurveTo(x+2,0,x-1,3);},.85);}}
- else if(id==='nautilus'){poly([[16,-6],[24,-9],[42,-7],[48,-3],[46,7],[24,9],[17,5]],g);for(const x of [27,36,45]){oval(x,0,4.5,6,dark);neon(()=>c.ellipse(x,0,2.7,4.5,0,0,Math.PI*2),.9);}for(const y of [-4,0,4]){path(()=>{c.moveTo(46,y);c.lineTo(62,y);c.lineTo(69,y*.28);},null,mid,3);neon(()=>{c.moveTo(49,y);c.lineTo(62,y);c.lineTo(68,y*.28);},.85);}}
- else if(id==='specter'){poly([[13,-4],[27,-11],[43,-7],[62,-5],[69,-1],[69,1],[55,6],[37,9],[19,5]],g);poly([[29,-5],[45,-4],[55,0],[43,4],[29,3]],'#111522');neon(()=>{c.moveTo(17,-4);c.lineTo(29,-8);c.lineTo(57,-3);c.lineTo(68,0);},1.15);poly([[42,-5],[48,0],[42,5],[37,0]],mid,glow,.75);}
- else{poly([[15,-5],[23,-7],[43,-7],[51,-4],[51,5],[36,8],[18,6]],g);box(23,-3,19,6,1.5,dark);for(const x of [27,32,37])box(x,-2,2,4,.4,mid);box(47,-3,16,6,1.2,mid);box(63,-2.3,6,4.6,.6,dark);box(30,-10,10,3,1,dark);path(()=>{c.moveTo(17,-5);c.lineTo(46,-5);},null,edge,.85);}
- box(30,-1,9,6,1.5,dark,mid);oval(68,0,1,1.8,'#15252e',edge);if(glow)neon(()=>{c.moveTo(57,-1);c.lineTo(69,0);},1.1);
+ const models={
+ standard:['#18242d','#536a79','#b7cbd2','#5bb9c9'],
+ forge:['#231d20','#80503e','#d8a77b','#57e6ff'],
+ polar:['#243e50','#8daebc','#e1f4fa','#a5f5ff'],
+ tracker:['#152d26','#41684e','#9dbf8a','#aaff6a'],
+ nautilus:['#352b25','#8f6b3e','#efc98a','#ffcf71'],
+ specter:['#191b31','#514470','#b9a8e4','#cc91ff']};
+ const [dark,mid,edge,glow]=models[id]||models.standard;
+ const path=(fn,fill,stroke,w=.65)=>{c.beginPath();fn();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=w;c.stroke();}};
+ const poly=(pts,fill,stroke='#09131b',w=.9)=>path(()=>{pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();},fill,stroke,w);
+ const box=(x,y,w,h,r,fill,stroke='#0c1820')=>path(()=>c.roundRect(x,y,w,h,r),fill,stroke,.65);
+ const oval=(x,y,rx,ry,fill,stroke)=>path(()=>c.ellipse(x,y,rx,ry,0,0,Math.PI*2),fill,stroke,.6);
+ const line=(pts,color,w=.65)=>path(()=>pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y)),null,color,w);
+ const metal=c.createLinearGradient(0,-12,0,12);[[0,edge],[.19,mid],[.42,dark],[.7,mid],[1,'#101a24']].forEach(([p,v])=>metal.addColorStop(p,v));
+ const shine=(pts,w=.9)=>{c.save();c.globalAlpha*=.24;line(pts,glow,w+2.5);c.restore();line(pts,glow,w);};
+ // Angled loading pad, compact rear stock and distinct pistol grip.
+ poly([[2,-4],[7,-6],[18,-4],[22,-1],[17,5],[7,6],[2,4]],dark);
+ box(1,-5,3,11,1.2,'#0d1820',mid);line([[5,-3],[16,-1]],edge,.65);
+ poly([[18,3],[25,4],[24,9],[22,16],[17,15],[17,11],[19,6]],metal);
+ for(const y of [9,11,13])line([[19,y],[22,y+.7]],'#0b1720',.85);
+ // Guard and trigger, kept clear of the support hand at x=34.
+ path(()=>{c.moveTo(25,4);c.lineTo(31,5);c.quadraticCurveTo(31,12,26,12);c.lineTo(23,10);},null,edge,1.1);
+ path(()=>{c.moveTo(27,5);c.quadraticCurveTo(28,8,25.7,8.5);},null,mid,1.0);
+ // Recessed common receiver and load-bearing front hand contact.
+ poly([[15,-5],[22,-8],[36,-8],[41,-4],[40,4],[34,7],[22,6],[16,3]],metal);
+ box(27,-3.7,12,7.4,1.5,'#101d25',mid);line([[29,-2.2],[37,-2.2]],edge,.55);
+ box(30,1,9,5.5,1.1,dark,mid);for(const x of [32,34.5,37])line([[x,2],[x,5]],edge,.45);
+ // Each forebody is a different silhouette, not a palette swap.
+ if(id==='forge'){
+  poly([[37,-7],[43,-10],[53,-10],[57,-6],[57,7],[50,10],[38,6]],metal);
+  for(const x of [43,47,51]){box(x,-7.3,2.4,14.2,.5,dark,edge);shine([[x+1.2,-5],[x+1.2,5]],.7);}
+  box(56,-4,9,8,1.1,mid);box(64,-3.6,5,7.2,.7,dark,edge);line([[39,-7],[53,-8]],edge);
+ }else if(id==='polar'){
+  poly([[37,-8],[42,-12],[53,-9],[59,-5],[62,-1],[58,5],[48,8],[38,5]],metal);
+  poly([[41,-6],[53,-5],[57,-2],[51,3],[42,4]],dark,mid);
+  shine([[40,-8],[48,-8],[55,-5],[59,-2]],1.05);line([[43,5],[51,4]],edge);
+  box(58,-2.5,11,5,1,dark,mid);
+ }else if(id==='tracker'){
+  path(()=>{c.moveTo(37,-5);c.bezierCurveTo(42,-13,51,-10,55,-5);c.quadraticCurveTo(63,-8,69,-1.5);c.lineTo(69,1.5);c.quadraticCurveTo(60,6,55,4);c.bezierCurveTo(48,12,39,8,37,3);c.closePath();},metal,'#0b1b19',.9);
+  for(const x of [43,48,53]){path(()=>{c.moveTo(x-1,-5);c.quadraticCurveTo(x+4,0,x-1,5);},null,dark,2.5);shine([[x,-4],[x+1.8,0],[x,4]],.65);}
+  line([[56,-2],[66,-1]],edge);oval(58,0,2,2,glow,dark);
+ }else if(id==='nautilus'){
+  poly([[37,-6],[42,-9],[50,-8],[54,-4],[54,5],[48,8],[38,5]],metal);
+  for(const x of [44,50]){oval(x,0,3,6,dark,edge);path(()=>c.ellipse(x,0,1.7,4.2,0,0,Math.PI*2),null,glow,.8);}
+  for(const y of [-5,0,5]){line([[52,y],[61,y],[68,y*.32]],dark,3.7);line([[52,y],[61,y],[68,y*.32]],edge,2.1);shine([[56,y],[61,y],[68,y*.32]],.7);}
+ }else if(id==='specter'){
+  poly([[37,-6],[43,-12],[55,-8],[65,-4],[69,-1],[69,1],[61,5],[46,8],[38,5]],metal);
+  poly([[42,-4],[54,-4],[62,0],[54,4],[42,3]],dark,mid);
+  shine([[42,-8],[55,-5],[66,-1]],1.1);shine([[43,5],[55,3],[66,1]],.7);
+  poly([[48,-4],[53,0],[48,4],[44,0]],mid,glow,.7);
+ }else{
+  poly([[37,-6],[43,-6],[48,-4],[48,4],[43,6],[38,5]],metal);
+  box(47,-3,16,6,1.1,mid,dark);box(62,-3.7,7,7.4,1,dark,edge);
+  line([[39,-4],[46,-4],[60,-2]],edge,.8);line([[49,0],[61,0]],'#16232b',1.35);
+  box(42,-8.5,5,2.7,.5,dark,mid);box(24,-10,10,2.2,.5,dark,mid);
+  line([[25,-9],[32,-9]],edge,.55);line([[42,3],[46,3]],glow,.6);
+ }
+ // Front face terminates at x=69 exactly, matching the shared muzzle.
+ oval(68,0,1,1.65,'#0a151d',edge);if(id!=='standard')oval(68,0,.55,.75,glow);
+ // Small hardware details make the receiver read as a physical assembly.
+ for(const x of [23,38])oval(x,-4.5,.65,.65,edge,dark);
+ line([[18,-4],[22,-6],[35,-6]],edge,.65);
+}
+function rifleTop(c,id,alpha){
+ if(alpha<=.001)return;
+ const color={standard:'#7193a0',forge:'#bf8c68',polar:'#c4e5ed',tracker:'#87b879',nautilus:'#dbb36c',specter:'#aa91d6'}[id]||'#7193a0';
+ c.save();c.globalAlpha*=alpha;c.fillStyle='#101c27';c.strokeStyle=color;c.lineWidth=.7;
+ c.beginPath();c.roundRect(3,-2.4,66,4.8,1.8);c.fill();c.stroke();
+ c.fillStyle=color;c.fillRect(22,-.7,39,1.4);c.fillStyle='#0a1119';c.fillRect(63,-1.4,5,2.8);c.restore();
 }
  function draw(c,x,y,r,heading,aim,t=0,options={}){
   if(!c||!(r>0))return;
@@ -45,9 +103,9 @@ function rifleShell(c,id='standard'){
   c.save();c.translate(x,y);c.rotate(a);c.scale(r*DRAW_SCALE/14,r*DRAW_SCALE/14);
   c.lineJoin='round';c.lineCap='round';
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
-  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(held==='abyssPropulsor'||held==='abyssPropulsorIdle')?0:(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=rig?.viewFor?.(options.viewYaw??(options.gameplay?rig.GAMEPLAY_YAW:.65),a),itemSide=weaponSide(a+relativeAim);
-  const offset=(held==='abyssWeapon'?GUN_OFFSET_Y:5)*itemSide,tool=rig?.toolPose(held,Number(options.swing)||0,view)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
-  const grips=(held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[22,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co])).map(([x,y])=>[x,y*itemSide]);
+  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(held==='abyssPropulsor'||held==='abyssPropulsorIdle')?0:(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=options.gameplay&&options.viewYaw==null?rig?.gameplayView?.(options.motion?.viewHeading??a):rig?.viewFor?.(options.viewYaw??.65,a),itemSide=weaponSide(a+relativeAim),gunRoll=held==='abyssWeapon'?weaponRoll(a+relativeAim):itemSide;
+  const offset=(held==='abyssWeapon'?GUN_OFFSET_Y:5)*gunRoll,tool=rig?.toolPose(held,Number(options.swing)||0,view)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
+  const grips=(held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[21,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co])).map(([x,y])=>[x,y*gunRoll]);
   const pair=(held!=='abyssWelder'&&held!=='none'?rig?.armPair?.(relativeAim,offset,grips,'standard',view):null)||grips.map((g,i)=>rig?.arm(i?1:-1,relativeAim,offset,g,held==='abyssWelder'?'welder':'standard',view)||{shoulder:[6,i?7:-7],elbow:[16,i?12:-12],hand:g});
   const idle=side=>rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0,options.motion,view,held==='abyssWelder'?'tool':'free')||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};
   let farPainted=false;
@@ -280,13 +338,13 @@ function rifleShell(c,id='standard'){
    c.restore();c.restore();return;
   }
   c.translate(0,offset); // Rifle stays on the ventral side of its aim direction.
-  drawGripArms();c.save();c.scale(1,itemSide);
+  drawGripArms();c.save();c.scale(1,gunRoll);
   rifleShell(c,look.weaponId);
   // Gloves settle on two separate contact points, never doubling the arm.
-  c.restore();if(limb.glove)drawGloves();else{c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
-  c.beginPath();c.ellipse(34,2*itemSide,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
-  c.beginPath();c.ellipse(22,11*itemSide,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
+  c.restore();rifleTop(c,look.weaponId,1-Math.abs(gunRoll));if(limb.glove)drawGloves();else{c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
+  c.beginPath();c.ellipse(34,2*gunRoll,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
+  c.beginPath();c.ellipse(21,11*gunRoll,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
   c.restore();c.restore();
  }
- return Object.freeze({draw,rifleShell,muzzle,weaponSide,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});
+ return Object.freeze({draw,rifleShell,muzzle,weaponSide,weaponRoll,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});
 });
