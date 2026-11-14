@@ -929,7 +929,7 @@ function updateNotifBadge() {
 
   const list = getStoredNotifications();
   const lastSeen = Number(localStorage.getItem('abyssalNotificationsLastSeen') || 0);
-  const hasUnread = list.some(item => Number(item.timestamp) > lastSeen);
+  const hasUnread = list.some(item => Number(item.timestamp) > lastSeen)||pendingCardumeInvites().some(i=>Number(i.at)>lastSeen);
 
   const dot = document.getElementById('notifUnreadDot');
   btn.classList.toggle('has-unread', hasUnread);
@@ -1104,6 +1104,16 @@ function createArenaRocks(){
 // ==========================================
 // SISTEMA DE NOTIFICAÇÕES — PAINEL FLUTUANTE
 // ==========================================
+function pendingCardumeInvites(){const online=window.AbyssalOnline;if(!online?.isAuthenticated?.())return [];const invites=online.getAccount?.()?.cardumeInvites;return Array.isArray(invites)?invites.filter(i=>i&&typeof i.id==='string'&&Date.now()-Number(i.at)<7*86400000):[];}
+function renderCardumeInviteInbox(list){
+ const invites=pendingCardumeInvites();if(!invites.length)return;
+ list.querySelector('.notif-empty')?.remove();
+ const section=document.createElement('div');section.className='cardume-invite-inbox';section.setAttribute('aria-label','Convites de Cardume pendentes');
+ for(const invite of invites){const item=document.createElement('article');item.className='notif-item';item.setAttribute('role','listitem');const title=document.createElement('strong');title.className='notif-item-title';title.textContent='CONVITE DE CARDUME';const description=document.createElement('p');description.className='notif-item-msg';description.textContent=invite.sender+' convidou você para '+invite.cardumeName+'.';const actions=document.createElement('div');actions.className='cardume-invite-actions';const status=document.createElement('p');status.setAttribute('role','status');const accept=document.createElement('button'),decline=document.createElement('button');accept.type=decline.type='button';accept.className='primary-btn';decline.className='secondary-btn';accept.textContent='ACEITAR';decline.textContent='RECUSAR';const respond=decision=>{accept.disabled=decline.disabled=true;status.textContent='Confirmando com o servidor…';window.AbyssalOnline?.respondCardumeInvite?.(invite.id,decision,result=>{if(result?.ok){addNotification(result.message,'CONVITE DE CARDUME','info');renderNotifPanel();updateNotifBadge();}else{accept.disabled=decline.disabled=false;status.textContent=result?.message||'Não foi possível responder.';}});};accept.onclick=()=>respond(true);decline.onclick=()=>respond(false);actions.append(accept,decline);item.append(title,description,actions,status);section.append(item);}
+ list.prepend(section);
+}
+window.addEventListener('abyssal-account-data',()=>{updateNotifBadge();const panel=document.getElementById('notifPanel');if(panel&&!panel.hidden)renderNotifPanel();});
+window.addEventListener('abyssal-account-signed-out',()=>{updateNotifBadge();const panel=document.getElementById('notifPanel');if(panel&&!panel.hidden)renderNotifPanel();});
 function renderNotifPanel() {
   var panel = document.getElementById('notifPanel');
   var list  = document.getElementById('notifPanelList');
@@ -1136,7 +1146,8 @@ function renderNotifPanel() {
       });
     });
   }
-  // Botão de limpar tudo
+  renderCardumeInviteInbox(list);
+  // Botão de limpar tudo (convites pendentes exigem uma resposta explícita).
   var existing = panel.querySelector('.notif-clear-all');
   if (existing) existing.remove();
   if (items.length > 0) {
@@ -1155,6 +1166,7 @@ function renderNotifPanel() {
 function openNotifPanel() {
   var panel = document.getElementById('notifPanel');
   if (!panel) return;
+  window.AbyssalOnline?.refreshAccount?.();
   if(window.AbyssalCockpitNavigation?.routeScreen?.('notifPanel'))return;
   renderNotifPanel();
   panel.hidden = false;
