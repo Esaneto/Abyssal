@@ -47,7 +47,7 @@
    for(const x of [x0,x1])for(const y of [y0,y1]){const px=x*co-y*si,py=x*si+y*co;minX=Math.min(minX,px);maxX=Math.max(maxX,px);minY=Math.min(minY,py);maxY=Math.max(maxY,py);}
   }
   include(-100,-37,46,37,heading);
-  if(!['classic','short','shaved'].includes(hairStyle))include(-65,-65,75,65,heading);
+  if(!['classic','short','shaved'].includes(hairStyle))include(-68,-72,78,72,heading);
   if(held==='abyssWeapon')include(-6,-6,73,34,aim);
   else if(held!=='none')include(powered?-116:-6,-19,68,25,aim);
   const scale=Math.min(width*.85/(maxX-minX),height*.84/(maxY-minY));

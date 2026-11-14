@@ -113,26 +113,26 @@ function simulateHair(style,t,heading,motion,weight,flow,reduced=false){
  const vx=Number(motion.flowX)||0,vy=Number(motion.flowY)||0;
  for(let k=0;k<rest.length;k++){
   const l=rest[k],q=state.locks[k],target=[0,4,8,12,16].map(i=>toWorld(l.points[i])),lengths=target.slice(1).map((p,i)=>Math.hypot(p[0]-target[i][0],p[1]-target[i][1]));
-  const stiff=l.layer==='knot'?24:l.layer==='braid'?8:l.layer==='crown'?15:5.5,drag=l.layer==='knot'?11:7.5;
+  const stiff=l.layer==='knot'?28:l.layer==='braid'?8:l.layer==='crown'?19:5.5,drag=l.layer==='knot'?11:7.5,dragGain=l.layer==='knot'?.18:l.layer==='crown'?.43:1,gravity=l.layer==='braid'||l.texture==='loc'?12:l.layer==='crown'?5:8;
   for(let step=0;step<steps;step++){
    const before=q.nodes.map(p=>[...p]);q.nodes[0]=target[0];q.vel[0]=[0,0];
    for(let i=1;i<5;i++){
     const p=q.nodes[i],v=q.vel[i],u=i/4,ambientX=Math.sin(t*.0011+k*.47+i*.65)*2.1,ambientY=Math.cos(t*.0014+k*.33+i*.82)*1.6;
     // Relative fluid flow opposes actual velocity. Weak net downward weight:
     // water offsets most, not all, gravitational acceleration.
-    const ax=(target[i][0]-p[0])*stiff+(-vx*22+ambientX-v[0])*drag*u;
-    const ay=(target[i][1]-p[1])*stiff+(-vy*22+ambientY-v[1])*drag*u+8*u;
+    const ax=(target[i][0]-p[0])*stiff+(-vx*22*dragGain+ambientX-v[0])*drag*u;
+    const ay=(target[i][1]-p[1])*stiff+(-vy*22*dragGain+ambientY-v[1])*drag*u+gravity*u;
     v[0]=clamp(v[0]+ax*dt,-125,125);v[1]=clamp(v[1]+ay*dt,-125,125);p[0]+=v[0]*dt;p[1]+=v[1]*dt;
    }
    // Project every segment to its original length, keeping root fixed.
-   for(let i=1;i<5;i++){const a=q.nodes[i-1],b=q.nodes[i],dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy)||1e-6,L=lengths[i-1];b[0]=a[0]+dx/d*L;b[1]=a[1]+dy/d*L;}
+   for(let i=1;i<5;i++){const a=q.nodes[i-1],b=q.nodes[i],dx=b[0]-a[0],dy=b[1]-a[1],L=lengths[i-1];const restA=target[i-1],restB=target[i],restAngle=Math.atan2(restB[1]-restA[1],restB[0]-restA[0]);const ref=i===1?restAngle:Math.atan2(a[1]-q.nodes[i-2][1],a[0]-q.nodes[i-2][0]);const limit=i===1?.58:l.layer==='crown'?1.0:1.45;const raw=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(raw-ref),Math.cos(raw-ref)),angle=ref+clamp(delta,-limit,limit);b[0]=a[0]+Math.cos(angle)*L;b[1]=a[1]+Math.sin(angle)*L;}
    if(dt>0)for(let i=1;i<5;i++){q.vel[i][0]=clamp((q.nodes[i][0]-before[i][0])/dt,-125,125);q.vel[i][1]=clamp((q.nodes[i][1]-before[i][1])/dt,-125,125);}
   }
   q.nodes[0]=target[0];
-  // Interpolate node displacement on the detailed original curve, preserving
-  // the haircut's shape and fixed root while avoiding angular polyline locks.
-  const offsets=q.nodes.map((p,i)=>[p[0]-target[i][0],p[1]-target[i][1]]);
-  l.points=l.points.map((p,i)=>{if(!i)return [...l.root];const j=Math.min(3,Math.floor(i/4)),u=(i-j*4)/4,s=u*u*(3-2*u),a=offsets[j],b=offsets[j+1],w=toWorld(p);return toLocal([w[0]+a[0]+(b[0]-a[0])*s,w[1]+a[1]+(b[1]-a[1])*s]);});
+  // Smooth constrained control nodes with bounded cubic Hermite tangents.
+  // Avoid the sharp folds created by adding a rotated rest curve twice.
+  const p=q.nodes,tangent=(i,max)=>{const a=p[Math.max(0,i-1)],b=p[Math.min(4,i+1)],x=(b[0]-a[0])*.5,y=(b[1]-a[1])*.5,n=Math.hypot(x,y)||1,scale=Math.min(1,max/n);return [x*scale,y*scale];};
+  l.points=l.points.map((_,i)=>{if(!i)return [...l.root];const j=Math.min(3,Math.floor(i/4)),u=(i-j*4)/4,u2=u*u,u3=u2*u,a=p[j],b=p[j+1],L=lengths[j],m=tangent(j,L),n=tangent(j+1,L);return toLocal([a[0]*(2*u3-3*u2+1)+m[0]*(u3-2*u2+u)+b[0]*(-2*u3+3*u2)+n[0]*(u3-u2),a[1]*(2*u3-3*u2+1)+m[1]*(u3-2*u2+u)+b[1]*(-2*u3+3*u2)+n[1]*(u3-u2)]);});
  }
  return rest;
 }
@@ -169,7 +169,7 @@ function body(c,t,options,look={}){
  for(const side of [-1,1]){
   const pose=rig?.leg(side,phase,weight,powered)||{hip:[-19,side*7],knee:[-43,side*9],ankle:[-67,side*10],finAngle:0}, {hip,knee,ankle}=pose;
   c.save();if(side<0)c.globalAlpha=.87;
-  limb(hip,knee,10.4,s[1],s[3]);limb(knee,ankle,7.8,s[0],s[2]);
+  limb(hip,knee,11.5,s[1],s[3]);limb(knee,ankle,8.5,s[0],s[2]);
   const joint=grad([knee[0]-4,knee[1]-3],[knee[0]+4,knee[1]+3],[[0,s[1]],[.43,s[2]],[1,s[0]]]);
   path(()=>{c.moveTo(knee[0]+4,knee[1]-3);c.quadraticCurveTo(knee[0],knee[1]-4.3,knee[0]-4,knee[1]-2.6);c.lineTo(knee[0]-3,knee[1]+2.8);c.quadraticCurveTo(knee[0]+1,knee[1]+4,knee[0]+4,knee[1]+2.5);c.closePath();},joint,'#172733',.55);
   c.save();c.translate(...ankle);c.rotate(-pose.finAngle);
@@ -179,11 +179,13 @@ function body(c,t,options,look={}){
   for(const off of [-3,0,3])path(()=>{c.moveTo(-6,off*.45);c.quadraticCurveTo(-14,off*.6,-21,off);},null,f[2],.55);
   c.restore();c.restore();
  }
- const shoulder=female?13.2:14.2,hipWidth=female?12.4:11.3,waist=female?8.0:8.8;
+ const shoulder=female?13.9:15.0,hipWidth=female?12.9:12.0,waist=female?8.7:9.5;
  const suit=grad([0,-shoulder],[2,shoulder],[[0,'#0b1821'],[.20,s[2]],[.42,s[1]],[.68,s[0]],[1,'#09131b']]);
  // One continuous skin-tight suit silhouette with distinct neck, trapezius,
  // rib cage, waist, iliac crest and crotch. Positive x points toward head.
  path(()=>{c.moveTo(22,-4.3);c.bezierCurveTo(18,-5.5,17,-11.8,13,-shoulder);c.bezierCurveTo(8,-shoulder-1,2,-11.8,-3,-waist-1);c.bezierCurveTo(-8,-waist,-10,-waist,-14,-hipWidth);c.quadraticCurveTo(-19,-hipWidth-1,-24,-8.2);c.quadraticCurveTo(-25,-5.8,-23,-2.8);c.lineTo(-20,0);c.lineTo(-23,2.8);c.quadraticCurveTo(-25,5.8,-24,8.2);c.quadraticCurveTo(-19,hipWidth+1,-14,hipWidth);c.bezierCurveTo(-10,waist,-8,waist,-3,waist+1);c.bezierCurveTo(2,11.8,8,shoulder+1,13,shoulder);c.bezierCurveTo(17,11.8,18,5.5,22,4.3);c.closePath();},suit,'#07131b',.85);
+ // Deltoids bridge the torso into the upper arms rather than resembling bolted-on joints.
+ for(const side of [-1,1]){const deltoid=grad([15,side*10],[8,side*17],[[0,s[2]],[.40,s[3]],[.73,s[1]],[1,s[0]]]);path(()=>{c.moveTo(17,side*10.6);c.bezierCurveTo(18,side*14.4,15,side*17.4,11,side*17.3);c.quadraticCurveTo(7,side*16.1,7.4,side*13.0);c.quadraticCurveTo(12,side*10.4,17,side*10.6);c.closePath();},deltoid,'#14242d',.46);}
  // Sculpted pectoral and abdominal volumes, not a solid rectangular breastplate.
  const chest=grad([8,-11],[8,11],[[0,s[1]],[.32,s[3]],[.52,s[2]],[1,s[0]]]);
  for(const side of [-1,1]){
