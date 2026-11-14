@@ -49,6 +49,8 @@
   const scale=Math.min(width*.85/(maxX-minX),height*.84/(maxY-minY));
   return {x:width/2-(minX+maxX)*scale/2,y:height/2-(minY+maxY)*scale/2,r:scale*14/.60};
  }
+ // Portrait frame keeps the crown and every animated tip inside its tile.
+ function hairPortraitFrame(width,height){width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));const scale=Math.min(width/104,height/136);return {x:width/2,y:height*.54,r:scale*14/.60};}
  const pair=(a,b)=>Object.freeze([Object.freeze(a),Object.freeze(b)]);
  // Contacts lie on the actual receiver handle, pistol grip and tool handles.
  const rifleGrips=pair([34,2],[22,11]);
@@ -72,5 +74,5 @@
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
   return {shoulder:[11,side*8],elbow:[-3,side*(14+sway)],hand:[-18,side*(12+sway*.5)]};
  }
- return Object.freeze({advance,leg,arm,idleArm,gripsFor,toolPose,previewFrame,rifleGrips,toolGrips});
+ return Object.freeze({advance,leg,arm,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });

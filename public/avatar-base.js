@@ -17,7 +17,7 @@
  try{current=normalize(JSON.parse(globalThis.localStorage?.getItem(KEY)||'null'));}catch{}
  function get(){return {...current};}
  function apply(value,{persist=true}={}){const next=normalize(value);if(same(current,next))return get();current=next;if(persist)try{globalThis.localStorage?.setItem(KEY,JSON.stringify(current));}catch{}return get();}
- function select(value,key,id){const next={...normalize(value),[key]:id};if(key==='hair'){const preset=slots.hair.find(item=>item.id===id)?.preset;if(preset)next.hairColor=preset;}return normalize(next);}
+ function select(value,key,id){const prior=normalize(value),next={...prior,[key]:id};if(key==='hair'&&prior.hair!==id){const preset=slots.hair.find(item=>item.id===id)?.preset;if(preset)next.hairColor=preset;}return normalize(next);}
  const colors={
   outfit:{navy:null,rust:['#301b16','#69402d','#944f29','#c88455','#edb28b'],ice:['#142c37','#456675','#749da7','#b9d7da','#e3f4f2'],olive:['#18291f','#3c5038','#586e44','#8ba47c','#c0d3a8']},
   visor:{cyan:null,amber:['rgba(255,231,165,.83)','rgba(222,148,54,.66)','rgba(95,53,18,.86)','rgba(42,27,18,.93)'],violet:['rgba(232,219,255,.83)','rgba(157,117,230,.66)','rgba(57,35,103,.86)','rgba(28,22,54,.93)']},
