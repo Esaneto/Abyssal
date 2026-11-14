@@ -61,11 +61,24 @@ test('authoritative co-op simulation activates suction and reports player displa
     lastPositionAt: now, clientHidden: false, velocityX: 0, velocityY: 0,
     invulnerableUntil: 0, skillSelectingUntil: 0
   };
+  // Choose an unobstructed water segment in the current cavern.
+  const cavern=require('../public/abyssal-solo-cavern');
+  const rocks=simulation.classicCavernRocks(world);
+  let corridor=null;
+  for(let y=200;y<world.height-200&&!corridor;y+=100){
+    for(let x=200;x<world.width-700;x+=100){
+      if(!cavern.segmentBlocked(rocks,x,y,x+500,y,30)){corridor={x,y};break;}
+    }
+  }
+  assert.ok(corridor,'a clear cavern segment must exist');
+  boss.x=corridor.x;boss.y=corridor.y;
+  player.x=corridor.x+500;player.y=corridor.y;
+  const initialX=player.x;
   const result = simulation.tickWorld(world, [player], now);
   assert.equal(boss.suctionActive, true);
   assert.equal(boss.suctionTimer, 4);
   assert.equal(boss.suctionCooldown, 20);
-  assert.ok(player.x < 1000, 'authoritative player position is pulled toward the boss');
+  assert.ok(player.x < initialX, 'authoritative player position is pulled toward the boss');
   assert.equal(result.playerSuctionPulls.length, 1);
   assert.ok(result.playerSuctionPulls[0].dx < 0);
 });

@@ -6,11 +6,11 @@ const path=require('node:path');
 const vm=require('node:vm');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 
-test('main-menu hatch is always named CABINE and opens the laboratory visor',()=>{
+test('main-menu hatch is always named CABINE and opens the cockpit visor',()=>{
  const html=read('public/index.html');
  const menu=read('public/abyssal-menu-ocean.js');
  const runtime=read('public/abyssal-exploration-runtime.js');
- assert.match(html,/id="submarineWorkshopBtn"[^>]*aria-label="Entrar na cabine do submarino"[^>]*><span class="abyss-hatch-label">CABINE<\/span>/);
+ assert.match(html, /<button\b[^>]*id="submarineWorkshopBtn"[^>]*>[\s\S]*?<strong>CABINE<\/strong>[\s\S]*?<\/button>/);
  assert.doesNotMatch(html,/abyss-hatch-label">LABORATÓRIO/);
  assert.match(html,/class="abyss-cockpit-brand"/);
  assert.match(html,/SUBMARINO DE EXPLORAÇÃO/);
@@ -18,11 +18,11 @@ test('main-menu hatch is always named CABINE and opens the laboratory visor',()=
  assert.match(runtime,/activeConsoleSection='solo';soloConsolePage='home';workshop\.hidden=false;renderWorkshop\(\)/);
 });
 
-test('seven clickable hardware controls update a single integrated cockpit visor',()=>{
+test('four clickable hardware controls update a single integrated cockpit visor',()=>{
  const source=read('public/abyssal-exploration-runtime.js');
  const style=read('public/abyssal-submarine-laboratory.css');
  const html=read('public/index.html');
- for(const id of ['solo','laboratory','minerals','shop','specimens','sea','rift'])
+ for(const id of ['solo','research','shop','specimens'])
   assert.match(source,new RegExp("id:'"+id+"'"),id+' must be present on the console');
  assert.match(source,/function mountCockpitConsole\(utility\)/);
  assert.match(source,/workshopGrid\.replaceChildren\(visor,keys\)/);
@@ -32,7 +32,7 @@ test('seven clickable hardware controls update a single integrated cockpit visor
  assert.match(style,/\.abyss-cockpit-visor/);
  assert.match(style,/\.abyss-visor-body/);
  assert.match(style,/@media\(max-width:700px\)/);
- assert.match(html,/class="abyss-cockpit-ticker"/);
+ assert.match(html,/class="abyss-cockpit-top-actions"/);
  assert.ok(html.indexOf('abyssal-resource-icons.js')<html.indexOf('abyssal-exploration-runtime.js'));
  assert.ok(html.indexOf('abyssal-resource-icons.js')<html.indexOf('abyssal-inventory-ui.js'));
 });

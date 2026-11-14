@@ -39,7 +39,7 @@ test('online players receive distinct server-assigned spawn positions', () => {
   assert.match(server, /spawnSlot:spawnIndex/);
   assert.match(server, /spawn:\{x:p\.x,y:p\.y\}/);
   assert.match(game, /setPlayerPosition:\(x,y\)/);
-  assert.match(game, /setPlayerPosition\?\.\(d\.spawn\.x,d\.spawn\.y\)/);
+  assert.match(game, /if\(d\.spawn\)\{let point=d\.spawn;[\s\S]{0,350}setPlayerPosition\?\.\(point\.x,point\.y\)/);
   assert.doesNotMatch(server, /volatile\.emit\('world-players'/);
 });
 
@@ -55,7 +55,7 @@ test('each title has dedicated vector artwork in the profile', () => {
 test('profile is gated behind an authenticated account and uses server-owned unlocks', () => {
   const client = fs.readFileSync(path.join(root, 'public', 'online.js'), 'utf8');
   assert.match(client, /if\(!authenticated\|\|!serverAccount\)/);
-  assert.match(client, /Entre na sua conta para acessar seu perfil e carregar suas conquistas/);
+  assert.match(client, /if\(!authenticated\|\|!serverAccount\)\{screen\.hidden=false;renderProfile\(\{\}\);[\s\S]{0,180}Entre na sua conta para sincronizar suas conquistas/);
   assert.match(client, /new Set\(Array\.isArray\(user\.unlockedTitles\)\?user\.unlockedTitles/);
   assert.match(client, /if\(!authenticated\|\|!data\)return/);
   assert.match(client, /\$\('profileScreen'\)\.hidden=true;updateAccount\(\);renderProfile\(\{\}\)/);

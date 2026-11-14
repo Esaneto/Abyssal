@@ -1,6 +1,8 @@
 /* Abyssal anatomical pressure suit. Coordinates are shared with diver-art's
  * existing weapon rig; geometry, gameplay scale and equipment anchors stay intact. */
 (function(root){'use strict';
+// Browser and Node tests resolve the same canonical geometry, without global side effects in CommonJS.
+const getRig=()=>root.AbyssalDiverRig||(typeof module==='object'&&module.exports?require('./abyssal-diver-rig'):null);
 
 // All positions use the original head coordinate system (+x toward the crown).
 // Each lock has a fixed root; only the free length is deformed by water.
@@ -108,7 +110,7 @@ function drawHairLayer(c,locks,layer,hair,detail=true){
 // Lightweight world-oriented strand solver. Five nodes per lock, semi-implicit
 // integration, fixed root, rest-length projection and spring bending. Visual only.
 function simulateHair(style,t,heading,motion,weight,flow,reduced=false,view=null){
- const pose=locks=>{if(view?.headTilt){const point=p=>root.AbyssalDiverRig.headPoint(p,view);for(const l of locks){const origin=l.root,anchor=point(origin),rear=['back','mane','braid'].includes(l.layer);l.root=anchor;l.points=l.points.map((p,i)=>{if(!i)return [...anchor];const rotated=point(p);if(!rear)return rotated;const u=i/(l.points.length-1),blend=u*u*(3-2*u),free=[p[0]+anchor[0]-origin[0],p[1]+anchor[1]-origin[1]-(l.layer==='mane'?7:0)*blend];return [rotated[0]+(free[0]-rotated[0])*blend,rotated[1]+(free[1]-rotated[1])*blend];});}}return locks;};
+ const pose=locks=>{if(view?.headTilt&&getRig()){const rig=getRig(),point=p=>rig.headPoint(p,view);for(const l of locks){const origin=l.root,anchor=point(origin),rear=['back','mane','braid'].includes(l.layer);l.root=anchor;l.points=l.points.map((p,i)=>{if(!i)return [...anchor];const rotated=point(p);if(!rear)return rotated;const u=i/(l.points.length-1),blend=u*u*(3-2*u),free=[p[0]+anchor[0]-origin[0],p[1]+anchor[1]-origin[1]-(l.layer==='mane'?7:0)*blend];return [rotated[0]+(free[0]-rotated[0])*blend,rotated[1]+(free[1]-rotated[1])*blend];});}}return locks;};
  const rest=pose(hairGeometry(style,0,0,0));
  if(reduced)return rest;
  if(!motion)return pose(hairGeometry(style,t,weight,flow));
@@ -117,7 +119,7 @@ function simulateHair(style,t,heading,motion,weight,flow,reduced=false,view=null
  if(!state||state.style!==style||state.locks.length!==rest.length||!Number.isFinite(state.time)||Math.abs(t-state.time)>400){
   state={style,time:t,locks:rest.map(l=>{const nodes=[0,4,8,12,16].map(i=>toWorld(l.points[i]));return {nodes,vel:nodes.map(()=>[0,0])};})};motion.hairState=state;
  }
- const headCenter=root.AbyssalDiverRig?.headPoint([31,0],view)||[31,0],elapsed=clamp((t-state.time)/1000,0,.10),steps=Math.max(1,Math.ceil(elapsed/.008333)),dt=elapsed/steps;state.time=t;
+ const headCenter=getRig()?.headPoint([31,0],view)||[31,0],elapsed=clamp((t-state.time)/1000,0,.10),steps=Math.max(1,Math.ceil(elapsed/.008333)),dt=elapsed/steps;state.time=t;
  const response=1-Math.exp(-elapsed*5);state.vx=Number.isFinite(state.vx)?state.vx+((Number(motion.flowX)||0)-state.vx)*response:(Number(motion.flowX)||0);state.vy=Number.isFinite(state.vy)?state.vy+((Number(motion.flowY)||0)-state.vy)*response:(Number(motion.flowY)||0);const vx=state.vx,vy=state.vy;
  for(let k=0;k<rest.length;k++){
   const l=rest[k],q=state.locks[k],target=[0,4,8,12,16].map(i=>toWorld(l.points[i])),lengths=target.slice(1).map((p,i)=>Math.hypot(p[0]-target[i][0],p[1]-target[i][1]));
@@ -149,7 +151,7 @@ function simulateHair(style,t,heading,motion,weight,flow,reduced=false,view=null
 }
 
 function body(c,t,options,look={}){
- const rig=root.AbyssalDiverRig,phase=Number.isFinite(options.motion?.phase)?options.motion.phase:(Number(t)||0)*.008,swim=options.moving!==false,female=options.gender==='female';
+ const rig=getRig(),phase=Number.isFinite(options.motion?.phase)?options.motion.phase:(Number(t)||0)*.008,swim=options.moving!==false,female=options.gender==='female';
  const weight=Number.isFinite(options.motion?.weight)?options.motion.weight:(swim?1:0),powered=Boolean(options.motion?.powered||options.propulsorActive),heading=Number(options.heading)||0;
  const kind=look.outfitId||'navy',industrial=kind==='rust',polar=kind==='ice',scout=kind==='olive',elite=kind==='nautilus',stealth=kind==='phantom',premium=kind!=='navy';
  const s=look.outfit||['#101923','#263847','#39536a','#668293','#b4c8cc'],f=look.fins||['#15242c','#60858e','#9db6b8'],tank=look.back||['#14252e','#77929b','#455e69','#263e49','#101b24'],hair=look.hair||['#121920','#46505b','#232b34'],glass=look.visor||['#b5d8d9','#568a99','#264b60','#102631'];

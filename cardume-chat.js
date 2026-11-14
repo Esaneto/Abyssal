@@ -61,7 +61,7 @@ function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,en
   });
   socket.on('online-quick-emoji',(payload,cb)=>{
    const k=key(),u=getUsers()[k],room=getRoom(socket),id=payload?.id;
-   if(!enabled()||!u||!room||!socket.data.joined||!room.players.has(socket.id)||room.players.get(socket.id)?.alive===false||typeof id!=='string'||!Object.hasOwn(QUICK,id)||!rate(k,'emoji',2500))return ack(cb,{ok:false});
+   if(!enabled()||!u||u.chatBanned||Number(u.chatMutedUntil)>Date.now()||!room||!socket.data.joined||!room.players.has(socket.id)||room.players.get(socket.id)?.alive===false||typeof id!=='string'||!Object.hasOwn(QUICK,id)||!rate(k,'emoji',2500))return ack(cb,{ok:false});
    for(const client of(io.sockets?.sockets?.values?.()||[])){const recipient=client.data.userKey;if(recipient&&getRoom(client)===room&&room.players.has(client.id)&&!blocked(getUsers(),k,recipient))client.emit('online-quick-emoji',{id,playerId:socket.id,nickname:u.nickname});}ack(cb,{ok:true});
   });
  }

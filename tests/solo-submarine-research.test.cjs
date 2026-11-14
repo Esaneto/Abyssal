@@ -68,7 +68,7 @@ test('PvE Resonance is research-gated while chosen skills still start at level 1
 
 test('cockpit research text documents proportional power and no shield surcharge',()=>{
  const runtime=read('public/abyssal-exploration-runtime.js');
- assert.match(runtime,/20 Energia por 5 minutos/);
- assert.match(runtime,/Cada arma automática instalada acrescenta 10 Energia/);
- assert.match(runtime,/Não aumenta o consumo do ciclo/);
+ assert.match(runtime,/energia \/ 5 minutos[\s\S]{0,100}A luz custa 20 energia por ciclo/);
+ assert.match(runtime,/Cada torre instalada acrescenta 10 energia ao ciclo de 5 minutos/);
+ assert.match(runtime,/Não aumenta o consumo de energia/);
 });

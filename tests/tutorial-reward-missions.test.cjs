@@ -58,7 +58,7 @@ test('ranking rewards and tutorial energy figures match the server',()=>{
  assert.match(server,/RANKING_ENERGY_REWARDS=Object.freeze\(\{daily:100,weekly:1000,monthly:5000\}\)/);
  assert.match(online,/rewards=data\.rewards/);
  assert.match(guide,/5\.000 DE ENERGIA/);
- assert.match(guide,/10\.000 de energia/);
+ assert.match(guide,/recompensa final, a Serpente Esmeralda/);
  assert.match(guide,/'open-sea':\{/);
  assert.match(game,/AbyssalTutorials\?\.enter\(isOpenSeaRun\(\)\?'open-sea'/);
  const art=read('public/abyssal-tutorial-art.js'); const context={};vm.createContext(context);vm.runInContext(art,context);

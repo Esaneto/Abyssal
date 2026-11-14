@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const GMAdmin=require('./gamemaster-admin');
 
 function digest(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
@@ -32,7 +33,7 @@ async function ensureModerationSchema(pool) {
   await pool.query("DELETE FROM abyssal_chat_reports WHERE status IN ('dismissed','actioned') AND closed_at < NOW()-INTERVAL '180 days'; DELETE FROM abyssal_chat_moderation_audit WHERE created_at < NOW()-INTERVAL '180 days';");
 }
 
-function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getChatMessage, removeMessage, isDeveloper }) {
+function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getChatMessage, removeMessage, isDeveloper, persistUsers, notifyUser }) {
   const json = require('express').json({ limit: '4kb' });
   const reasons = new Set(['bullying', 'hate', 'sexual_content', 'personal_information', 'threat', 'spam', 'other']);
 
@@ -80,7 +81,7 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
         [reportId, reporter.key, String(message.senderKey || ''), message.id, String(message.nickname || 'Mergulhador').slice(0,18), String(message.text || '').slice(0,180), reason]
       );
       if (!inserted.rowCount) return res.status(409).set('Cache-Control', 'no-store').json({ ok: false, message: 'Você já denunciou esta mensagem.' });
-      return res.status(201).set('Cache-Control', 'no-store').json({ ok: true, message: 'Denúncia enviada para análise.' });
+      return res.status(201).set('Cache-Control', 'no-store').json({ ok: true, message: 'Obrigado por ajudar a manter a comunidade saudável. Sua denúncia será analisada e tomaremos as providências necessárias.' });
     } catch (error) {
       console.error('[chat-moderation] Report failed:', error.message);
       return res.status(503).json({ ok: false, message: 'Não foi possível registrar a denúncia.' });
@@ -95,7 +96,7 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
     try {
       await ensureModerationSchema(pool);
       const result = await pool.query(
-        "SELECT report_id,message_nickname,message_text,reason,status,created_at FROM abyssal_chat_reports WHERE status IN ('open','followup') ORDER BY created_at ASC LIMIT 100"
+        "SELECT report_id,reported_key,message_nickname,message_text,reason,status,created_at FROM abyssal_chat_reports WHERE status IN ('open','followup') ORDER BY created_at ASC LIMIT 100"
       );
       return res.set('Cache-Control', 'no-store').json({ ok: true, reports: result.rows });
     } catch (error) {
@@ -104,38 +105,59 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
     }
   });
 
+  const resolving=new Set();
+  app.get('/api/moderation/chat/audit',async(req,res)=>{
+    if(!isModerator(auth(req)))return res.status(403).set('Cache-Control','no-store').json({ok:false});
+    const pool=getPool();if(!pool)return res.status(503).json({ok:false});
+    try{await ensureModerationSchema(pool);const r=await pool.query('SELECT a.audit_id,a.report_id,a.action,a.note,a.created_at,r.message_nickname FROM abyssal_chat_moderation_audit a LEFT JOIN abyssal_chat_reports r ON r.report_id=a.report_id ORDER BY a.created_at DESC LIMIT 100');return res.set('Cache-Control','no-store').json({ok:true,rows:r.rows});}catch{return res.status(503).json({ok:false});}
+  });
   app.post('/api/moderation/chat/reports/:id/resolve', json, async (req, res) => {
     const moderator = auth(req);
     if (!isModerator(moderator)) return res.status(403).set('Cache-Control', 'no-store').json({ ok: false, message: 'Acesso restrito à equipe de moderação.' });
     const action = String(req.body?.action || '');
     const note = String(req.body?.note || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 300);
-    if (!['dismiss', 'warn', 'mute_24h', 'ban_chat', 'needs_followup'].includes(action)) return res.status(400).json({ ok: false, message: 'Ação de moderação inválida.' });
+    if (!note || !['dismiss', 'warn', 'mute_24h', 'ban_chat', 'needs_followup'].includes(action)) return res.status(400).json({ ok: false, message: 'Ação de moderação inválida.' });
     const pool = getPool();
     if (!pool) return res.status(503).json({ ok: false, message: 'PostgreSQL indisponível.' });
+    const id=String(req.params.id||'');
+    if(resolving.has(id))return res.status(409).json({ok:false,message:'Denúncia em análise. Tente novamente.'});
+    resolving.add(id);
     let client;
     try {
       await ensureModerationSchema(pool);
-      client = await pool.connect();
+      const report=await pool.query("SELECT report_id,reported_key,message_id FROM abyssal_chat_reports WHERE report_id=$1 AND status IN ('open','followup')",[id]);
+      if(!report.rowCount)return res.status(404).json({ok:false,message:'Denúncia não encontrada ou já analisada.'});
+      const row=report.rows[0],target=getUsers()[row.reported_key],punitive=['warn','mute_24h','ban_chat'].includes(action);
+      if(punitive&&(isDeveloper?.(target)||target?.reviewAccount))return res.status(403).json({ok:false,message:'Conta protegida.'});
+      // Persist the penalty and receipt before closing the case; never hold a
+      // pooled transaction connection while waiting for the account snapshot.
+      if(target){
+       const receipts=target.chatReportReceipts||{},prior=receipts[id];
+       if(prior&&prior!==action)return res.status(409).json({ok:false,message:'Uma medida já foi aplicada. Conclua a mesma ação ou revogue a punição na central.'});
+       if(punitive){
+        if(!prior){
+         GMAdmin.apply(target,{action:action==='mute_24h'?'mute':action==='ban_chat'?'ban-chat':'warn',hours:24,reason:note},{});
+         target.chatReportReceipts={...receipts,[id]:action};
+        }
+        if(persistUsers)await persistUsers();else saveUsers();
+        notifyUser?.(row.reported_key,target);
+       }
+      }
+      if(punitive&&removeMessage)await removeMessage(row.message_id);
+      client=await pool.connect();
       await client.query('BEGIN');
-      const report = await client.query('SELECT report_id,reported_key,message_id FROM abyssal_chat_reports WHERE report_id=$1 AND status IN (\'open\',\'followup\') FOR UPDATE', [String(req.params.id || '')]);
-      if (!report.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ ok: false, message: 'Denúncia não encontrada ou já analisada.' }); }
-      const status = action === 'dismiss' ? 'dismissed' : action === 'needs_followup' ? 'followup' : 'actioned';
-      const target = getUsers()[report.rows[0].reported_key];
-      await client.query('UPDATE abyssal_chat_reports SET status=$2,closed_at=CASE WHEN $2='followup' THEN NULL ELSE NOW() END,moderator_key=$3,resolution=$4 WHERE report_id=$1', [report.rows[0].report_id, status, moderator.key, note || action]);
-      await client.query('INSERT INTO abyssal_chat_moderation_audit(audit_id,report_id,moderator_key,action,note) VALUES($1,$2,$3,$4,$5)', [crypto.randomUUID(), report.rows[0].report_id, moderator.key, action, note]);
+      const locked=await client.query("SELECT report_id FROM abyssal_chat_reports WHERE report_id=$1 AND status IN ('open','followup') FOR UPDATE",[id]);
+      if(!locked.rowCount){await client.query('ROLLBACK');return res.status(404).json({ok:false,message:'Denúncia já analisada.'});}
+      const status=action==='dismiss'?'dismissed':action==='needs_followup'?'followup':'actioned';
+      await client.query("UPDATE abyssal_chat_reports SET status=$2,closed_at=CASE WHEN $2='followup' THEN NULL ELSE NOW() END,moderator_key=$3,resolution=$4 WHERE report_id=$1",[id,status,moderator.key,note]);
+      await client.query('INSERT INTO abyssal_chat_moderation_audit(audit_id,report_id,moderator_key,action,note) VALUES($1,$2,$3,$4,$5)',[crypto.randomUUID(),id,moderator.key,action,note]);
       await client.query('COMMIT');
-      client.release();
-      client = null;
-      if (['warn','mute_24h','ban_chat'].includes(action)) await removeMessage?.(report.rows[0].message_id).catch(error=>console.error('[chat-moderation] remove:',error.message));
-      if (target && action === 'warn') { target.chatWarnings = Math.min(100, (Number(target.chatWarnings) || 0) + 1); target.chatLastViolationAt=Date.now(); saveUsers(); }
-      if (target && action === 'mute_24h') { target.chatMutedUntil = Math.max(Number(target.chatMutedUntil)||0,Date.now() + 24 * 60 * 60 * 1000); saveUsers(); }
-      if (target && action === 'ban_chat') { target.chatBanned = true; target.chatMutedUntil = 0; saveUsers(); }
-      return res.json({ ok: true, status });
-    } catch (error) {
-      if(client)await client.query('ROLLBACK').catch(() => {});
-      console.error('[chat-moderation] Resolve failed:', error.message);
-      return res.status(503).json({ ok: false, message: 'Não foi possível concluir a análise.' });
-    } finally { client?.release(); }
+      return res.set('Cache-Control','no-store').json({ok:true,status});
+    } catch(error){
+      if(client)await client.query('ROLLBACK').catch(()=>{});
+      console.error('[chat-moderation] Resolve failed:',error.message);
+      return res.status(503).json({ok:false,message:'Não foi possível concluir a análise. Repita a mesma decisão.'});
+    } finally {client?.release();resolving.delete(id);}
   });
 }
 

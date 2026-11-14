@@ -10,7 +10,7 @@ test('Olho Profundo controls zoom without resizing viewport or modifying hitboxe
  assert.match(game,/const bonus=upgrades\?\.abyssEye\?CAMERA_RANGE_MAX:Number\(upgrades\?\.range\)\|\|1/);
  assert.match(game,/const fit=Math\.min\(viewW,viewH\)\/\(2\*baseRange\*1\.08\)/);
  assert.match(game,/getFiringRange\(\)\/baseRange/);
- assert.match(game,/defaultZoom\*\(preference\/\(mobile\?1:1\.25\)\)\/effectiveBonus/);
+ assert.match(game,/return clamp\(defaultZoom\/effectiveBonus,\.18,1\.5\)/);
  assert.match(game,/worldZoom\+=\(target-worldZoom\)\*\(1-Math\.exp\(-dt\*11\)\)/);
  assert.match(game,/updateCamera\(\);ctx\.setTransform\(dpr\*worldZoom/);
  assert.match(game,/const visibleWorldW=viewW\/worldZoom,visibleWorldH=viewH\/worldZoom/);

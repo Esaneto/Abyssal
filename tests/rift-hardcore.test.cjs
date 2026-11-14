@@ -48,18 +48,19 @@ test('the last layer summons the stationary Pesadelo Roxo as the final octopus b
  assert.equal(AI.statsForKind(H.FINAL_KIND).speed,0);
  assert.equal(AI.chooseBossKind([],()=>.5,0)!==H.FINAL_KIND,true,'classic bosses unchanged');
 });
-test('moldy golden final chest grants one hundred thousand coins and a guaranteed skin once',()=>{
- const user={coins:200,ownedSkins:['default']};
+test('moldy golden final chest grants 10000 energy and both guaranteed skins once',()=>{
+ const user={coins:200,energy:200,ownedSkins:['default']};
  const chest=Reward.grant(user,'final:run42:7',{final:true});
  assert.equal(chest.final,true);
  const first=Reward.open(user,chest.id,()=>0);
  assert.equal(first.ok,true);assert.equal(first.reward.type,'final');
  assert.equal(first.reward.amount,H.FINAL_CHEST_COINS);
- assert.ok(first.reward.skinId);assert.ok(user.ownedSkins.includes(first.reward.skinId));
- assert.equal(user.coins,100200);
+ assert.equal(first.reward.skinId,Reward.FINAL_SKIN);assert.ok(user.ownedSkins.includes(first.reward.skinId));
+ assert.ok(first.reward.randomSkinId);assert.notEqual(first.reward.randomSkinId,first.reward.skinId);assert.ok(user.ownedSkins.includes(first.reward.randomSkinId));
+ assert.equal(user.energy,10200);assert.equal(user.coins,200);
  assert.equal(Reward.grant(user,'final:run42:7',{final:true}).id,chest.id);
  const again=Reward.open(user,chest.id);
- assert.equal(again.duplicate,true);assert.equal(user.coins,100200);
+ assert.equal(again.duplicate,true);assert.equal(user.energy,10200);assert.equal(user.coins,200);
 });
 test('checkpoint chooses the chamber and keeps its origin near the chamber entrance',()=>{
  const layout=Map.createLayout(733,1),chamber=layout.rooms.find(r=>r.id==='trench');

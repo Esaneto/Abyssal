@@ -56,8 +56,18 @@ test('white shark uses a navigation waypoint to pursue around solid terrain',()=
  tick(e,t,opt);t.x=350;let reached=false;
  for(let i=0;i<250;i++){
   const x=e.x,y=e.y;tick(e,t,opt);
-  assert.ok(wallClear(x,y,e.x,e.y));close(speed(e),300);
-  if(Math.hypot(e.x-t.x,e.y-t.y)<30){reached=true;break;}
+   assert.ok(wallClear(x,y,e.x,e.y),'no tunneling through rock');
+   const distance=Math.hypot(e.x-t.x,e.y-t.y);
+   const stop=AI.sharkBiteStop(24,13/AI.WORLD_ZOOM);
+   // Full-speed pursuit until close enough to bite without overlapping.
+   if(distance>stop+8)close(speed(e),300);
+   if(distance<=stop+1&&wallClear(e.x,e.y,t.x,t.y)){reached=true;break;}
  }
  assert.ok(reached);
 });
+
+ test('single target cannot be acquired through a solid wall without a precomputed visibility flag',()=>{
+ const e={kind:'whiteShark',x:100,y:100,angle:0},t={x:300,y:100,alive:true};
+ tick(e,t,{sharkTerrainClear:wallClear});
+ assert.equal(e.sharkVisionVisible,false);assert.equal(e.sharkCharging,false);close(speed(e),126);
+ });

@@ -48,6 +48,7 @@ const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
 const { createCardumeChat } = require('./cardume-chat');
 const { registerChatModerationRoutes } = require('./chat-moderation');
+const GMAdmin=require('./gamemaster-admin');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const APP_VERSION=require('./package.json').version;
 const HOST_CPU_COUNT=typeof os.availableParallelism==='function'?os.availableParallelism():os.cpus().length;
@@ -205,6 +206,7 @@ function persistSoloSettlement(){
  return task;
 }
 function saveUsers(){persistState('users',users,USERS_FILE,true,0o600);}
+function persistAdminUsers(){const snapshot=snapshotState('users',users,USERS_FILE,true,0o600);const task=persistenceQueue.then(async()=>{const s=await snapshot;if(pgPool)await pgPool.query('INSERT INTO abyssal_state (state_key,state_value,updated_at) VALUES ($1,$2::jsonb,NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value=EXCLUDED.state_value,updated_at=NOW()',['users',s.serialized]);});persistenceQueue=task.catch(err=>console.error('[admin] persistence:',err.message));return task;}
 let titleStatsSaveTimer=null;
 function scheduleTitleStatsSave() {
  if(titleStatsSaveTimer)return;
@@ -385,14 +387,14 @@ const TITLE_DEFINITIONS=[
  }
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
  function migrateEnergy(u){if(!u)return;if(!Number.isFinite(Number(u.energy)))u.energy=Math.max(0,Math.floor((Number(u.coins)||0)/10));else u.energy=Math.max(0,Math.floor(Number(u.energy)));delete u.coins;}
- function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return { wheel:wheelDailyStatus(u), nickname: u.nickname, role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), metaUpgrades: u.metaUpgrades || {}, researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return { adminNotices:GMAdmin.notices(u), likedProfiles:u.likedProfiles.slice(), canInviteCardume:Boolean(cardumes[u.cardumeId]?.open&&cardumes[u.cardumeId]?.leader===u.nickname), wheel:wheelDailyStatus(u), nickname: u.nickname, role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), metaUpgrades: u.metaUpgrades || {}, researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];normalizeHallTitle(u);return {nickname:u.nickname,isDeveloper:isDeveloperUser(u),hallPosition:hallPosition(u),equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)),specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,isDeveloper:isDeveloperUser(users[key]),online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
  function emitCardumeRoster(c){if(!c)return;for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
  function broadcastCardumeRosters(){for(const c of Object.values(cardumes))emitCardumeRoster(c);}
-function rankedEntries(board) { return Object.values(board || {}).filter(entry=>!users[entry.key]?.reviewAccount).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
+function rankedEntries(board) { return Object.values(board || {}).filter(entry=>!users[entry.key]?.reviewAccount&&!isDeveloperUser(users[entry.key])&&!users[entry.key]?.adminRankingExcluded&&!GMAdmin.blocked(users[entry.key])).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 const RANKING_ENERGY_REWARDS=Object.freeze({daily:100,weekly:1000,monthly:5000});
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.energy = (user.energy || 0) + amount; } }
 function settlePeriods(persist=true) {
@@ -467,7 +469,7 @@ if (typeof app.post === 'function') {
 if (typeof app.post === 'function') registerAccountRecoveryRoutes({app,getUsers:()=>users,saveUsers,io});
 if (typeof app.post === 'function') registerSupportRoutes({app});
 const cardumeChat=createCardumeChat({io,getUsers:()=>users,getCardumes:()=>cardumes,getPool:()=>pgPool,saveUsers,getRoom:socketRoom,enabled:()=>SOCIAL_FEATURES_ENABLED});
-if(typeof app.post==='function')registerChatModerationRoutes({app,getUsers:()=>users,saveUsers,getPool:()=>pgPool,getChatMessage:cardumeChat.getChatMessage,removeMessage:cardumeChat.removeMessage,isDeveloper:isDeveloperUser});
+if(typeof app.post==='function')registerChatModerationRoutes({app,getUsers:()=>users,saveUsers,getPool:()=>pgPool,getChatMessage:cardumeChat.getChatMessage,removeMessage:cardumeChat.removeMessage,isDeveloper:isDeveloperUser,persistUsers:persistAdminUsers,notifyUser:(key,u)=>{for(const client of io.sockets.sockets.values())if(client.data.userKey===key)client.emit('account-data',publicUser(u));}});
 function currentAnnouncements(){return announcements.filter(item=>Date.now()-Number(item.timestamp)<7*86400000).slice(0,30);}
 app.get('/api/announcements',(_req,res)=>res.json(currentAnnouncements()));
 app.post('/api/admin/announcements',async(req,res)=>{
@@ -1302,7 +1304,7 @@ async function finishRunForSocket(socket,payload={},isolatedRun=null){
  settlePeriods(!isolatedRun);
  const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(run.finalSurvival),updatedAt:new Date().toISOString()};
  const better=(old)=>!old||bossesKilled>(Number(old.bossesKilled)||0)||(bossesKilled===(Number(old.bossesKilled)||0)&&(score>(Number(old.score??old.damage)||0)||(score===(Number(old.score??old.damage)||0)&&run.finalSurvival>(Number(old.survival)||0))));
- const put=board=>{if(!user.reviewAccount&&better(board[key]))board[key]=entry;};
+ const put=board=>{if(!user.reviewAccount&&!isDeveloperUser(user)&&!user.adminRankingExcluded&&!GMAdmin.blocked(user)&&better(board[key]))board[key]=entry;};
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
  put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);reconcileHallTitles({persist:!isolatedRun});
@@ -1762,8 +1764,16 @@ function worldTick() {
 }
 
 function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}
+const gmAdmin=GMAdmin.createAdmin({getUsers:()=>users,isDeveloper:isDeveloperUser,persist:persistAdminUsers,onlineKeys:onlineAccountKeys,inRoom:key=>[...io.sockets.sockets.values()].some(client=>client.data.userKey===key&&client.data.joined),catalog:()=>({skins:allowedSkinIds,cosmetics:AvatarBase.products.filter(p=>p.currency!=='free').map(p=>p.key),resources:Object.keys(ExplorationConfig.RESOURCES)}),onAction:(key,u,record)=>{
+ if(['ranking-exclude','ranking-restore','ban','suspend','restore'].includes(record.action))reconcileHallTitles({persist:false});
+ for(const client of io.sockets.sockets.values())if(client.data.userKey===key){
+  if(['kick','ban','suspend'].includes(record.action)&&client.data.joined){removeFromRoom(client,{announce:true,emitResult:true});client.data.runStats=null;}
+  if(['ban','suspend'].includes(record.action)){client.emit('admin-access-revoked',{message:GMAdmin.accessMessage(u)});client.data.userKey=null;client.data.nickname=null;client.data.runStats=null;client.disconnect(true);}
+  else client.emit('account-data',publicUser(u));
+ }
+}});
 io.on('connection', socket => {
- cardumeChat.attach(socket);
+ cardumeChat.attach(socket);gmAdmin.attach(socket);
  socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; socket.data.roomId = null; broadcastOnline();
  socket.emit('online-count', onlineCount()); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
  socket.on('authenticate', async (payload = {}) => {
@@ -1804,6 +1814,7 @@ io.on('connection', socket => {
    const candidate = await hashPassword(password, user.salt);
    if (!candidate || !safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: key==='gamemaster'?'Senha GameMaster incorreta para este servidor.':'Senha incorreta para este nickname.' }); }
   }
+  if(GMAdmin.blocked(user))return socket.emit('auth-result',{ok:false,message:GMAdmin.accessMessage(user)});
   authAttempts.delete(ip);
   ensureAccountId(user);user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.redeemedCodes ||= []; user.energy ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0}; user.likedBy ||= [];user.likedProfiles ||= []; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key; socket.data.isDeveloper=isDeveloperUser(user);
   const sessionToken=issueSessionToken(user);saveUsers();await flushPersistence();
@@ -1828,14 +1839,14 @@ io.on('connection', socket => {
     const result=await pgPool.query("SELECT state_value FROM abyssal_state WHERE state_key='users' LIMIT 1");
     const persisted=result.rows?.[0]?.state_value;
     if(persisted&&typeof persisted==='object'){
-     const freshMatch=Object.entries(persisted).find(([,candidate])=>(Array.isArray(candidate?.sessionTokens)?candidate.sessionTokens:[]).some(item=>item&&Number(item.expiresAt)>now&&safeEqual(item.hash,digest)));
-     if(freshMatch){const [freshKey,freshUser]=freshMatch;users[freshKey]={...(users[freshKey]||{}),...freshUser};}
+     GMAdmin.syncSessionSnapshot(users,persisted,candidate=>(Array.isArray(candidate?.sessionTokens)?candidate.sessionTokens:[]).some(item=>item&&Number(item.expiresAt)>now&&safeEqual(item.hash,digest)),now);
     }
    }catch(err){console.error('[deploy] Falha ao atualizar sessão persistida:',err.message);}
   }
   const match=Object.entries(users).find(([,user])=>(Array.isArray(user.sessionTokens)?user.sessionTokens:[]).some(item=>item&&Number(item.expiresAt)>now&&safeEqual(item.hash,digest)));
   if(!match)return socket.emit('session-resumed',{ok:false,message:'Sessão expirada. Entre novamente.'});
   const [key,user]=match;
+  if(GMAdmin.blocked(user))return socket.emit('session-resumed',{ok:false,message:GMAdmin.accessMessage(user)});
   user.sessionTokens=user.sessionTokens.filter(item=>item&&Number(item.expiresAt)>now);
   ensureAccountId(user);user.metaUpgrades ||= {};user.ownedSkins ||= ['default'];user.redeemedCodes ||= [];user.energy ||= 0;user.lastWheelAt ||= 0;user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};user.likedBy ||= [];user.likedProfiles ||= [];user.equippedTitle ||= 'abyss-drifter';
   socket.data.nickname=user.nickname;socket.data.userKey=key;socket.data.isDeveloper=isDeveloperUser(user);
@@ -1872,19 +1883,24 @@ io.on('connection', socket => {
    reporter.moderationReports ||= [];const now=Date.now(),recent=reporter.moderationReports.filter(r=>now-Number(r.at||0)<3600000);reporter.moderationReports=recent;
    if(recent.length>=8)return socket.emit('ugc-report-result',{ok:false,message:'Limite temporário de denúncias atingido. Aguarde antes de enviar outra.'});
    const matchId=String(payload.matchId||'').slice(0,80),duplicate=recent.find(r=>r.type===type&&r.targetKey===targetKey&&r.reason===reason&&String(r.matchId||'')===matchId);
-   if(duplicate)return socket.emit('ugc-report-result',{ok:false,message:'Esta denúncia já foi registrada recentemente. Protocolo: '+String(duplicate.reportId).slice(0,8).toUpperCase()});
+   if(duplicate){try{await persistAdminUsers();return socket.emit('ugc-report-result',{ok:true,reportId:duplicate.reportId,message:'Sua denúncia já está registrada para análise. Protocolo: '+String(duplicate.reportId).slice(0,8).toUpperCase()});}catch{return socket.emit('ugc-report-result',{ok:false,message:'Registro pendente. Tente novamente mais tarde.'});}}
    const context=payload.context&&typeof payload.context==='object'?payload.context:{};
    const contextLines=matchId?['ID da partida: '+matchId,'Sala: '+String(context.roomName||context.roomId||'não informada').slice(0,100),'Data da partida: '+String(context.playedAt||'não informada').slice(0,60),'Bosses abatidos pelo alvo: '+Math.max(0,Math.floor(Number(context.bossesKilled)||0)),'Dano do alvo: '+Math.max(0,Math.round(Number(context.damage)||0)).toLocaleString('pt-BR')]:['Origem: perfil/cardume fora do histórico de partidas'];
    const target=type==='profile'?users[targetKey]:null;const priorReports=target?Math.max(0,Number(target.moderationReportCount)||0):0;
-   const apiKey=String(process.env.SENDGRID_API_KEY||''),from=String(process.env.RECOVERY_FROM_EMAIL||'');if(!apiKey||!from)return socket.emit('ugc-report-result',{ok:false,message:'O canal de moderação está temporariamente indisponível.'});
+   const apiKey=String(process.env.SENDGRID_API_KEY||''),from=String(process.env.RECOVERY_FROM_EMAIL||'');const gm=users.gamemaster;if(!isDeveloperUser(gm))return socket.emit('ugc-report-result',{ok:false,message:'Fila de moderação temporariamente indisponível.'});
    const reportId=crypto.randomUUID(),createdAt=new Date().toISOString();
    const body=['DENÚNCIA DE UGC - ABYSSAL','Protocolo: '+reportId,'Data UTC: '+createdAt,'','IDENTIFICAÇÃO','Denunciante: '+reporter.nickname,'UUID permanente do denunciante: '+ensureAccountId(reporter),'Tipo: '+type,'Alvo: '+targetLabel,'UUID permanente do alvo: '+(target?ensureAccountId(target):targetKey),'Motivo: '+reason,'Denúncias anteriores registradas contra este alvo: '+priorReports,'','CONTEXTO DA PARTIDA',...contextLines,'','CONTEÚDO / PERFIL CAPTURADO',snapshot,'','RELATO DO DENUNCIANTE',details||'Não informado','','Ação necessária: revisar o contexto e aplicar medida apropriada conforme Termos e regras da comunidade. Não aplicar punição automática apenas pela quantidade de denúncias.'].join('\n');
-   try{
+   const queue=(gm.adminUgcReports||[]).filter(r=>!r.closedAt||now-Number(r.closedAt)<180*86400000);
+   if(queue.length>=2000)return socket.emit('ugc-report-result',{ok:false,message:'Fila temporariamente cheia. Tente novamente mais tarde.'});
+   gm.adminUgcReports=[{id:reportId,at:now,type,targetKey,targetLabel,reporterKey,reason,details,snapshot,matchId,context:contextLines.join(' | '),status:'open'},...queue];gm.adminUpdatedAt=Date.now();
+   reporter.moderationReports.push({at:now,reportId,type,targetKey,reason,matchId});if(target)target.moderationReportCount=priorReports+1;
+   try{await persistAdminUsers();}catch(err){console.error('[moderation] persist:',err.message);return socket.emit('ugc-report-result',{ok:false,message:'Registro pendente. Tente novamente mais tarde.'});}
+   socket.emit('ugc-report-result',{ok:true,reportId,message:'Obrigado por ajudar a manter a comunidade saudável. Sua denúncia será analisada e tomaremos as providências necessárias. Protocolo: '+reportId.slice(0,8).toUpperCase()});
+   if(apiKey&&from)try{
     const response=await fetch('https://api.sendgrid.com/v3/mail/send',{method:'POST',headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},body:JSON.stringify({personalizations:[{to:[{email:'abyssalelectrongames@gmail.com'}]}],from:{email:from,name:'Abyssal - Moderação'},subject:'Abyssal | DENÚNCIA | '+reason+' | '+targetLabel+' | '+reportId.slice(0,8).toUpperCase(),content:[{type:'text/plain',value:body}]})});
-    if(!response.ok)return socket.emit('ugc-report-result',{ok:false,message:'Não foi possível entregar a denúncia ao suporte agora.'});
-    reporter.moderationReports.push({at:now,reportId,type,targetKey,reason,matchId});if(target)target.moderationReportCount=priorReports+1;saveUsers();
-    socket.emit('ugc-report-result',{ok:true,reportId,message:'Denúncia enviada ao suporte para análise. Protocolo: '+reportId.slice(0,8).toUpperCase()});
-   }catch(err){console.error('[moderation] Falha ao enviar denúncia:',err.message);socket.emit('ugc-report-result',{ok:false,message:'Falha temporária ao enviar a denúncia.'});}
+    if(!response.ok)console.error('[moderation] Email não entregue; registro mantido na fila.');
+   }catch(err){console.error('[moderation] Email:',err.message);}
+
   });
   socket.on('get-cardume-details',()=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('cardume-details',{cardume:null,roster:[]});const user=users[socket.data.userKey],c=user&&cardumes[user.cardumeId];if(!c)return socket.emit('cardume-details',{cardume:null,roster:[]});emitCardumeRoster(c);});
 
@@ -1900,6 +1916,19 @@ io.on('connection', socket => {
    if(Object.values(cardumes).some(c=>c.name.toLowerCase()===name.toLowerCase()))return socket.emit('cardume-action-result',{ok:false,message:'Já existe um Cardume com esse nome.'});
    if(Object.keys(cardumes).length>=500)return socket.emit('cardume-action-result',{ok:false,message:'O limite de Cardumes foi atingido.'});
    const id=crypto.randomUUID(),entry={id,name,description,leader:user.nickname,members:[key],capacity:30,open:true,createdAt:Date.now()};cardumes[id]=entry;user.cardumeId=id;user.titleStats ||= {};user.titleStats.cardumesCreated=(Number(user.titleStats.cardumesCreated)||0)+1;saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Cardume criado! Você é o líder.',cardume:publicCardume(entry),account:publicUser(user)});sendCardumes();emitCardumeRoster(entry);
+  });
+  socket.on('invite-cardume',async(payload={},ack)=>{
+   const reply=x=>{if(typeof ack==='function')ack(x);},key=socket.data.userKey,u=users[key],targetKey=String(payload?.nickname||'').trim().toLowerCase(),target=Object.hasOwn(users,targetKey)?users[targetKey]:null,c=u&&cardumes[u.cardumeId],now=Date.now();
+   if(!SOCIAL_FEATURES_ENABLED||!u||!c||!c.open||c.leader!==u.nickname||!c.members.includes(key)||c.members.length>=c.capacity||u.chatBanned||Number(u.chatMutedUntil)>now||GMAdmin.blocked(u))return reply({ok:false,message:'Somente o líder de um Cardume aberto, com vagas e comunicação liberada, pode recrutar.'});
+   if(!target||targetKey===key||target.cardumeId&&cardumes[target.cardumeId]||GMAdmin.blocked(target)||u.blockedUsers?.includes(targetKey)||target.blockedUsers?.includes(key))return reply({ok:false,message:'Este jogador não pode receber um convite.'});
+   const recent=(Array.isArray(u.cardumeInviteTimes)?u.cardumeInviteTimes:[]).filter(x=>now-Number(x.at)<86400000);
+   if(recent.some(x=>x.target===targetKey)||recent.filter(x=>now-Number(x.at)<3600000).length>=10)return reply({ok:false,message:'Aguarde antes de enviar novos convites.'});
+   const received=(Array.isArray(target.cardumeInviteReceived)?target.cardumeInviteReceived:[]).filter(x=>now-Number(x)<86400000);
+   if(received.length>=10)return reply({ok:false,message:'Este jogador atingiu o limite de convites.'});
+   u.cardumeInviteTimes=[...recent,{target:targetKey,at:now}].slice(-100);target.cardumeInviteReceived=[...received,now];GMAdmin.notice(target,u.nickname+' convidou você para o Cardume '+c.name+'. Para aceitar, abra Cardumes e selecione este grupo. Você não será inscrito automaticamente.',now,'CONVITE DE CARDUME');
+   try{await persistAdminUsers();}catch(err){console.error('[cardume invite]',err.message);return reply({ok:false,message:'Não foi possível confirmar o convite.'});}
+   for(const client of io.sockets.sockets.values())if(client.data.userKey===targetKey)client.emit('account-data',publicUser(target));
+   reply({ok:true,message:'Convite enviado ao sino de avisos do jogador.'});
   });
   socket.on('join-cardume',(payload={})=>{
    if(!SOCIAL_FEATURES_ENABLED)return socket.emit('cardume-action-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis enquanto os controles de segurança são preparados.'});
@@ -1941,6 +1970,7 @@ io.on('connection', socket => {
   const id=String(payload.roomId||CLASSIC_ROOM_ID).trim().toUpperCase();
   if([DEFAULT_ROOM_ID,PVP_ROOM_ID,FOSSAS_ROOM_ID].includes(id)){const result={ok:false,message:'Modo em desenvolvimento.'};socket.emit('room-join-result',result);ack(result);return;}
   let u=users[socket.data.userKey];
+  if(!u||GMAdmin.blocked(u)){const result={ok:false,message:u?GMAdmin.accessMessage(u):'Entre na sua conta.'};socket.emit('room-join-result',result);ack(result);return;}
   // A normal join must never load the entire persisted accounts JSONB.
   // Only a deploy reconnect needs to recover a pending session from storage.
   if(payload.reconnect===true&&!u?.pendingRunResume)u=await refreshDeployResumeFromPersistence(socket.data.userKey);

@@ -105,8 +105,8 @@ test('Socket.IO account handlers are attached only after connect() creates the s
 
 test('Windows and Android downloads have native direct links to published release assets', () => {
   const html = read('public/index.html');
-  assert.match(html, /href="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/download\/downloads-2\/Abyssal-Setup\.exe"/);
-  assert.match(html, /href="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/download\/downloads-2\/Abyssal-Android\.apk"/);
+  assert.match(html, /href="https:\/\/abyssalgame\.duckdns\.org\/api\/download\/windows" data-stable-fallback="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/download\/downloads-2\/Abyssal-Setup\.exe"/);
+  assert.match(html, /href="https:\/\/abyssalgame\.duckdns\.org\/api\/download\/android" data-stable-fallback="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/download\/downloads-2\/Abyssal-Android\.apk"/);
 });
 
 test('codex state is cached and snapshot handling never reads localStorage repeatedly', () => {
@@ -182,7 +182,7 @@ test('online damage rejects stale-room hits quietly and avoids per-hit acknowled
 test('solo enemy movement uses the shared AI while online movement stays authoritative', () => {
   const game = read('public/game.js');
   assert.match(game, /if\(onlineMode\)\{[\s\S]*?AbyssalEnemyNetcode\?\.renderedPosition/);
-  assert.match(game, /let movementTargets=localTargets/);
+  assert.match(game, /let movementTargets=creatureTargets/);
   assert.match(game, /moveTowardTarget\(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult\)/);
   assert.doesNotMatch(game, /function drawCurrentZones|currentSpawnTimer|currentZones/);
 });

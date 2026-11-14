@@ -231,7 +231,7 @@
       const clear=(ax,ay,bx,by)=>bx>=minX&&bx<=maxX&&by>=minY&&by<=maxY&&
         (!options.sharkTerrainClear||options.sharkTerrainClear(ax,ay,bx,by,pad));
       const vision=sharkVisionState(enemy,target,currentTime);
-      vision.visible=vision.visible&&((targets.length>1&&options.sharkTerrainClear)?options.sharkTerrainClear(x,y,target.x,target.y,2):options.sharkLineOfSight!==false);
+      vision.visible=vision.visible&&(targets.length>1||options.sharkLineOfSight!==false)&&(!options.sharkTerrainClear||options.sharkTerrainClear(x,y,target.x,target.y,2));
       const wasHunting=Boolean(enemy.sharkCharging||enemy.sharkChargeRemaining>0);
       const hunting=vision.visible||(wasHunting&&(boss||distance<=sharkVisionRange(enemy)*2.5)&&target.alive!==false);
       const aim=vision.targetAngle, previous=Number(enemy.angle)||0;

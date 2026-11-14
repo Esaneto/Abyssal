@@ -28,7 +28,7 @@ test('solo specimen dash uses swept movement, actual impact origin and one hit p
  const target={id:1,x:40,y:0,r:10,hp:100},outside={id:2,x:40,y:90,r:10,hp:100};
  const player={specimen:{x:0,y:0,r:10,alive:true,invuln:1,dash:{x1:0,y1:0,x2:100,y2:0,startedAt:0,durationMs:100,angle:0,damage:70,hitIds:new Set()}}};
  let now=50,hits=[];
- const context={player,onlineMode:false,isClassicShooterRun:()=>true,soloSubmarine:{spawnFx:0},performance:{now:()=>now},clamp:(v,a,b)=>Math.max(a,Math.min(v,b)),enemies:[target,outside],GAME_WORLD_ZOOM:1,pveTerrainClear:()=>true,dealEnemyDamage:(e,d,skill,opts)=>hits.push({id:e.id,d,skill,origin:opts.origin})};
+ const context={player,onlineMode:false,isClassicCavernRun:()=>true,soloSubmarine:{spawnFx:0},performance:{now:()=>now},clamp:(v,a,b)=>Math.max(a,Math.min(v,b)),enemies:[target,outside],GAME_WORLD_ZOOM:1,pveTerrainClear:()=>true,dealEnemyDamage:(e,d,skill,opts)=>hits.push({id:e.id,d,skill,origin:opts.origin})};
  vm.createContext(context);vm.runInContext(code+';updateSpecimenRuntime(.05)',context);
  now=100;vm.runInContext('updateSpecimenRuntime(.05)',context);
  assert.equal(hits.length,1);assert.equal(hits[0].id,1);assert.equal(hits[0].d,70);assert.equal(hits[0].skill,'skin-active-dash');
@@ -41,7 +41,7 @@ test('offensive specimen abilities deal damage and respect solid obstacles',()=>
  cut('const expandingSkinClouds','function spawnPoisonPlantCloudVisual')+
  cut('function applySoloSkinActive','function activateSkinAbility');
  const hits=[],near={id:1,x:30,y:0,r:10,hp:100},blocked={id:2,x:40,y:0,r:10,hp:100},player={specimen:{alive:true}};
- const context={onlineMode:false,GAME_WORLD_ZOOM:1,clamp:(v,a,b)=>Math.max(a,Math.min(v,b)),specimenOrigin:()=>({x:0,y:0}),enemies:[near,blocked],player,soloAdaptationRun:'test-run',gameState:'playing',effects:[],setTimeout:f=>f(),pveTerrainClear:(a,b,x)=>x!==40,dealEnemyDamage:(e,d,skill)=>hits.push({id:e.id,d,skill})};
+ const context={onlineMode:false,GAME_WORLD_ZOOM:1,clamp:(v,a,b)=>Math.max(a,Math.min(v,b)),specimenOrigin:()=>({x:0,y:0}),enemies:[near,blocked],player,soloAdaptationRun:'test-run',gameState:'playing',effects:[],setTimeout:f=>f(),pveTerrainClear:(a,b,x)=>x!==40,pveProjectileTerrainClear:(a,b,x)=>x!==40,dealEnemyDamage:(e,d,skill)=>hits.push({id:e.id,d,skill})};
  vm.createContext(context);vm.runInContext(code,context);
  for(const [id,damage,range] of [['cloud',50,300],['pulse',60,360],['push',60,330],['shot',80,360],['slowShot',60,320]]){
   context.spec={id,damage,range,color:'#fff'};

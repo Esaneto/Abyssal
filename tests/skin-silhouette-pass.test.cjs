@@ -13,10 +13,12 @@ test('Royal skin remains a siphonophore colony instead of reusing the starter si
  assert.match(royal,/colonial siphonophore/);assert.match(royal,/pearl-chain spine/);assert.match(royal,/tentacle\(-\.52/);
 });
 
-test('skin rarity visuals and rarity filter are removed',()=>{
- assert.doesNotMatch(game,/SHOP_RARITY|skinShopRarity|shopRarityRank|RELIC_SKIN_IDS|ABYSSAL_SIGNATURE_IDS/);
- assert.doesNotMatch(game,/Rarity signatures distinguish collectible forms/);
- assert.doesNotMatch(html,/shopRarityFilter|Todas as raridades|class="skin-rarity/);
+test('shop supports all five current rarity filters without the obsolete duplicate selector',()=>{
+ const filter=html.match(/<select\b[^>]*id="shopFamilyFilter"[^>]*>([\s\S]*?)<\/select>/);
+ assert.ok(filter,'rarity filter is required');
+ assert.deepEqual([...filter[1].matchAll(/<option value="([^"]+)"/g)].map(m=>m[1]),['all','common','uncommon','rare','epic','legendary']);
+ assert.match(game,/\$\('shopFamilyFilter'\)/);
+ assert.doesNotMatch(html,/id="shopRarityFilter"/);
 });
 
 test('pelican eel skin and boss keep the mouth and gain a long eel body',()=>{

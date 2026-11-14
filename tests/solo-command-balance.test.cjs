@@ -6,11 +6,16 @@ const rarity=require('../public/specimen-rarity.js');
 const specimens=require('../public/specimen-system.js');
 const ai=require('../public/enemy-ai.js');
 
-test('10-minute Solo economy buys one common specimen and rarities scale predictably',()=>{
+test('energy shop prices and paid rarity tiers match the current economy',()=>{
  const estimate=economy.estimateTenMinuteCoins();
- assert.ok(estimate.totalOffline>=economy.PRICE_BY_RARITY.common,'offline 10-minute run must afford common');
- assert.ok(estimate.totalOffline<economy.PRICE_BY_RARITY.uncommon,'baseline should not skip uncommon progression');
- assert.deepEqual(economy.PRICE_BY_RARITY,{common:300,uncommon:600,rare:1200,epic:2400,legendary:4800});
+ assert.ok(estimate.totalOffline>0,'the estimate must remain positive');
+ assert.equal(estimate.totalOnline,estimate.totalOffline+estimate.bossCoins);
+ // The old ten-minute affordability assumption predates the energy conversion.
+ // Actual progression is governed by collected energy, not this legacy estimate.
+ assert.deepEqual(economy.PRICE_BY_RARITY,{common:2500,uncommon:5000});
+ assert.equal(economy.priceForRarity('common'),2500);
+ assert.equal(economy.priceForRarity('uncommon'),5000);
+ for(const tier of ['rare','epic','legendary'])assert.equal(economy.priceForRarity(tier),0,'paid rarity must not have an energy price');
  assert.equal(rarity.rarityFor('solar'),'common');
  assert.equal(rarity.rarityFor('thorn'),'uncommon');
  assert.equal(rarity.rarityFor('voidwing'),'rare');
@@ -27,9 +32,9 @@ test('specimen biology always exposes gameplay HP speed and damage with rarity s
  }
  assert.ok(specimens.biologicalStats('toxic').hp>0);
  const game=read('public/game.js');
- assert.match(game,/biological\?\.damage/);
- assert.match(game,/biologicalStats\(equippedSkin\)\.speed/);
- assert.match(game,/biologicalStats\(equippedSkin\)\.hp/);
+ assert.match(game,/SPECIMEN_SYSTEM\.effectiveStats\(equippedSkin,specimenPoints\(\)\)\.damage/);
+ assert.match(game,/SPECIMEN_SYSTEM\.effectiveStats\(equippedSkin,specimenPoints\(\)\)\.speed/);
+ assert.match(game,/SPECIMEN_SYSTEM\.effectiveStats\(equippedSkin,specimenPoints\(\)\)\.hp/);
 });
 
 test('white shark detects only targets inside its forward vision cone',()=>{
@@ -45,7 +50,7 @@ test('white shark detects only targets inside its forward vision cone',()=>{
 
 test('Control 1 projectiles originate from each rendered gun barrel',()=>{
  const game=read('public/game.js');
- assert.match(game,/shotMuzzle=DIVER_ART\?\.muzzle\?\.\(player\.x,player\.y,player\.r,shotAngle\)/);
+ assert.match(game,/const gunTip=DIVER_ART\?\.muzzle\?\.\(player\.x,player\.y,player\.r,a\)/); assert.match(game,/const shotMuzzle=gunTip/);
  assert.match(game,/projectiles\.push\(\{x:shotMuzzle\.x,y:shotMuzzle\.y/);
  assert.match(game,/sendShot\(\{x:shotMuzzle\.x\/W,y:shotMuzzle\.y\/H/);
 });
@@ -71,6 +76,6 @@ test('Solo commands are organized with Research and a purple Resonance action',(
 test('server uses the same rarity price authority for online coin purchases',()=>{
  const server=read('server.js');
  assert.match(server,/require\('\.\/public\/abyssal-shop-economy\.js'\)/);
- assert.match(server,/profile\?\.tier!=='coins'/);
+ assert.match(server,/if\(profile\.tier!=='coins'\)return socket\.emit\('purchase-result',\{ok:false/);
  assert.match(server,/ShopEconomy\.priceForRarity\(rarity\)/);assert.match(server,/active==='pulse'/);assert.match(server,/const previous=radius\*clamp/);
 });

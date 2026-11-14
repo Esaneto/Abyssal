@@ -133,6 +133,7 @@ jobs:
           retention-days: 3
 
   android-api36:
+    needs: [syntax-and-tests, online-solo-live-acceptance, open-sea-regression, specimen-journal-acceptance, roxycloud-node26]
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     permissions:
       contents: write
