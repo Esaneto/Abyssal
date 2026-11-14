@@ -4635,11 +4635,11 @@ function drawSoloWelding(x,y,r,aim,job,t){
  ctx.strokeStyle='#9cecf7';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.strokeRect(bx,by,w,h);
  ctx.fillStyle='#e8fbff';ctx.font='bold '+10/GAME_WORLD_ZOOM+'px sans-serif';ctx.textAlign='center';ctx.fillText('SOLDANDO · '+Math.ceil(submarineRepairSeconds()-job.elapsed)+'s',x,by-4/GAME_WORLD_ZOOM);ctx.restore();
 }
-function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender,heldItem='abyssWeapon'){
+function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender,heldItem='abyssWeapon',appearance=null){
  const weld=!remote&&isClassicCavernRun()?soloSubmarine.repair:null;
  if(weld){angle=aim=Math.atan2(weld.point.y-y,weld.point.x-x);heldItem='abyssWelder';}else if(!remote&&player?.propulsorEquipped){heldItem='abyssPropulsor';aim=angle;}else if(heldItem==='abyssPropulsor'||heldItem==='abyssPropulsorIdle'){aim=angle;}
  if(DIVER_ART?.draw){
-  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:!weld,heldItem,propulsorActive:heldItem==='abyssPropulsor'&&(remote||Boolean(player?.propulsorMoving)),helmetLamp:remote||isOpenSeaRun()||isClassicCavernRun(),swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
+  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,appearance:remote?appearance:window.AbyssalAvatarBase?.get(),moving:!weld,heldItem,propulsorActive:heldItem==='abyssPropulsor'&&(remote||Boolean(player?.propulsorMoving)),helmetLamp:remote||isOpenSeaRun()||isClassicCavernRun(),swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
   if(weld)drawSoloWelding(x,y,r,aim,weld,t);
   return;
  }
@@ -4910,7 +4910,7 @@ function draw(t){
       }
       remoteDiverMotion.set(peerVisualId,{x:px,y:py,angle:heading,sx,sy,lastAt:t});
       remoteDiveLights.push({x:px,y:py,active:true,radius:285,strength:.84,color:'#78dfff',diver:true,heading,r:12/GAME_WORLD_ZOOM,lampLevel:1});
-      drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon');
+      drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance);
       const paralyzedUntil=remoteWeaponParalysis.get(peerVisualId);
       if(paralyzedUntil){if(Date.now()>=paralyzedUntil)remoteWeaponParalysis.delete(peerVisualId);
        else{ctx.save();ctx.translate(px,py);ctx.rotate(t*.005);ctx.strokeStyle='#72eaff';ctx.shadowColor='#62edff';ctx.shadowBlur=8/GAME_WORLD_ZOOM;ctx.lineWidth=2.5/GAME_WORLD_ZOOM;
@@ -4922,7 +4922,7 @@ function draw(t){
        const peerSkin=window.AbyssalGameHooks?.skinForId?.(peer.skinId),specimenHeading=sd>.1?Math.atan2(syDelta,sxDelta):heading;
        drawCreature(sx,sy,CREATURE_SCALE?.visualRadius?.(peer.skinId,10/GAME_WORLD_ZOOM)||10/GAME_WORLD_ZOOM,specimenHeading,peerSkin?.color||peer.color||'#b8a4ff','peer',t,true,0,ctx,peerSkin,{visualId:'peer-specimen:'+peerVisualId,visualAttackUntil:remoteCreatureAttackUntil.get(peerVisualId)||0,moveSpeed:followSpeed});
        if(Math.hypot(sx-px,sy-py)<32/GAME_WORLD_ZOOM+(CREATURE_SCALE?.visualRadius?.(peer.skinId,10/GAME_WORLD_ZOOM)||10/GAME_WORLD_ZOOM)*1.7)
-         drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon');
+         drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance);
        if(remoteDash)drawSpecimenDashArc(sx,sy,10/GAME_WORLD_ZOOM,remoteDash.angle,t,clamp((performance.now()-remoteDash.startedAt)/remoteDash.durationMs,0,1));
       }
       const title=PROFILE_TITLE_NAMES[peer.titleId]||'';
@@ -6015,6 +6015,7 @@ window.addEventListener('abyssal-account-data',e=>{
   if(!ownedSkins.includes(equippedSkin))equippedSkin='default';
   metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:{};
   if(a.diverGender==='female'||a.diverGender==='male')setDiverGender(a.diverGender,false);
+  if(a.avatarAppearance)window.AbyssalAvatarBase?.apply(a.avatarAppearance);
   const serverProficiency=a.specimenProficiency&&typeof a.specimenProficiency==='object'?a.specimenProficiency:{};specimenProficiency=pendingAdaptationMap(adaptationAccountKey(),serverProficiency);saveSpecimenProficiencyLocal();
   saveCosmeticsLocalOnly();
   const shopScreen=$('shopScreen');if(shopScreen&&!shopScreen.hidden)renderShop();

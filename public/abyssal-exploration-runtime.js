@@ -31,9 +31,9 @@
  const embeddedReturns=new Map();
  const childPages=new Set(['redeem','purchase','history','report','support']);
  const embeddedPages=Object.freeze({shop:'shopScreen',specimens:'catalogScreen',profile:'profileScreen',cardumes:'cardumesScreen',resonance:'resonanceScreen',login:'loginScreen',recovery:'passwordRecoveryScreen',notices:'notifPanel',download:'downloadScreen',wheel:'wheelScreen',ranking:'rankingsScreen',rooms:'roomsScreen',redeem:'redeemCodeScreen',purchase:'skinPurchaseConfirmModal',history:'matchHistoryScreen',report:'ugcReportScreen',support:'supportScreen'});
- const embeddedTitles=Object.freeze({profile:'PERFIL',cardumes:'CARDUMES',resonance:'RESSONÂNCIA',login:'IDENTIFICAÇÃO DO MERGULHADOR',recovery:'RECUPERAR ACESSO',notices:'CENTRAL DE AVISOS',download:'BAIXAR ABYSSAL',wheel:'ROLETA',ranking:'RANKING',rooms:'MERGULHO ONLINE',redeem:'RESGATAR CÓDIGO',purchase:'CONFIRMAR AQUISIÇÃO',history:'HISTÓRICO DE PARTIDAS',report:'DENUNCIAR',support:'SUPORTE',language:'IDIOMA',controls:'CONTROLES',zoom:'ZOOM DA CÂMERA',volume:'VOLUME',filter:'GRÁFICOS',fullscreen:'TELA CHEIA'});
+ const embeddedTitles=Object.freeze({profile:'PERFIL',cardumes:'CARDUMES',resonance:'RESSONÂNCIA',login:'IDENTIFICAÇÃO DO MERGULHADOR',recovery:'RECUPERAR ACESSO',notices:'CENTRAL DE AVISOS',download:'BAIXAR ABYSSAL',wheel:'ROLETA',ranking:'RANKING',rooms:'MERGULHO ONLINE',redeem:'RESGATAR CÓDIGO',purchase:'CONFIRMAR AQUISIÇÃO',history:'HISTÓRICO DE PARTIDAS',report:'DENUNCIAR',support:'SUPORTE',language:'IDIOMA',controls:'CONTROLES',zoom:'ZOOM DA CÂMERA',volume:'VOLUME',filter:'GRÁFICOS',fullscreen:'TELA CHEIA',wardrobe:'ARMÁRIO DO MERGULHADOR'});
  function navigateEmbedded(id,skip=false){if(!workshop||workshop.hidden)return false;const page=Object.keys(embeddedPages).find(key=>embeddedPages[key]===id);if(!page)return false;if(embeddedCatalog?.screen.id===id)return false;if(childPages.has(page)&&activeConsoleSection!==page)embeddedReturns.set(page,activeConsoleSection);if(page==='login'&&activeConsoleSection!=='login'&&activeConsoleSection!=='recovery')loginReturn=activeConsoleSection;if(page==='profile'&&skip&&activeConsoleSection==='cardumes')publicProfileReturn='cardumes';else if(page==='profile'&&!skip)publicProfileReturn='solo';activeConsoleSection=page;skipEmbeddedOpen=skip;renderWorkshop();return true;}
- const commandPages=new Set(['language','controls','zoom','volume','filter','fullscreen']);
+ const commandPages=new Set(['language','controls','zoom','volume','filter','fullscreen','wardrobe']);
  function navigateCommand(page){if(!workshop||workshop.hidden)return false;if(page==='notices'||page==='download')return navigateEmbedded(embeddedPages[page]);if(!commandPages.has(page))return false;activeConsoleSection=page;renderWorkshop();return true;}
  function backEmbedded(){const from=activeConsoleSection,page=childPages.has(from)?(embeddedReturns.get(from)||(['redeem','purchase'].includes(from)?'shop':'profile')):from==='login'?loginReturn:from==='recovery'?'login':from==='profile'?publicProfileReturn:'solo';embeddedReturns.delete(from);activeConsoleSection=page;renderWorkshop();}
  function restoreEmbeddedCatalog(){
@@ -248,6 +248,7 @@
  window.addEventListener('abyssal-modal-closed',event=>{if(event.detail?.screenId==='resonanceScreen')for(const nav of workshop?.querySelectorAll('.solo-research-tabs')||[]){const buttons=nav.querySelectorAll('button');buttons[2]?.setAttribute('aria-pressed','false');}});
  function renderConsoleUtility(){
   if(!workshopGrid)return;
+  if(activeConsoleSection==='wardrobe'){const page=window.AbyssalAvatarWardrobe?.createPage?.();if(page){mountCockpitConsole(page);return;}}
   if(commandPages.has(activeConsoleSection)){const utility=window.AbyssalCockpitSettings?.createPage?.(activeConsoleSection);if(utility){mountCockpitConsole(utility);return;}}
   if(embeddedPages[activeConsoleSection]){const utility=document.createElement('div');if(activeConsoleSection==='resonance'){utility.className='abyss-console-info';utility.append(createSoloResearchNav());}mountCockpitConsole(utility);return;}
   const utility=document.createElement('div');utility.className='abyss-console-info';
@@ -358,7 +359,7 @@
       window.AbyssalPreferredRoomMode='coop';const mode=document.getElementById('roomModeInput');if(mode)mode.value='coop';
       window.AbyssalOnline?.connectAndJoin?.('MERGULHO-ONLINE');
      });
-     modes.append(action,online);utility.append(body,modes,createSoloResearchNav());
+     modes.append(action,online);const wardrobe=document.createElement('button');wardrobe.type='button';wardrobe.className='abyss-visor-action abyss-wardrobe-entry';wardrobe.textContent='ARMÁRIO · PERSONALIZAR MERGULHADOR';wardrobe.addEventListener('click',()=>navigateCommand('wardrobe'));utility.append(body,modes,wardrobe,createSoloResearchNav());
     }else utility.append(heading,body,action);
    }
   }

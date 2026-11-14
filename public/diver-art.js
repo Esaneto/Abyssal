@@ -20,6 +20,8 @@
   if(!c||!(r>0))return;
   const female=genderOf(options.gender)==='female',a=Number(heading)||0;
   const swimming=options.moving!==false;
+  const avatar=globalThis.AbyssalAvatarBase;const look=avatar?.palette(options.appearance||(options.remote?avatar.DEFAULT:avatar.get()))||{};const suitColors=look.outfit,finColors=look.fins,tankColors=look.back,visorColors=look.visor,hairColors=look.hair;
+  const suitTone=(fallback,index)=>suitColors?.[index]||fallback;
   const phase=(Number(t)||0)*.008;
   const cycle=swimming?Math.sin(phase):0;
   c.save();c.translate(x,y);c.rotate(a);c.scale(r*DRAW_SCALE/14,r*DRAW_SCALE/14);
@@ -40,22 +42,22 @@
    const hip=[-16,side*5.5];
    const knee=[-34,side*(7.5+beat*4.5)];
    const ankle=[-53,side*(8+follow*8)];
-   limb(hip,knee,7.8,'#202a38','#40617a');
+   limb(hip,knee,7.8,suitTone('#202a38',1),suitTone('#40617a',3));
    c.fillStyle='#030c14';c.strokeStyle='#6d899d';c.lineWidth=1;
    c.beginPath();c.arc(knee[0],knee[1],3.4,0,TAU);c.fill();c.stroke();
-   limb(knee,ankle,6,'#162532','#2b5b75');
+   limb(knee,ankle,6,suitTone('#162532',0),suitTone('#2b5b75',3));
    // Angular pressure guards and subdued titanium trim, within the existing limbs.
    c.save();c.translate(knee[0],knee[1]);c.fillStyle='#294a5b';c.strokeStyle='#769eab';c.lineWidth=.85;c.beginPath();c.roundRect(-4,-3,8,6,2);c.fill();c.stroke();c.restore();
    line(hip[0]-5,hip[1],knee[0]+6,knee[1],'#416f86',1.2);
    const finSwing=swimming?Math.sin(phase-1.05+(side===1?0:Math.PI))*5:0;
-   c.fillStyle='#101b29';c.strokeStyle='#79b9ce';c.lineWidth=1.4;
+   c.fillStyle=finColors?.[0]||'#101b29';c.strokeStyle=finColors?.[1]||'#79b9ce';c.lineWidth=1.4;
    c.beginPath();c.moveTo(ankle[0]+1,ankle[1]-3*side);
    c.quadraticCurveTo(-64,ankle[1]-5*side,-77,ankle[1]+finSwing-7*side);
    c.quadraticCurveTo(-82,ankle[1]+finSwing,-78,ankle[1]+finSwing+7*side);
    c.quadraticCurveTo(-65,ankle[1]+5*side,ankle[0],ankle[1]+3*side);
    c.closePath();c.fill();c.stroke();
    // Fin internal reinforcing ribs convey thickness and soft reflected sunlight.
-   c.save();c.globalAlpha=.55;c.strokeStyle='#8fd9e3';c.lineWidth=.75;
+   c.save();c.globalAlpha=.55;c.strokeStyle=finColors?.[2]||'#8fd9e3';c.lineWidth=.75;
    for(let rib=0;rib<3;rib++){c.beginPath();c.moveTo(ankle[0]-9,ankle[1]+(rib-1)*2);
     c.lineTo(-73,ankle[1]+finSwing+(rib-1)*3.5);c.stroke();}c.restore();
    line(-57,ankle[1],-76,ankle[1]+finSwing,'rgba(168,206,217,.56)',.8);
@@ -67,8 +69,8 @@
    c.fillStyle='#0b1b2b';c.strokeStyle='#88acbb';c.lineWidth=1.4;
    c.beginPath();c.roundRect(-19,ty,38,10,4);c.fill();c.stroke();
    const tankVolume=c.createLinearGradient(-18,ty,18,ty+10);
-   tankVolume.addColorStop(0,'#0a1b2b');tankVolume.addColorStop(.28,'#4c8095');
-   tankVolume.addColorStop(.49,'#23495f');tankVolume.addColorStop(.80,'#102c42');tankVolume.addColorStop(1,'#081a27');
+   tankVolume.addColorStop(0,tankColors?.[0]||'#0a1b2b');tankVolume.addColorStop(.28,tankColors?.[1]||'#4c8095');
+   tankVolume.addColorStop(.49,tankColors?.[2]||'#23495f');tankVolume.addColorStop(.80,tankColors?.[3]||'#102c42');tankVolume.addColorStop(1,tankColors?.[4]||'#081a27');
    c.fillStyle=tankVolume;c.beginPath();c.roundRect(-14,ty+1.8,27,6.4,2.5);c.fill();
    c.fillStyle='rgba(195,236,237,.37)';c.fillRect(-9,ty+2.4,1.2,4.5);
    line(-3,ty+2,-3,ty+8,'#83dbe5',1.1);
@@ -78,8 +80,8 @@
   line(11,-20,13,-5,'#b0c6cc',1.6);
   // Black/graphite diving suit with deep abyss-blue armour and small cyan nodes.
   const suit=c.createLinearGradient(-20,-10,24,11);
-  suit.addColorStop(0,'#040c16');suit.addColorStop(.33,'#1c2834');
-  suit.addColorStop(.59,'#123251');suit.addColorStop(.86,'#1b2a37');suit.addColorStop(1,'#080f1b');
+  suit.addColorStop(0,suitTone('#040c16',0));suit.addColorStop(.33,suitTone('#1c2834',1));
+  suit.addColorStop(.59,suitTone('#123251',2));suit.addColorStop(.86,suitTone('#1b2a37',1));suit.addColorStop(1,suitTone('#080f1b',0));
   c.fillStyle=suit;c.strokeStyle='#5b8796';c.lineWidth=1.6;
   c.beginPath();c.moveTo(-19,-7);c.bezierCurveTo(-7,-13,12,-13,20,-7);
   c.quadraticCurveTo(27,-1,20,9);c.bezierCurveTo(5,15,-9,12,-19,7);
@@ -94,13 +96,13 @@
   c.save();c.strokeStyle='#67c8d6';c.lineWidth=1.15;c.beginPath();c.moveTo(-13,-9);c.lineTo(-5,-12);c.lineTo(7,-10);c.stroke();c.strokeStyle='#39596b';c.lineWidth=1.1;c.beginPath();c.moveTo(-12,8);c.lineTo(1,10);c.stroke();c.restore();
   // Anatomical shoulder guards frame the torso without changing its hitbox.
   for(const side of [-1,1]){
-   c.fillStyle=side<0?'#1e4054':'#112a3c';c.strokeStyle='rgba(112,188,197,.49)';c.lineWidth=.9;
+   c.fillStyle=side<0?suitTone('#1e4054',3):suitTone('#112a3c',2);c.strokeStyle='rgba(112,188,197,.49)';c.lineWidth=.9;
    c.beginPath();c.moveTo(-11,side*8);c.lineTo(6,side*11);
    c.lineTo(18,side*7);c.lineTo(9,side*4);c.closePath();c.fill();c.stroke();
   }
   c.fillStyle='#09141e';c.beginPath();c.roundRect(-11,-4,21,8,3);c.fill();
   // Raised breastplate and pressure-harness fasteners, no changes to collision.
-  const chest=c.createLinearGradient(-10,-5,13,7);chest.addColorStop(0,'#456779');chest.addColorStop(.42,'#19384b');chest.addColorStop(1,'#0c2332');c.fillStyle=chest;c.strokeStyle='#719eac';c.lineWidth=.75;c.beginPath();c.moveTo(-9,-5);c.lineTo(11,-5);c.lineTo(16,1);c.lineTo(9,6);c.lineTo(-9,5);c.closePath();c.fill();c.stroke();
+  const chest=c.createLinearGradient(-10,-5,13,7);chest.addColorStop(0,suitTone('#456779',4));chest.addColorStop(.42,suitTone('#19384b',2));chest.addColorStop(1,suitTone('#0c2332',0));c.fillStyle=chest;c.strokeStyle='#719eac';c.lineWidth=.75;c.beginPath();c.moveTo(-9,-5);c.lineTo(11,-5);c.lineTo(16,1);c.lineTo(9,6);c.lineTo(-9,5);c.closePath();c.fill();c.stroke();
   for(const xx of [-12,12]){c.fillStyle='#8da9ad';c.beginPath();c.arc(xx,0,1.2,0,TAU);c.fill();}
   line(-6,-2,7,-2,'#4c8495',.8);
   c.strokeStyle='rgba(146,210,219,.67)';c.lineWidth=1.35;
@@ -120,10 +122,10 @@
   c.beginPath();c.ellipse(8.2,-.6,8.7,8.2,0,0,TAU);c.fill();c.stroke();
   // Curved optical glass with a distinct highlight, dark edge and focal depth.
   const visorGlass=c.createLinearGradient(0,-9,17,8);
-  visorGlass.addColorStop(0,'rgba(195,248,250,.83)');
-  visorGlass.addColorStop(.23,'rgba(78,185,203,.56)');
-  visorGlass.addColorStop(.65,'rgba(9,46,72,.86)');
-  visorGlass.addColorStop(1,'rgba(11,29,45,.93)');
+  visorGlass.addColorStop(0,visorColors?.[0]||'rgba(195,248,250,.83)');
+  visorGlass.addColorStop(.23,visorColors?.[1]||'rgba(78,185,203,.56)');
+  visorGlass.addColorStop(.65,visorColors?.[2]||'rgba(9,46,72,.86)');
+  visorGlass.addColorStop(1,visorColors?.[3]||'rgba(11,29,45,.93)');
   c.fillStyle=visorGlass;c.beginPath();c.ellipse(8.2,-.6,7.5,6.8,0,0,TAU);c.fill();
   c.fillStyle='rgba(220,251,247,.76)';c.beginPath();c.ellipse(6,-4.2,3.5,1.2,-.5,0,TAU);c.fill();
   c.fillStyle='#789eaa';c.beginPath();c.arc(12.6,-2.1,1.7,0,TAU);c.fill();
@@ -145,38 +147,40 @@
   }
   // Loose hair in both versions, never a ponytail. Each lock has separate
   // water-driven curvature. Female locks extend farther; male locks are short.
-  c.save();c.strokeStyle='#05070b';c.lineCap='round';
+  if(look.hairStyle!=='shaved'){c.save();c.strokeStyle='#05070b';c.lineCap='round';
   // Streamlined locks keep the female silhouette and avoid a radial hair halo.
-  const hairLength=female?60:20; // 3:1 length ratio
-  const locks=female?46:34;
+  const longHair=look.hairStyle==='long'||(look.hairStyle!=='short'&&female);const hairLength=longHair?60:20; // independent hairstyle
+  const locks=longHair?46:34;
   // The animated strands provide the silhouette; no duplicate filled shadow beneath them.
-  const step=female?4:5;
+  const step=longHair?4:5;
   for(let i=0;i<locks;i+=step){
    const f=i/(locks-1),originX=17+f*8,originY=-12.5-Math.sin(f*Math.PI)*4;
    const strandPhase=phase*.16+i*.37;
    const wave=Math.sin(strandPhase)*2.7+Math.cos(strandPhase*.61)*1.7;
    const endX=originX-hairLength*(.68+.22*Math.sin(f*Math.PI));
    const endY=originY-7-f*9+wave;
-   c.strokeStyle=i%3===0?'#354052':i%2?'#111924':'#090d15';
-   c.lineWidth=female?2.2+f*1.3:1.8;
+   c.strokeStyle=hairColors?.[i%3]||(i%3===0?'#354052':i%2?'#111924':'#090d15');
+   c.lineWidth=longHair?2.2+f*1.3:1.8;
    c.beginPath();c.moveTo(originX,originY);
    c.bezierCurveTo(originX-hairLength*.22,originY-11,
     endX+hairLength*.33,endY+Math.sin(strandPhase+.8)*(female?4:2),endX,endY);
    c.stroke();
   }
-  c.fillStyle='#040608';c.beginPath();c.moveTo(16,-8);c.quadraticCurveTo(17,-16,26,-15);
+  c.fillStyle=hairColors?.[0]||'#040608';c.beginPath();c.moveTo(16,-8);c.quadraticCurveTo(17,-16,26,-15);
   c.quadraticCurveTo(33,-13,32,-8);c.quadraticCurveTo(29,-11,25,-8);
   c.quadraticCurveTo(23,-6,20,-7);c.closePath();c.fill();
   // A short irregular fringe crosses the upper visor for both genders.
   for(let i=0;i<4;i++){
    const tx=25+i*2.8;
-   line(tx,-12,tx+1.3,-8+(i%2)*1.4,'#080a0e',1.35);
+   line(tx,-12,tx+1.3,-8+(i%2)*1.4,hairColors?.[2]||'#080a0e',1.35);
   }
   c.restore();
+  }
   // Held equipment owns the arms. Non-weapon tools use a compact two-hand grip
   // so the rifle pose can never leak underneath a pickaxe or container.
   const held=String(options.heldItem||'abyssWeapon');
   c.save();c.rotate((Number(aim)||0)-a);
+  if(held==='none'){limb([5,-7],[-1,-18],5,suitTone('#182634',1),suitTone('#617b87',3));limb([-1,-18],[-17,-20],4.5,suitTone('#152b3a',0),suitTone('#688391',3));limb([4,7],[-3,18],5,suitTone('#192733',1),suitTone('#698797',3));limb([-3,18],[-18,20],4.5,suitTone('#162c3b',0),suitTone('#5d8191',3));c.restore();c.restore();return;}
   if(held!=='abyssWeapon'){
    c.translate(0,5);
    if(held==='abyssPickaxe')c.rotate((Number(options.swing)||0)*.17);
