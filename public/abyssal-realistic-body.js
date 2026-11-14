@@ -197,6 +197,17 @@ function body(c,t,options,look={}){
   c.restore();
  }
 
+function fantasyFin(id,pose,side){
+ if(id==='standard'||!id)return false;
+ const colors={amber:'#ffc267',white:'#b7f7ff',leviathan:'#9eff56',specter:'#c084ff',medusa:'#ff8edf',nautilus:'#ffc064',ion:'#53fff2'},g=colors[id]||'#7ff4e8',flex=pose.finFlex||0,w=1-(pose.finTwist||0)*.4,tm=Number(t)||0,anim=options.reducedMotion?0:Math.sin(tm*.004+side*.8);
+ const shade=grad([-12,-9],[-12,9],[[0,f[0]],[.32,f[1]],[.53,f[0]],[.83,f[1]],[1,f[0]]]);
+ const pts=p=>{c.moveTo(...p[0]);for(const v of p.slice(1))c.lineTo(...v);c.closePath();};
+ if(id==='amber'||id==='leviathan'){path(()=>{c.moveTo(-2,-3);c.bezierCurveTo(-12,-4,-19,-12*w,-32,-11*w+flex);c.quadraticCurveTo(-26,-3+flex,-34,flex);c.quadraticCurveTo(-26,3+flex,-32,11*w+flex);c.bezierCurveTo(-19,12*w,-12,4,-2,3);c.closePath();},shade,g,.75);for(const y of [-9,0,9])neon(()=>{c.moveTo(-5,0);c.quadraticCurveTo(-19,y*.5+flex*.4,-30,y*w+flex);},g,.9);}
+ else if(id==='white'||id==='specter'||id==='ion'){for(const sgn of [-1,1]){const tip=-33-(id==='specter'?3:0);path(()=>pts([[-2,sgn*1.5],[-13,sgn*6],[-24,sgn*10*w+flex*.6],[tip,sgn*7*w+flex],[-26,sgn*1.5+flex],[-8,sgn*.7]]),shade,g,.75);neon(()=>{c.moveTo(-6,sgn*2);c.lineTo(-23,sgn*7*w+flex*.5);c.lineTo(tip+1,sgn*7*w+flex);},g,id==='specter'?1.3:.85);}if(id==='ion'){c.save();for(let i=0;i<4;i++){const q=options.reducedMotion?i/4:(tm*.0013+i/4)%1;c.globalAlpha=(1-q)*.68;oval(-34-q*10,flex+Math.sin(i*2)*3,.8+q*.6,.8,g);}c.restore();}}
+ else if(id==='medusa'){path(()=>{c.moveTo(-2,-3);c.bezierCurveTo(-13,-4,-22,-12*w,-30,-8*w+flex);c.quadraticCurveTo(-35,flex,-30,8*w+flex);c.bezierCurveTo(-22,12*w,-13,4,-2,3);c.closePath();},shade,g,.7);for(let i=0;i<5;i++){const y=(i-2)*3.7*w;neon(()=>{c.moveTo(-16,y*.45);c.bezierCurveTo(-28,y+flex*.5,-34,y+flex+anim*4,-40,y+flex+Math.sin(tm*.005+i)*3*(options.reducedMotion?0:1));},g,.65);}}
+ else if(id==='nautilus'){for(const sgn of [-1,1]){path(()=>pts([[-3,sgn*1],[-13,sgn*5],[-25,sgn*9*w+flex],[-34,sgn*5*w+flex],[-28,sgn*1+flex],[-12,sgn*.6]]),shade,g,.8);for(const x of [-14,-22,-29])neon(()=>c.ellipse(x,sgn*4*w+flex*(-x/34),2,1.55,0,0,Math.PI*2),g,.72);}}
+ return true;
+}
  // Continuous tapered anatomical limbs: shoulder/hip volume, muscle belly,
  // narrowed joint, then wrist/ankle. No spherical robot joints.
  function limb(a,b,thickness,base,highlight){
@@ -226,7 +237,7 @@ function body(c,t,options,look={}){
  c.save();drawHairLayer(c,locks,'back',hair,detail);c.restore();
  // Low-profile paired tanks sit behind the rib cage; their outer edges alone
  // appear from the front. Equipment does not replace the anatomy.
- for(const side of [-1,1]){const far=side<0,y=profile?(far?-25+roll*1.8:-22+roll*1.0):side*13.3-4.2+(far?2.2:1.1)*yaw,w=8.4+(far?-1.6:1.7)*yaw+(profile?roll*(far?-.65:.65):0),len=34+(far?-3:2)*yaw,x0=-17+(far?1.5:-1)*yaw;c.save();const metal=grad([0,y],[0,y+w],[[0,tank[0]],[.24,far?tank[2]:tank[1]],[.51,tank[2]],[1,tank[4]]]);box(x0,y,len,w,Math.min(3.8,w/2),metal,'#0b1922',.7);for(const x of [-10,7])box(x,y+.3,2.8,w-.6,.7,'#152530','#829298',.42);box(x0+len-2,y+w*.24,4.2,w*.54,1,'#75898c','#253b42',.55);if(detail&&!far)line([x0+4,y+w*.22],[x0+len-5,y+w*.22],'#b7d6de55',.6);c.restore();}
+ for(const side of [-1,1]){const far=side<0,y=profile?(far?-25+roll*1.8:-22+roll*1.0):side*13.3-4.2+(far?2.2:1.1)*yaw,w=8.4+(far?-1.6:1.7)*yaw+(profile?roll*(far?-.65:.65):0),len=34+(far?-3:2)*yaw,x0=-17+(far?1.5:-1)*yaw;c.save();const metal=grad([0,y],[0,y+w],[[0,tank[0]],[.24,far?tank[2]:tank[1]],[.51,tank[2]],[1,tank[4]]]);box(x0,y,len,w,Math.min(3.8,w/2),metal,'#0b1922',.7);for(const x of [-10,7])box(x,y+.3,2.8,w-.6,.7,'#152530','#829298',.42);box(x0+len-2,y+w*.24,4.2,w*.54,1,'#75898c','#253b42',.55);if(detail&&!far)line([x0+4,y+w*.22],[x0+len-5,y+w*.22],'#b7d6de55',.6);if(emission&&!far)neon(()=>{c.moveTo(x0+3,y+w*.22);c.lineTo(x0+len-5,y+w*.22);},emission,1.1);c.restore();}
  // The nape underlayer floats above the upper edge of the backplate, but behind the body and head.
  c.save();drawHairLayer(c,locks,'mane',hair,detail);c.restore();
  // Legs: the pelvis is drawn over the thigh roots, with separate crotch
@@ -240,13 +251,14 @@ function body(c,t,options,look={}){
   if(premium&&detail){c.save();c.translate(...knee);const d=industrial?4.2:polar?3.9:elite?3.8:stealth?3.5:3.2;box(-d,-3.1,d*2,6.2,industrial?1.0:2.0,industrial?s[0]:s[1],s[3],.5);if(industrial){for(const x of [-2.8,2.8])oval(x,0,.55,.55,'#e5ba83');}else if(polar){for(const x of [-1.5,0,1.5])line([x,-2],[x,2],'#b4d6d9',.46);}else if(elite||stealth){line([-2,-1.9],[2,-1.9],elite?'#9cf0d2':'#a292d3',.75);}else line([-1.8,-2],[1.8,-2],s[3],.55);c.restore();}
   c.save();c.translate(...ankle);c.rotate(-pose.finAngle);
   box(-5,-3.1,9.5,6.2,2.1,grad([0,-3],[0,3],[[0,s[2]],[.45,s[1]],[1,s[0]]]),'#0b1821',.55);
+  if(!fantasyFin(look.finId,pose,side)){
   const blade=grad([-12,-6],[-12,6],[[0,'#0a141c'],[.23,f[1]],[.45,f[0]],[.8,f[0]],[1,'#071219']]);
   const flex=pose.finFlex||0,wide=1-(pose.finTwist||0)*.42;
   path(()=>{c.moveTo(-2,-3);c.bezierCurveTo(-9,-3.5,-17,-5.8*wide+flex*.55,-25,-6*wide+flex);c.quadraticCurveTo(-28,flex,-25,6*wide+flex);c.bezierCurveTo(-17,5.8*wide+flex*.55,-9,3.5,-2,3);c.closePath();},blade,f[1],.7);
   // Stiffer side rails and flexible central membrane; the heel pocket remains fixed.
   for(const off of [-4,0,4])path(()=>{c.moveTo(-6,off*.45);c.quadraticCurveTo(-16,off*.72*wide+flex*.42,-24,off*wide+flex);},null,off?f[1]:f[2],off?.82:.55);
   path(()=>{c.moveTo(-4,-2.7);c.quadraticCurveTo(-7,0,-4,2.7);},null,'#a4b7bc',.62);
-  if(emission)neon(()=>{c.moveTo(-8,-2.2);c.quadraticCurveTo(-17,-3.4*wide+flex*.5,-24,-4*wide+flex);},emission,.77);
+  if(emission)neon(()=>{c.moveTo(-8,-2.2);c.quadraticCurveTo(-17,-3.4*wide+flex*.5,-24,-4*wide+flex);},emission,.77);}
   c.restore();c.restore();
  }
  // Far arm is painted before the torso, in projected space, not above the face.
@@ -285,6 +297,7 @@ function body(c,t,options,look={}){
  else if(detail){line([5,-1],[5,1],'#76939d',.5);}
  if(premium&&detail){const seam=industrial?'#e9b77e':polar?'#d9f4f6':scout?'#a6c08b':elite?'#a5f0d9':'#b7a2f0';for(const side of profile?[1]:[-1,1]){path(()=>{c.moveTo(-3,side*8);c.quadraticCurveTo(-7,side*6,-13,side*10);},null,seam,.62);box(13,side*7-1.3,2.9,2.6,.55,seam,'#15242c',.4);}}
  if(emission){for(const side of profile?[1]:[-1,1]){neon(()=>{c.moveTo(13,side*10.5);c.quadraticCurveTo(5,side*12.4,-2,side*7.9);c.lineTo(-11,side*8.2);},emission,1);neon(()=>{c.moveTo(-17,side*8.6);c.lineTo(-19,side*8.2);},emission,.8);}if(elite||stealth)neon(()=>{c.moveTo(13,-2);c.lineTo(10,0);c.lineTo(13,2);},emission,.8);}
+ if(emission&&profile){neon(()=>{c.moveTo(16,-10);c.quadraticCurveTo(6,-12,-3,-9);c.lineTo(-14,-10);},emission,1.3);neon(()=>{c.moveTo(11,5);c.lineTo(7,2);c.lineTo(1,4);c.lineTo(-7,3);c.lineTo(-13,6);},emission,1.05);for(const x of [3,-3,-9])neon(()=>{c.moveTo(x,-5);c.lineTo(x-2,-2);},emission,.85);}
  // Neck and rounded anatomical head. Mask sits on a face, rather than a
  // rectangular head replacing the face. Hair roots retain original mounts.
  box(18,-4.1,7.1,8.2,2.3,grad([0,-4],[0,4],[[0,s[2]],[.5,s[1]],[1,s[0]]]),'#142631',.55);

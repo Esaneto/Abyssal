@@ -17,6 +17,23 @@
   const below=(Number(r)||13)*DRAW_SCALE*GUN_OFFSET_Y/14*weaponSide(angle);
   return {x:(Number(x)||0)+Math.cos(angle)*distance-Math.sin(angle)*below,y:(Number(y)||0)+Math.sin(angle)*distance+Math.cos(angle)*below};
  }
+function rifleShell(c,id='standard'){
+ const styles={standard:['#263943','#82939a','#c1cbd0',null],forge:['#302d31','#9c684a','#d9b08a','#52e8ff'],polar:['#294957','#a8cdd4','#e4f6f5','#8defff'],tracker:['#243a29','#607d48','#a0bf79','#a7fa54'],nautilus:['#443125','#b68c51','#f0d099','#ffc064'],specter:['#252237','#665980','#b7a5d5','#c084ff']},[dark,mid,edge,glow]=styles[id]||styles.standard;
+ const path=(fn,fill,stroke,w=1)=>{c.beginPath();fn();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=w;c.stroke();}};
+ const poly=(pts,fill,stroke=edge,w=.8)=>path(()=>{pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();},fill,stroke,w);
+ const box=(x,y,w,h,r,fill,stroke=edge)=>path(()=>c.roundRect(x,y,w,h,r),fill,stroke,.75);
+ const oval=(x,y,rx,ry,fill,stroke=edge)=>path(()=>c.ellipse(x,y,rx,ry,0,0,Math.PI*2),fill,stroke,.7);
+ const g=c.createLinearGradient(0,-10,0,12);g.addColorStop(0,edge);g.addColorStop(.22,mid);g.addColorStop(.53,dark);g.addColorStop(1,'#101a24');
+ const neon=(fn,w=1)=>{if(!glow)return;c.save();c.globalAlpha*=.20;path(fn,null,glow,w+2.5);c.restore();path(fn,null,glow,w);};
+ poly([[5,-6],[17,-5],[21,-2],[18,6],[6,8],[3,5],[3,-4]],dark);poly([[19,4],[26,5],[25,15],[21,16],[18,12]],dark);path(()=>{c.moveTo(25,7);c.quadraticCurveTo(29,15,32,8);},null,edge,1.2);
+ if(id==='forge'){poly([[15,-7],[23,-10],[49,-10],[55,-5],[55,7],[38,10],[18,6]],g);for(const x of [26,32,38,44]){box(x,-7,3,14,1,dark);neon(()=>{c.moveTo(x+1,-5);c.lineTo(x+1,5);},.9);}box(48,-4,16,8,1,mid);box(63,-3,6,6,1,dark);}
+ else if(id==='polar'){poly([[14,-5],[22,-12],[41,-9],[56,-4],[60,0],[54,6],[34,10],[18,6]],g);poly([[36,-4],[53,-3],[47,4],[37,5]],dark);neon(()=>{c.moveTo(23,-8);c.lineTo(37,-5);c.lineTo(54,-3);},1.2);box(55,-2.5,14,5,1,dark);}
+ else if(id==='tracker'){path(()=>{c.moveTo(13,-4);c.bezierCurveTo(18,-13,32,-12,38,-6);c.bezierCurveTo(48,-14,58,-8,59,-3);c.lineTo(69,-1);c.lineTo(69,1);c.quadraticCurveTo(53,10,42,6);c.bezierCurveTo(34,13,18,11,13,-4);c.closePath();},g,edge,1);for(const x of [25,33,43,51]){oval(x,0,3,4,dark);neon(()=>{c.moveTo(x-1,-3);c.quadraticCurveTo(x+2,0,x-1,3);},.85);}}
+ else if(id==='nautilus'){poly([[16,-6],[24,-9],[42,-7],[48,-3],[46,7],[24,9],[17,5]],g);for(const x of [27,36,45]){oval(x,0,4.5,6,dark);neon(()=>c.ellipse(x,0,2.7,4.5,0,0,Math.PI*2),.9);}for(const y of [-4,0,4]){path(()=>{c.moveTo(46,y);c.lineTo(62,y);c.lineTo(69,y*.28);},null,mid,3);neon(()=>{c.moveTo(49,y);c.lineTo(62,y);c.lineTo(68,y*.28);},.85);}}
+ else if(id==='specter'){poly([[13,-4],[27,-11],[43,-7],[62,-5],[69,-1],[69,1],[55,6],[37,9],[19,5]],g);poly([[29,-5],[45,-4],[55,0],[43,4],[29,3]],'#111522');neon(()=>{c.moveTo(17,-4);c.lineTo(29,-8);c.lineTo(57,-3);c.lineTo(68,0);},1.15);poly([[42,-5],[48,0],[42,5],[37,0]],mid,glow,.75);}
+ else{poly([[15,-5],[23,-7],[43,-7],[51,-4],[51,5],[36,8],[18,6]],g);box(23,-3,19,6,1.5,dark);for(const x of [27,32,37])box(x,-2,2,4,.4,mid);box(47,-3,16,6,1.2,mid);box(63,-2.3,6,4.6,.6,dark);box(30,-10,10,3,1,dark);path(()=>{c.moveTo(17,-5);c.lineTo(46,-5);},null,edge,.85);}
+ box(30,-1,9,6,1.5,dark,mid);oval(68,0,1,1.8,'#15252e',edge);if(glow)neon(()=>{c.moveTo(57,-1);c.lineTo(69,0);},1.1);
+}
  function draw(c,x,y,r,heading,aim,t=0,options={}){
   if(!c||!(r>0))return;
   const female=genderOf(options.gender)==='female',a=Number(heading)||0;
@@ -264,53 +281,12 @@
   }
   c.translate(0,offset); // Rifle stays on the ventral side of its aim direction.
   drawGripArms();c.save();c.scale(1,itemSide);
-  // White futuristic AK-profile rifle: ventilated receiver, pronounced stock,
-  // curved magazine, trigger guard, optic and a long distinguishable barrel.
-  // The muzzle glow and hit origin use BARREL_TIP_X, exactly the same coordinate.
-  c.shadowColor='rgba(213,248,255,.48)';c.shadowBlur=options.detail===false?0:2.3;
-  c.fillStyle='#d8e4ed';c.strokeStyle='#faffff';c.lineWidth=1.25;
-  c.beginPath();c.moveTo(18,-5);c.lineTo(35,-7);c.lineTo(42,-5);
-  c.lineTo(48,-4);c.lineTo(49,4);c.lineTo(38,5);
-  c.lineTo(32,8);c.lineTo(19,8);c.lineTo(16,4);c.closePath();c.fill();c.stroke();
-  c.shadowBlur=0;
-  // Angular stock behind the receiver.
-  c.strokeStyle='#dcebf4';c.lineWidth=2.3;c.beginPath();c.moveTo(18,-4);
-  c.lineTo(10,-9);c.lineTo(3,-8);c.lineTo(3,-3);c.lineTo(10,1);
-  c.lineTo(3,5);c.lineTo(4,10);c.lineTo(10,10);c.lineTo(19,6);c.stroke();
-  // Dark inset receiver and luminous upper rail.
-  const receiver=c.createLinearGradient(23,-3,42,8);
-  receiver.addColorStop(0,'#597e91');receiver.addColorStop(.28,'#23394c');
-  receiver.addColorStop(.8,'#102c41');receiver.addColorStop(1,'#527a91');
-  c.fillStyle=receiver;c.beginPath();c.roundRect(23,-3,19,8,1.8);c.fill();
-  c.fillStyle='#f7fdff';c.fillRect(27,-7.5,14,1.7);
-  c.fillStyle='#132635';c.beginPath();c.roundRect(33,-11,9,3.8,1);c.fill();
-  c.fillStyle='#c5f7ff';c.fillRect(35,-11.3,5,1);
-  // Curved detachable magazine clearly below the body.
-  c.fillStyle='#122635';c.strokeStyle='#effcff';c.lineWidth=.95;
-  c.beginPath();c.moveTo(30,7);c.quadraticCurveTo(28,13,34,18);
-  c.lineTo(40,17);c.quadraticCurveTo(35,12,36,7);c.closePath();c.fill();c.stroke();
-  // Pistol grip points down; trigger guard remains visible.
-  c.fillStyle='#1e303e';c.beginPath();c.moveTo(20,7);c.lineTo(25,7);
-  c.lineTo(25,14);c.lineTo(21,16);c.closePath();c.fill();
-  c.strokeStyle='rgba(248,255,255,.8)';c.lineWidth=.85;
-  c.beginPath();c.arc(28,8,5.1,Math.PI*.11,Math.PI*.95);c.stroke();
-  // Hand guard and clearly extended barrel to x=69.
-  c.fillStyle='#e6eef4';c.strokeStyle='#ffffff';c.lineWidth=1.2;
-  c.beginPath();c.moveTo(46,-4);c.lineTo(57,-3);c.lineTo(57,3);c.lineTo(46,4);c.closePath();c.fill();c.stroke();
-  c.fillStyle='#243444';c.fillRect(57,-1.65,9,3.3);
-  c.fillStyle='#effaff';c.fillRect(66,-2.4,BARREL_TIP_X-66,4.8);
-  c.strokeStyle='rgba(255,255,255,.92)';c.lineWidth=.75;
-  c.beginPath();c.moveTo(47,-3.3);c.lineTo(66,-3.3);c.stroke();
-  c.fillStyle='#f4ffff';c.shadowColor='#d5fcff';c.shadowBlur=4;
-  c.beginPath();c.arc(BARREL_TIP_X,0,1.4,0,TAU);c.fill();c.shadowBlur=0;
-  c.fillStyle='#65d5e2';c.fillRect(47,-2.2,10,1.2);
-  // A recessed support grip sits below the receiver, ahead of the trigger.
-  c.fillStyle='#203744';c.strokeStyle='#acc6cc';c.lineWidth=.75;c.beginPath();c.roundRect(30,-1,9,6,1.5);c.fill();c.stroke();
+  rifleShell(c,look.weaponId);
   // Gloves settle on two separate contact points, never doubling the arm.
   c.restore();if(limb.glove)drawGloves();else{c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
   c.beginPath();c.ellipse(34,2*itemSide,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
   c.beginPath();c.ellipse(22,11*itemSide,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
   c.restore();c.restore();
  }
- return Object.freeze({draw,muzzle,weaponSide,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});
+ return Object.freeze({draw,rifleShell,muzzle,weaponSide,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});
 });
