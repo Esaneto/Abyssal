@@ -31,6 +31,8 @@ jobs:
           node --check public/abyssal-exploration-runtime.js
           node --check server.js
           node --check world-simulation.js
+      - name: Validate native downloads and update contracts
+        run: node --test tests/native-update.test.cjs tests/native-update-flow.test.cjs test/offline-native.test.js
       - name: Validate Mar Aberto exploration regressions
         run: node --test tests/ocean-ecosystem-integrity.test.cjs tests/ocean-geography.test.js tests/ocean-streaming.test.js tests/ocean-exploration-regression.test.js tests/ocean-specimen-respawn.test.cjs tests/mar-aberto-mining-inventory.test.cjs
       - name: Install pinned icon renderer

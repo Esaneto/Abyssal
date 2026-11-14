@@ -94,8 +94,10 @@ async function downloadAndLaunchWindowsUpdate(payload) {
   if (declaredSize > 750 * 1024 * 1024) throw new Error('update-too-large');
 
   const version = String(payload?.version || 'latest').replace(/[^0-9A-Za-z._-]/g, '').slice(0, 40) || 'latest';
-  const targetDir = path.join(app.getPath('temp'), 'Abyssal', 'updates');
-  await fs.promises.mkdir(targetDir, { recursive: true });
+  const updatesDir = path.join(app.getPath('temp'), 'Abyssal', 'updates');
+  await fs.promises.mkdir(updatesDir, { recursive: true });
+  // Isolate retries and separate app processes so they cannot overwrite an installer.
+  const targetDir = await fs.promises.mkdtemp(path.join(updatesDir, 'download-'));
   const target = path.join(targetDir, 'Abyssal-Setup-' + version + '.exe');
   const partial = target + '.part';
   let total=0;const digest=crypto.createHash('sha256');
@@ -105,10 +107,13 @@ async function downloadAndLaunchWindowsUpdate(payload) {
     if(!total||(declaredSize>0&&total!==declaredSize)||digest.digest('hex')!==expectedHash)throw new Error('update-sha256-mismatch');
     await fs.promises.rm(target,{force:true});
     await fs.promises.rename(partial,target);
-  }catch(error){await fs.promises.rm(partial,{force:true});throw error;}
+  }catch(error){await fs.promises.rm(targetDir,{recursive:true,force:true});throw error;}
 
   const openError = await shell.openPath(target);
-  if (openError) throw new Error('installer-launch-failed: ' + openError);
+  if (openError) {
+    await fs.promises.rm(targetDir,{recursive:true,force:true});
+    throw new Error('installer-launch-failed: ' + openError);
+  }
 
   setTimeout(() => app.quit(), 1200);
   return { ok: true, launched: true };
@@ -146,9 +151,19 @@ function createWindow() {
     }
   });
 
-  mainWindow.webContents.once('did-finish-load', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
-  });
+  const window = mainWindow;
+  // Apply native fullscreen again when the hidden window becomes visible.
+  // F11 remains available to leave fullscreen; Escape belongs to gameplay.
+  let shown = false;
+  const showGame = () => {
+    if (shown || window.isDestroyed()) return;
+    shown = true;
+    window.setMenuBarVisibility(false);
+    window.show();
+    window.setFullScreen(true);
+  };
+  window.once('ready-to-show', showGame);
+  window.webContents.once('did-finish-load', showGame);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('abyssal://app/')) {
@@ -198,8 +213,6 @@ app.on('browser-window-created', (_event, window) => {
     if (input.key === 'F11') {
       event.preventDefault();
       window.setFullScreen(!window.isFullScreen());
-    } else if (input.key === 'Escape' && window.isFullScreen()) {
-      window.setFullScreen(false);
     }
   });
 });

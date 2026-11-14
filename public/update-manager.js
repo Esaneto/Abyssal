@@ -218,12 +218,13 @@
     return null;
    }
    const data=await response.json();
-   if(!data?.ok||cmp(data.latestVersion,build.version)<=0){
+   if(!data?.ok||data.platform!==p||!/^\d+\.\d+\.\d+$/.test(String(data.latestVersion||'')))throw new Error('invalid-update-metadata');
+   if(cmp(data.latestVersion,build.version)<=0){
     root.AbyssalLoadingScreen?.status('VERSÃO ATUAL','Nenhuma atualização necessária.','boot',88);
     root.AbyssalLoadingScreen?.resolveUpdateGate();
     return data;
    }
-   if(data.updatable===false){root.AbyssalLoadingScreen?.status('APK AINDA NÃO ASSINADO','Abrindo a versão instalada.','boot',86);root.AbyssalLoadingScreen?.resolveUpdateGate();return data;}
+   if(data.updatable!==true){root.AbyssalLoadingScreen?.status('APK AINDA NÃO ASSINADO','Abrindo a versão instalada.','boot',86);root.AbyssalLoadingScreen?.resolveUpdateGate();return data;}
    if(/^[a-f0-9]{64}$/i.test(String(data.sha256||''))){data.sha256=String(data.sha256).toLowerCase();}
    else if(data.metadataUrl){
     try{
@@ -233,11 +234,11 @@
       root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
      }
      const published=await publishedResponse.json();
-     if(String(published.version||'')!==String(data.latestVersion||'')){
+     if(published.platform!==p||String(published.version||'')!==String(data.latestVersion||'')){
       root.AbyssalLoadingScreen?.status('ATUALIZAÇÃO EM PUBLICAÇÃO','O novo pacote ainda está sendo finalizado. Abrindo a versão instalada.','boot',86);
       root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
      }
-     if(data.platform==='android'&&published.updatable!==true){
+     if(published.updatable!==true){
       root.AbyssalLoadingScreen?.status('APK AINDA NÃO ASSINADO','Abrindo a versão instalada.','boot',86);
       root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
      }
@@ -271,6 +272,14 @@
  }
  root.AbyssalUpdater={check,currentVersion:build.version,platform,installNative,checkBrowser};
  function bindManualCheck(){
+  // Browser downloads use their deployment; native shells use configured HTTPS.
+  const downloadBase=native()?server():root.location.origin;
+  if(/^https?:\/\//i.test(downloadBase||'')){
+   for(const link of document.querySelectorAll?.('a.download-option-link[data-stable-fallback]')||[]){
+    const p=link.dataset.platform;
+    if(p==='windows'||p==='android')link.href=downloadBase+'/api/download/'+p;
+   }
+  }
   const button=document.getElementById('checkNativeUpdateBtn'),message=document.getElementById('downloadInstallMessage');
   if(!button)return;
   button.hidden=!native()||!platform();

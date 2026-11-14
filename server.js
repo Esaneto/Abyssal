@@ -504,11 +504,19 @@ async function publishedNativeRelease(platform){
   if(!response.ok)throw new Error('metadata-http-'+response.status);
   const data=await response.json();
   if(data.platform!==platform||!/^\d+\.\d+\.\d+$/.test(String(data.version||''))||!/^[a-f0-9]{64}$/i.test(String(data.sha256||'')))throw new Error('invalid-release-metadata');
-  const url=String(data.url||NATIVE_DOWNLOADS[platform].url),expectedName=platform==='android'?'Abyssal-Android.apk':'Abyssal-Setup.exe';
-  const parsed=new URL(url);if(parsed.protocol!=='https:'||parsed.hostname!=='github.com'||parsed.username||parsed.password||parsed.port||!parsed.pathname.startsWith('/Esaneto/Abyssal/releases/download/')||!parsed.pathname.endsWith('/'+expectedName))throw Error('invalid-release-url');
+  const url=String(data.url||''),expectedName=platform==='android'?'Abyssal-Android.apk':'Abyssal-Setup.exe';
+  const parsed=new URL(url);
+  const prefix='/Esaneto/Abyssal/releases/download/native-'+platform+'-v'+data.version+'-r';
+  const tagSuffix=parsed.pathname.slice(prefix.length).split('/')[0];
+  if(parsed.protocol!=='https:'||parsed.hostname!=='github.com'||parsed.username||parsed.password||parsed.port||!parsed.pathname.startsWith(prefix)||!/^\d+-a\d+$/.test(tagSuffix)||parsed.pathname!==prefix+tagSuffix+'/'+expectedName||parsed.search||parsed.hash)throw Error('invalid-release-url');
+  if(data.updatable!==true||(platform==='android'&&data.signing!=='release'))throw Error('unverified-release');
   const verified={version:String(data.version),platform,url,sha256:String(data.sha256).toLowerCase(),updatable:data.updatable===true,signing:String(data.signing||'')};
   nativeReleaseCache.set(platform,{at:Date.now(),data:verified});return verified;
- }catch(error){console.warn('[native-update]',platform,error.message);return null;}finally{nativeReleasePending.delete(platform);}})();
+ }catch(error){
+  console.warn('[native-update]',platform,error.message);
+  // The last validated manifest points to an immutable versioned installer.
+  return cached?.data||null;
+ }finally{nativeReleasePending.delete(platform);}})();
  nativeReleasePending.set(platform,pending);return pending;
 }
 app.get('/api/native-release/:platform',async(req,res)=>{
@@ -516,6 +524,13 @@ app.get('/api/native-release/:platform',async(req,res)=>{
  if(!Object.hasOwn(NATIVE_DOWNLOADS,platform))return res.status(400).json({ok:false});
  const published=await publishedNativeRelease(platform);if(!published)return res.status(503).json({ok:false,message:'Pacote em publicação.'});
  res.json(published);
+});
+app.get('/api/download/:platform',async(req,res)=>{
+ const platform=String(req.params.platform||'').toLowerCase();res.set('Cache-Control','no-store');
+ if(!Object.hasOwn(NATIVE_DOWNLOADS,platform))return res.status(400).send('Plataforma não suportada.');
+ const published=await publishedNativeRelease(platform);
+ if(!published)return res.status(503).send('Instalador em publicação. Tente novamente em instantes.');
+ return res.redirect(302,published.url);
 });
 app.get('/api/client-update',async(req,res)=>{
  const platform=String(req.query.platform||'').toLowerCase();res.set('Cache-Control','no-store');

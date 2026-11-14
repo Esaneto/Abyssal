@@ -165,6 +165,8 @@ jobs:
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
       - name: Install server dependencies
         run: npm ci
+      - name: Validate native downloads and update contracts
+        run: node --test tests/native-update.test.cjs tests/native-update-flow.test.cjs test/offline-native.test.js
       - name: Install Capacitor tooling
         run: npm install --no-save --package-lock=false @capacitor/core@8 @capacitor/android@8 @capacitor/cli@8 sharp@0.34.4
       - name: Generate Android project

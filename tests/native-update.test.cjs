@@ -109,7 +109,10 @@ test('Windows starts fullscreen with keyboard exit and bounded verified download
  const main=read('desktop/main.cjs');
  assert.match(main,/fullscreen: true/);
  assert.match(main,/input.key === 'F11'/);
- assert.match(main,/input.key === 'Escape'/);
+ assert.match(main,/window\.once\('ready-to-show', showGame\)/);
+ assert.match(main,/window\.show\(\);\s*window\.setFullScreen\(true\)/);
+ assert.doesNotMatch(main,/input.key === 'Escape'/);
+ assert.match(main,/fs\.promises\.mkdtemp/);
  assert.match(main,/signal: controller.signal/);
  assert.match(main,/total!==declaredSize/);
  assert.match(main,/clearTimeout\(timeout\)/);

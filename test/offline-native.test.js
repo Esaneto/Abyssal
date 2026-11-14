@@ -119,6 +119,13 @@ test('stable website downloads point to the same fixed channel as their release 
  const windowsCi=read('.github/workflows/download-builds.yml');
  assert.match(html,/releases\/download\/downloads-2\/Abyssal-Setup\.exe/);
  assert.match(html,/releases\/download\/downloads-2\/Abyssal-Android\.apk/);
- assert.match(androidCi,/gh release upload downloads-2 Abyssal-Android\.apk Abyssal-Android-build\.json --clobber/);
- assert.match(windowsCi,/gh release upload downloads-2 desktop\/dist\/Abyssal-Setup\.exe desktop\/dist\/Abyssal-Windows-build\.json --clobber/);
+ assert.match(html,/api\/download\/windows/);
+ assert.match(html,/api\/download\/android/);
+ assert.match(androidCi,/node scripts\/publish-android-stable\.cjs/);
+ assert.match(windowsCi,/node scripts\/publish-windows-stable\.cjs/);
+ const publisher=read('scripts/native-stable-release.cjs');
+ assert.match(publisher,/stable='downloads-2'/);
+ assert.match(publisher,/native-.*metadata\.platform/);
+ assert.ok(publisher.indexOf("published binary digest mismatch")<publisher.indexOf("['release','upload',stable,binary"));
+ assert.match(read('server.js'),/res\.redirect\(302,published\.url\)/);
 });
