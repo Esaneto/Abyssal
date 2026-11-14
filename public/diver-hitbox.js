@@ -20,7 +20,7 @@
   // Cosmetic client phases are not trusted for authoritative hit detection.
   const left=rig.leg(-1,0,0),right=rig.leg(1,0,0);
   const held=player?.propulsorEquipped?'abyssPropulsor':'abyssWeapon',offset=held==='abyssPropulsor'?5:12,grips=rig.gripsFor?.(held)||(held==='abyssPropulsor'?rig.toolGrips:rig.rifleGrips);
-  const view=rig.viewFor?.(),arms=rig.armPair?.(aim-angle,offset,grips,'standard',view)||[rig.arm(-1,aim-angle,offset,grips[0]),rig.arm(1,aim-angle,offset,grips[1])];
+  const view=rig.viewFor?.(rig.GAMEPLAY_YAW),arms=rig.armPair?.(aim-angle,offset,grips,'standard',view)||[rig.arm(-1,aim-angle,offset,grips[0]),rig.arm(1,aim-angle,offset,grips[1])];
   const point=(px,py,weapon=false)=>{
    const ca=weapon?aimCos:cos,sa=weapon?aimSin:sin;if(!weapon&&rig.project&&view)[px,py]=rig.project([px,py],view);
    return {x:x+(px*ca-py*sa)*scale,y:y+(px*sa+py*ca)*scale};

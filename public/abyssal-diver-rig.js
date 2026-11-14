@@ -4,7 +4,8 @@
  'use strict';
  const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const finite=(v,f=0)=>Number.isFinite(v)?v:f;
- const viewFor=(yaw=.65)=>{yaw=clamp(finite(yaw,.65),0,1);return {yaw,width:1-.22*yaw,shear:.055*yaw};};
+ const viewFor=(yaw=.65)=>{yaw=clamp(finite(yaw,.65),0,1);const profile=clamp((yaw-.65)/.35,0,1);return {yaw,profile,width:1-.22*yaw-.20*profile,shear:.055*yaw*(1-profile)};};
+ const GAMEPLAY_YAW=1;
  const project=(p,view)=>view?[p[0],p[1]*view.width+p[0]*view.shear]:[...p];
  function advance(previous,speed,dt,powered=false,sample=null){
   dt=clamp(finite(dt),0,.10);speed=clamp(finite(speed),0,4);
@@ -107,5 +108,5 @@
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
   const brake=clamp(-finite(motion?.drive)/5,0,1);return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
- return Object.freeze({viewFor,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
+ return Object.freeze({GAMEPLAY_YAW,viewFor,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });

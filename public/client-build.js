@@ -1,7 +1,7 @@
 (function(root){
  'use strict';
  root.ABYSSAL_CLIENT_BUILD=Object.freeze({
-  version:'3.6.71',
+  version:'3.6.72',
   channel:'stable'
  });
 })(window);

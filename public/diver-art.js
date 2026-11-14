@@ -27,7 +27,7 @@
   c.save();c.translate(x,y);c.rotate(a);c.scale(r*DRAW_SCALE/14,r*DRAW_SCALE/14);
   c.lineJoin='round';c.lineCap='round';
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
-  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=rig?.viewFor?.(options.viewYaw??.65);
+  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=rig?.viewFor?.(options.viewYaw??(options.gameplay?rig.GAMEPLAY_YAW:.65));
   const offset=held==='abyssWeapon'?GUN_OFFSET_Y:5,tool=rig?.toolPose(held,Number(options.swing)||0)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
   const grips=held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[22,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co]);
   const pair=(held!=='abyssWelder'&&held!=='none'?rig?.armPair?.(relativeAim,offset,grips,'standard',view):null)||grips.map((g,i)=>rig?.arm(i?1:-1,relativeAim,offset,g,held==='abyssWelder'?'welder':'standard',view)||{shoulder:[6,i?7:-7],elbow:[16,i?12:-12],hand:g});
