@@ -83,7 +83,7 @@
   solo:{tips:[
    'Mova-se com WASD ou pelo mouse; no celular, use o joystick. Escolha seus controles no menu. O espécime coleta orbs e ajuda no combate.',
    'Derrote criaturas, recolha orbs e escolha ressonâncias ao subir de nível. Vença os bosses para avançar na barra; o primeiro ciclo dá 5.000 de energia uma vez por conta.',
-   'Aproxime-se do submarino para energizá-lo. Luz: 20 de energia por 5 minutos, mais 10 por torre. Use o botão Reparar nas seções danificadas; demora 30 segundos.',
+   'Aproxime-se do submarino para energizá-lo. Luz: 20 de energia por 5 minutos, mais 10 por torre. Use o botão Reparar nas seções danificadas; demora 6 segundos.',
    'Ao encerrar, você mantém a energia coletada e recebe o bônus do espécime. Na cabine, pesquise Q/E, personalize ressonâncias e equipe espécimes. R ativa sua habilidade.'
   ],topics:['move','progress','submarine','skills']},
   coop:{tips:[

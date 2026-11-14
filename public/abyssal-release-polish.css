@@ -54,7 +54,7 @@
 #abyssalTutorialOverlay .abyssal-guide-primary,#abyssalProgressionChoice .abyssal-guide-primary{background:#78e5df!important;color:#071923!important;border:1px solid #78e5df!important}
 #abyssalTutorialOverlay .abyssal-guide-secondary,#abyssalTutorialOverlay .abyssal-guide-close,#abyssalProgressionChoice .abyssal-guide-secondary{background:#142a3a!important;color:#eaf5fa!important;border:1px solid #496878!important}
 #abyssalMenuTour[hidden]{display:none!important}
-#abyssalMenuTour{position:fixed;inset:0;z-index:11990;isolation:isolate;overflow:hidden;touch-action:manipulation;font:500 14px/1.45 var(--release-font);color:var(--release-ink)}
+#abyssalMenuTour{position:fixed;inset:0;z-index:60000;isolation:isolate;overflow:hidden;touch-action:manipulation;font:500 14px/1.45 var(--release-font);color:var(--release-ink)}
 #abyssalMenuTour .amt-spot{position:absolute;pointer-events:none;border:2px solid #80ebe2;border-radius:9px;box-shadow:0 0 0 200vmax #020811c9,0 0 0 4px #80ebe233}
 #abyssalMenuTour .amt-card{position:absolute;width:min(390px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;padding:16px;border:1px solid #547584;border-radius:12px;background:#0b1926;color:#eaf5fa;box-shadow:0 14px 42px #0009;overscroll-behavior:contain}
 #abyssalMenuTour .amt-kicker{font-size:11px;color:#91c9ca;letter-spacing:.08em}
@@ -81,3 +81,7 @@
  #abyssalMenuTour button{min-height:38px}
 }
 @media(prefers-reduced-motion:reduce){#abyssalMenuTour *,#menuScreen .hub-nav *,#submarineWorkshop .abyss-control-key{animation:none!important;transition:none!important}}
+
+/* Keep the extra help control inside the already compact upper command rail. */
+@media(max-width:700px){#submarineWorkshop .abyss-cockpit-chrome{gap:3px!important}#submarineWorkshop .abyss-cockpit-help{min-height:25px;max-width:28px}#submarineWorkshop .abyss-cockpit-top-actions{min-width:0;flex:1 1 auto}}
+#abyssalMenuTour .amt-card{max-height:min(calc(100% - 24px),440px)}

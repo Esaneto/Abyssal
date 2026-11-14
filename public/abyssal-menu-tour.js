@@ -10,7 +10,7 @@ const STEPS=Object.freeze([
  {area:'exterior',target:'#hubMore',title:'Mais opções',copy:'Abra este menu para acessar rankings, Cardumes, recompensas, controles, idioma, downloads e suporte. O guia de mergulho explica o combate.'},
  {area:'cabin',target:'.abyss-control-deck',title:'Comandos da cabine',copy:'O painel central muda conforme o botão escolhido. Mergulhar prepara a expedição; Pesquisa reúne melhorias; Espécimes abre a loja; Abyssário consulta o registro de espécies.'},
  {area:'research',target:'.solo-research-tabs',title:'Pesquisa do mergulhador',copy:'Pesquise lanterna, Q (Pulso de Maré) e E (Propulsor Abissal). Cada habilidade ativa custa 400 energias. O botão Submarino abre as pesquisas da base e Ressonância organiza as habilidades do mergulho.'},
- {area:'resonance',target:'#resonanceSkillChoices',title:'Prepare suas ressonâncias',copy:'Escolha até sete habilidades, incluindo um disparo. Olho Profundo e Membrana Viva são recomendadas para ampliar a visão e recuperar vida.'},
+ {area:'resonance',target:'#resonanceSkillChoices [data-research-id="range"]',title:'Prepare suas ressonâncias',copy:'Escolha até sete habilidades, incluindo um disparo. Olho Profundo e Membrana Viva são recomendadas para ampliar a visão e recuperar vida.'},
  {area:'wardrobe',target:'[data-cockpit-setting="wardrobe"]',title:'Personalize o mergulhador',copy:'Experimente cabelos, trajes, máscaras, armas e nadadeiras. Itens não adquiridos aparecem na prévia, mas só podem ser salvos depois da compra.'},
  {area:'shop',target:'.abyss-control-shop',title:'Espécimes e Abyssário',copy:'Espécimes oferece criaturas companheiras e suas habilidades. No Abyssário você consulta as espécies descobertas, raridades e informações de combate.'},
  {area:'cabin',target:'.abyss-cockpit-utilities',title:'Atalhos da cabine',copy:'Roleta entrega recompensas; Perfil mostra sua conta; Ranking acompanha as classificações; Cardumes conecta você à comunidade.'},
@@ -36,7 +36,7 @@ function create(){
 }
 function prepare(step){
  const nav=root.AbyssalCockpitNavigation,cabin=$('submarineWorkshop');if(!nav)return;
- if(step.area==='exterior'){if(cabin&&!cabin.hidden)nav.showExterior();return;}
+ if(step.area==='exterior'){if(!visible($('menuScreen'))||cabin&&!cabin.hidden)nav.showExterior();return;}
  if(cabin?.hidden)nav.open();
  if(step.area==='research')cabin?.querySelector('.abyss-control-research')?.click();
  else if(step.area==='resonance'){cabin?.querySelector('.abyss-control-research')?.click();nav.routeScreen('resonanceScreen');}
@@ -44,7 +44,7 @@ function prepare(step){
  else if(step.area==='shop')cabin?.querySelector('.abyss-control-shop')?.click();
  else cabin?.querySelector('.abyss-control-solo')?.click();
 }
-function rectFor(target){const w=innerWidth,h=innerHeight;if(!target||!visible(target))return {left:w/2-12,right:w/2+12,top:h/2-12,bottom:h/2+12};const r=target.getBoundingClientRect();return {left:Math.max(4,r.left-5),right:Math.min(w-4,r.right+5),top:Math.max(4,r.top-5),bottom:Math.min(h-4,r.bottom+5)};}
+function rectFor(target){const w=innerWidth,h=innerHeight;if(!target||!visible(target))return {left:w/2-12,right:w/2+12,top:h/2-12,bottom:h/2+12};const r=target.getBoundingClientRect(),clamp=(v,max)=>Math.max(4,Math.min(max-4,v));return {left:clamp(r.left-5,w),right:clamp(r.right+5,w),top:clamp(r.top-5,h),bottom:clamp(r.bottom+5,h)};}
 function place(){
  raf=0;if(!active)return;const w=innerWidth,h=innerHeight,r=rectFor(document.querySelector(STEPS[idx].target));let left=r.left,top=r.top,right=Math.max(left+1,r.right),bottom=Math.max(top+1,r.bottom);
  Object.assign(spot.style,{left:left+'px',top:top+'px',width:(right-left)+'px',height:(bottom-top)+'px'});
@@ -56,30 +56,31 @@ function place(){
 function queuePlace(){if(active&&!raf)raf=requestAnimationFrame(place);}
 function show(n){
  idx=Math.max(0,Math.min(STEPS.length-1,n));const step=STEPS[idx];prepare(step);
- card.querySelector('#amtTitle').textContent=step.title;card.querySelector('#amtCopy').textContent=step.copy;card.querySelector('.amt-counter').textContent='Etapa '+(idx+1)+' de '+STEPS.length;const progress=card.querySelector('progress');progress.max=STEPS.length;progress.value=idx+1;
+ card.querySelector('#amtTitle').textContent=step.title;card.querySelector('#amtCopy').textContent=step.copy;const lang=root.AbyssalI18n?.getLanguage?.()||'pt';card.querySelector('.amt-counter').textContent=(lang==='en'?'Step ':lang==='es'?'Etapa ':'Etapa ')+(idx+1)+(lang==='en'?' of ':' de ')+STEPS.length;const progress=card.querySelector('progress');progress.max=STEPS.length;progress.value=idx+1;
  const prev=card.querySelector('.amt-prev'),next=card.querySelector('.amt-next');prev.disabled=idx===0;next.textContent=idx===STEPS.length-1?'Concluir':'Próximo';
  const target=document.querySelector(step.target);if(target&&visible(target))target.scrollIntoView?.({block:'nearest',inline:'nearest'});queuePlace();next.focus({preventScroll:true});
 }
-function open(from='exterior'){
+function open(from='exterior',full=false){
  if(active||document.body.classList.contains('game-active')||!root.AbyssalCockpitNavigation)return false;
- create();previousFocus=document.activeElement;origin=from;active=true;overlay.hidden=false;document.body.classList.add('abyssal-menu-tour-open');show(from==='cabin'?4:0);return true;
+ create();previousFocus=document.activeElement;origin=from;active=true;autoObserver?.disconnect();overlay.hidden=false;document.body.classList.add('abyssal-menu-tour-open');show(from==='cabin'&&!full?4:0);return true;
 }
 function close(){
  if(!active)return;active=false;markSeen();overlay.hidden=true;document.body.classList.remove('abyssal-menu-tour-open');if(raf)cancelAnimationFrame(raf);raf=0;
- const nav=root.AbyssalCockpitNavigation;if(origin==='exterior')nav?.showExterior();else{$('submarineWorkshop')?.querySelector('.abyss-control-solo')?.click();}
+ const nav=root.AbyssalCockpitNavigation;if(origin==='exterior')nav?.showExterior();else{if($('submarineWorkshop')?.hidden)nav?.open();$('submarineWorkshop')?.querySelector('.abyss-control-solo')?.click();}
  const focus=previousFocus;previousFocus=null;if(focus?.isConnected&&visible(focus))focus.focus({preventScroll:true});else (origin==='cabin'?$('cockpitTourBtn'):$('menuTourBtn'))?.focus({preventScroll:true});
 }
-function blocked(){if(document.documentElement.classList.contains('abyssal-startup')||document.body.classList.contains('game-active')||document.hidden)return true;for(const n of document.querySelectorAll('.modal-screen:not(#submarineWorkshop),.modal-overlay,#abyssalTutorialOverlay,#abyssalProgressionChoice,#abyssalDiveChoicePanel'))if(visible(n))return true;return false;}
+function blocked(){if(document.documentElement.classList.contains('abyssal-startup')||document.body.classList.contains('game-active')||document.hidden)return true;const loading=$('abyssalStartupLoading');if(loading&&!loading.classList.contains('is-hidden'))return true;for(const n of document.querySelectorAll('.modal-screen:not(#submarineWorkshop),.modal-overlay,#abyssalTutorialOverlay,#abyssalProgressionChoice,#abyssalDiveChoicePanel'))if(visible(n))return true;return false;}
 function autoCheck(){
  autoScheduled=false;if(autoOff||active||seen()){autoObserver?.disconnect();return;}if(blocked())return;
- const menu=$('menuScreen'),cabin=$('submarineWorkshop');if(visible(cabin))open('cabin');else if(visible(menu))open('exterior');
+ const menu=$('menuScreen'),cabin=$('submarineWorkshop');if(visible(cabin))open('cabin',true);else if(visible(menu))open('exterior',true);
 }
 function scheduleAuto(){if(!autoOff&&!autoScheduled){autoScheduled=true;requestAnimationFrame(autoCheck);}}
 function boot(){
  $('menuTourBtn')?.addEventListener('click',()=>open('exterior'));$('cockpitTourBtn')?.addEventListener('click',()=>open('cabin'));
- if(!seen()){autoObserver=new MutationObserver(scheduleAuto);autoObserver.observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class','hidden','style']});scheduleAuto();}
+ if(!seen()){autoObserver=new MutationObserver(scheduleAuto);autoObserver.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','style']});scheduleAuto();}
 }
 document.addEventListener('keydown',e=>{if(!active)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();return;}if(e.key==='Tab'){const nodes=[...card.querySelectorAll('button:not(:disabled)')],first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}},true);
+document.addEventListener('focusin',e=>{if(active&&!overlay.contains(e.target))card.querySelector('.amt-next')?.focus({preventScroll:true});},true);
 root.addEventListener('resize',queuePlace,{passive:true});document.addEventListener('scroll',queuePlace,true);document.addEventListener('visibilitychange',scheduleAuto);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 root.AbyssalMenuTour=Object.freeze({open,close,STEPS});

@@ -16,7 +16,7 @@ function mount(parent,branches,options={}){
   const section=el('section','abyss-tree-branch'),grid=el('div','abyss-tree-nodes'+(branch.linear?' is-linear':''));
   section.append(el('h4','abyss-tree-branch-title',branch.name),el('div','abyss-tree-trunk'),grid);map.append(section);
   for(const item of branch.items){
-   const node=el('button','abyss-tree-node'+(item.owned?' is-owned':'')+(item.active?' is-equipped':'')+(item.locked?' is-locked':''));node.type='button';node.setAttribute('aria-pressed','false');node.setAttribute('aria-label',item.name+' · '+item.state+(item.recommended?' · Recomendado':''));
+   const node=el('button','abyss-tree-node'+(item.owned?' is-owned':'')+(item.active?' is-equipped':'')+(item.locked?' is-locked':''));node.type='button';node.dataset.researchId=item.id;node.setAttribute('aria-pressed','false');node.setAttribute('aria-label',item.name+' · '+item.state+(item.recommended?' · Recomendado':''));
    node.append(el('span','abyss-tree-node-icon',item.icon||'◈'),el('span','abyss-tree-node-name',item.name),el('span','abyss-tree-node-state',item.state));if(item.recommended)node.append(el('span','abyss-recommended','Recomendado'));grid.append(node);nodes.set(item.id,{item,button:node});
    node.addEventListener('click',()=>select(item.id));node.addEventListener('focus',()=>select(item.id));node.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')select(item.id);});
   }
