@@ -194,7 +194,8 @@
   const column=document.createElement('div'),small=document.createElement('small'),title=document.createElement('strong');
   small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage==='home'?'PREPARAR EXPEDIÇÃO':activeConsoleSection==='solo'&&soloConsolePage!=='home'?(soloConsolePage==='diver'?'PESQUISA · MERGULHADOR':'PESQUISA · SUBMARINO'):embeddedTitles[activeConsoleSection]||chosen.title;column.append(small,title);
   const status=document.createElement('span');const localMode=localResearchMode();status.dataset.dsStatus=localMode?'solo':'online';status.textContent=localMode?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
-  heading.append(column,status);visor.append(heading);
+  const mobileBack=document.createElement('button');mobileBack.type='button';mobileBack.className='mobile-cockpit-back';mobileBack.textContent='‹';mobileBack.setAttribute('aria-label','Voltar à cabine');mobileBack.addEventListener('click',()=>{if(activeConsoleSection==='solo'){soloConsolePage='home';renderWorkshop();}else backEmbedded();});
+  heading.append(mobileBack,column,status);visor.append(heading);
   const body=document.createElement('div');body.className='abyss-visor-body';if(activeConsoleSection==='resonance')body.classList.add('abyss-visor-resonance');body.tabIndex=0;body.dataset.pageKey=activeConsoleSection+':'+(activeConsoleSection==='solo'?soloConsolePage:activeConsoleSection==='laboratory'?activeLabSection:'main');
   for(const node of old){
    if(node.classList.contains('submarine-console-overview'))continue;
