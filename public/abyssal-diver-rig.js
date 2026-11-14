@@ -34,12 +34,12 @@
    // Technical-diver trim: hips remain stable; the knees bend toward the
    // dorsal side, calves alternate, and the blade lags the ankle.
    const w=clamp(finite(weight),0,1),motor=Number.isFinite(motion?.hairFlow)?clamp(motion.hairFlow,0,1):(powered?1:0),braking=clamp(-finite(motion?.drive)/5,0,1);
-   const p=finite(phase)+(side<0?Math.PI:0),hip=[-19,side*3.2],hipAngle=-.035+(1-motor)*(.035*Math.sin(p)*w-.07*braking);
+   const p=finite(phase)+(side<0?Math.PI:0),hip=[-19,side*3.2],hipAngle=-.035+(1-motor)*(.105*Math.sin(p)*w-.07*braking);
    // A slower recovery and stronger push, driven from the knee.
-   const stroke=.72*Math.sin(p-.55)+.28*Math.sin(2*(p-.55)),flex=(1-motor)*(.34+.37*(1-w)+.22*braking+.24*stroke*w)+motor*.08;
+   const stroke=.72*Math.sin(p-.55)+.28*Math.sin(2*(p-.55)),flex=(1-motor)*(.49+.22*(1-w)+.19*braking+.43*stroke*w)+motor*.08;
    const calfAngle=hipAngle-Math.max(.035,flex),knee=[hip[0]-24*Math.cos(hipAngle),hip[1]+24*Math.sin(hipAngle)],ankle=[knee[0]-24*Math.cos(calfAngle),knee[1]+24*Math.sin(calfAngle)];
-   const ankleLag=(.19*Math.sin(p-1.05)+.055*Math.sin(2*p-1.8))*w,finAngle=calfAngle*motor+(1-motor)*(calfAngle*w-.10*(1-w)+ankleLag+.08*w);
-   return {hip,knee,ankle,finAngle,finFlex:(1-motor)*3.15*Math.sin(p-1.4)*w,finTwist:(1-motor)*(.12+.17*Math.sin(p-1.12)*w)};
+   const ankleLag=(.27*Math.sin(p-1.05)+.07*Math.sin(2*p-1.8))*w,finAngle=calfAngle*motor+(1-motor)*(calfAngle*w-.10*(1-w)+ankleLag+.08*w);
+   return {hip,knee,ankle,finAngle,finFlex:(1-motor)*4.0*Math.sin(p-1.4)*w,finTwist:(1-motor)*(.12+.17*Math.sin(p-1.12)*w)};
   }
   const knee=[hip[0]-24*Math.cos(thigh),hip[1]+24*Math.sin(thigh)];
   const ankle=[knee[0]-24*Math.cos(calf),knee[1]+24*Math.sin(calf)];
@@ -91,7 +91,7 @@
    const co=Math.cos(a),si=Math.sin(a);
    for(const x of [x0,x1])for(const y of [y0,y1]){const px=x*co-y*si,py=x*si+y*co;minX=Math.min(minX,px);maxX=Math.max(maxX,px);minY=Math.min(minY,py);maxY=Math.max(maxY,py);}
   }
-  include(-104,-37,46,37,heading);
+  include(-104,-55,49,55,heading);
   if(!['classic','short','shaved'].includes(hairStyle))include(-68,-72,78,72,heading);
   if(held==='abyssWeapon')include(-6,-6,73,34,aim);
   else if(held!=='none'){include(powered?-116:-6,-19,68,25,aim);if(held==='abyssPropulsor'||held==='abyssPropulsorIdle')include(powered?-116:-6,-23,88,28,heading);}

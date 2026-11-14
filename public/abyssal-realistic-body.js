@@ -160,6 +160,43 @@ function body(c,t,options,look={}){
  const oval=(x,y,rx,ry,fill,stroke,width=.7)=>path(()=>c.ellipse(x,y,rx,ry,0,0,Math.PI*2),fill,stroke,width);
  const box=(x,y,w,h,r,fill,stroke,width=.7)=>path(()=>c.roundRect(x,y,w,h,r),fill,stroke,width);
  const view=options.view||rig?.viewFor?.(0),yaw=view?.yaw||0,profile=(view?.profile||0)>.5,detail=options.detail!==false,roll=profile?clamp(Number(options.motion?.roll)||0,-1,1):0,breathing=profile?Math.sin((Number(options.motion?.breath)||0)*Math.PI*2)*.65:0,bulk=industrial?1.10:polar?1.13:scout?.96:elite?1.06:stealth?.99:1;
+
+ // Emission is a deterministic two-pass stroke, not a light source or shader.
+ // Both graphics-quality modes retain the same colors, geometry and brightness.
+ const emission={rust:'#52e8ff',ice:'#8defff',olive:'#a7fa54',nautilus:'#ffc064',phantom:'#c084ff'}[kind];
+ function neon(fn,color,width=.85){if(!color)return;c.save();c.globalAlpha*=.19;path(fn,null,color,width+2.0);c.restore();path(fn,null,color,width); }
+ const masks={sentinel:['#50e7ff','#19323f','#576b79'],leviathan:['#a8ff53','#20382b','#59734c'],resonant:['#69dfff','#172e47','#525b91'],nautilus:['#ffc15c','#493021','#ae8351'],specter:['#cb87ff','#30233f','#65547e'],depth:['#54ffd5','#183c42','#557d83']};
+ function customMask(){
+  const id=look.maskId||'standard',m=masks[id];if(!m)return;
+  const [glow,dark,metal]=m,mid=profile?5.8:0,half=profile?5.2:8.0;
+  c.save();c.translate(31.4,mid);c.scale(1,half/8);
+  // Face-covering shell: distinct silhouettes, all anchored to the same skull.
+  const shell=()=>{if(id==='leviathan'){c.moveTo(6,-9);c.lineTo(4,-6);c.quadraticCurveTo(8,0,4,6);c.lineTo(6,9);c.lineTo(-3,7);c.quadraticCurveTo(-7,0,-3,-7);c.closePath();}
+   else if(id==='specter'){c.moveTo(5,-8);c.lineTo(7,0);c.lineTo(5,8);c.lineTo(-4,5);c.lineTo(-7,0);c.lineTo(-4,-5);c.closePath();}
+   else if(id==='nautilus'||id==='resonant'){c.moveTo(6,-6);c.quadraticCurveTo(8,0,6,6);c.quadraticCurveTo(0,10,-5,6);c.quadraticCurveTo(-8,0,-5,-6);c.quadraticCurveTo(0,-10,6,-6);c.closePath();}
+   else {c.moveTo(6,-5.8);c.lineTo(3.8,-8);c.lineTo(-3.8,-7.8);c.lineTo(-6,-4);c.lineTo(-6,4);c.lineTo(-3.8,7.8);c.lineTo(3.8,8);c.lineTo(6,5.8);c.closePath();}};
+  path(shell,grad([6,-8],[-6,8],[[0,metal],[.28,dark],[.58,metal],[1,'#09141d']]),'#08131b',1);
+  const lens=()=>{if(id==='leviathan'){c.moveTo(4.5,-6.1);c.quadraticCurveTo(5.3,-2.7,2,0);c.quadraticCurveTo(5.3,2.7,4.5,6.1);c.lineTo(-1.8,5.2);c.lineTo(-3.8,0);c.lineTo(-1.8,-5.2);c.closePath();}
+   else if(id==='specter'){c.moveTo(4,-6);c.lineTo(5,0);c.lineTo(4,6);c.lineTo(-2,3.7);c.lineTo(-4,0);c.lineTo(-2,-3.7);c.closePath();}
+   else if(id==='nautilus'||id==='resonant'){c.ellipse(1,0,4.1,6.1,0,0,Math.PI*2);}
+   else {c.moveTo(4.4,-5.8);c.lineTo(2.7,-6.5);c.lineTo(-2.2,-5.4);c.lineTo(-3.1,-3);c.lineTo(-3.1,3);c.lineTo(-2.2,5.4);c.lineTo(2.7,6.5);c.lineTo(4.4,5.8);c.closePath();}};
+  // Lens tint remains independently selectable via the visor slot.
+  path(lens,grad([5,-5],[-4,6],[[0,glass[0]],[.28,glass[1]],[.72,glass[2]],[1,glass[3]]]),'#08151d',.7);neon(lens,glow,.83);
+  const sides=profile?[-1]:[-1,1];
+  for(const sign of sides){
+   if(id==='leviathan'){for(const j of [0,1,2])neon(()=>{c.moveTo(-2-j*1.15,sign*6.5);c.lineTo(-3.1-j*1.15,sign*8.1);},glow,.65);}
+   else if(id==='nautilus'){oval(-2,sign*7,2.6,2.7,dark,metal,.75);neon(()=>{c.moveTo(-2,sign*7);c.bezierCurveTo(.8,sign*9,-5,sign*10,-4,sign*6);c.quadraticCurveTo(-2,sign*4,-.5,sign*7);},glow,.75);}
+   else if(id==='resonant'){oval(-1.6,sign*7.2,2.6,2.8,dark,metal,.65);neon(()=>c.ellipse(-1.6,sign*7.2,1.65,1.8,0,0,Math.PI*2),glow,.75);}
+   else if(id==='specter'){path(()=>{c.moveTo(3,sign*6.5);c.lineTo(-4,sign*8.8);c.lineTo(-2,sign*5.8);c.closePath();},dark,metal,.5);neon(()=>{c.moveTo(2.5,sign*6.5);c.lineTo(-3.5,sign*8.2);},glow,.65);}
+   else {box(-2.6,sign*7-1.7,4.6,3.4,.65,dark,metal,.55);neon(()=>{c.moveTo(-.9,sign*7-.9);c.lineTo(-.9,sign*7+.9);},glow,.9);}
+  }
+  if(id==='resonant')neon(()=>{c.moveTo(.2,-4.7);for(let i=1;i<=12;i++)c.lineTo(.2+Math.sin(i*2.3)*1.1*Math.sin(i*Math.PI/12),-4.7+i*.78);},glow,.5);
+  if(id==='depth'){neon(()=>{c.ellipse(.8,0,1.7,2.3,0,0,Math.PI*2);c.moveTo(.8,-3.6);c.lineTo(.8,-1.3);c.moveTo(.8,1.3);c.lineTo(.8,3.6);c.moveTo(-2.3,0);c.lineTo(-.6,0);c.moveTo(2.2,0);c.lineTo(3.8,0);},glow,.48);}
+  // Respirator stays on the mouth, with a dedicated decorative housing.
+  box(-8,-2.7,4.7,5.4,1.4,dark,metal,.65);oval(-5.8,0,1.4,1.7,'#0b1c24',metal,.5);neon(()=>c.ellipse(-5.8,0,1.1,1.35,0,0,Math.PI*2),glow,.55);
+  c.restore();
+ }
+
  // Continuous tapered anatomical limbs: shoulder/hip volume, muscle belly,
  // narrowed joint, then wrist/ankle. No spherical robot joints.
  function limb(a,b,thickness,base,highlight){
@@ -170,6 +207,7 @@ function body(c,t,options,look={}){
   if(detail){path(()=>{c.moveTo(len*.15,-w*.50);c.quadraticCurveTo(len*.38,-w*.70,len*.77,-v*.46);},null,'#b8d0d43b',.55);path(()=>{c.moveTo(len*.78,-v*.85);c.quadraticCurveTo(len*.81,0,len*.77,v*.85);},null,'#07131b99',.5);}
   if(industrial||polar||elite||stealth){const panel=grad([0,-w],[0,w],[[0,s[1]],[.38,s[3]],[.72,s[2]],[1,s[0]]]);path(()=>{c.moveTo(len*.14,-w*.70);c.lineTo(len*.38,-w*.78);c.lineTo(len*.65,-v*.70);c.lineTo(len*.58,v*.69);c.lineTo(len*.22,w*.65);c.closePath();},panel,'#182a33',.45);if(detail&&(elite||stealth))line([len*.18,-w*.56],[len*.57,-v*.62],elite?'#9ce6d0':'#9384bd',.6);}
   if(detail&&scout){line([len*.20,-w*.62],[len*.64,-v*.65],s[3],.45);}
+  if(emission)neon(()=>{c.moveTo(len*.18,-w*.52);c.quadraticCurveTo(len*.40,-w*.66,len*.68,-v*.52);},emission,.83);
   c.restore();
  }
  limb.joint=(p,r)=>{oval(p[0],p[1],r*.83,r*.72,grad([p[0]-r,p[1]-r],[p[0]+r,p[1]+r],[[0,s[2]],[.55,s[1]],[1,s[0]]]),'#16252e',.35);};
@@ -208,6 +246,7 @@ function body(c,t,options,look={}){
   // Stiffer side rails and flexible central membrane; the heel pocket remains fixed.
   for(const off of [-4,0,4])path(()=>{c.moveTo(-6,off*.45);c.quadraticCurveTo(-16,off*.72*wide+flex*.42,-24,off*wide+flex);},null,off?f[1]:f[2],off?.82:.55);
   path(()=>{c.moveTo(-4,-2.7);c.quadraticCurveTo(-7,0,-4,2.7);},null,'#a4b7bc',.62);
+  if(emission)neon(()=>{c.moveTo(-8,-2.2);c.quadraticCurveTo(-17,-3.4*wide+flex*.5,-24,-4*wide+flex);},emission,.77);
   c.restore();c.restore();
  }
  // Far arm is painted before the torso, in projected space, not above the face.
@@ -245,6 +284,7 @@ function body(c,t,options,look={}){
  else if(stealth){for(const side of profile?[1]:[-1,1]){path(()=>{c.moveTo(17,side*6);c.lineTo(12,side*13);c.lineTo(5,side*10);c.lineTo(-1,side*5);c.lineTo(4,side*2);c.closePath();},panel,'#776b9d',.55);path(()=>{c.moveTo(14,side*8);c.lineTo(7,side*8);c.lineTo(2,side*4);},null,'#b7a2f0',.65);box(-13,side<0?-9:5,7,4,1,'#262537','#777195',.42);}}
  else if(detail){line([5,-1],[5,1],'#76939d',.5);}
  if(premium&&detail){const seam=industrial?'#e9b77e':polar?'#d9f4f6':scout?'#a6c08b':elite?'#a5f0d9':'#b7a2f0';for(const side of profile?[1]:[-1,1]){path(()=>{c.moveTo(-3,side*8);c.quadraticCurveTo(-7,side*6,-13,side*10);},null,seam,.62);box(13,side*7-1.3,2.9,2.6,.55,seam,'#15242c',.4);}}
+ if(emission){for(const side of profile?[1]:[-1,1]){neon(()=>{c.moveTo(13,side*10.5);c.quadraticCurveTo(5,side*12.4,-2,side*7.9);c.lineTo(-11,side*8.2);},emission,1);neon(()=>{c.moveTo(-17,side*8.6);c.lineTo(-19,side*8.2);},emission,.8);}if(elite||stealth)neon(()=>{c.moveTo(13,-2);c.lineTo(10,0);c.lineTo(13,2);},emission,.8);}
  // Neck and rounded anatomical head. Mask sits on a face, rather than a
  // rectangular head replacing the face. Hair roots retain original mounts.
  box(18,-4.1,7.1,8.2,2.3,grad([0,-4],[0,4],[[0,s[2]],[.5,s[1]],[1,s[0]]]),'#142631',.55);
@@ -270,7 +310,7 @@ function body(c,t,options,look={}){
   line([35,3.5],[34.5,7.5],'#e2f8f6ac',.75);
   path(()=>{c.moveTo(31,1.5);c.lineTo(31,-7);},null,'#1b303c',2.7);line([31,-6],[31,1],'#58717b',.55);
   path(()=>{c.moveTo(18,-13);c.bezierCurveTo(22,-19,26,-4,26,7);},null,'#09131b',3);path(()=>{c.moveTo(18,-13);c.bezierCurveTo(22,-19,26,-4,26,7);},null,'#55707a',1.45);
-  box(23.8,5.5,5.2,8,2.1,'#1b303c','#7a939b',.65);oval(26.3,10.7,1.7,2.3,'#405762','#15252f',.5);
+  box(23.8,5.5,5.2,8,2.1,'#1b303c','#7a939b',.65);oval(26.3,10.7,1.7,2.3,'#405762','#15252f',.5);customMask();
  }else{
  c.translate(0,-1.25*yaw);c.scale(1,1-.12*yaw);
  const face=grad([30,-6],[30,6],[[0,skin[0]],[.35,skin[1]],[.66,skin[2]],[1,skin[3]]]);
@@ -286,7 +326,7 @@ function body(c,t,options,look={}){
  path(()=>{c.moveTo(34.8,-5.2);c.quadraticCurveTo(35.5,-3.7,34.6,-1.2);},null,'#e2f8f6ac',.7);
  // Regulator centered at the mouth and hose routed behind the shoulder.
  path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#09131b',3.0);path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#55707a',1.55);
- box(23.6,-3.5,5.4,7,2.0,'#1b303c','#7a939b',.6);oval(26.2,0,1.7,2.2,'#405762','#15252f',.5);for(const y of [-1,0,1])line([25.7,y],[26.8,y],'#a3c1c3',.35);
+ box(23.6,-3.5,5.4,7,2.0,'#1b303c','#7a939b',.6);oval(26.2,0,1.7,2.2,'#405762','#15252f',.5);for(const y of [-1,0,1])line([25.7,y],[26.8,y],'#a3c1c3',.35);customMask();
  }
  c.restore();
  if(look.headgear==='comms'){box(27,-9.2,5.5,3.5,1.1,'#273d47','#8da9b0',.55);path(()=>{c.moveTo(30,-9);c.lineTo(38,-11.5);},null,'#78949b',.8);oval(38,-11.5,.65,.65,'#91ead9');}else if(look.headgear==='temple'){box(33,7.1,4,3.1,.7,'#2f4955','#87b6b8',.5);line([34,8.5],[36,8.5],'#a2fff1',.8);}else if(look.headgear==='clip'&&hairStyle!=='shaved'){line([38,-5],[35,-8],'#e1be7e',1.1);line([39,-5],[36,-8],'#b28f54',.7);}

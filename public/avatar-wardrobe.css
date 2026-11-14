@@ -48,3 +48,34 @@
 
 #submarineWorkshop .aw-choices[data-category=outfit] .aw-hair-thumb{max-width:105px;flex:none}
 #submarineWorkshop .aw-choices[data-category=outfit] .aw-option{align-items:center;gap:10px}
+
+/* Compact v215 wardrobe: fixed visual hierarchy and independently scrollable catalog. */
+#submarineWorkshop .abyss-wardrobe{grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:10px;align-items:start}
+#submarineWorkshop .aw-stage{padding:10px;position:sticky;top:0;min-height:0}
+#submarineWorkshop .aw-intro{grid-template-columns:1fr auto;align-items:center;gap:3px}
+#submarineWorkshop .aw-intro .aw-eyebrow{grid-column:1/-1}
+#submarineWorkshop .aw-stage-status{font-size:9px;letter-spacing:.08em;color:#9bd4d5;white-space:nowrap}
+#submarineWorkshop .aw-canvas{max-height:clamp(200px,50vh,430px);margin:7px 0;flex-shrink:0}
+#submarineWorkshop .aw-panel{padding:10px;gap:8px;min-height:0}
+#submarineWorkshop .aw-panel-head strong{font-size:17px}
+#submarineWorkshop .aw-groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;border-top:1px solid #395560;padding-top:7px}
+#submarineWorkshop .aw-groups button{padding:6px 3px;font-size:11px;min-height:34px}
+#submarineWorkshop .aw-categories{padding-top:0;border:0;gap:4px}
+#submarineWorkshop .aw-categories[hidden]{display:none!important}
+#submarineWorkshop .aw-categories button{font-size:11px;min-height:32px;padding:6px 8px}
+#submarineWorkshop .aw-search{display:flex;align-items:center;gap:8px;min-width:0}
+#submarineWorkshop .aw-search-input{position:relative!important;inset:auto!important;box-sizing:border-box;min-width:0;width:100%;height:34px;background:#0a1c27;color:#e6f3f5;border:1px solid #43616d;border-radius:6px;padding:6px 9px;font:inherit}
+#submarineWorkshop .aw-count{font-size:11px;color:#a6bec8;white-space:nowrap}
+#submarineWorkshop .aw-choices{max-height:clamp(170px,35vh,355px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:2px 5px 2px 2px;align-content:start;grid-template-columns:repeat(2,minmax(0,1fr))}
+#submarineWorkshop .aw-choices[data-category=outfit],#submarineWorkshop .aw-choices[data-category=mask]{grid-template-columns:repeat(2,minmax(0,1fr))}
+#submarineWorkshop .aw-choices[data-category=outfit] .aw-option,#submarineWorkshop .aw-choices[data-category=mask] .aw-option{flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;padding:6px;gap:5px}
+#submarineWorkshop .aw-choices[data-category=outfit] .aw-hair-thumb,#submarineWorkshop .aw-choices[data-category=mask] .aw-hair-thumb{max-width:130px;width:100%!important;aspect-ratio:1}
+#submarineWorkshop .aw-choices[data-category=outfit] .aw-option-copy small,#submarineWorkshop .aw-choices[data-category=mask] .aw-option-copy small{display:none}
+#submarineWorkshop .aw-choices[data-category=outfit] .aw-swatch,#submarineWorkshop .aw-choices[data-category=mask] .aw-swatch,#submarineWorkshop .aw-choices[data-category=hair] .aw-swatch{display:none}
+#submarineWorkshop .aw-tier{font-size:10px;font-weight:600;color:#9bb5bf}
+#submarineWorkshop .aw-option[aria-pressed=true]{box-shadow:inset 0 0 0 1px #7ce5da}
+#submarineWorkshop .aw-view{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+#submarineWorkshop .aw-view button{min-height:34px;font-size:11px;padding:5px}
+#submarineWorkshop .aw-footer{padding-top:7px}
+#submarineWorkshop .aw-empty{grid-column:1/-1;color:#b3c7ce;padding:14px 8px}
+@media(max-width:850px){#submarineWorkshop .abyss-wardrobe{grid-template-columns:1fr;gap:8px}#submarineWorkshop .aw-stage{position:relative;top:auto}#submarineWorkshop .aw-canvas{max-height:clamp(190px,32vh,280px)}#submarineWorkshop .aw-choices{max-height:clamp(180px,38vh,330px)}#submarineWorkshop .aw-view{grid-template-columns:repeat(3,minmax(0,1fr))}#submarineWorkshop .aw-view button{min-height:40px}#submarineWorkshop .aw-groups button{min-height:44px}}
