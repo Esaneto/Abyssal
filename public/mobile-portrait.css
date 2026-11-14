@@ -6,4 +6,11 @@
 html.abyssal-mobile-landscape,html.abyssal-mobile-landscape body{overflow:hidden!important;touch-action:none!important}
 html.abyssal-mobile-landscape #abyssalPortraitGate{display:grid}
 html.abyssal-mobile-landscape body>*:not(#abyssalPortraitGate){pointer-events:none!important;user-select:none!important}
-@media (orientation:portrait){#abyssalPortraitGate{display:none!important}}
+
+
+/* IME resize is not physical rotation. Keep the focused form scrollable. */
+html.abyssal-mobile-editing #app{min-height:0!important;height:var(--abyssal-edit-height,100dvh)!important}
+html.abyssal-mobile-editing .modal-screen:not([hidden]):not(.abyss-cockpit-embedded):has(:focus){min-height:0!important;max-height:var(--abyssal-edit-height,100dvh)!important;overflow:auto!important;align-items:start!important;touch-action:pan-y}
+html.abyssal-mobile-editing .modal-screen:not(.abyss-cockpit-embedded)>.modal-card:focus-within{min-height:0!important;max-height:calc(var(--abyssal-edit-height,100dvh) - 12px)!important;overflow:auto!important;overscroll-behavior:contain;scroll-padding:12px}
+html.abyssal-mobile-editing #submarineWorkshop .abyss-visor-body:focus-within{min-height:0!important;overflow:auto!important;scroll-padding:12px;touch-action:pan-y}
+html.abyssal-mobile-editing :is(input,textarea,[contenteditable]):focus{scroll-margin-block:12px;user-select:text!important;-webkit-user-select:text!important}

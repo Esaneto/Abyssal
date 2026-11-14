@@ -7,6 +7,7 @@ xml=xml.replace(/<uses-permission android:name="android.permission.INTERNET"\s*\
 xml=xml.replace(/<activity([^>]*android:name="\.MainActivity"[^>]*)>/,(_,attrs)=>{
  let a=attrs;
  if(/android:screenOrientation=/.test(a))a=a.replace(/android:screenOrientation="[^"]*"/,'android:screenOrientation="portrait"');else a+=' android:screenOrientation="portrait"';
+ if(/android:windowSoftInputMode=/.test(a))a=a.replace(/android:windowSoftInputMode="[^"]*"/,'android:windowSoftInputMode="adjustResize"');else a+=' android:windowSoftInputMode="adjustResize"';
  return '<activity'+a+'>';
 });
 xml=xml.replace(/<application([^>]*)>/,(_,attrs)=>{
@@ -328,6 +329,7 @@ import android.graphics.Color;
 import android.content.pm.ActivityInfo;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -362,6 +364,7 @@ public class MainActivity extends BridgeActivity {
     super.onCreate(savedInstanceState);
     immersive = getPreferences(MODE_PRIVATE).getBoolean("abyssalImmersive", true);
     Window window = getWindow();
+    window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     WindowCompat.setDecorFitsSystemWindows(window, false);
     View content = findViewById(android.R.id.content);
     content.setBackgroundColor(Color.rgb(6, 21, 34));
