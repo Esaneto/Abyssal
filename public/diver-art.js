@@ -185,14 +185,16 @@
   // Held equipment owns the arms. Non-weapon tools use a compact two-hand grip
   // so the rifle pose can never leak underneath a pickaxe or container.
   const held=String(options.heldItem||'abyssWeapon'),relativeAim=(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig;
-  const drawGripArms=(offset,grips)=>{for(let i=0;i<2;i++){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,relativeAim,offset,grip)||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};limb(pose.shoulder,pose.elbow,6.1,suitTone('#263847',1),suitTone('#668293',3));limb(pose.elbow,pose.hand,5.2,suitTone('#101923',0),suitTone('#39536a',2));}};
+  const gripHands=[];
+  const drawGripArms=(offset,grips)=>{gripHands.length=0;for(let i=0;i<2;i++){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,relativeAim,offset,grip)||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};limb(pose.shoulder,pose.elbow,7.1,suitTone('#263847',1),suitTone('#668293',3));limb(pose.elbow,pose.hand,5.8,suitTone('#101923',0),suitTone('#39536a',2));gripHands.push(pose);}};
+  const drawGloves=(xOffset=0)=>{if(limb.glove)for(const p of gripHands)limb.glove([p.hand[0]-xOffset,p.hand[1]],[p.elbow[0]-xOffset,p.elbow[1]],true);};
   c.save();c.rotate(held==='none'?0:relativeAim);
-  if(held==='none'){for(const side of [-1,1]){limb([13,side*9],[-2,side*15],6.6,suitTone('#263847',1),suitTone('#668293',3));limb([-2,side*15],[-19,side*13],5.7,suitTone('#101923',0),suitTone('#39536a',2));c.fillStyle='#14242d';c.strokeStyle='#63808a';c.lineWidth=.6;c.beginPath();c.ellipse(-22,side*13,4,2.8,0,0,TAU);c.fill();c.stroke();}c.restore();c.restore();return;}
+  if(held==='none'){for(const side of [-1,1]){limb([13,side*9],[-2,side*15],7.7,suitTone('#263847',1),suitTone('#668293',3));limb([-2,side*15],[-19,side*13],6.5,suitTone('#101923',0),suitTone('#39536a',2));if(limb.glove)limb.glove([-22,side*13],[-19,side*13]);else{c.fillStyle='#14242d';c.strokeStyle='#63808a';c.lineWidth=.6;c.beginPath();c.ellipse(-22,side*13,4,2.8,0,0,TAU);c.fill();c.stroke();}}c.restore();c.restore();return;}
   if(held!=='abyssWeapon'){
    c.translate(0,5);
    if(held==='abyssPickaxe')c.rotate((Number(options.swing)||0)*.17);
    drawGripArms(5,rig?.toolGrips||[[27,-2],[27,3]]);
-   c.translate(27,0);
+   c.save();c.translate(27,0);
    if(held==='abyssPropulsor'||held==='abyssPropulsorIdle'){
     const active=Boolean(options.propulsorActive),pulse=.5+.5*Math.sin((Number(t)||0)*.045);
     const shell=c.createLinearGradient(0,-12,0,12);shell.addColorStop(0,'#a6c9cf');shell.addColorStop(.28,'#496a78');shell.addColorStop(.63,'#152b39');shell.addColorStop(1,'#0b1724');
@@ -243,6 +245,7 @@
     c.fillStyle='#617f83';c.strokeStyle='#c0c8aa';c.lineWidth=1.5;
     c.beginPath();c.moveTo(-8,3);c.lineTo(-1,-9);c.lineTo(18,-4);c.lineTo(20,7);c.lineTo(5,12);c.closePath();c.fill();c.stroke();
    }
+   c.restore();drawGloves();
    c.restore();c.restore();return;
   }
   c.translate(0,GUN_OFFSET_Y); // Rifle stays below the torso at every aim angle.
@@ -288,9 +291,9 @@
   c.beginPath();c.arc(BARREL_TIP_X,0,1.4,0,TAU);c.fill();c.shadowBlur=0;
   c.fillStyle='#65d5e2';c.fillRect(47,-2.2,10,1.2);
   // Gloves settle on two separate contact points, never doubling the arm.
-  c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
+  if(limb.glove)drawGloves();else{c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
   c.beginPath();c.ellipse(31,-6,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
-  c.beginPath();c.ellipse(24,8,3.1,2.5,.12,0,TAU);c.fill();c.stroke();
+  c.beginPath();c.ellipse(24,8,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
   c.restore();c.restore();
  }
  return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});

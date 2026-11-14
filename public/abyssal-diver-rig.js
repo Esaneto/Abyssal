@@ -41,9 +41,9 @@
    const co=Math.cos(a),si=Math.sin(a);
    for(const x of [x0,x1])for(const y of [y0,y1]){const px=x*co-y*si,py=x*si+y*co;minX=Math.min(minX,px);maxX=Math.max(maxX,px);minY=Math.min(minY,py);maxY=Math.max(maxY,py);}
   }
-  include(-84,-33,43,32,heading);
-  if(held==='abyssWeapon')include(-3,-2,72,32,aim);
-  else if(held!=='none')include(powered?-116:0,-17,67,23,aim);
+  include(-86,-35,44,34,heading);
+  if(held==='abyssWeapon')include(-6,-6,73,34,aim);
+  else if(held!=='none')include(powered?-116:-6,-19,68,25,aim);
   const scale=Math.min(width*.85/(maxX-minX),height*.84/(maxY-minY));
   return {x:width/2-(minX+maxX)*scale/2,y:height/2-(minY+maxY)*scale/2,r:scale*14/.60};
  }
