@@ -1839,8 +1839,7 @@ io.on('connection', socket => {
     const result=await pgPool.query("SELECT state_value FROM abyssal_state WHERE state_key='users' LIMIT 1");
     const persisted=result.rows?.[0]?.state_value;
     if(persisted&&typeof persisted==='object'){
-     const freshMatch=Object.entries(persisted).find(([,candidate])=>(Array.isArray(candidate?.sessionTokens)?candidate.sessionTokens:[]).some(item=>item&&Number(item.expiresAt)>now&&safeEqual(item.hash,digest)));
-     if(freshMatch){const [freshKey,freshUser]=freshMatch;if(!GMAdmin.blocked(users[freshKey])&&Number(users[freshKey]?.adminUpdatedAt||0)<=Number(freshUser.adminUpdatedAt||0))users[freshKey]={...(users[freshKey]||{}),...freshUser};}
+     GMAdmin.syncSessionSnapshot(users,persisted,candidate=>(Array.isArray(candidate?.sessionTokens)?candidate.sessionTokens:[]).some(item=>item&&Number(item.expiresAt)>now&&safeEqual(item.hash,digest)),now);
     }
    }catch(err){console.error('[deploy] Falha ao atualizar sessão persistida:',err.message);}
   }
