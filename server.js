@@ -46,6 +46,8 @@ const Propulsor=require('./public/abyssal-propulsor.js');
 const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
+const { createCardumeChat } = require('./cardume-chat');
+const { registerChatModerationRoutes } = require('./chat-moderation');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const APP_VERSION=require('./package.json').version;
 const HOST_CPU_COUNT=typeof os.availableParallelism==='function'?os.availableParallelism():os.cpus().length;
@@ -98,7 +100,7 @@ app.get('/api/browser-version',(req,res)=>{res.setHeader('Cache-Control','no-sto
 // Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
 io.engine.on('connection', rawSocket => { rawSocket.request = null; });
 // Profiles and Cardumes remain available independently from text communication.
-// Public text chat was removed from the product surface and server protocol.
+// No global text chat: Cardume-only text and fixed quick messages in online rooms.
 const AdMobSSV=require('./admob-ssv');
 const ADMOB_SSV_ENABLED=process.env.ABYSSAL_ADMOB_SSV_ENABLED==='true';
 const REWARDED_WHEEL_ENABLED = process.env.ABYSSAL_REWARDED_WHEEL_ENABLED === 'true';
@@ -464,6 +466,8 @@ if (typeof app.post === 'function') {
 }
 if (typeof app.post === 'function') registerAccountRecoveryRoutes({app,getUsers:()=>users,saveUsers,io});
 if (typeof app.post === 'function') registerSupportRoutes({app});
+const cardumeChat=createCardumeChat({io,getUsers:()=>users,getCardumes:()=>cardumes,getPool:()=>pgPool,saveUsers,getRoom:socketRoom,enabled:()=>SOCIAL_FEATURES_ENABLED});
+if(typeof app.post==='function')registerChatModerationRoutes({app,getUsers:()=>users,saveUsers,getPool:()=>pgPool,getChatMessage:cardumeChat.getChatMessage,removeMessage:cardumeChat.removeMessage,isDeveloper:isDeveloperUser});
 function currentAnnouncements(){return announcements.filter(item=>Date.now()-Number(item.timestamp)<7*86400000).slice(0,30);}
 app.get('/api/announcements',(_req,res)=>res.json(currentAnnouncements()));
 app.post('/api/admin/announcements',async(req,res)=>{
@@ -1759,6 +1763,7 @@ function worldTick() {
 
 function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}
 io.on('connection', socket => {
+ cardumeChat.attach(socket);
  socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; socket.data.roomId = null; broadcastOnline();
  socket.emit('online-count', onlineCount()); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
  socket.on('authenticate', async (payload = {}) => {
@@ -2842,6 +2847,7 @@ io.on('connection', socket => {
    return socket.emit('account-deletion-result',{ok:false,message:'O nickname digitado não corresponde à sua conta. Nenhuma informação foi excluída.'});
   }
   try{
+   await cardumeChat.deleteAccount(key);
    // Disconnect every active session for this account before removing the key, so stale sockets
    // cannot mutate a newly-created account that reuses the same nickname.
    for(const session of (io.sockets?.sockets?.values?.() || [])){

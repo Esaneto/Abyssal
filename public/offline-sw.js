@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-14-native-v232';
+const VERSION = '2026-11-14-cardume-v233';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -119,7 +119,7 @@ const GAME_FILES = [
   'rift-treasure.js',
   'rift-treasure.css',
   'net-codec.js',
-  'online.js',
+  'online.js','cardume-comms.css',
   'abyssal-rebuild.js',
   'offline-ui.js'
 ];
