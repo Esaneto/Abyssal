@@ -76,7 +76,7 @@ function submarineHarness(){
  const helpers=src.slice(src.indexOf('let soloSubmarine='),src.indexOf('function soloSubmarineTopUp()'));
  const mounts=src.slice(src.indexOf('const SOLO_WEAPON_MOUNTS='),src.indexOf('function submarineMount('));
  let now=1000;
- const context={SOLO_CAVERN:cave,GAME_WORLD_ZOOM:1,W:4800,H:3000,arenaRocks:[],onlineMode:false,gameState:'playing',isClassicShooterRun:()=>true,player:{x:2400,y:900,r:18,moveSpeed:180,specimen:{x:2400,y:850,r:20,alive:true}},equippedSkin:'default',window:{addEventListener(){}},performance:{now:()=>now},clearSoloSubmarinePhotonRay(){},playWorldSound(){},refreshAudioLoop(){},stopAudioLoop(){},enemyParalyzedNow:()=>false};
+ const context={SOLO_CAVERN:cave,CREATURE_SCALE:require('../public/creature-scale.js'),GAME_WORLD_ZOOM:1,W:4800,H:3000,arenaRocks:[],onlineMode:false,gameState:'playing',isClassicShooterRun:()=>true,player:{x:2400,y:900,r:18,moveSpeed:180,specimen:{x:2400,y:850,r:20,alive:true}},equippedSkin:'default',window:{addEventListener(){}},performance:{now:()=>now},clearSoloSubmarinePhotonRay(){},playWorldSound(){},refreshAudioLoop(){},stopAudioLoop(){},enemyParalyzedNow:()=>false};
  vm.createContext(context);
  vm.runInContext(helpers+mounts+';resetSoloSubmarine();',context);
  return {run:s=>vm.runInContext(s,context),advance:ms=>{now+=ms;},context};

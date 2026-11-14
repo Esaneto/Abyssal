@@ -1,17 +1,17 @@
 # Abyssal - Google Play Release Pack
 
 ## App identity
-- App name: Abyssal
+- App name: Abyssal: Ecos das Profundezas
 - Package: com.esaneto.abyssal
 - Category: Game / Action
 - Default language: Portuguese (Brazil)
 - Audience configured in product: 16+
 - Contact: abyssalelectrongames@gmail.com
-- Privacy policy: https://abyssal-ej5j.onrender.com/privacy.html
-- Account deletion: https://abyssal-ej5j.onrender.com/delete-account.html
+- Privacy policy: https://abyssalgame.duckdns.org/privacy.html
+- Account deletion: https://abyssalgame.duckdns.org/delete-account.html
 
 ## Release scope
-Only Solo Dive and cooperative Online Dive are available. Open Ocean, Abyssal Rifts and standalone PvP are disabled for all players, including review accounts. Do not advertise them as playable in this release.
+Only Solo Dive and cooperative Online Dive are available in the launch scope. Open Ocean, Abyssal Rifts and standalone PvP are disabled for all players, including review accounts. Do not advertise them as playable in this release.
 
 ## Store listing draft
 Short description:
@@ -35,7 +35,7 @@ Recursos principais:
 O Abyssal contém violência fantástica e efeitos visuais de combate.
 
 ## Play Console declarations checklist
-- Ads: YES only if the Android release actually displays Google ads. Keep declaration synchronized with release behavior.
+- Ads: YES; the Android build integrates Google Mobile Ads and offers optional rewarded ads to adults. No assumption of approved ad serving.
 - App access: authentication exists. Supply GoogleReviewer01 and GoogleReviewer02 (passwords provisioned privately on the production server). Test Solo Dive and cooperative Online Dive only; use both accounts in the same room for multiplayer. No OTP or private inbox is required.
 - Content rating: disclose fantasy violence, blood/death effects, multiplayer/user interaction, digital purchases if enabled, and ads/rewarded mechanics if enabled.
 - Target audience: 16+ as implemented by the current age-band flow.
@@ -44,7 +44,7 @@ O Abyssal contém violência fantástica e efeitos visuais de combate.
 - Data safety: disclose account identifiers/contact email when provided, user IDs/UUID, gameplay/progress, social/UGC and moderation reports, purchase data when payments are enabled, and technical/network data handled by hosting/advertising providers as applicable.
 - Privacy policy: use the public privacy URL above.
 - Purchases: do not enable Stripe checkout for Android digital goods. Implement/enable Google Play Billing before Android digital sales.
-- Rewarded random wheel: keep disabled for first Android production release unless its policy treatment is separately reviewed.
+- Rewarded random wheel: optional, account-bound non-cash energy, odds shown before ad, 10 spins per day; SSV required. Verify Google policy and real reward delivery before production.
 
 ## Required release secrets
 The CI can create the signed Play AAB after these GitHub Actions secrets exist:

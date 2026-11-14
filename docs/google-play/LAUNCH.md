@@ -1,6 +1,6 @@
 # Abyssal: preparação Google Play
 
-Status: app ainda não cadastrado/publicado. Pacote existente: `com.esaneto.abyssal`. Versão de preparação 3.6.81.
+Status em 14/11/2026: app cadastrado no Play Console; ainda não publicado. Pacote `com.esaneto.abyssal`. AAB 3.6.91 / versionCode 3424 assinado e inspecionado; candidato 3.6.92 corrige duplicação do FileProvider e inclui auditoria final. Não tratar compilação como aprovação.
 
 ## Criar app
 - Nome: Abyssal: Ecos das Profundezas
@@ -55,7 +55,7 @@ Não anunciar Mar Aberto, Fossas, PvP ou compras monetárias como disponíveis n
 - Não ativar produto antes de implementar Billing nativo e verificação de purchaseToken pelo backend Google Play Developer API; vincular conta, conferir pacote e SKU, estado PURCHASED, impedir reutilização, persistir concessão e reconhecer a compra. Implementar restauração e revogação/reembolsos.
 - Pacote boss web tem preço proporcional; não usar um SKU fixo sem definir oferta Play. Stripe permanece web; não redirecionar usuário da versão Play para compra externa.
 - Alternativa de primeiro teste: manter compras em BRL explicitamente indisponíveis, sem checkout externo, até Billing completo. Não prometer vendas na ficha.
-- AdMob: validar SDK nativo, consentimento UMP, teste com anúncios de teste, tratamento etário e verificação de recompensa pelo servidor. Declarar anúncios se presentes.
+- AdMob: SDK nativo 25.5.0 e UMP 4.0.0, dois blocos premiados, solicitação somente por adultos. SSV habilitado no VPS em 14/11/2026 e callbacks configurados segundo o operador; falta teste ponta a ponta. Declarar anúncios: sim. A roleta informa chances, limite de 10 giros diários e moeda virtual não monetária. Não clicar em anúncios próprios nem gerar receita artificial.
 
 ## App content / Data safety
 - Política de privacidade pública e exclusão de conta externa.
@@ -69,7 +69,7 @@ Não anunciar Mar Aberto, Fossas, PvP ou compras monetárias como disponíveis n
 1. Criar app e preencher App content/ficha.
 2. Gerar AAB assinado, enviar ao teste interno, validar no Android real.
 3. Completar configuração e abrir teste fechado; contas pessoais novas: >=12 testadores inscritos continuamente por >=14 dias. Recrutar 15–20 para margem; registrar feedback e correções.
-4. Solicitar acesso à produção e aguardar decisão do Google. Não prometer aprovação automática.
+4. Solicitar acesso à produção e aguardar decisão do Google. Não prometer aprovação automática. Documentar participação real, feedback e correções. O formulário não pode ser preenchido antes de existirem evidências do teste.
 5. Publicar com rollout controlado após cumprir todos os bloqueios, monitorar Android vitals e crash/ANR.
 
 Referências oficiais:

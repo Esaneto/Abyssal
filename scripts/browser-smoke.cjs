@@ -147,7 +147,9 @@ const injected=`<script>
    setTimeout(()=>{
     // Complete the real age-consent UI using a fictitious adult test profile;
     // the test never modifies the live game or bypasses its validation.
-    for(const [id,value] of [['ageBirthDay','1'],['ageBirthMonth','1'],['ageBirthYear','1990']]){
+    const ageRange=document.getElementById('ageYearsRange');
+    if(ageRange){ageRange.value='27';ageRange.dispatchEvent(new Event('input',{bubbles:true}));}
+    else for(const [id,value] of [['ageBirthDay','1'],['ageBirthMonth','1'],['ageBirthYear','1990']]){
      const input=document.getElementById(id);if(input){input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}
     }
     const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;

@@ -3,7 +3,7 @@ const path=require('path');
 
 const manifest=path.join('android','app','src','main','AndroidManifest.xml');
 let xml=fs.readFileSync(manifest,'utf8');
-xml=xml.replace(/<uses-permission android:name="android.permission.INTERNET"\s*\/>/,'<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />');
+if(!xml.includes('android.permission.ACCESS_NETWORK_STATE'))xml=xml.replace(/<uses-permission android:name="android.permission.INTERNET"\s*\/>/,'<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />');
 xml=xml.replace(/<activity([^>]*android:name="\.MainActivity"[^>]*)>/,(_,attrs)=>{
  let a=attrs;
  if(/android:screenOrientation=/.test(a))a=a.replace(/android:screenOrientation="[^"]*"/,'android:screenOrientation="portrait"');else a+=' android:screenOrientation="portrait"';
@@ -16,8 +16,10 @@ xml=xml.replace(/<application([^>]*)>/,(_,attrs)=>{
  if(/android:hardwareAccelerated=/.test(a))a=a.replace(/android:hardwareAccelerated="[^"]*"/,'android:hardwareAccelerated="true"');else a+=' android:hardwareAccelerated="true"';
  return '<application'+a+'>';
 });
-if(!xml.includes('abyssal_update_paths')){
- xml=xml.replace('</application>',`        <provider
+// Capacitor already declares this authority. Replace its declaration rather
+// than adding a second provider for the same authority (both APK and AAB).
+// The only native file shared by Abyssal is its signed update in cache/updates.
+const providerBlock=`<provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="\${applicationId}.fileprovider"
             android:exported="false"
@@ -25,9 +27,14 @@ if(!xml.includes('abyssal_update_paths')){
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/abyssal_update_paths" />
-        </provider>
-    </application>`);
-}
+        </provider>`;
+let updaterProviderCount=0;
+xml=xml.replace(/<provider\b[^>]*>(?:[\s\S]*?)<\/provider>/g,block=>{
+ const tag=block.slice(0,block.indexOf('>')+1);
+ if(!tag.includes('android:name="androidx.core.content.FileProvider"')||!tag.includes('android:authorities="${applicationId}.fileprovider"'))return block;
+ return ++updaterProviderCount===1?providerBlock:'';
+});
+if(!updaterProviderCount)xml=xml.replace('</application>','        '+providerBlock+'\n    </application>');
 fs.writeFileSync(manifest,xml);
 
 const xmlDir=path.join('android','app','src','main','res','xml');
