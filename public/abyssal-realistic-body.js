@@ -152,7 +152,7 @@ function body(c,t,options,look={}){
  const grad=(a,b,stops)=>{const g=c.createLinearGradient(...a,...b),dir=(b[0]-a[0])*Math.cos(lightAngle)+(b[1]-a[1])*Math.sin(lightAngle),reverse=dir>0;for(const [p,v] of stops)g.addColorStop(p,tone(v,reverse?1-p:p));return g;};
  const oval=(x,y,rx,ry,fill,stroke,width=.7)=>path(()=>c.ellipse(x,y,rx,ry,0,0,Math.PI*2),fill,stroke,width);
  const box=(x,y,w,h,r,fill,stroke,width=.7)=>path(()=>c.roundRect(x,y,w,h,r),fill,stroke,width);
- const view=options.view||rig?.viewFor?.(0),detail=options.detail!==false,bulk=industrial?1.10:polar?1.13:scout?.96:1;
+ const view=options.view||rig?.viewFor?.(0),yaw=view?.yaw||0,detail=options.detail!==false,bulk=industrial?1.10:polar?1.13:scout?.96:1;
  // Continuous tapered anatomical limbs: shoulder/hip volume, muscle belly,
  // narrowed joint, then wrist/ankle. No spherical robot joints.
  function limb(a,b,thickness,base,highlight){
@@ -180,7 +180,7 @@ function body(c,t,options,look={}){
  c.save();drawHairLayer(c,locks,'back',hair,detail);c.restore();
  // Low-profile paired tanks sit behind the rib cage; their outer edges alone
  // appear from the front. Equipment does not replace the anatomy.
- for(const side of [-1,1]){const y=side*13.3-4.2;c.save();if(side<0)c.globalAlpha=.78;box(-17,y,34,8.4,3.8,grad([0,y],[0,y+8.4],[[0,tank[0]],[.24,tank[1]],[.51,tank[2]],[1,tank[4]]]),'#0b1922',.7);for(const x of [-10,7])box(x,y+.3,2.8,7.8,.7,'#152530','#829298',.42);box(15,y+2,4.2,4.5,1,'#75898c','#253b42',.55);c.restore();}
+ for(const side of [-1,1]){const far=side<0,y=side*13.3-4.2+(far?2.2:1.1)*yaw,w=8.4+(far?-1.6:1.7)*yaw,len=34+(far?-3:2)*yaw,x0=-17+(far?1.5:-1)*yaw;c.save();const metal=grad([0,y],[0,y+w],[[0,tank[0]],[.24,far?tank[2]:tank[1]],[.51,tank[2]],[1,tank[4]]]);box(x0,y,len,w,Math.min(3.8,w/2),metal,'#0b1922',.7);for(const x of [-10,7])box(x,y+.3,2.8,w-.6,.7,'#152530','#829298',.42);box(x0+len-2,y+w*.24,4.2,w*.54,1,'#75898c','#253b42',.55);if(detail&&!far)line([x0+4,y+w*.22],[x0+len-5,y+w*.22],'#b7d6de55',.6);c.restore();}
  // Legs: the pelvis is drawn over the thigh roots, with separate crotch
  // and knee landmarks. Full leg length is nearly half of standing stature.
  for(const side of [-1,1]){
@@ -208,10 +208,11 @@ function body(c,t,options,look={}){
  // Sculpted pectoral and abdominal volumes, not a solid rectangular breastplate.
  const chest=grad([8,-11],[8,11],[[0,s[1]],[.32,s[3]],[.52,s[2]],[1,s[0]]]);
  for(const side of [-1,1]){
+  c.save();c.translate(0,-1.4*yaw);c.scale(1,side<0?1-.17*yaw:1+.10*yaw);
   path(()=>{c.moveTo(15,side*3);c.quadraticCurveTo(15,side*10,10,side*11.1);c.bezierCurveTo(6,side*11.8,2,side*8.6,1,side*2.4);c.quadraticCurveTo(8,side*1.1,15,side*3);c.closePath();},chest,null);
-  if(detail){path(()=>{c.moveTo(14,side*9.7);c.quadraticCurveTo(8,side*13,3,side*9.5);},null,'#9dbac22e',.55);path(()=>{c.moveTo(-3,side*7.2);c.quadraticCurveTo(-8,side*5.8,-14,side*8.8);},null,'#08151e99',.65);}
+  if(detail){path(()=>{c.moveTo(14,side*9.7);c.quadraticCurveTo(8,side*13,3,side*9.5);},null,'#9dbac22e',.55);path(()=>{c.moveTo(-3,side*7.2);c.quadraticCurveTo(-8,side*5.8,-14,side*8.8);},null,'#08151e99',.65);}c.restore();
  }
- path(()=>{c.moveTo(15,0);c.quadraticCurveTo(5,-.7,-13,0);},null,'#10232f',.65);
+ path(()=>{c.moveTo(15,-1.4*yaw);c.quadraticCurveTo(5,-.7-1.4*yaw,-13,0);},null,'#10232f',.65);
  for(const x of [-2,-6,-10])path(()=>{c.moveTo(x,-5);c.quadraticCurveTo(x-1,0,x,5);},null,'#a0b6b82b',.5);
  // Waist harness follows the iliac crest, not the abdomen.
  path(()=>{c.moveTo(-16,-10);c.lineTo(-19,-9.5);c.quadraticCurveTo(-20,0,-19,9.5);c.lineTo(-16,10);c.quadraticCurveTo(-17,0,-16,-10);c.closePath();},'#172a32','#5c747a',.55);
@@ -235,9 +236,10 @@ function body(c,t,options,look={}){
  if(hairStyle!=='shaved'){const cap=grad([34,-8],[42,7],[[0,hair[0]],[.43,hair[2]],[.72,hair[1]],[1,hair[0]]]);path(()=>{c.moveTo(33,-7);c.quadraticCurveTo(38,-10,41,-6);c.quadraticCurveTo(44,0,41,6);c.quadraticCurveTo(37,9,33,7);c.quadraticCurveTo(36,0,33,-7);c.closePath();},cap,hair[0],.4);}
  c.save();drawHairLayer(c,locks,'knot',hair,detail);drawHairLayer(c,locks,'crown',hair,detail);c.restore();
  const skin={original:['#8b6b59','#c6a38c','#ac8a75','#695655'],light:['#a78372','#f0c9ae','#e3b99c','#987462'],bronze:['#70432e','#c79466','#a56f49','#593a2b'],deep:['#422d29','#946951','#694337','#362724']}[look.skin]||['#8b6b59','#c6a38c','#ac8a75','#695655'];const eye={original:'#223c45',hazel:'#aa8152',blue:'#6bc1ed',green:'#7eae74',violet:'#a48de1'}[look.eyes]||'#223c45';
+ c.save();c.translate(0,-1.25*yaw);c.scale(1,1-.12*yaw);
  const face=grad([30,-6],[30,6],[[0,skin[0]],[.35,skin[1]],[.66,skin[2]],[1,skin[3]]]);
  path(()=>{c.moveTo(36,-5);c.quadraticCurveTo(34,-6.5,30,-6);c.quadraticCurveTo(25,-5.8,24.5,0);c.quadraticCurveTo(25,5.8,30,6);c.quadraticCurveTo(34,6.5,36,5);c.closePath();},face,'#34414a',.4);
- for(const side of [-1,1]){path(()=>{c.moveTo(33.5,side*1.8);c.quadraticCurveTo(34,side*3.7,33,side*4.7);},null,'#51413c',.45);oval(32.2,side*3.1,.55,1.05,'#d4c7b3');oval(32.2,side*3.1,.42,.42,eye);}
+ for(const side of [-1,1]){const eyeSize=side<0?1-.22*yaw:1;path(()=>{c.moveTo(33.5,side*1.8);c.quadraticCurveTo(34,side*3.7,33,side*4.7);},null,'#51413c',.45);oval(32.2,side*3.1,.55*eyeSize,1.05*eyeSize,'#d4c7b3');oval(32.2,side*3.1,.42*eyeSize,.42*eyeSize,eye);}
  path(()=>{c.moveTo(32,0);c.lineTo(29.4,-.65);c.lineTo(29.2,.5);},null,'#70584c',.4);
  // Optional prescription inserts sit inside the pressure mask, not on top of the hair.
  if(look.eyewear&&look.eyewear!=='none'){const frame=look.eyewear==='tactical'?'#83e4e8':look.eyewear==='square'?'#b19a79':'#b6c9cc';for(const side of [-1,1]){if(look.eyewear==='round')oval(32.3,side*3,1.9,2.3,null,frame,.55);else box(30.4,side*3-2.2,3.8,4.4,.65,null,frame,.55);}line([32.3,-.8],[32.3,.8],frame,.6);}
@@ -249,7 +251,7 @@ function body(c,t,options,look={}){
  // Regulator centered at the mouth and hose routed behind the shoulder.
  path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#09131b',3.0);path(()=>{c.moveTo(18,-15);c.bezierCurveTo(25,-18,30,-12,26,-5);},null,'#55707a',1.55);
  box(23.6,-3.5,5.4,7,2.0,'#1b303c','#7a939b',.6);oval(26.2,0,1.7,2.2,'#405762','#15252f',.5);for(const y of [-1,0,1])line([25.7,y],[26.8,y],'#a3c1c3',.35);
- c.save();drawHairLayer(c,locks,'braid',hair,detail);c.restore();
+ c.restore();c.save();drawHairLayer(c,locks,'braid',hair,detail);c.restore();
  if(look.headgear==='comms'){box(27,-9.2,5.5,3.5,1.1,'#273d47','#8da9b0',.55);path(()=>{c.moveTo(30,-9);c.lineTo(38,-11.5);},null,'#78949b',.8);oval(38,-11.5,.65,.65,'#91ead9');}else if(look.headgear==='temple'){box(33,7.1,4,3.1,.7,'#2f4955','#87b6b8',.5);line([34,8.5],[36,8.5],'#a2fff1',.8);}else if(look.headgear==='clip'&&hairStyle!=='shaved'){line([38,-5],[35,-8],'#e1be7e',1.1);line([39,-5],[36,-8],'#b28f54',.7);}
  if(options.helmetLamp){box(35,-9.7,5.2,3.7,1.1,'#354b57','#8eafb7',.55);oval(39,-7.9,1.25,1.2,'#d9fff0');}
  c.restore();return limb;

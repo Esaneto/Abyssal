@@ -49,10 +49,23 @@
   return cross(a,b,c)*cross(a,b,d)<-1e-7&&cross(c,d,a)*cross(c,d,b)<-1e-7;
  }
  function armCrossings(a,b){let n=0;for(const [p,q] of [[a.shoulder,a.elbow],[a.elbow,a.hand]])for(const [r,s] of [[b.shoulder,b.elbow],[b.elbow,b.hand]])if(segmentsCross(p,q,r,s))n++;return n;}
+ function visibleCrossings(a,b,angle,offset,view){
+  const co=Math.cos(angle),si=Math.sin(angle);let count=0;
+  for(const [p,q] of [[a.shoulder,a.elbow],[a.elbow,a.hand]])for(const [r,s] of [[b.shoulder,b.elbow],[b.elbow,b.hand]]){
+   if(!segmentsCross(p,q,r,s))continue;
+   const dx=q[0]-p[0],dy=q[1]-p[1],ex=s[0]-r[0],ey=s[1]-r[1],u=((r[0]-p[0])*ey-(r[1]-p[1])*ex)/(dx*ey-dy*ex),wx=p[0]+dx*u,wy=p[1]+dy*u;
+   const x=wx*co-(wy+offset)*si,py=wx*si+(wy+offset)*co,y=view?(py-x*view.shear)/view.width:py;
+   const covered=((x+2)/23)**2+(y/13.4)**2<1||((x-31)/9)**2+(y/8)**2<1;
+   const coveredByItem=offset===12?wx>=17&&wx<=48&&wy>=-4&&wy<=7:wx>=22&&wx<=61&&Math.abs(wy)<=9;
+   if(!covered&&!coveredByItem)count++;
+  }return count;
+ }
  function armPair(relativeAim,offset,grips,profile='standard',view=null){
-  const totals=[36,40,45,50,56];const left=totals.flatMap(n=>armCandidates(-1,relativeAim,offset,grips[0],profile,view,n)),right=totals.flatMap(n=>armCandidates(1,relativeAim,offset,grips[1],profile,view,n));let best=null,cost=Infinity;
-  for(const a of left)for(const b of right){const crossings=armCrossings(a,b),score=a.score+b.score+crossings*180+Math.abs(a.projectedTotal-36)*.12+Math.abs(b.projectedTotal-36)*.12;if(score<cost){best=[a,b];cost=score;}}
-  return best;
+  const evaluate=(left,right)=>{let best=null,cost=Infinity;for(const a of left)for(const b of right){const cross=armCrossings(a,b),visible=cross?visibleCrossings(a,b,relativeAim,offset,view):0,score=a.score+b.score+cross*65+visible*240+Math.abs(a.projectedTotal-36)*.12+Math.abs(b.projectedTotal-36)*.12;if(score<cost){best=[a,b];cost=score;}}return best;};
+  const initial=evaluate(armCandidates(-1,relativeAim,offset,grips[0],profile,view),armCandidates(1,relativeAim,offset,grips[1],profile,view));
+  if(!armCrossings(...initial))return initial;
+  const totals=[36,40,45,50,56],left=totals.flatMap(n=>armCandidates(-1,relativeAim,offset,grips[0],profile,view,n)),right=totals.flatMap(n=>armCandidates(1,relativeAim,offset,grips[1],profile,view,n));
+  return evaluate(left,right);
  }
  // Bounds in renderer coordinates; fit the same playable art, not a replacement sprite.
  function previewFrame(width,height,heading=0,aim=heading,held='none',powered=false,hairStyle='classic'){
@@ -94,5 +107,5 @@
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
   const brake=clamp(-finite(motion?.drive)/5,0,1);return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
- return Object.freeze({viewFor,project,advance,leg,arm,armPair,armCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
+ return Object.freeze({viewFor,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });
