@@ -2763,7 +2763,7 @@ function aimAtEnemy(target){
  // Solve the lateral barrel offset analytically; iterative muzzle correction
  // flips 180 degrees when an enemy is closer than the barrel length.
  const offset=player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14;
- return d>offset?heading-Math.asin(clamp(offset/d,-1,1)):heading;
+ if(d<=offset)return heading;const angle=Math.asin(clamp(offset/d,-1,1)),side=DIVER_ART?.weaponSide?.(heading)??1,first=heading-side*angle;if((DIVER_ART?.weaponSide?.(first)??1)===side)return first;const second=heading+side*angle;return (DIVER_ART?.weaponSide?.(second)??1)===-side?second:heading;
 }
 function automaticWeaponTarget(){
  if(!player)return null;
@@ -2814,7 +2814,7 @@ function fire(){
  const offsets=[...baseOffsets,...prismOffsets,...(upgrades.photonCascade?[-.36,.36]:[])];
  const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId();player.visualAttackUntil=performance.now()+140;
  playWorldSound('shot-'+activeShot,null,850,1,{owner:'local-player',local:true,eventId:volleyId});
- for(const shotAngle of angles){const shotMuzzle=gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=profile.radius*GAME_WORLD_ZOOM;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,barrelOrigin:!aimedMode&&target&&onlineRoomMode!=='pvp'?{x:player.x-Math.sin(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,y:player.y+Math.cos(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,targetId:target.id}:null,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;emitBaseShotMuzzle(gunTip,a,activeShot,shotColor,angles.length);return true;
+ for(const shotAngle of angles){const shotMuzzle=gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=profile.radius*GAME_WORLD_ZOOM;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,barrelOrigin:!aimedMode&&target&&onlineRoomMode!=='pvp'?{x:player.x-Math.sin(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14*(DIVER_ART?.weaponSide?.(a)??1),y:player.y+Math.cos(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14*(DIVER_ART?.weaponSide?.(a)??1),targetId:target.id}:null,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;emitBaseShotMuzzle(gunTip,a,activeShot,shotColor,angles.length);return true;
 }
 // Nova remains a radial pulse; Prism generates independent radial fragments
 // instead of pretending that a second invisible Nova dealt damage.
@@ -4618,7 +4618,7 @@ function drawSpecimenBite(pet,angle,bite,q){
 }
 function drawSoloWelding(x,y,r,aim,job,t){
  const p=job.point,scale=r*(DIVER_ART?.DRAW_SCALE||.60)/14,tip=DIVER_ART?.WELDER_TIP_X||57;
- const mx=x+Math.cos(aim)*tip*scale-Math.sin(aim)*5*scale,my=y+Math.sin(aim)*tip*scale+Math.cos(aim)*5*scale;
+ const side=DIVER_ART?.weaponSide?.(aim)??1,mx=x+Math.cos(aim)*tip*scale-Math.sin(aim)*5*scale*side,my=y+Math.sin(aim)*tip*scale+Math.cos(aim)*5*scale*side;
  const time=Number(t)||0,q=Math.max(0,Math.min(1,job.elapsed/submarineRepairSeconds())),flicker=.72+.28*Math.sin(time*.043);
  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
  // The welder emits a short electric arc and molten sparks at the hull,

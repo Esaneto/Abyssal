@@ -9,11 +9,12 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const TAU=Math.PI*2,DRAW_SCALE=.60,BARREL_TIP_X=69,GUN_OFFSET_Y=12,WELDER_TIP_X=57;
+ const weaponSide=angle=>Math.cos(Number(angle)||0)<0?-1:1;
  const genderOf=value=>value==='female'?'female':'male';
  function muzzle(x,y,r,aim){
   const distance=(Number(r)||13)*DRAW_SCALE*BARREL_TIP_X/14;
   const angle=Number(aim)||0;
-  const below=(Number(r)||13)*DRAW_SCALE*GUN_OFFSET_Y/14;
+  const below=(Number(r)||13)*DRAW_SCALE*GUN_OFFSET_Y/14*weaponSide(angle);
   return {x:(Number(x)||0)+Math.cos(angle)*distance-Math.sin(angle)*below,y:(Number(y)||0)+Math.sin(angle)*distance+Math.cos(angle)*below};
  }
  function draw(c,x,y,r,heading,aim,t=0,options={}){
@@ -27,9 +28,9 @@
   c.save();c.translate(x,y);c.rotate(a);c.scale(r*DRAW_SCALE/14,r*DRAW_SCALE/14);
   c.lineJoin='round';c.lineCap='round';
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
-  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(held==='abyssPropulsor'||held==='abyssPropulsorIdle')?0:(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=rig?.viewFor?.(options.viewYaw??(options.gameplay?rig.GAMEPLAY_YAW:.65));
-  const offset=held==='abyssWeapon'?GUN_OFFSET_Y:5,tool=rig?.toolPose(held,Number(options.swing)||0,view)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
-  const grips=held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[22,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co]);
+  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(held==='abyssPropulsor'||held==='abyssPropulsorIdle')?0:(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=rig?.viewFor?.(options.viewYaw??(options.gameplay?rig.GAMEPLAY_YAW:.65),a),itemSide=weaponSide(a+relativeAim);
+  const offset=(held==='abyssWeapon'?GUN_OFFSET_Y:5)*itemSide,tool=rig?.toolPose(held,Number(options.swing)||0,view)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
+  const grips=(held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[22,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co])).map(([x,y])=>[x,y*itemSide]);
   const pair=(held!=='abyssWelder'&&held!=='none'?rig?.armPair?.(relativeAim,offset,grips,'standard',view):null)||grips.map((g,i)=>rig?.arm(i?1:-1,relativeAim,offset,g,held==='abyssWelder'?'welder':'standard',view)||{shoulder:[6,i?7:-7],elbow:[16,i?12:-12],hand:g});
   const idle=side=>rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0,options.motion,view)||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};
   let farPainted=false;
@@ -200,9 +201,9 @@
   c.save();c.rotate(held==='none'?0:relativeAim);
   if(held==='none'){if(!farPainted)paintArm(limb,idle(-1),0);paintArm(limb,idle(1),1);c.restore();c.restore();return;}
   if(held!=='abyssWeapon'){
-   c.translate(0,5);
+   c.translate(0,offset);
    drawGripArms(held==='abyssWelder'?[1]:[0,1]);
-   c.save();c.rotate(tool.swingAngle);c.translate(tool.pivot??27,0);
+   c.save();c.scale(1,itemSide);c.rotate(tool.swingAngle);c.translate(tool.pivot??27,0);
    if(held==='abyssPropulsor'||held==='abyssPropulsorIdle'){
     const active=Boolean(options.propulsorActive),pulse=.5+.5*Math.sin((Number(t)||0)*.045);
     // Two external insulated handles, separate contact points.
@@ -261,8 +262,8 @@
    c.restore();drawGloves();
    c.restore();c.restore();return;
   }
-  c.translate(0,GUN_OFFSET_Y); // Rifle stays below the torso at every aim angle.
-  drawGripArms();
+  c.translate(0,offset); // Rifle stays on the ventral side of its aim direction.
+  drawGripArms();c.save();c.scale(1,itemSide);
   // White futuristic AK-profile rifle: ventilated receiver, pronounced stock,
   // curved magazine, trigger guard, optic and a long distinguishable barrel.
   // The muzzle glow and hit origin use BARREL_TIP_X, exactly the same coordinate.
@@ -306,10 +307,10 @@
   // A recessed support grip sits below the receiver, ahead of the trigger.
   c.fillStyle='#203744';c.strokeStyle='#acc6cc';c.lineWidth=.75;c.beginPath();c.roundRect(30,-1,9,6,1.5);c.fill();c.stroke();
   // Gloves settle on two separate contact points, never doubling the arm.
-  if(limb.glove)drawGloves();else{c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
-  c.beginPath();c.ellipse(34,2,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
-  c.beginPath();c.ellipse(22,11,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
+  c.restore();if(limb.glove)drawGloves();else{c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
+  c.beginPath();c.ellipse(34,2*itemSide,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
+  c.beginPath();c.ellipse(22,11*itemSide,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
   c.restore();c.restore();
  }
- return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});
+ return Object.freeze({draw,muzzle,weaponSide,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});
 });

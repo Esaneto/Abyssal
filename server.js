@@ -2438,7 +2438,7 @@ io.on('connection', socket => {
    const dx=vx*roomWorldWidth(room),dy=vy*shotWorldHeight,speed=Math.hypot(dx,dy);
    const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.BARREL_TIP_X/14;
    const uxMuzzle=speed>0?dx/speed:1,uyMuzzle=speed>0?dy/speed:0;
-   const below=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.GUN_OFFSET_Y/14;
+   const below=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.GUN_OFFSET_Y/14*DiverArt.weaponSide(Math.atan2(dy,dx));
    const sx=Number(shooter.x)+uxMuzzle*gunDistance-uyMuzzle*below;
    const sy=Number(shooter.y)+uyMuzzle*gunDistance+uxMuzzle*below;
    if(!Number.isFinite(sx)||!Number.isFinite(sy)||speed<30||speed>1800)return;
@@ -2549,7 +2549,7 @@ io.on('connection', socket => {
    // never from arbitrary client origin coordinates.
    const shotHeading=Math.atan2(vy*shotWorldHeight,vx*roomWorldWidth(room));
    const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.BARREL_TIP_X/14;
-   const below=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.GUN_OFFSET_Y/14;
+   const below=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.GUN_OFFSET_Y/14*DiverArt.weaponSide(shotHeading);
    const authoritativeMuzzleX=sx+Math.cos(shotHeading)*gunDistance-Math.sin(shotHeading)*below;
    const authoritativeMuzzleY=sy+Math.sin(shotHeading)*gunDistance+Math.cos(shotHeading)*below;
    if(shot.special!=='nova'){

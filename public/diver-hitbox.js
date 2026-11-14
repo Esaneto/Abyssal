@@ -18,9 +18,9 @@
   const aimCos=Math.cos(aim),aimSin=Math.sin(aim);
   // Collision uses the same neutral rig, conservatively covering the small kick envelope.
   // Cosmetic client phases are not trusted for authoritative hit detection.
-  const left=rig.leg(-1,0,0),right=rig.leg(1,0,0);
-  const held=player?.propulsorEquipped?'abyssPropulsor':'abyssWeapon',offset=held==='abyssPropulsor'?5:12,grips=rig.gripsFor?.(held,rig.viewFor?.(rig.GAMEPLAY_YAW))||(held==='abyssPropulsor'?rig.toolGrips:rig.rifleGrips);
-  const view=rig.viewFor?.(rig.GAMEPLAY_YAW),arms=rig.armPair?.(aim-angle,offset,grips,'standard',view)||[rig.arm(-1,aim-angle,offset,grips[0]),rig.arm(1,aim-angle,offset,grips[1])];
+  const view=rig.viewFor?.(rig.GAMEPLAY_YAW,angle),left=rig.leg(-1,0,0,Boolean(player?.propulsorEquipped),null,view),right=rig.leg(1,0,0,Boolean(player?.propulsorEquipped),null,view);
+  const held=player?.propulsorEquipped?'abyssPropulsor':'abyssWeapon',side=rig.facing(aim),offset=(held==='abyssPropulsor'?5:12)*side,grips=(rig.gripsFor?.(held,view)||(held==='abyssPropulsor'?rig.toolGrips:rig.rifleGrips)).map(([x,y])=>[x,y*side]);
+  const arms=rig.armPair?.(aim-angle,offset,grips,'standard',view)||[rig.arm(-1,aim-angle,offset,grips[0]),rig.arm(1,aim-angle,offset,grips[1])];
   const point=(px,py,weapon=false)=>{
    const ca=weapon?aimCos:cos,sa=weapon?aimSin:sin;if(!weapon&&rig.project&&view)[px,py]=rig.project([px,py],view);
    return {x:x+(px*ca-py*sa)*scale,y:y+(px*sa+py*ca)*scale};
@@ -31,7 +31,7 @@
   };
   return [
    limb('torso',-19,0,13,0,12.5),
-   limb('head',27,0,35,0,8.5),
+   limb('head',...rig.headPoint([27,0],view),...rig.headPoint([35,0],view),8.5),
    ...arms.flatMap((arm,i)=>{const name=i?'right':'left';return [limb(name+'-arm',arm.shoulder[0],arm.shoulder[1]+offset,arm.elbow[0],arm.elbow[1]+offset,6,true),limb(name+'-forearm',arm.elbow[0],arm.elbow[1]+offset,arm.hand[0],arm.hand[1]+offset,5.3,true)];}),
    limb('left-thigh',...left.hip,...left.knee,7.4),
    limb('left-leg',...left.knee,...left.ankle,5.6),
