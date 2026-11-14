@@ -31,6 +31,7 @@
 <meta name="google-adsense-account" content="ca-pub-2314281138409028">
 <title>Abyssal — Ecos das Profundezas</title>
 <link rel="stylesheet" href="style.css?v=4.3.20-cockpit-pages">
+<link rel="stylesheet" href="cardume-comms.css?v=1">
 <link rel="stylesheet" href="abyssal-inventory-ui.css?v=2026.11.10.7">
 <link rel="stylesheet" href="abyssal-rebuild.css?v=2">
 <link rel="manifest" href="manifest.webmanifest">
@@ -193,7 +194,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     <canvas id="game" aria-label="Área do jogo Abyssal"></canvas>
     
     <button id="mobilePauseBtn" class="mobile-pause-btn" type="button" aria-label="Pausar jogo" title="Pausar jogo">Ⅱ</button>
-    <button id="roomBadge" class="room-badge" type="button" hidden title="Copiar código de convite da sala"></button>
+    <div id="quickComms" hidden><button id="quickCommsToggle" type="button" aria-label="Comunicação rápida" aria-expanded="false" title="Comunicação rápida (V)">💬</button><div id="quickCommsWheel" hidden role="group" aria-label="Mensagens rápidas"></div><div id="quickCommsFeed" aria-live="polite"></div></div>
     <div id="bossAlert" class="boss-alert" hidden role="alert" aria-live="assertive"><span id="bossAlertKicker" class="boss-alert-kicker">SINAL DE PRESSÃO · CONTATO DESCONHECIDO</span><strong id="bossAlertTitle">UMA PRESENÇA COLOSSAL</strong><p id="bossAlertText">Algo se move onde a luz não alcança.</p></div>
     <!-- Alerta abissal de boss/progressão (vermelho, ameaçador, fade suave) -->
     <div id="abyssalDangerAlert" role="alert" aria-live="assertive" aria-atomic="true">
@@ -559,10 +560,12 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <section id="cardumeDetail" class="cardume-detail" hidden>
           <div class="cardume-detail-heading"><div><h3 id="cardumeDetailName">MEU CARDUME</h3><p id="cardumeDetailDescription"></p></div><span id="cardumeMemberCount" class="profile-progress">0 / 30</span></div>
           <div class="rooms-title-row"><h3>MERGULHADORES DO CARDUME</h3><button id="refreshCardumeDetailBtn" type="button" class="small-action">ATUALIZAR ↻</button></div>
+          <section class="cardume-chat" aria-label="Chat do Cardume"><div class="rooms-title-row"><h3>CANAL DO CARDUME</h3><button id="cardumeChatRefresh" class="small-action" type="button">ATUALIZAR ↻</button></div><div id="cardumeChatHistory" role="log" aria-live="polite" tabindex="0"></div><div id="cardumeChatStatus" role="status" class="form-message">Canal exclusivo dos integrantes.</div><label id="cardumeChatRules"><input id="cardumeChatAccept" type="checkbox"> Li e aceito as <a href="/community.html" target="_blank" rel="noopener">regras da comunidade</a>.</label><form id="cardumeChatForm"><input id="cardumeChatInput" class="text-field" maxlength="180" autocomplete="off" placeholder="Mensagem ao Cardume…" aria-label="Mensagem ao Cardume"><button type="submit" class="small-action">ENVIAR</button></form><small>Sem links, contatos pessoais, spam ou ofensas. Mensagens são moderadas.</small></section>
           <div id="cardumeMembers" class="cardume-members"></div>
           <button id="leaveCardumeBtn" class="secondary-btn" type="button">SAIR DO MEU CARDUME</button>
           <button id="backToCardumeDirectoryBtn" class="secondary-btn" type="button">VER OUTROS CARDUMES</button>
         </section>
+        <section id="cardumeModeration" class="cardume-chat" hidden><div class="rooms-title-row"><h3>MODERAÇÃO · GAMEMASTER</h3><button id="cardumeModerationRefresh" class="small-action" type="button">CARREGAR DENÚNCIAS</button></div><div id="cardumeModerationList"></div><div id="cardumeModerationStatus" role="status"></div></section>
         <button id="cardumesCloseBtn" class="secondary-btn" data-close-screen="cardumesScreen">VOLTAR AO MENU</button>
       </div>
     </section>
@@ -784,9 +787,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
  <script src="abyssal-feature-gates.js?v=2026.11.13.online-test"></script>
  <script src="abyssal-sample-audio.js?v=2026.11.14.death-v2"></script>
  <script src="abyssal-research-tree.js?v=2"></script>
- <script src="game.js?v=2026.11.14.playable-v225"></script>
+ <script src="game.js?v=2026.11.14.cardume-v1"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.14.playable-v226"></script>
+<script src="online.js?v=2026.11.14.cardume-v1"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.14.playable-v220"></script>
 <script src="abyssal-rebuild.js?v=2026.11.13.playable-v216"></script>

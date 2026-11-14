@@ -4941,11 +4941,13 @@ function draw(t){
          drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,Number.isFinite(peer.angle)?peer.angle:heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance,motion);
        if(remoteDash)drawSpecimenDashArc(sx,sy,10/GAME_WORLD_ZOOM,remoteDash.angle,t,clamp((performance.now()-remoteDash.startedAt)/remoteDash.durationMs,0,1));
       }
+      const quickEmoji=window.AbyssalOnline?.getQuickEmoji?.(peerVisualId);if(quickEmoji){ctx.save();ctx.font=String(25/worldZoom)+'px sans-serif';ctx.textAlign='center';ctx.fillText(quickEmoji,px,py-52/worldZoom);ctx.restore();}
       const title=PROFILE_TITLE_NAMES[peer.titleId]||'';
       ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
       if(title){ctx.font=`800 ${12/worldZoom}px Manrope`;ctx.fillStyle=PROFILE_TITLE_COLORS[peer.titleId]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=0;ctx.fillText(title,Math.round((px-cameraX)*worldZoom*dpr)/(worldZoom*dpr)+cameraX,Math.round(((py-cameraY)*worldZoom-34)*dpr)/(worldZoom*dpr)+cameraY);}
       ctx.shadowBlur=peer.isDeveloper?14/worldZoom:0;ctx.shadowColor=peer.isDeveloper?'#ff1744':'transparent';ctx.fillStyle=peer.isDeveloper?'#ff304f':'#d8ffff';ctx.font=`${peer.isDeveloper?900:700} ${14/worldZoom}px Manrope`;ctx.fillText(peer.nickname||'Mergulhador',Math.round((px-cameraX)*worldZoom*dpr)/(worldZoom*dpr)+cameraX,Math.round(((py-cameraY)*worldZoom-18)*dpr)/(worldZoom*dpr)+cameraY);ctx.restore();
     });
+    const selfEmoji=window.AbyssalOnline?.getQuickEmoji?.(window.AbyssalOnline?.getSocketId?.());if(selfEmoji){ctx.save();ctx.font=String(25/worldZoom)+'px sans-serif';ctx.textAlign='center';ctx.fillText(selfEmoji,player.x,player.y-52/worldZoom);ctx.restore();}
     const self=window.AbyssalOnline?.getAccount?.()||{};
     const selfTitle=PROFILE_TITLE_NAMES[self.equippedTitle]||'';
     ctx.save();ctx.textAlign='center';
@@ -5978,7 +5980,7 @@ window.addEventListener('abyssal-room-created',ev=>{const d=ev.detail||{};const 
 window.addEventListener('abyssal-online-disconnected',()=>{onlineDamageQueue.length=0;});
 window.addEventListener('abyssal-reconnect-failed',ev=>{closeDiveSettings();window.AbyssalAudio?.stopEffects();onlineDamageQueue.length=0;onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('menuScreen').hidden=false;window.AbyssalCockpitNavigation?.showExterior?.();window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'A expedição não pôde ser retomada automaticamente. Entre novamente quando o servidor estabilizar.';showToast('CONEXÃO RESTAURADA · REENTRE NA EXPEDIÇÃO');});
 window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;onlineRoomMode='coop';requestedRunMode='classic';activeMapLayout=null;W=defaultWidth();H=defaultHeight();createArenaRocks();const badge=$('roomBadge');if(badge){badge.hidden=true;badge.classList.remove('pvp-room-badge');}setMobileGameActive(false)});
-const roomBadge=$('roomBadge');if(roomBadge)roomBadge.addEventListener('click',async()=>{const code=roomBadge.dataset.roomCode||'';try{await navigator.clipboard.writeText(code);showToast(`CÓDIGO ${code} COPIADO`)}catch{showToast(`CÓDIGO DA SALA: ${code}`)}});
+
 function handleRoomsClosed(){onlineMode=false;if(gameState==='menu'){setMobileGameActive(false);document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;}}
 window.addEventListener('abyssal-modal-closed',ev=>{if(ev.detail?.screenId==='roomsScreen')handleRoomsClosed();});
 $('refreshRoomsBtn')?.addEventListener('click',()=>window.AbyssalOnline?.requestRooms());
