@@ -90,3 +90,9 @@
 #submarineWorkshop .aw-buy{background:#285e58!important;border-color:#82d8c5!important;color:#fff!important;min-height:34px}
 #submarineWorkshop .aw-buy[hidden]{display:none!important}
 #submarineWorkshop .abyss-wardrobe[data-short=true] .aw-message{display:block;max-height:3.8em;overflow:auto}
+
+/* Energy purchases: distinguish the three earnable cosmetics from BRL items. */
+#submarineWorkshop .aw-option[data-currency=energy] .aw-option-copy strong,
+#submarineWorkshop .aw-option[data-currency=energy] .aw-tier,
+#submarineWorkshop .aw-selected[data-currency=energy] > strong{color:#d3a6ff!important}
+#submarineWorkshop .aw-buy[data-currency=energy]{color:#e2c6ff!important;background:#30204c!important;border-color:#b58af0!important}
