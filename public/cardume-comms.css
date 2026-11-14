@@ -21,3 +21,61 @@
 #quickCommsWheel:not([hidden])+#quickCommsFeed{bottom:220px}
 #quickCommsFeed div{background:#061d2de8;border:1px solid #27768a;border-radius:8px;padding:4px 7px;color:#d8f7ff;font-size:12px;overflow-wrap:anywhere}
 @media(max-width:600px){#quickComms{bottom:max(90px,calc(env(safe-area-inset-bottom) + 75px));}#quickCommsToggle,#quickCommsWheel button{width:40px;height:40px}#quickCommsWheel{grid-template-columns:repeat(4,40px);bottom:47px;gap:5px}#cardumeChatForm{flex-wrap:wrap}#cardumeChatInput{flex:1 1 110px}}
+
+/* Cardume communication: legible, touch-friendly, inside the cockpit. */
+.cardume-chat{display:grid;gap:12px;padding:clamp(10px,2vw,18px);border:1px solid #286578;border-radius:16px;background:linear-gradient(155deg,#102a3d,#071722 65%);margin:12px 0;min-width:0;box-shadow:0 12px 32px #0005;color:#e8f5fb;font-family:inherit}
+.cardume-chat *,#quickComms *{box-sizing:border-box}
+.cardume-chat h3{margin:0;color:#a9f7ff;font-size:clamp(.9rem,2vw,1.08rem);letter-spacing:.045em;line-height:1.25}
+.cardume-chat .chat-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.chat-heading-copy{display:grid;gap:4px;min-width:0}
+.chat-channel-label{font-size:.78rem;color:#b5cbd9;line-height:1.35}
+#cardumeChatHistory{display:flex;flex-direction:column;gap:8px;height:clamp(160px,31vh,340px);overflow:auto;overscroll-behavior:contain;scrollbar-color:#34788a #0b1b29;padding:10px;background:#061522;border:1px solid #244554;border-radius:11px;min-width:0}
+.cardume-message{display:grid;gap:6px;padding:10px 12px;background:#123047;border:1px solid #2a5267;border-radius:4px 12px 12px 12px;min-width:0;width:fit-content;max-width:94%;align-self:flex-start}
+.cardume-message.is-self{align-self:flex-end;background:#103b42;border-color:#37868d;border-radius:12px 4px 12px 12px}
+.cardume-message header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.cardume-message strong{color:#a5f3ff;font-size:.86rem;overflow-wrap:anywhere}
+.cardume-message time{color:#b4c9d6;font-size:.72rem;margin-inline-start:auto;white-space:nowrap}
+.cardume-message p{margin:0;color:#f0f8fc;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.93rem;line-height:1.5;text-align:left}
+.chat-empty{margin:auto;text-align:center;color:#a8c1ce;max-width:24ch;line-height:1.55;font-size:.9rem}
+.chat-message-actions{display:flex;gap:6px;flex-wrap:wrap}
+.cardume-chat button,.cardume-chat select,.cardume-chat input{font-family:inherit;letter-spacing:normal}
+.cardume-chat button.small-action,.cardume-chat .chat-message-actions button,.cardume-chat .chat-report-panel button{min-height:44px;min-width:44px;padding:8px 12px;border:1px solid #3c697c;border-radius:8px;background:#14354a;color:#e5f6fc;font-size:.8rem;line-height:1.2;white-space:normal;cursor:pointer}
+.cardume-chat .chat-message-actions button{background:#142b3d;color:#c5d8e4;font-size:.74rem}
+.cardume-chat button:hover{border-color:#76e0ea}
+.cardume-chat button:disabled{opacity:.55;cursor:not-allowed}
+.cardume-chat button:focus-visible,.cardume-chat input:focus-visible,.cardume-chat select:focus-visible,#cardumeChatHistory:focus-visible,.cardume-chat a:focus-visible{outline:2px solid #a0f6ff;outline-offset:3px}
+#cardumeChatForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0}
+#cardumeChatInput{min-width:0;width:100%;margin:0;min-height:46px;padding:10px 12px;border:1px solid #42687b;border-radius:9px;background:#071725;color:#fff;font-size:16px;text-align:left}
+#cardumeChatForm button{background:#8cecf2;color:#05252b;border-color:#8cecf2;font-weight:800;min-height:46px}
+.chat-composer-meta{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;font-size:.75rem;color:#b7cbd6;line-height:1.4}
+#cardumeChatCount{white-space:nowrap;font-variant-numeric:tabular-nums}
+#cardumeChatStatus{margin:0;min-height:1.3em;color:#c5dce6;font-size:.82rem;line-height:1.4;overflow-wrap:anywhere}
+#cardumeChatRules{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #375a6c;border-radius:8px;background:#0c2334;font-size:.82rem;color:#d3e5ee;line-height:1.45}
+#cardumeChatRules input{flex:0 0 auto;width:20px;height:20px;accent-color:#83e8f1;margin:2px 0 0}
+#cardumeChatRules a{color:#a8f2ff;text-decoration:underline}
+.chat-report-panel{display:grid;gap:8px;padding:10px;background:#152b3c;border:1px solid #6594a6;border-radius:8px;min-width:0}
+.chat-report-panel select,#cardumeModerationList select{width:100%;min-height:44px;padding:8px;background:#071725;color:#edf8ff;border:1px solid #52778a;border-radius:7px;font-size:16px}
+#cardumeModerationList{max-height:340px;overflow:auto;display:grid;gap:8px}
+#cardumeModerationList .cardume-message{width:100%;max-width:100%}
+@media(max-width:600px){.cardume-chat{padding:10px;gap:9px}.cardume-message{max-width:100%;padding:9px 10px}#cardumeChatHistory{height:clamp(150px,28dvh,280px);padding:7px}.chat-composer-meta{flex-wrap:wrap}#cardumeChatForm{grid-template-columns:minmax(0,1fr) auto}#cardumeChatForm button{padding-inline:10px}}
+@media(prefers-reduced-motion:reduce){.cardume-chat *,#quickComms *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* Quick signals show their meaning without relying on emoji recognition. */
+#quickCommsWheel{grid-template-columns:repeat(3,minmax(0,1fr));width:min(330px,calc(100vw - 28px));max-height:45dvh;overflow:auto;overscroll-behavior:contain;gap:6px}
+#quickCommsWheel button{width:100%;height:auto;min-height:54px;display:grid;justify-items:center;align-content:center;gap:3px;border-radius:10px;padding:5px 4px;line-height:1.1}
+#quickCommsWheel button span{font-size:20px}
+#quickCommsWheel button small{font-size:10px;font-weight:600;line-height:1.15;white-space:normal;overflow-wrap:anywhere;color:#d3edf5}
+#quickCommsWheel:not([hidden])+#quickCommsFeed{display:none}
+
+/* The safety disclosure stays inside the message instead of clipping a floating menu in the scroll container. */
+.cardume-chat .chat-message-actions{position:relative;display:block;flex:0 0 auto;margin-inline-start:0}
+.cardume-chat .chat-safety-toggle{display:grid;place-items:center;width:44px;height:44px;border:1px solid #36596c;border-radius:50%;background:#0d2334;color:#b9dce8;font-size:18px;font-weight:800;line-height:1;cursor:pointer;list-style:none;touch-action:manipulation}
+.cardume-chat .chat-safety-toggle::-webkit-details-marker{display:none}
+.cardume-chat .chat-safety-toggle::marker{content:''}
+.cardume-chat .chat-safety-toggle:hover,.cardume-chat .chat-safety-toggle:focus-visible,.cardume-chat .chat-message-actions[open] .chat-safety-toggle{border-color:#8cecf2;color:#e8fbff;outline:2px solid transparent}
+.cardume-chat .chat-safety-toggle:focus-visible{outline:2px solid #a0f6ff;outline-offset:3px}
+.cardume-chat .chat-message-actions:not([open]) .chat-safety-menu{display:none}
+.cardume-chat .chat-message-actions[open] {flex:1 0 100%;display:grid;gap:6px;justify-items:start}
+.cardume-chat .chat-safety-menu{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;width:min(100%,240px);padding:6px;border:1px solid #416477;background:#0a1b2a;border-radius:10px}
+.cardume-chat .chat-safety-menu button{text-align:left;width:100%;min-height:44px;background:#132d41;border-color:#37586c}
+.cardume-chat .chat-safety-menu button:hover{background:#1b4155}

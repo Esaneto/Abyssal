@@ -121,7 +121,7 @@ function registerChatModerationRoutes({ app, getUsers, saveUsers, getPool, getCh
       if (!report.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ ok: false, message: 'Denúncia não encontrada ou já analisada.' }); }
       const status = action === 'dismiss' ? 'dismissed' : action === 'needs_followup' ? 'followup' : 'actioned';
       const target = getUsers()[report.rows[0].reported_key];
-      await client.query('UPDATE abyssal_chat_reports SET status=$2,closed_at=CASE WHEN $2='followup' THEN NULL ELSE NOW() END,moderator_key=$3,resolution=$4 WHERE report_id=$1', [report.rows[0].report_id, status, moderator.key, note || action]);
+      await client.query("UPDATE abyssal_chat_reports SET status=$2,closed_at=CASE WHEN $2='followup' THEN NULL ELSE NOW() END,moderator_key=$3,resolution=$4 WHERE report_id=$1", [report.rows[0].report_id, status, moderator.key, note || action]);
       await client.query('INSERT INTO abyssal_chat_moderation_audit(audit_id,report_id,moderator_key,action,note) VALUES($1,$2,$3,$4,$5)', [crypto.randomUUID(), report.rows[0].report_id, moderator.key, action, note]);
       await client.query('COMMIT');
       client.release();
