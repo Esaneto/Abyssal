@@ -497,7 +497,7 @@ const NATIVE_DOWNLOADS={
 };
 const nativeReleaseCache=new Map(),nativeReleasePending=new Map();
 async function publishedNativeRelease(platform){
- const cached=nativeReleaseCache.get(platform);if(cached&&Date.now()-cached.at<30000)return cached.data;
+ const cached=nativeReleaseCache.get(platform);if(cached&&Date.now()-cached.at<10000)return cached.data;
  if(nativeReleasePending.has(platform))return nativeReleasePending.get(platform);
  const pending=(async()=>{try{
   const response=await fetch(NATIVE_DOWNLOADS[platform].metadataUrl,{signal:AbortSignal.timeout(4500),headers:{'Cache-Control':'no-cache','Accept':'application/json'}});

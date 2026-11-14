@@ -92,3 +92,13 @@
   #menuScreen :is(button,small,label,p), #submarineWorkshop :is(button,small,label,p), #shopScreen :is(button,small,label,p), #abyssalTutorialOverlay :is(button,p,li), #abyssalMenuTour :is(button,p) { text-shadow: none !important; }
   #game { image-rendering: auto; }
 }
+
+/* Desktop text: no fractional scaling, glow or animated raster filters on labels. */
+@media(min-width:701px) and (pointer:fine){
+ html,body{font-kerning:normal;text-rendering:optimizeLegibility}
+ #menuScreen :is(h1,h2,h3,p,small,strong,label,button),#submarineWorkshop :is(h1,h2,h3,p,small,strong,label,button),.modal-screen :is(h1,h2,h3,p,small,strong,label,button),#hud :is(span,strong,small,button){text-shadow:none!important;-webkit-font-smoothing:auto;filter:none!important}
+ #resonanceScreen .resonance-modal .resonance-mode-tabs button[aria-pressed=true]{transform:none!important}
+ #menuScreen .hub-nav button,#menuScreen .hub-launch button,#submarineWorkshop .abyss-control-key,.modal-screen .modal-card button{transition-property:background-color,border-color,color,box-shadow,opacity!important}
+ #menuScreen .hub-nav button:hover,#menuScreen .hub-launch button:hover,#submarineWorkshop .abyss-control-key:hover,.modal-screen .modal-card button:hover{scale:1!important;transform:none!important}
+ #game{image-rendering:auto!important}
+}

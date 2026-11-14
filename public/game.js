@@ -9,7 +9,7 @@ const ADAPTIVE_QUALITY=[{name:'LEVE',dpr:.75},{name:'MÉDIO',dpr:1},{name:'ULTRA
 function savedGraphicsLevel(){try{const v=localStorage.getItem('abyssalGraphicsQuality');return v==='0'?0:v==='1'?1:2;}catch(_){return 2;}}
 let adaptiveQualityLevel=savedGraphicsLevel(),adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;
 lowPowerRendering=adaptiveQualityLevel===0;
-function graphicsDpr(){return Math.max(.5,Math.min(Math.max(1,window.devicePixelRatio||1),ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr,4096/viewW,4096/viewH,Math.sqrt(16777216/(viewW*viewH))));}
+function graphicsDpr(){const nativeDpr=Math.max(1,window.devicePixelRatio||1),desktop=window.matchMedia('(pointer:fine)').matches&&window.innerWidth>700;const cap=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;return Math.max(.5,Math.min(nativeDpr,desktop?Math.max(1,cap):cap,4096/viewW,4096/viewH,Math.sqrt(16777216/(viewW*viewH))));}
 const $ = id => document.getElementById(id);
 const screens = ['menuScreen','upgradeScreen','pauseScreen','gameOverScreen'];
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -4539,9 +4539,10 @@ function renderSpecimenPortraits(t){
   const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!canvas.closest?.('#shopScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
   // Restore the natural diagonal swimming portrait used before the upright pose.
   const profile=canvas.id==='profileSpecimenCanvas';
-  const dx=profile?w*.50:w*.42,dy=h*.60,bob=profile?0:Math.sin(t*.0022)*3;
+  const dx=profile?w*.50:w*.42,dy=h*.60,bob=profile?Math.sin(t*.0018)*2:Math.sin(t*.0022)*3;
   const portraitRadius=profile?Math.min(27,w*.15,h*.35):27;
-  DIVER_ART?.draw?.(c,dx,dy+bob,portraitRadius,profile?0:-.10,profile?0:-.10,profile?0:t,{gender:diverGender,moving:!profile,viewYaw:profile?1:undefined,reducedMotion:profile});
+  const reduced=Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
+  DIVER_ART?.draw?.(c,dx,dy+(reduced?0:bob),portraitRadius,profile?0:-.10,profile?0:-.10,reduced?0:t,{gender:diverGender,moving:!reduced,viewYaw:profile?1:undefined,reducedMotion:reduced});
   const sx=w*.62,sy=h*.30+Math.cos(t*.002)*5;
   try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
  }
@@ -4942,14 +4943,14 @@ function draw(t){
       }
       const title=PROFILE_TITLE_NAMES[peer.titleId]||'';
       ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
-      if(title){ctx.font=`800 ${12/worldZoom}px Manrope`;ctx.fillStyle=PROFILE_TITLE_COLORS[peer.titleId]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8/worldZoom;ctx.fillText(title,px,py-34/worldZoom);}
-      ctx.shadowBlur=peer.isDeveloper?14/worldZoom:0;ctx.shadowColor=peer.isDeveloper?'#ff1744':'transparent';ctx.fillStyle=peer.isDeveloper?'#ff304f':'#d8ffff';ctx.font=`${peer.isDeveloper?900:700} ${14/worldZoom}px Manrope`;ctx.fillText(peer.nickname||'Mergulhador',px,py-18/worldZoom);ctx.restore();
+      if(title){ctx.font=`800 ${12/worldZoom}px Manrope`;ctx.fillStyle=PROFILE_TITLE_COLORS[peer.titleId]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=0;ctx.fillText(title,Math.round((px-cameraX)*worldZoom*dpr)/(worldZoom*dpr)+cameraX,Math.round(((py-cameraY)*worldZoom-34)*dpr)/(worldZoom*dpr)+cameraY);}
+      ctx.shadowBlur=peer.isDeveloper?14/worldZoom:0;ctx.shadowColor=peer.isDeveloper?'#ff1744':'transparent';ctx.fillStyle=peer.isDeveloper?'#ff304f':'#d8ffff';ctx.font=`${peer.isDeveloper?900:700} ${14/worldZoom}px Manrope`;ctx.fillText(peer.nickname||'Mergulhador',Math.round((px-cameraX)*worldZoom*dpr)/(worldZoom*dpr)+cameraX,Math.round(((py-cameraY)*worldZoom-18)*dpr)/(worldZoom*dpr)+cameraY);ctx.restore();
     });
     const self=window.AbyssalOnline?.getAccount?.()||{};
     const selfTitle=PROFILE_TITLE_NAMES[self.equippedTitle]||'';
     ctx.save();ctx.textAlign='center';
-    if(selfTitle){ctx.font=`800 ${12/worldZoom}px Manrope`;ctx.fillStyle=PROFILE_TITLE_COLORS[self.equippedTitle]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8/worldZoom;ctx.fillText(selfTitle,player.x,player.y-34/worldZoom);}
-    ctx.shadowBlur=self.isDeveloper?14/worldZoom:0;ctx.shadowColor=self.isDeveloper?'#ff1744':'transparent';ctx.fillStyle=self.isDeveloper?'#ff304f':'#d8ffff';ctx.font=`${self.isDeveloper?900:700} ${14/worldZoom}px Manrope`;ctx.fillText(self.nickname||'Mergulhador',player.x,player.y-18/worldZoom);ctx.restore();
+    if(selfTitle){ctx.font=`800 ${12/worldZoom}px Manrope`;ctx.fillStyle=PROFILE_TITLE_COLORS[self.equippedTitle]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=0;ctx.fillText(selfTitle,Math.round((player.x-cameraX)*worldZoom*dpr)/(worldZoom*dpr)+cameraX,Math.round(((player.y-cameraY)*worldZoom-34)*dpr)/(worldZoom*dpr)+cameraY);}
+    ctx.shadowBlur=self.isDeveloper?14/worldZoom:0;ctx.shadowColor=self.isDeveloper?'#ff1744':'transparent';ctx.fillStyle=self.isDeveloper?'#ff304f':'#d8ffff';ctx.font=`${self.isDeveloper?900:700} ${14/worldZoom}px Manrope`;ctx.fillText(self.nickname||'Mergulhador',Math.round((player.x-cameraX)*worldZoom*dpr)/(worldZoom*dpr)+cameraX,Math.round(((player.y-cameraY)*worldZoom-18)*dpr)/(worldZoom*dpr)+cameraY);ctx.restore();
  }
  // Solo light masks the entire world, and raycasts against actual physical rock.
  if(isClassicCavernRun()&&player){SOLO_CAVERN?.lighting(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},player,window.AbyssalSoloProgress?.get().lamp||1,arenaRocks,t,[{x:soloSubmarine.x,y:soloSubmarine.y,active:soloSubmarinePowered()||soloSubmarine.spawnFx>0,radius:355/GAME_WORLD_ZOOM,strength:soloSubmarinePowered()?1:.78},{x:player.specimen?.x,y:player.specimen?.y,active:Boolean(player.specimen?.alive),radius:85/GAME_WORLD_ZOOM,color:currentSkinColor(),strength:.65},...remoteDiveLights]);}

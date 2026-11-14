@@ -6,7 +6,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const ASSETS=Object.freeze({
-  playerDeath:{gain:.8,group:'critical',priority:103,max:1.85},
+  playerDeath:{file:'effects/morte_jogador.ogg',gain:.8,group:'critical',priority:103,max:.424},
   music:{file:'music/musica.mp3',gain:.72,group:'music'},
   damage:{file:'effects/dano.wav',gain:.66,group:'combat',priority:68,max:.85},
   pulse:{file:'effects/pulsos.wav',gain:.82,group:'shot',priority:84,max:1.6},
@@ -130,24 +130,6 @@
   }
   return out;
  }
- // Original, deterministic vocal-like PCM. Descending pitch, breath and
- // narrowing formants imitate a scream fading into deep water, not a beep.
- function buildDeathCry(ctx){
-  const sr=ctx.sampleRate||44100,duration=1.85,n=Math.round(sr*duration),buffer=ctx.createBuffer(1,n,sr),data=buffer.getChannelData(0);
-  let phase=0,seed=0x5a91d02b,breath=0;
-  for(let i=0;i<n;i++){
-   const t=i/sr,q=t/duration;
-   const pitch=430+125*Math.exp(-(((t-.13)/.13)**2))-260*q+22*Math.sin(t*45)*(1-q);
-   phase+=2*Math.PI*pitch/sr;
-   seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;
-   breath=breath*.73+((seed>>>0)/2147483648-1)*.27;
-   const envelope=Math.min(1,t/.045)*Math.pow(1-q,2.35)*Math.min(1,(duration-t)/.2);
-   let vocal=0;
-   for(let h=1;h<=9;h++){const f=pitch*h,formant=.25+.85*Math.exp(-(((f-(950-350*q))/370)**2))+.62*Math.exp(-(((f-(2300-1000*q))/620)**2));vocal+=Math.sin(phase*h+.12*Math.sin(t*31+h))*formant/h;}
-   data[i]=Math.max(-.95,Math.min(.95,(vocal*.48+breath*.42)*envelope));
-  }
-  return buffer;
- }
  function createMixer(env){
   let ctx=null,master=null,sfx=null,musicBus=null,musicVoice=null,muted=false,hidden=Boolean(env.document?.hidden),started=false,warm=false,loopTimer=null,epoch=0,duckUntil=0;
   const buffers=new Map(),normalizations=new Map(),onsets=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
@@ -173,7 +155,6 @@
    if(!ctx||!ASSETS[id]||(failedUntil.get(id)||0)>clock())return Promise.resolve(null);
    const task=(async()=>{
     try{
-     if(id==='playerDeath'){const decoded=buildDeathCry(ctx);normalizations.set(id,normalizedGain(id,decoded));onsets.set(id,0);buffers.set(id,decoded);return decoded;}
      if(id==='propulsor'||id==='propulsorStart'){
       const original=await load('dash');if(!original)throw Error('Investida unavailable');
       const decoded=id==='propulsor'?buildPropulsorBed(ctx,original):original;
@@ -275,7 +256,6 @@
    if(!asset||muted||hidden||sfxVolume<=0||!ctx||ctx.state!=='running')return false;
    if(!spatial(options,asset))return false;
    if(!rememberEvent(asset,options))return false;
-   if(asset==='playerDeath'&&!buffers.has(asset)){const decoded=buildDeathCry(ctx);buffers.set(asset,decoded);normalizations.set(asset,normalizedGain(asset,decoded));onsets.set(asset,0);}
    const b=buffers.get(asset);
    if(b)return Boolean(createVoice(asset,b,options));
    // Do not accumulate a queue of obsolete shots during the initial download.
@@ -320,5 +300,5 @@
   env.addEventListener?.('pagehide',()=>setHidden(true));env.addEventListener?.('pageshow',()=>setHidden(Boolean(env.document?.hidden)));
   return {unlock,play,loop,stopLoop,stopEffects,setMuted,setVolume,startMusic,inspect,abilityCue};
  }
- return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,weaponOnset,spatialProfile,buildPropulsorBed,buildDeathCry,createMixer};
+ return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,weaponOnset,spatialProfile,buildPropulsorBed,createMixer};
 });

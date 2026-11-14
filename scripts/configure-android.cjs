@@ -186,13 +186,23 @@ public class AbyssalUpdaterPlugin extends Plugin {
         long total = 0;
         try (BufferedInputStream input = new BufferedInputStream(connection.getInputStream());
              FileOutputStream output = new FileOutputStream(partial)) {
-          byte[] buffer = new byte[64 * 1024];
+          byte[] buffer = new byte[128 * 1024];
+          long lastProgress = 0;
           int read;
           while ((read = input.read(buffer)) != -1) {
             total += read;
             if (total > MAX_UPDATE_BYTES) throw new Exception("update-too-large");
             digest.update(buffer, 0, read);
             output.write(buffer, 0, read);
+            long now = android.os.SystemClock.elapsedRealtime();
+            if (now - lastProgress >= 300) {
+              lastProgress = now;
+              JSObject progress = new JSObject();
+              progress.put("received", total);
+              progress.put("total", declared);
+              progress.put("phase", "download");
+              notifyListeners("updateProgress", progress);
+            }
           }
           output.getFD().sync();
         } finally {
@@ -200,6 +210,11 @@ public class AbyssalUpdaterPlugin extends Plugin {
         }
 
         if (total <= 0) throw new Exception("empty-update");
+        JSObject verifying = new JSObject();
+        verifying.put("received", total);
+        verifying.put("total", declared);
+        verifying.put("phase", "verify");
+        notifyListeners("updateProgress", verifying);
         String actualSha = hex(digest.digest());
         if (!actualSha.equals(expectedSha)) throw new Exception("update-sha256-mismatch");
         if (apk.exists() && !apk.delete()) throw new Exception("cannot-replace-update");

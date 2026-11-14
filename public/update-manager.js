@@ -95,6 +95,7 @@
   root.AbyssalLoadingScreen?.updateDownload('Baixando e verificando o pacote oficial…',64);
   if(button){button.disabled=true;button.textContent='BAIXANDO ATUALIZAÇÃO…';}
   if(status)status.textContent='Baixando e verificando a atualização. Não feche o Abyssal.';
+  let progressListener=null;
   try{
    let result;
    if(data.platform==='play'){
@@ -104,6 +105,7 @@
     return result;
    }
    if(data.platform==='android'&&androidBridge()?.installApk){
+    try{progressListener=await androidBridge().addListener?.('updateProgress',p=>{const received=Number(p.received)||0,total=Number(p.total)||0;if(p.phase==='verify'){root.AbyssalLoadingScreen?.updateInstall('Verificando assinatura e integridade do APK…',94);if(status)status.textContent='Verificando assinatura e integridade…';return;}const mb=(received/1048576).toFixed(1),pct=total>0?Math.min(100,Math.round(received/total*100)):0;const msg='Baixando '+mb+' MB'+(total>0?' de '+(total/1048576).toFixed(1)+' MB · '+pct+'%':'');root.AbyssalLoadingScreen?.updateDownload(msg,total>0?Math.min(90,30+pct*.6):64);if(status)status.textContent=msg;});}catch(_){}
     result=await androidBridge().installApk({url:data.url,sha256:data.sha256||'',version:data.latestVersion||''});
     if(result?.permissionRequired){
      permissionResume={data,status,button,at:Date.now()};
@@ -136,6 +138,7 @@
    if(status)status.textContent='Não foi possível concluir a atualização. Verifique a conexão e tente novamente.';
    return {ok:false,error:String(error?.message||error||'update-failed')};
   }finally{
+   try{await progressListener?.remove?.();}catch(_){}
    installingNative=false;
    if(button?.isConnected){button.disabled=false;button.textContent=original;}
   }
@@ -174,7 +177,7 @@
   if(installingNative)return null;
   if(!force&&document.getElementById('abyssalUpdatePrompt'))return null;
   if(gameplayBlocked())return null;
-  if(!force&&Date.now()-lastNativeCheckAt<15000)return null;
+  if(!force&&Date.now()-lastNativeCheckAt<10000)return null;
   lastNativeCheckAt=Date.now();nativeCheckInFlight=checkInner(force);
   try{return await nativeCheckInFlight;}finally{nativeCheckInFlight=null;}
  }
@@ -303,7 +306,7 @@
  let browserPoll=0;
  function startBrowserPolling(){
   if(browserPoll)return;
-  browserPoll=setInterval(()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false){if(browserMode())checkBrowser(false);else if(native())check(false);}},30000);
+  browserPoll=setInterval(()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false){if(browserMode())checkBrowser(false);else if(native())check(false);}},15000);
  }
 
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{bindManualCheck();schedule();startBrowserPolling();},{once:true});else{bindManualCheck();schedule();startBrowserPolling();}
