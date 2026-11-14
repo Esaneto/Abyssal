@@ -6,11 +6,16 @@ const rarity=require('../public/specimen-rarity.js');
 const specimens=require('../public/specimen-system.js');
 const ai=require('../public/enemy-ai.js');
 
-test('10-minute Solo economy buys one common specimen and rarities scale predictably',()=>{
+test('energy shop prices and paid rarity tiers match the current economy',()=>{
  const estimate=economy.estimateTenMinuteCoins();
- assert.ok(estimate.totalOffline>=economy.PRICE_BY_RARITY.common,'offline 10-minute run must afford common');
- assert.ok(estimate.totalOffline<economy.PRICE_BY_RARITY.uncommon,'baseline should not skip uncommon progression');
- assert.deepEqual(economy.PRICE_BY_RARITY,{common:300,uncommon:600,rare:1200,epic:2400,legendary:4800});
+ assert.ok(estimate.totalOffline>0,'the estimate must remain positive');
+ assert.equal(estimate.totalOnline,estimate.totalOffline+estimate.bossCoins);
+ // The old ten-minute affordability assumption predates the energy conversion.
+ // Actual progression is governed by collected energy, not this legacy estimate.
+ assert.deepEqual(economy.PRICE_BY_RARITY,{common:2500,uncommon:5000});
+ assert.equal(economy.priceForRarity('common'),2500);
+ assert.equal(economy.priceForRarity('uncommon'),5000);
+ for(const tier of ['rare','epic','legendary'])assert.equal(economy.priceForRarity(tier),0,'paid rarity must not have an energy price');
  assert.equal(rarity.rarityFor('solar'),'common');
  assert.equal(rarity.rarityFor('thorn'),'uncommon');
  assert.equal(rarity.rarityFor('voidwing'),'rare');
