@@ -26,5 +26,10 @@ test('age slider stores only age band, not exact age',()=>{
  const online=read('public/online.js');
  assert.match(online,/const band=age<16\?'under16':age<18\?'teen':'adult'/);
  assert.match(online,/JSON\.stringify\(\{band,termsVersion:AGE_TERMS_VERSION,acceptedAt:/);
- assert.doesNotMatch(online,/JSON\.stringify\(\{[^}]*age[,}]/);
+ // Restrict the assertion to the actual persisted age profile and match an
+ // age property, not suffixes in unrelated fields such as message or language.
+ const stored=online.match(/localStorage\.setItem\('abyssalAgeProfile',JSON\.stringify\(\{([^}]+)\}\)\)/);
+ assert.ok(stored,'age profile must use a literal, auditable field set');
+ assert.doesNotMatch(stored[1],/(?:^|,)\s*(?:age|birthDate|birthYear|birthMonth|birthDay)\s*(?:[:,]|$)/);
+ assert.deepEqual(stored[1].split(',').map(field=>field.split(':')[0].trim()),['band','termsVersion','acceptedAt']);
 });
