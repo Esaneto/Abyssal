@@ -120,6 +120,7 @@ jobs:
       - name: Check JavaScript syntax and title definitions
         run: npm test
       - name: Verify chat, moderation and Play release contracts
+        if: always() && !cancelled()
         run: |
           node --check cardume-chat.js
           node --check chat-moderation.js
