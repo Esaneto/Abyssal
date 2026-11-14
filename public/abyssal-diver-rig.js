@@ -36,7 +36,7 @@
    const w=clamp(finite(weight),0,1),motor=Number.isFinite(motion?.hairFlow)?clamp(motion.hairFlow,0,1):(powered?1:0),braking=clamp(-finite(motion?.drive)/5,0,1);
    const p=finite(phase)+(side<0?Math.PI:0),hip=[-19,side*3.2],hipAngle=-.035+(1-motor)*(-.12*Math.sin(p)*w-.07*braking);
    // A slower recovery and stronger push, driven from the knee.
-   const stroke=.72*Math.sin(p-.55)+.28*Math.sin(2*(p-.55)),flex=(1-motor)*(.49+.22*(1-w)+.19*braking+.43*stroke*w)+motor*.08;
+   const stroke=.72*Math.sin(p-.55)+.28*Math.sin(2*(p-.55)),flex=(1-motor)*(.54+.22*(1-w)+.19*braking+.43*stroke*w)+motor*.08;
    const calfAngle=hipAngle-Math.max(.035,flex),knee=[hip[0]-24*Math.cos(hipAngle),hip[1]+24*Math.sin(hipAngle)],ankle=[knee[0]-24*Math.cos(calfAngle),knee[1]+24*Math.sin(calfAngle)];
    const ankleLag=(.27*Math.sin(p-1.05)+.07*Math.sin(2*p-1.8))*w,finAngle=calfAngle*motor+(1-motor)*(calfAngle*w-.10*(1-w)+ankleLag+.08*w);
    return {hip,knee,ankle,finAngle,finFlex:(1-motor)*4.0*Math.sin(p-1.4)*w,finTwist:(1-motor)*(.12+.17*Math.sin(p-1.12)*w)};
