@@ -160,6 +160,7 @@ function body(c,t,options,look={}){
   const angle=Math.atan2(hand[1]-wrist[1],hand[0]-wrist[0]);c.save();c.translate(...hand);c.rotate(angle);
   const g=grad([-3,-3],[2,3],[[0,'#5d737c'],[.26,'#344a55'],[.55,'#1c303d'],[1,'#07131b']]);
   path(()=>{c.moveTo(-4,-2.4);c.quadraticCurveTo(-1,-3.6,2,-2.8);c.quadraticCurveTo(4,-2.4,4.2,0);c.quadraticCurveTo(4.2,2.9,1.4,3);c.lineTo(-3,2.4);c.quadraticCurveTo(-4.8,0,-4,-2.4);c.closePath();},g,'#07111a',.75);
+  if(gripping){path(()=>{c.moveTo(-1,-2.4);c.quadraticCurveTo(1,-4,2.7,-2);c.lineTo(1.4,-.2);c.quadraticCurveTo(.2,-.2,-1,-2.4);c.closePath();},'#536a74','#0a1720',.5);}
   path(()=>{c.moveTo(-1,1.8);c.quadraticCurveTo(0,4,2.5,2.4);},null,'#6c8187',.6);
   for(const x of [0,1.5,3])line([x,-1.9],[x,gripping?.6:1.5],'#9bb3b74c',.55);
   box(-4.3,-2.6,1.7,5.2,.7,'#21333e','#69818a',.5);c.restore();

@@ -18,7 +18,7 @@
   // Collision uses the same neutral rig, conservatively covering the small kick envelope.
   // Cosmetic client phases are not trusted for authoritative hit detection.
   const left=rig.leg(-1,0,0),right=rig.leg(1,0,0);
-  const held=player?.propulsorEquipped?'tool':'rifle',offset=held==='tool'?5:12,grips=held==='tool'?rig.toolGrips:rig.rifleGrips;
+  const held=player?.propulsorEquipped?'abyssPropulsor':'abyssWeapon',offset=held==='abyssPropulsor'?5:12,grips=rig.gripsFor(held);
   const arms=[rig.arm(-1,aim-angle,offset,grips[0]),rig.arm(1,aim-angle,offset,grips[1])];
   const point=(px,py,weapon=false)=>{
    const ca=weapon?aimCos:cos,sa=weapon?aimSin:sin;
@@ -29,12 +29,12 @@
    return {name,ax:a.x,ay:a.y,bx:b.x,by:b.y,r:r*scale};
   };
   return [
-   limb('torso',-16,0,17,0,10),
+   limb('torso',-16,0,17,0,13),
    limb('head',25,-1,29,-1,13),
-   ...arms.flatMap((arm,i)=>{const name=i?'right':'left';return [limb(name+'-arm',arm.shoulder[0],arm.shoulder[1]+offset,arm.elbow[0],arm.elbow[1]+offset,5.2,true),limb(name+'-forearm',arm.elbow[0],arm.elbow[1]+offset,arm.hand[0],arm.hand[1]+offset,4.7,true)];}),
-   limb('left-thigh',...left.hip,...left.knee,7.2),
+   ...arms.flatMap((arm,i)=>{const name=i?'right':'left';return [limb(name+'-arm',arm.shoulder[0],arm.shoulder[1]+offset,arm.elbow[0],arm.elbow[1]+offset,6,true),limb(name+'-forearm',arm.elbow[0],arm.elbow[1]+offset,arm.hand[0],arm.hand[1]+offset,5.3,true)];}),
+   limb('left-thigh',...left.hip,...left.knee,8.6),
    limb('left-leg',...left.knee,...left.ankle,8.5),
-   limb('right-thigh',...right.hip,...right.knee,7.2),
+   limb('right-thigh',...right.hip,...right.knee,8.6),
    limb('right-leg',...right.knee,...right.ankle,8.5)
   ];
  }

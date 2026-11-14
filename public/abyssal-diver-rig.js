@@ -8,19 +8,19 @@
   dt=clamp(finite(dt),0,.10);speed=clamp(finite(speed),0,4);
   const target=speed<.045?0:clamp(speed,0,1),old=previous||{phase:0,weight:0};
   const weight=clamp(finite(old.weight)+(target-finite(old.weight))*(1-Math.exp(-dt*(target>old.weight?12:7))),0,1);
-  const cadence=powered?4.4:5.7+Math.min(1.8,speed)*2.1;
+  const cadence=powered?2.8:4.1+Math.min(1.8,speed)*1.6;
   const phase=(finite(old.phase)+dt*cadence*(.25+.75*weight))%TAU;
   return {phase,weight,powered:Boolean(powered)};
  }
  function leg(side,phase,weight=1,powered=false){
-  const a=clamp(finite(weight),0,1)*(powered?.32:1);
+  const a=clamp(finite(weight),0,1)*(powered?.23:1);
   const wave=Math.sin(finite(phase)+(side>0?0:Math.PI));
   const delay=Math.sin(finite(phase)-.72+(side>0?0:Math.PI));
-  const hip=[-16,side*5.5],thigh=side*.14+wave*.32*a;
-  const calf=side*.095+delay*.42*a;
+  const hip=[-16,side*5.5],thigh=side*.085+wave*.19*a;
+  const calf=side*.12+delay*.30*a;
   const knee=[hip[0]-18*Math.cos(thigh),hip[1]+18*Math.sin(thigh)];
   const ankle=[knee[0]-19*Math.cos(calf),knee[1]+19*Math.sin(calf)];
-  return {hip,knee,ankle,finAngle:calf+delay*.10*a};
+  return {hip,knee,ankle,finAngle:calf+delay*.055*a};
  }
  // Convert actual shoulder into the weapon-local space, then solve a bent
  // two-link arm toward the fixed grip. The barrel and tool anchors never move.
@@ -28,9 +28,9 @@
   const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),sx=11,sy=side*8;
   const shoulder=[sx*ca+sy*sa,-sx*sa+sy*ca-offset],dx=grip[0]-shoulder[0],dy=grip[1]-shoulder[1];
   const distance=Math.hypot(dx,dy),d=Math.max(.001,distance),ux=dx/d,uy=dy/d;
-  const upper=19,lower=22,reach=clamp(d,3,upper+lower-.01);
+  const upper=24,lower=27,reach=clamp(d,Math.abs(upper-lower)+.01,upper+lower-.01);
   const along=(upper*upper-lower*lower+reach*reach)/(2*reach),height=Math.sqrt(Math.max(0,upper*upper-along*along));
-  const elbow=distance>upper+lower?[shoulder[0]+dx*.46,shoulder[1]+dy*.46]:[shoulder[0]+ux*along-uy*height*side,shoulder[1]+uy*along+ux*height*side];
+  const elbow=[shoulder[0]+ux*along-uy*height*side,shoulder[1]+uy*along+ux*height*side];
   return {shoulder,elbow,hand:[...grip]};
  }
  // Bounds in renderer coordinates; fit the same playable art, not a replacement sprite.
@@ -47,7 +47,28 @@
   const scale=Math.min(width*.85/(maxX-minX),height*.84/(maxY-minY));
   return {x:width/2-(minX+maxX)*scale/2,y:height/2-(minY+maxY)*scale/2,r:scale*14/.60};
  }
- const rifleGrips=Object.freeze([Object.freeze([31,-6]),Object.freeze([24,8])]);
- const toolGrips=Object.freeze([Object.freeze([27,-2]),Object.freeze([27,3])]);
- return Object.freeze({advance,leg,arm,previewFrame,rifleGrips,toolGrips});
+ const pair=(a,b)=>Object.freeze([Object.freeze(a),Object.freeze(b)]);
+ // Contacts lie on the actual receiver handle, pistol grip and tool handles.
+ const rifleGrips=pair([34,2],[22,11]);
+ const toolGrips=pair([24,-8],[34,9]);
+ const gripSets=Object.freeze({
+  abyssWeapon:rifleGrips,abyssPropulsor:toolGrips,abyssPropulsorIdle:toolGrips,
+  abyssWelder:pair([31,-4],[25,5]),abyssPickaxe:pair([33,0],[23,0]),
+  emptyCylinder:pair([31,-8],[31,8]),gasCylinder:pair([31,-8],[31,8]),oilCylinder:pair([31,-8],[31,8]),
+  offshoreCable:pair([33,-9],[29,8]),generic:pair([29,-4],[26,5])
+ });
+ function gripsFor(held){return gripSets[held]||gripSets.generic;}
+ // Rotate pickaxe/cylinder geometry around its own pivot before solving arms.
+ function toolPose(held,swing=0){
+  const swingAngle=held==='abyssPickaxe'?finite(swing)*.17:0;
+  const objectAngle=held==='abyssPickaxe'?-.35+finite(swing)*.45:['emptyCylinder','gasCylinder','oilCylinder'].includes(held)?.08:0;
+  const co=Math.cos(objectAngle),si=Math.sin(objectAngle);
+  const grips=gripsFor(held).map(([x,y])=>[27+(x-27)*co-y*si,(x-27)*si+y*co]);
+  return {swingAngle,objectAngle,grips};
+ }
+ function idleArm(side,phase=0,weight=0){
+  const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
+  return {shoulder:[11,side*8],elbow:[-3,side*(14+sway)],hand:[-18,side*(12+sway*.5)]};
+ }
+ return Object.freeze({advance,leg,arm,idleArm,gripsFor,toolPose,previewFrame,rifleGrips,toolGrips});
 });

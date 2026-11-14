@@ -186,17 +186,25 @@
   // so the rifle pose can never leak underneath a pickaxe or container.
   const held=String(options.heldItem||'abyssWeapon'),relativeAim=(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig;
   const gripHands=[];
-  const drawGripArms=(offset,grips)=>{gripHands.length=0;for(let i=0;i<2;i++){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,relativeAim,offset,grip)||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};limb(pose.shoulder,pose.elbow,7.1,suitTone('#263847',1),suitTone('#668293',3));limb(pose.elbow,pose.hand,5.8,suitTone('#101923',0),suitTone('#39536a',2));gripHands.push(pose);}};
+  const drawGripArms=(offset,grips,turn=relativeAim)=>{gripHands.length=0;for(let i=0;i<2;i++){const side=i?1:-1,grip=grips[i],pose=rig?.arm(side,turn,offset,grip)||{shoulder:[6,side*7],elbow:[16,side*12],hand:grip};limb(pose.shoulder,pose.elbow,7.1,suitTone('#263847',1),suitTone('#668293',3));limb(pose.elbow,pose.hand,5.8,suitTone('#101923',0),suitTone('#39536a',2));gripHands.push(pose);}};
   const drawGloves=(xOffset=0)=>{if(limb.glove)for(const p of gripHands)limb.glove([p.hand[0]-xOffset,p.hand[1]],[p.elbow[0]-xOffset,p.elbow[1]],true);};
   c.save();c.rotate(held==='none'?0:relativeAim);
-  if(held==='none'){for(const side of [-1,1]){limb([13,side*9],[-2,side*15],7.7,suitTone('#263847',1),suitTone('#668293',3));limb([-2,side*15],[-19,side*13],6.5,suitTone('#101923',0),suitTone('#39536a',2));if(limb.glove)limb.glove([-22,side*13],[-19,side*13]);else{c.fillStyle='#14242d';c.strokeStyle='#63808a';c.lineWidth=.6;c.beginPath();c.ellipse(-22,side*13,4,2.8,0,0,TAU);c.fill();c.stroke();}}c.restore();c.restore();return;}
+  if(held==='none'){for(const side of [-1,1]){const p=rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0)||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};limb(p.shoulder,p.elbow,7.7,suitTone('#263847',1),suitTone('#668293',3));limb(p.elbow,p.hand,6.5,suitTone('#101923',0),suitTone('#39536a',2));if(limb.glove)limb.glove(p.hand,p.elbow);else{c.fillStyle='#14242d';c.strokeStyle='#63808a';c.lineWidth=.6;c.beginPath();c.ellipse(-22,side*13,4,2.8,0,0,TAU);c.fill();c.stroke();}}c.restore();c.restore();return;}
   if(held!=='abyssWeapon'){
    c.translate(0,5);
-   if(held==='abyssPickaxe')c.rotate((Number(options.swing)||0)*.17);
-   drawGripArms(5,rig?.toolGrips||[[27,-2],[27,3]]);
-   c.save();c.translate(27,0);
+   const tool=rig?.toolPose(held,Number(options.swing)||0)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]};
+   // Rotate the grip coordinates, not the shoulder reference frame.
+   const co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
+   const grips=tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co]);
+   drawGripArms(5,grips);
+   c.save();c.rotate(tool.swingAngle);c.translate(27,0);
    if(held==='abyssPropulsor'||held==='abyssPropulsorIdle'){
     const active=Boolean(options.propulsorActive),pulse=.5+.5*Math.sin((Number(t)||0)*.045);
+    // Two external insulated handles, separate contact points.
+    c.fillStyle='#192c35';c.strokeStyle='#8aabb3';c.lineWidth=1.15;
+    c.beginPath();c.roundRect(-8,-14,12,8,3);c.fill();c.stroke();
+    c.beginPath();c.roundRect(1,7,12,8,3);c.fill();c.stroke();
+    c.fillStyle='#101a20';c.fillRect(-6,-12,7,4);c.fillRect(3,10,8,3);
     const shell=c.createLinearGradient(0,-12,0,12);shell.addColorStop(0,'#a6c9cf');shell.addColorStop(.28,'#496a78');shell.addColorStop(.63,'#152b39');shell.addColorStop(1,'#0b1724');
     c.fillStyle=shell;c.strokeStyle='#a3c8d0';c.lineWidth=1.35;c.beginPath();c.roundRect(-6,-10,38,20,8);c.fill();c.stroke();
     c.fillStyle='#081925';c.strokeStyle='#547c8c';c.beginPath();c.roundRect(1,-12,12,24,4);c.fill();c.stroke();
@@ -208,7 +216,7 @@
     if(active){c.save();c.strokeStyle='#9ef7f4';c.lineWidth=.8;for(let i=0;i<13;i++){const f=((Number(t)||0)*.0017+i/13)%1;const bx=-9-f*128,by=Math.sin(i*2.3+f*4)*(2+f*8)-f*3;const br=1.15+f*2.3;c.globalAlpha=(1-f)*(.55+pulse*.25);c.beginPath();c.arc(bx,by,br,0,TAU);c.stroke();}c.restore();}
    }else if(held==='abyssPickaxe'){
     // Original voxel-inspired miner tool, matching the backpack illustration.
-    c.rotate(-.35+(Number(options.swing)||0)*.45);
+    c.rotate(tool.objectAngle);
     c.fillStyle='#513822';c.strokeStyle='#d3a46b';c.lineWidth=1.4;
     c.beginPath();c.moveTo(-8,-3);c.lineTo(28,-3);c.lineTo(28,3);c.lineTo(-8,3);c.closePath();c.fill();c.stroke();
     c.fillStyle='#173b4e';c.strokeStyle='#b9f4fa';c.lineWidth=1.3;
@@ -231,7 +239,7 @@
     const kind=String(options.fillType||'');
     const gas=held==='gasCylinder'||held==='emptyCylinder'&&kind==='gasSeep';
     const oil=held==='oilCylinder'||held==='emptyCylinder'&&kind==='oilSeep';
-    c.rotate(.08);c.fillStyle='#243842';c.strokeStyle='#bfccb9';c.lineWidth=1.8;
+    c.rotate(tool.objectAngle);c.fillStyle='#243842';c.strokeStyle='#bfccb9';c.lineWidth=1.8;
     c.beginPath();c.roundRect(-4,-17,18,34,5);c.fill();c.stroke();
     const level=held==='emptyCylinder'?progress:1;
     if(level>0){c.fillStyle=gas?'#55bc7b':oil?'#17181e':'#6f93a4';c.fillRect(-1,12-25*level,12,25*level);}
@@ -249,7 +257,7 @@
    c.restore();c.restore();return;
   }
   c.translate(0,GUN_OFFSET_Y); // Rifle stays below the torso at every aim angle.
-  drawGripArms(GUN_OFFSET_Y,rig?.rifleGrips||[[31,-6],[24,8]]);
+  drawGripArms(GUN_OFFSET_Y,rig?.rifleGrips||[[34,2],[22,11]]);
   // White futuristic AK-profile rifle: ventilated receiver, pronounced stock,
   // curved magazine, trigger guard, optic and a long distinguishable barrel.
   // The muzzle glow and hit origin use BARREL_TIP_X, exactly the same coordinate.
@@ -290,10 +298,12 @@
   c.fillStyle='#f4ffff';c.shadowColor='#d5fcff';c.shadowBlur=4;
   c.beginPath();c.arc(BARREL_TIP_X,0,1.4,0,TAU);c.fill();c.shadowBlur=0;
   c.fillStyle='#65d5e2';c.fillRect(47,-2.2,10,1.2);
+  // A recessed support grip sits below the receiver, ahead of the trigger.
+  c.fillStyle='#203744';c.strokeStyle='#acc6cc';c.lineWidth=.75;c.beginPath();c.roundRect(30,-1,9,6,1.5);c.fill();c.stroke();
   // Gloves settle on two separate contact points, never doubling the arm.
   if(limb.glove)drawGloves();else{c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
-  c.beginPath();c.ellipse(31,-6,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
-  c.beginPath();c.ellipse(24,8,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
+  c.beginPath();c.ellipse(34,2,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
+  c.beginPath();c.ellipse(22,11,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
   c.restore();c.restore();
  }
  return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});
