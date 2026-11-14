@@ -380,7 +380,7 @@ public class MainActivity extends BridgeActivity {
   }
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
     registerPlugin(AbyssalUpdaterPlugin.class);
     registerPlugin(AbyssalFullscreenPlugin.class);
     super.onCreate(savedInstanceState);
