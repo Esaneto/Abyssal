@@ -67,8 +67,19 @@ function Read-SecretText([string]$prompt) {
   finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
 }
 function Set-RepoSecret([string]$name,[string]$value) {
-  $value | gh secret set $name --repo $repo
-  if ($LASTEXITCODE -ne 0) { throw "Could not set $name. Do not create another key; use the existing keystore." }
+  $start = New-Object System.Diagnostics.ProcessStartInfo
+  $start.FileName = (Get-Command gh).Source
+  $start.Arguments = "secret set $name --repo $repo"
+  $start.UseShellExecute = $false
+  $start.RedirectStandardInput = $true
+  $start.StandardInputEncoding = [System.Text.UTF8Encoding]::new($false)
+  $process = [System.Diagnostics.Process]::Start($start)
+  try {
+    $process.StandardInput.Write($value)
+    $process.StandardInput.Close()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) { throw "Could not set $name. Do not create another key; use the existing keystore." }
+  } finally { $process.Dispose() }
 }
 $storePass = Read-SecretText 'Keystore password (save it in your password manager)'
 if ($storePass.Length -lt 6) { throw 'Use a password of at least 6 characters.' }

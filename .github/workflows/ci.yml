@@ -278,7 +278,7 @@ jobs:
             unzip -p "$APK" "assets/public/$asset" > "/tmp/abyssal-verify-$asset"
             cmp "public/$asset" "/tmp/abyssal-verify-$asset"
           done
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | head -n 1
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | sed -n '1p'
       - name: Require permanent signing credentials for stable Android
         if: github.ref == 'refs/heads/main' && vars.ABYSSAL_ADMOB_TEST_MODE != 'true'
         env:
