@@ -9,7 +9,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(config){
  'use strict';
  const DEFINITIONS=config.RESEARCH;
- const COMBAT_ENERGY=Object.freeze({pulse:3500,dash:4200});
+ const COMBAT_ENERGY=Object.freeze({pulse:400,dash:400});
  const toCount=v=>Number.isFinite(Number(v))?Math.max(0,Math.floor(Number(v))):0;
  function sanitizeLevels(raw={}){
   const result=Object.create(null);

@@ -16,13 +16,29 @@
   fins:Object.freeze([{id:'standard',name:'Nadadeiras de Convés',swatch:'#79b9ce'},{id:'amber',name:'Nadadeiras Manta',swatch:'#dba45f'},{id:'white',name:'Nadadeiras Boreais',swatch:'#c5e4e8'},{id:'leviathan',name:'Cauda do Leviatã',swatch:'#9eff56',description:'Três pontas orgânicas.'},{id:'specter',name:'Asas do Espectro',swatch:'#c084ff',description:'Lâminas gêmeas de energia.'},{id:'medusa',name:'Véu de Medusa',swatch:'#ff8edf',description:'Membranas e filamentos ondulantes.'},{id:'nautilus',name:'Coroa Náutilo',swatch:'#ffc064',description:'Lâminas e anéis dourados.'},{id:'ion',name:'Rastro de Íons',swatch:'#53fff2',description:'Lâminas e partículas luminosas.'}])
  });
  const DEFAULT=Object.freeze({hair:'classic',hairColor:'black',outfit:'navy',mask:'standard',weapon:'standard',visor:'cyan',back:'standard',fins:'standard',skin:'original',eyes:'original',eyewear:'none',headgear:'none'});
- const KEY='abyssalAvatarAppearanceV1';
+ const KEY='abyssalAvatarAppearanceV1',OWNED_KEY='abyssalOwnedAvatarCosmeticsV1';
+ const PAID_SLOTS=Object.freeze(['hair','outfit','mask','weapon','fins']);
+ const FREE=new Set(['hair:classic','hair:short','hair:shaved','outfit:navy','mask:standard','weapon:standard','fins:standard']);
+ const ENERGY=new Set(['hair:long','hair:whiteCurls','fins:amber']);
+ function product(slot,id){if(!Object.hasOwn(slots,slot)||!slots[slot].some(i=>i.id===id))return null;const key='avatar:'+slot+':'+id,tag=slot+':'+id;const currency=!PAID_SLOTS.includes(slot)||FREE.has(tag)?'free':ENERGY.has(tag)?'energy':'brl';return {key,slot,id,name:slots[slot].find(i=>i.id===id).name,currency,price:currency==='energy'?2999:currency==='brl'?199:0};}
+ const products=Object.freeze(PAID_SLOTS.flatMap(slot=>slots[slot].map(i=>Object.freeze(product(slot,i.id)))));
+ function byProduct(key){return products.find(p=>p.key===key)||null;}
+ function normalizeOwned(value){return [...new Set((Array.isArray(value)?value:[]).filter(k=>{const p=byProduct(k);return p&&p.currency!=='free';}))];}
+ function owns(slot,id,owned=[]){const p=product(slot,id);return Boolean(p&&(p.currency==='free'||owned.includes(p.key)));}
+ function locked(value,owned=[]){const v=normalize(value);return Object.keys(DEFAULT).filter(k=>!owns(k,v[k],owned)).map(k=>product(k,v[k]));}
+ function authorized(value,owned=[]){const v=normalize(value);for(const p of locked(v,owned))v[p.slot]=DEFAULT[p.slot];return v;}
+ function buyEnergy(key,owned,balance){const p=byProduct(key),ids=normalizeOwned(owned),energy=Math.max(0,Math.floor(Number(balance)||0));if(!p||p.currency!=='energy')return {ok:false,reason:'invalid-product'};if(ids.includes(key))return {ok:true,owned:ids,energy,alreadyOwned:true};if(energy<p.price)return {ok:false,reason:'energy',cost:p.price};return {ok:true,owned:[...ids,key],energy:energy-p.price,cost:p.price};}
+ let owned=[];try{owned=normalizeOwned(JSON.parse(globalThis.localStorage?.getItem(OWNED_KEY)||'[]'));}catch{}
+ function getOwned(){return [...owned];}
+ function setOwned(value){owned=normalizeOwned(value);try{globalThis.localStorage?.setItem(OWNED_KEY,JSON.stringify(owned));}catch{}return getOwned();}
+ function syncAccount(account){setOwned(account?.ownedAvatarCosmetics);return apply(account?.avatarAppearance);}
+
  function normalize(value){const out={};for(const key of Object.keys(DEFAULT)){const v=value&&value[key];out[key]=slots[key].some(item=>item.id===v)?v:DEFAULT[key];}return out;}
  function same(a,b){return Object.keys(DEFAULT).every(k=>a?.[k]===b?.[k]);}
  let current={...DEFAULT};
- try{current=normalize(JSON.parse(globalThis.localStorage?.getItem(KEY)||'null'));}catch{}
+ try{current=authorized(JSON.parse(globalThis.localStorage?.getItem(KEY)||'null'),owned);}catch{}
  function get(){return {...current};}
- function apply(value,{persist=true}={}){const next=normalize(value);if(same(current,next))return get();current=next;if(persist)try{globalThis.localStorage?.setItem(KEY,JSON.stringify(current));}catch{}return get();}
+ function apply(value,{persist=true}={}){const next=authorized(value,owned);current=next;if(persist)try{globalThis.localStorage?.setItem(KEY,JSON.stringify(current));}catch{}return get();}
  function select(value,key,id){const prior=normalize(value),next={...prior,[key]:id};if(key==='hair'&&prior.hair!==id){const preset=slots.hair.find(item=>item.id===id)?.preset;if(preset)next.hairColor=preset;}return normalize(next);}
  const colors={
   outfit:{navy:null,rust:['#301b16','#69402d','#944f29','#c88455','#edb28b'],ice:['#142c37','#456675','#749da7','#b9d7da','#e3f4f2'],olive:['#18291f','#3c5038','#586e44','#8ba47c','#c0d3a8'],nautilus:['#102d37','#215966','#3b8790','#9dd9d2','#c4f5df'],phantom:['#141321','#282637','#43405b','#8d83b1','#c6b9f0']},
@@ -32,5 +48,5 @@
   hairColor:{black:null,brown:['#38251c','#76503b','#4d3021'],silver:['#54636d','#c4d0d6','#879ca8'],white:['#697b92','#f4faff','#b6c7d8'],green:['#173f27','#a8ef62','#49a83d'],teal:['#124450','#9bf9eb','#22b6b5'],violet:['#362553','#e0c9ff','#9362d4'],red:['#582929','#ffc3a7','#ce5549'],blue:['#1c355e','#b0d5ff','#4487df'],gold:['#60452c','#fff0b8','#b9904a'],pink:['#632844','#ffd3ef','#d76aa4'],indigo:['#28224e','#bcb9ff','#6c65c5']}
  };
  function palette(value){const v=normalize(value);return {outfitId:v.outfit,outfit:colors.outfit[v.outfit],maskId:v.mask,weaponId:v.weapon,finId:v.fins,visor:colors.visor[v.visor],back:colors.back[v.back],fins:colors.fins[v.fins],hair:colors.hairColor[v.hairColor],hairStyle:v.hair,skin:v.skin,eyes:v.eyes,eyewear:v.eyewear,headgear:v.headgear};}
- return Object.freeze({slots,DEFAULT,normalize,same,get,apply,select,palette,KEY});
+ return Object.freeze({slots,DEFAULT,normalize,same,get,apply,select,palette,KEY,OWNED_KEY,products,product,byProduct,normalizeOwned,owns,locked,authorized,buyEnergy,getOwned,setOwned,syncAccount});
 });

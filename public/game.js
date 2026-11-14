@@ -3667,8 +3667,8 @@ const metaShopItems=[
  {id:'focuser',name:'Lente de Fótons',type:'passive',price:2200,max:3,icon:'✧',desc:'+8% de dano inicial por nível.'},
  {id:'current',name:'Aletas de Corrente',type:'passive',price:1600,max:3,icon:'➤',desc:'+5% de movimento por nível.'},
  {id:'startShield',name:'Casulo de Pressão',type:'passive',price:3200,max:1,icon:'◉',desc:'Comece cada mergulho com 1 carga de escudo.'},
- {id:'pulse',name:'Pulso de Maré',type:'active',price:3500,max:1,icon:'✺',desc:'Ative Q ou o botão para causar dano em área. Recarga: 14 s.'},
- {id:'dash',name:'Propulsor Abissal',type:'active',price:4200,max:1,icon:'➤',desc:'E equipa ou guarda a turbina. Nado 2,35× enquanto houver bateria. A arma fica guardada; a bateria se recupera lentamente ao parar.'}
+ {id:'pulse',name:'Pulso de Maré',type:'active',price:400,max:1,icon:'✺',desc:'Ative Q ou o botão para causar dano em área. Recarga: 14 s.'},
+ {id:'dash',name:'Propulsor Abissal',type:'active',price:400,max:1,icon:'➤',desc:'E equipa ou guarda a turbina. Nado 2,35× enquanto houver bateria. A arma fica guardada; a bateria se recupera lentamente ao parar.'}
 ];
 const combatResearchUnlocked=id=>Boolean(window.AbyssalResearchSystem?.unlocked?.(id,explorationResearchLevels,metaUpgrades)||Number(metaUpgrades?.[id])>0);
 let equippedActiveSkillsCache=null;
@@ -6021,7 +6021,7 @@ window.addEventListener('abyssal-account-data',e=>{
   if(!ownedSkins.includes(equippedSkin))equippedSkin='default';
   metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:{};
   if(a.diverGender==='female'||a.diverGender==='male')setDiverGender(a.diverGender,false);
-  if(a.avatarAppearance)window.AbyssalAvatarBase?.apply(a.avatarAppearance);
+  window.AbyssalAvatarBase?.syncAccount(a);
   const serverProficiency=a.specimenProficiency&&typeof a.specimenProficiency==='object'?a.specimenProficiency:{};specimenProficiency=pendingAdaptationMap(adaptationAccountKey(),serverProficiency);saveSpecimenProficiencyLocal();
   saveCosmeticsLocalOnly();
   const shopScreen=$('shopScreen');if(shopScreen&&!shopScreen.hidden)renderShop();

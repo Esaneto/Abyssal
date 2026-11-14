@@ -117,15 +117,15 @@ function simulateHair(style,t,heading,motion,weight,flow,reduced=false,view=null
  if(!state||state.style!==style||state.locks.length!==rest.length||!Number.isFinite(state.time)||Math.abs(t-state.time)>400){
   state={style,time:t,locks:rest.map(l=>{const nodes=[0,4,8,12,16].map(i=>toWorld(l.points[i]));return {nodes,vel:nodes.map(()=>[0,0])};})};motion.hairState=state;
  }
- const headCenter=root.AbyssalDiverRig?.headPoint([31,0],view)||[31,0],elapsed=clamp((t-state.time)/1000,0,.065),steps=Math.max(1,Math.ceil(elapsed/.016)),dt=elapsed/steps;state.time=t;
- const vx=Number(motion.flowX)||0,vy=Number(motion.flowY)||0;
+ const headCenter=root.AbyssalDiverRig?.headPoint([31,0],view)||[31,0],elapsed=clamp((t-state.time)/1000,0,.10),steps=Math.max(1,Math.ceil(elapsed/.008333)),dt=elapsed/steps;state.time=t;
+ const response=1-Math.exp(-elapsed*5);state.vx=Number.isFinite(state.vx)?state.vx+((Number(motion.flowX)||0)-state.vx)*response:(Number(motion.flowX)||0);state.vy=Number.isFinite(state.vy)?state.vy+((Number(motion.flowY)||0)-state.vy)*response:(Number(motion.flowY)||0);const vx=state.vx,vy=state.vy;
  for(let k=0;k<rest.length;k++){
   const l=rest[k],q=state.locks[k],target=[0,4,8,12,16].map(i=>toWorld(l.points[i])),lengths=target.slice(1).map((p,i)=>Math.hypot(p[0]-target[i][0],p[1]-target[i][1]));
-  const stiff=l.layer==='knot'?28:l.layer==='braid'?8:l.layer==='crown'?19:5.5,drag=l.layer==='knot'?11:7.5,dragGain=l.layer==='knot'?.18:l.layer==='crown'?.43:1,gravity=l.layer==='braid'||l.texture==='loc'?12:l.layer==='crown'?5:8;
+  const stiff=l.layer==='knot'?28:l.layer==='braid'?8:l.layer==='crown'?19:5.5,drag=l.layer==='knot'?13:9.5,dragGain=l.layer==='knot'?.18:l.layer==='crown'?.43:1,gravity=l.layer==='braid'||l.texture==='loc'?12:l.layer==='crown'?5:8;
   for(let step=0;step<steps;step++){
    const before=q.nodes.map(p=>[...p]);q.nodes[0]=target[0];q.vel[0]=[0,0];
    for(let i=1;i<5;i++){
-    const p=q.nodes[i],v=q.vel[i],u=i/4,ambientX=Math.sin(t*.0011+k*.47+i*.65)*2.1,ambientY=Math.cos(t*.0014+k*.33+i*.82)*1.6;
+    const p=q.nodes[i],v=q.vel[i],u=i/4,ambientX=Math.sin((t-elapsed*1000+(step+1)*dt*1000)*.0011+k*.47+i*.65)*2.1,ambientY=Math.cos((t-elapsed*1000+(step+1)*dt*1000)*.0014+k*.33+i*.82)*1.6;
     // Relative fluid flow opposes actual velocity. Weak net downward weight:
     // water offsets most, not all, gravitational acceleration.
     const ax=(target[i][0]-p[0])*stiff+(-vx*22*dragGain+ambientX-v[0])*drag*u;
@@ -137,7 +137,7 @@ function simulateHair(style,t,heading,motion,weight,flow,reduced=false,view=null
     const clearance=(v)=>{const p=toLocal(v),head=headCenter,ellipse=(x,y,rx,ry)=>((p[0]-x)/rx)**2+((p[1]-y)/ry)**2;return Math.min(ellipse(head[0],head[1],9,8),ellipse(0,0,20,12),view?.profile>.5?ellipse(1,-19,20,6):Infinity);};
     if(i>=2&&(l.layer==='back'||l.layer==='braid'||l.layer==='mane')&&clearance(restB)>1.08){const candidate=ang=>[a[0]+Math.cos(ang)*L,a[1]+Math.sin(ang)*L];if(clearance(candidate(angle))<1){let best=angle,score=clearance(candidate(angle));for(let j=-4;j<=4;j++){const ang=ref+limit*j/4,q=clearance(candidate(ang));if(q>score){best=ang;score=q;}}angle=best;}}
     b[0]=a[0]+Math.cos(angle)*L;b[1]=a[1]+Math.sin(angle)*L;}
-   if(dt>0)for(let i=1;i<5;i++){q.vel[i][0]=clamp((q.nodes[i][0]-before[i][0])/dt,-125,125);q.vel[i][1]=clamp((q.nodes[i][1]-before[i][1])/dt,-125,125);}
+   if(dt>0)for(let i=1;i<5;i++){const vxNext=clamp((q.nodes[i][0]-before[i][0])/dt,-125,125),vyNext=clamp((q.nodes[i][1]-before[i][1])/dt,-125,125),smooth=1-Math.exp(-dt*25);q.vel[i][0]+=(vxNext-q.vel[i][0])*smooth;q.vel[i][1]+=(vyNext-q.vel[i][1])*smooth;}
   }
   q.nodes[0]=target[0];
   // Smooth constrained control nodes with bounded cubic Hermite tangents.

@@ -30,6 +30,12 @@ const PAID_SKINS = {
 // The shared specimen profile defines the commercial tier for every skin.
 const SkinStandard=require('./public/skin-standard.js');
 const CuratedSkins=require('./public/abyssal-curated-skins.js');
+const AvatarBase=require('./public/avatar-base.js');
+const PAID_COSMETICS=Object.freeze(Object.fromEntries(AvatarBase.products.filter(p=>p.currency==='brl').map(p=>[p.key,{name:p.name,nameEn:p.name,brl:p.price}])));
+const isAvatarProduct=id=>Object.hasOwn(PAID_COSMETICS,id);
+function grantOrder(user,ids){const cosmetics=ids.filter(isAvatarProduct),skins=ids.filter(id=>!isAvatarProduct(id));user.ownedAvatarCosmetics=AvatarBase.normalizeOwned([...(user.ownedAvatarCosmetics||[]),...cosmetics]);user.ownedSkins=[...new Set(['default',...(user.ownedSkins||[]),...skins])];if(skins.length===1)user.equippedSkin=skins[0];}
+function revokeOrderItem(user,id){if(isAvatarProduct(id)){user.ownedAvatarCosmetics=AvatarBase.normalizeOwned(user.ownedAvatarCosmetics).filter(x=>x!==id);user.avatarAppearance=AvatarBase.authorized(user.avatarAppearance,user.ownedAvatarCosmetics);}else{user.ownedSkins=(user.ownedSkins||[]).filter(x=>x!==id);if(!user.ownedSkins.includes(user.equippedSkin))user.equippedSkin='default';}}
+const orderOwnership=user=>[...(user.ownedSkins||['default']),...AvatarBase.normalizeOwned(user.ownedAvatarCosmetics)];
 const BRL_BY_TIER={brl199:199,brl499:499,brl999:999};
 const legacyPaidNames={voidwing:'Manta do Nada'};
 for(const profile of Object.values(SkinStandard.profiles)){
@@ -47,7 +53,7 @@ function calculateOrder(productId, ownedSkins, currency='brl') {
   const brlAmount=skinIds.length?Math.round(BOSS_BUNDLE_BRL*(skinIds.length/BOSS_SKINS.length)):0;
   return {productId:productId,skinIds:skinIds,amount:toMinorUnits(brlAmount),brlAmount,currency:code};
  }
- const product=PAID_SKINS[productId];
+ const product=Object.hasOwn(PAID_SKINS,productId)?PAID_SKINS[productId]:PAID_COSMETICS[productId];
  if(!product)throw new Error('Unknown product');
  const brlAmount=owned.has(productId)?0:product.brl;
  return {productId:productId,skinIds:owned.has(productId)?[]:[productId],amount:toMinorUnits(brlAmount),brlAmount,currency:code};
@@ -149,8 +155,8 @@ function registerPaymentRoutes(options) {
    const currency='brl';
    const reqProductId = String(req.body&&req.body.productId||'');
    if (!reqProductId) return res.status(400).json({ok:false,message:'Produto não informado.'});
-   if(reqProductId!=='boss_bundle'&&!Object.hasOwn(PAID_SKINS,reqProductId))return res.status(400).json({ok:false,message:'Produto indisponível para compra.'});
-   const order=calculateOrder(reqProductId,account.user.ownedSkins||['default'],'brl');
+   if(reqProductId!=='boss_bundle'&&!Object.hasOwn(PAID_SKINS,reqProductId)&&!isAvatarProduct(reqProductId))return res.status(400).json({ok:false,message:'Produto indisponível para compra.'});
+   const order=calculateOrder(reqProductId,orderOwnership(account.user),'brl');
    if(!order.skinIds.length||!order.amount)return res.status(409).json({ok:false,message:'Você já possui este conteúdo.'});
    await ensureSchema();
    const pool=getPool(),orderId=crypto.randomUUID();
@@ -183,7 +189,7 @@ function registerPaymentRoutes(options) {
       console.error('[payments] Could not safely recover previous checkout:',existing.error&&existing.error.type||existingResponse.status);
       return res.status(409).json({ok:false,message:'Não foi possível confirmar o estado do checkout anterior. Tente novamente em alguns instantes.'});
      }
-     const prior=order.skinIds.filter(id=>(account.user.ownedSkins||[]).includes(id));
+     const prior=order.skinIds.filter(id=>orderOwnership(account.user).includes(id));
      await client.query('INSERT INTO abyssal_payment_orders(order_id,user_key,product_id,skin_ids,prior_owned,amount,currency,status) VALUES($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7,$8)',[orderId,account.key,order.productId,JSON.stringify(order.skinIds),JSON.stringify(prior),order.amount,currency,'pending']);
      await client.query('COMMIT');
     }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}finally{if(!clientReleased)client.release();}
@@ -203,11 +209,11 @@ function registerPaymentRoutes(options) {
      }
      if(existingResponse.ok&&existing.status==='expired'){existingPending.status='expired';writeLocalStore(localOrdersFile,localOrders);}
     }
-    const prior=order.skinIds.filter(id=>(account.user.ownedSkins||[]).includes(id));
+    const prior=order.skinIds.filter(id=>orderOwnership(account.user).includes(id));
     localOrders[orderId]={orderId,userKey:account.key,productId:order.productId,skinIds:order.skinIds,priorOwned:prior,amount:order.amount,currency,status:'pending',createdAt:new Date().toISOString()};
     writeLocalStore(localOrdersFile,localOrders);
    }
-   const english=String(req.body?.language||'pt').toLowerCase()==='en',product=PAID_SKINS[order.productId];
+   const english=String(req.body?.language||'pt').toLowerCase()==='en',product=PAID_SKINS[order.productId]||PAID_COSMETICS[order.productId];
    const productName=order.productId==='boss_bundle'?(english?'Abyss Boss Collection':'Coleção dos Bosses'):(english?product.nameEn:product.name);
    const form=new URLSearchParams();
    // Hosted Checkout is the default across Stripe API versions; omit renamed ui_mode enum.
@@ -225,7 +231,7 @@ function registerPaymentRoutes(options) {
    form.set('line_items[0][price_data][currency]',currency);
    form.set('line_items[0][price_data][unit_amount]',String(order.amount));
    form.set('line_items[0][price_data][product_data][name]',productName);
-   form.set('line_items[0][price_data][product_data][description]',order.productId==='boss_bundle'?String(order.skinIds.length)+' '+(english?'remaining boss skins with gameplay abilities':'skins de boss restantes com habilidades de jogo'):(english?'Premium skin with gameplay abilities':'Skin premium com habilidades de jogo'));
+   form.set('line_items[0][price_data][product_data][description]',order.productId==='boss_bundle'?String(order.skinIds.length)+' '+(english?'remaining boss skins with gameplay abilities':'skins de boss restantes com habilidades de jogo'):(isAvatarProduct(order.productId)?(english?'Permanent visual cosmetic; no gameplay advantage':'Cosmético visual permanente, sem vantagem de combate'):(english?'Premium skin with gameplay abilities':'Skin premium com habilidades de jogo')));
    form.set('metadata[order_id]',orderId);form.set('metadata[user_key]',account.key);form.set('metadata[product_id]',order.productId);form.set('metadata[skin_ids]',order.skinIds.join(','));
    form.set('payment_intent_data[metadata][order_id]',orderId);form.set('payment_intent_data[metadata][user_key]',account.key);
    let response,session;
@@ -269,11 +275,11 @@ function registerPaymentRoutes(options) {
        const state=await client.query("SELECT state_value FROM abyssal_state WHERE state_key='users' FOR UPDATE"),stored=state.rows[0]&&state.rows[0].state_value||{},user=stored[order.user_key];
        if(user){
         const skins=Array.isArray(order.skin_ids)?order.skin_ids:[];
-        user.ownedSkins=Array.from(new Set(['default',...(user.ownedSkins||[]),...skins]));
+        grantOrder(user,skins);
         user.purchaseTitles ||= {storeSupporter:false,bossAbyssal:false};
         user.purchaseTitles.storeSupporter=true;
         if(order.product_id==='boss_bundle'&&skins.length>0)user.purchaseTitles.bossAbyssal=true;
-        if(skins.length===1)user.equippedSkin=skins[0];
+        
         await client.query("UPDATE abyssal_state SET state_value=$1::jsonb,updated_at=NOW() WHERE state_key='users'",[JSON.stringify(stored)]);
         await client.query("UPDATE abyssal_payment_orders SET status='paid',payment_intent_id=$2,updated_at=NOW() WHERE order_id=$1",[orderId,sessionPaymentIntent]);
         Object.assign(getUsers(),stored);usersChanged=true;
@@ -294,7 +300,7 @@ function registerPaymentRoutes(options) {
         const state=await client.query("SELECT state_value FROM abyssal_state WHERE state_key='users' FOR UPDATE"),stored=state.rows[0]&&state.rows[0].state_value||{},user=stored[order.user_key];
         if(user){
          const skins=Array.isArray(order.skin_ids)?order.skin_ids:[],prior=new Set(Array.isArray(order.prior_owned)?order.prior_owned:[]);
-         for(const id of skins){if(prior.has(id))continue;const other=await client.query("SELECT 1 FROM abyssal_payment_orders WHERE user_key=$1 AND order_id<>$2 AND status='paid' AND skin_ids @> $3::jsonb LIMIT 1",[order.user_key,order.order_id,JSON.stringify([id])]);if(!other.rowCount)user.ownedSkins=(user.ownedSkins||[]).filter(x=>x!==id);}
+         for(const id of skins){if(prior.has(id))continue;const other=await client.query("SELECT 1 FROM abyssal_payment_orders WHERE user_key=$1 AND order_id<>$2 AND status='paid' AND skin_ids @> $3::jsonb LIMIT 1",[order.user_key,order.order_id,JSON.stringify([id])]);if(!other.rowCount)revokeOrderItem(user,id);}
          if(!user.ownedSkins.includes(user.equippedSkin))user.equippedSkin='default';
          await client.query("UPDATE abyssal_state SET state_value=$1::jsonb,updated_at=NOW() WHERE state_key='users'",[JSON.stringify(stored)]);Object.assign(getUsers(),stored);usersChanged=true;
         }
@@ -313,22 +319,24 @@ function registerPaymentRoutes(options) {
     if((event.type==='checkout.session.completed'||event.type==='checkout.session.async_payment_succeeded')&&session&&session.payment_status==='paid'){
      const orderId=String(session.metadata&&session.metadata.order_id||'');
      const order=localOrders[orderId];
-     if(order&&order.status!=='paid'){
+     if(order&&order.status!=='paid'&&order.checkoutSessionId===session.id&&session.mode==='payment'&&Number(session.amount_total)===Number(order.amount)&&String(session.currency||'').toLowerCase()===order.currency&&session.client_reference_id===order.userKey&&session.metadata?.user_key===order.userKey&&session.metadata?.product_id===order.productId&&String(session.metadata?.skin_ids||'').split(',').filter(Boolean).sort().join(',')===(order.skinIds||[]).slice().sort().join(',')){
       const allUsers=getUsers();
       const user=allUsers[order.userKey];
       if(user){
        const skins=Array.isArray(order.skinIds)?order.skinIds:[];
-       user.ownedSkins=Array.from(new Set(['default',...(user.ownedSkins||[]),...skins]));
+       grantOrder(user,skins);
        user.purchaseTitles ||= {storeSupporter:false,bossAbyssal:false};
        user.purchaseTitles.storeSupporter=true;
        if(order.productId==='boss_bundle'&&skins.length>0)user.purchaseTitles.bossAbyssal=true;
-       if(skins.length===1)user.equippedSkin=skins[0];
+       
        order.status='paid';
        order.paymentIntentId=typeof session.payment_intent==='string'?session.payment_intent:session.payment_intent?.id||null;
        writeLocalStore(localOrdersFile,localOrders);
        usersChanged=true;
       }
      }
+    } else if(event.type==='charge.refunded'){
+     const pi=typeof session?.payment_intent==='string'?session.payment_intent:session?.payment_intent?.id;if(pi&&Number(session.amount_refunded)>=Number(session.amount)){for(const order of Object.values(localOrders)){if(order.paymentIntentId!==pi||order.status!=='paid')continue;const user=getUsers()[order.userKey];if(user){for(const id of order.skinIds||[]){if((order.priorOwned||[]).includes(id)||Object.values(localOrders).some(o=>o!==order&&o.userKey===order.userKey&&o.status==='paid'&&(o.skinIds||[]).includes(id)))continue;revokeOrderItem(user,id);}usersChanged=true;}order.status='refunded';}writeLocalStore(localOrdersFile,localOrders);}
     } else if(event.type==='checkout.session.async_payment_failed'||event.type==='checkout.session.expired'){
      const orderId=String(session&&session.metadata&&session.metadata.order_id||'');
      if(localOrders[orderId]){localOrders[orderId].status=event.type==='checkout.session.expired'?'expired':'failed';writeLocalStore(localOrdersFile,localOrders);}
@@ -339,4 +347,4 @@ function registerPaymentRoutes(options) {
   }catch(error){console.error('[payments] Webhook failed:',error.message);res.status(500).send('Webhook processing failed');}
  });
 }
-module.exports={registerPaymentRoutes,calculateOrder,verifyStripeSignature,liveSalesReady,hasPurchaseResponsibilityAcceptance,TERMS_VERSION,BOSS_SKINS,BOSS_BUNDLE_BRL,PAID_SKINS};
+module.exports={registerPaymentRoutes,calculateOrder,verifyStripeSignature,liveSalesReady,hasPurchaseResponsibilityAcceptance,TERMS_VERSION,BOSS_SKINS,BOSS_BUNDLE_BRL,PAID_SKINS,PAID_COSMETICS,grantOrder,revokeOrderItem};

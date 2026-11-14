@@ -85,3 +85,8 @@
 /* Keep the save action visibly inactive when no cosmetic change is pending. */
 #submarineWorkshop .abyss-wardrobe button:disabled{opacity:.48;cursor:default;box-shadow:none}
 #submarineWorkshop .abyss-wardrobe button:disabled:hover{background:#215e60;border-color:#83dfd4;color:#fff}
+
+#submarineWorkshop .aw-option[data-locked=true] .aw-tier{color:#f0c77e}
+#submarineWorkshop .aw-buy{background:#285e58!important;border-color:#82d8c5!important;color:#fff!important;min-height:34px}
+#submarineWorkshop .aw-buy[hidden]{display:none!important}
+#submarineWorkshop .abyss-wardrobe[data-short=true] .aw-message{display:block;max-height:3.8em;overflow:auto}
