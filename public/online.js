@@ -934,11 +934,22 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
   deleteBtn.disabled=true;
   socket.emit('delete-account',{nickname:deleteInput.value.trim()});
  });
+ const nativeFullscreen=()=>window.Capacitor?.getPlatform?.()==='android'?window.Capacitor?.Plugins?.AbyssalFullscreen:null;
+ let nativeFullscreenActive=true;
+ const fullscreenActive=()=>nativeFullscreen()?nativeFullscreenActive:Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+ window.AbyssalFullscreen=Object.freeze({isActive:fullscreenActive});
  $('fullscreenBtn')?.addEventListener('click',async()=>{
   const button=$('fullscreenBtn');
   try{
-   const isFullscreen=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
-   if(window.ABYSSAL_NATIVE_SHELL){button.title='Tela cheia gerenciada pelo aplicativo Android.';return;}
+   const isFullscreen=fullscreenActive(),nativeBridge=nativeFullscreen();
+   if(nativeBridge?.setEnabled){
+    const state=await nativeBridge.setEnabled({enabled:!isFullscreen});
+    nativeFullscreenActive=Boolean(state.active);
+    updateFullscreenButton();
+    document.dispatchEvent(new Event('abyssal-fullscreen-change'));
+    return;
+   }
+   if(window.ABYSSAL_NATIVE_SHELL&&window.Capacitor?.getPlatform?.()==='android'){button.title='Tela cheia nativa indisponível nesta versão do APK.';return;}
    if(isFullscreen){
     if(document.exitFullscreen)await document.exitFullscreen();
     else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
@@ -947,7 +958,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
     if(root.requestFullscreen)await root.requestFullscreen();
     else if(root.webkitRequestFullscreen)root.webkitRequestFullscreen();
     else throw new Error('unsupported');
-    try{if(screen.orientation?.lock)await screen.orientation.lock('landscape')}catch(_orientationError){}
+    try{if(screen.orientation?.lock&&/Android|iPhone|iPad/i.test(navigator.userAgent||''))await screen.orientation.lock('portrait')}catch(_orientationError){}
    }
   }catch(err){
    if(button)button.title='Este navegador não permite tela cheia por botão. Em iPhone/iPad, adicione o jogo à Tela de Início para abrir sem a barra do navegador.';
@@ -958,13 +969,15 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  window.__abyssalFullscreenHandlerReady=true;
  function updateFullscreenButton(){
   const button=$('fullscreenBtn');if(!button)return;
-  const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+  const active=fullscreenActive();
   button.classList.toggle('is-fullscreen',active);
   button.title=active?'Sair da tela cheia (Esc)':'Ativar tela cheia';
   button.setAttribute('aria-label',active?'Sair da tela cheia':'Ativar tela cheia');
  }
  document.addEventListener('fullscreenchange',updateFullscreenButton);
  document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
+ nativeFullscreen()?.getState?.().then(state=>{nativeFullscreenActive=Boolean(state.active);updateFullscreenButton();document.dispatchEvent(new Event('abyssal-fullscreen-change'));}).catch(()=>{});
+ updateFullscreenButton();
  [$('downloadBtn'),$('mobileDownloadTopBtn')].filter(Boolean).forEach(button=>button.addEventListener('click',()=>{if(window.AbyssalCockpitNavigation?.routeScreen?.('downloadScreen'))return;$('downloadScreen').hidden=false;}));
  $('downloadCloseBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
  $('playBrowserBtn')?.addEventListener('click',()=>{if(window.AbyssalCockpitNavigation?.isEmbedded?.('downloadScreen')){window.AbyssalCockpitNavigation.back();return;}$('downloadScreen').hidden=true});

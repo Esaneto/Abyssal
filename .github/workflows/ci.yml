@@ -221,7 +221,7 @@ jobs:
           grep -q 'registerPlugin(AbyssalUpdaterPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'registerPlugin(AbyssalFullscreenPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'controller.hide(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
-          cmp public/abyssal-avatar-base.js android/app/src/main/assets/public/abyssal-avatar-base.js 2>/dev/null || cmp public/avatar-base.js android/app/src/main/assets/public/avatar-base.js
+          cmp public/avatar-base.js android/app/src/main/assets/public/avatar-base.js
           cmp public/avatar-wardrobe.js android/app/src/main/assets/public/avatar-wardrobe.js
           cmp public/abyssal-realistic-body.js android/app/src/main/assets/public/abyssal-realistic-body.js
           cmp public/index.html android/app/src/main/assets/public/index.html
@@ -268,6 +268,17 @@ jobs:
           cd ..
           node scripts/configure-android-direct-update.cjs --disable
 
+      - name: Audit final signed APK contains the current game and native bridge
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          for asset in index.html game.js online.js client-build.js avatar-base.js avatar-wardrobe.js avatar-wardrobe.css abyssal-realistic-body.js abyssal-submarine-cockpit.js update-manager.js abyssal-admob.js; do
+            unzip -p "$APK" "assets/public/$asset" > "/tmp/abyssal-verify-$asset"
+            cmp "public/$asset" "/tmp/abyssal-verify-$asset"
+          done
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | head -n 1
       - name: Require permanent signing credentials for stable Android
         if: github.ref == 'refs/heads/main' && vars.ABYSSAL_ADMOB_TEST_MODE != 'true'
         env:
