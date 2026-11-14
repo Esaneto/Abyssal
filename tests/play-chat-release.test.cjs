@@ -25,6 +25,7 @@ test('chat UI, cache and final Play package include the moderated communication 
  assert.match(html,/role="log"/);assert.match(html,/maxlength="180"/);
  assert.match(js,/chatHistoryPending/);assert.match(js,/syncChatComposer/);assert.match(js,/text\.textContent=m\.text/);
  assert.match(css,/min-height:44px/);assert.match(css,/\.cardume-message\.is-self/);
+ assert.match(js,/document\.createElement\('details'\)/);assert.match(js,/chat-safety-toggle/);assert.match(js,/Denunciar mensagem/);assert.match(js,/Bloquear jogador/);assert.match(css,/\.chat-message-actions:not\(\[open\]\) \.chat-safety-menu/);
  assert.match(sw,/'cardume-comms\.css'/);assert.match(audit,/'cardume-comms\.css'/);assert.match(audit,/Stale or missing Play asset/);
  assert.match(audit,/REQUEST_INSTALL_PACKAGES/);
 });
