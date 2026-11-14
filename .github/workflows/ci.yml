@@ -119,6 +119,12 @@ jobs:
           node --check scripts/build-app-icons.cjs
       - name: Check JavaScript syntax and title definitions
         run: npm test
+      - name: Verify chat, moderation and Play release contracts
+        run: |
+          node --check cardume-chat.js
+          node --check chat-moderation.js
+          node --check public/online.js
+          node --test tests/cardume-comms.test.cjs tests/play-chat-release.test.cjs
       - name: Check gameplay in real Chromium desktop and mobile viewports
         # Existing legacy unit assertions can fail without obscuring real visual regressions.
         if: always() && !cancelled()
@@ -133,6 +139,7 @@ jobs:
           retention-days: 3
 
   android-api36:
+    needs: [syntax-and-tests, online-solo-live-acceptance, open-sea-regression, specimen-journal-acceptance, roxycloud-node26]
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     permissions:
       contents: write
@@ -276,7 +283,7 @@ jobs:
         run: |
           set -euo pipefail
           APK=android/app/build/outputs/apk/release/app-release.apk
-          for asset in index.html game.js online.js client-build.js avatar-base.js avatar-wardrobe.js avatar-wardrobe.css abyssal-realistic-body.js abyssal-submarine-cockpit.js update-manager.js abyssal-admob.js; do
+          for asset in index.html game.js online.js cardume-comms.css client-build.js avatar-base.js avatar-wardrobe.js avatar-wardrobe.css abyssal-realistic-body.js abyssal-submarine-cockpit.js update-manager.js abyssal-admob.js; do
             unzip -p "$APK" "assets/public/$asset" > "/tmp/abyssal-verify-$asset"
             cmp "public/$asset" "/tmp/abyssal-verify-$asset"
           done
