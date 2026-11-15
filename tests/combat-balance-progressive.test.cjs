@@ -55,15 +55,13 @@ test('server spawns use catalogue health and shared physical scale',()=>{
 });
 
 test('presets allow ten skills with exactly one shot',()=>{
-  const game=fs.readFileSync(require.resolve('../public/game.js'),'utf8');
-  const code=game.match(/function normalizeResonancePresets\(value\)\{[^\n]+/)[0];
-  const others=Array.from({length:12},(_,i)=>'skill'+i);
-  const context={BASIC_SKILL_IDS:['photon','electric',...others],RESONANCE_CATEGORIES:{shots:['photon','electric']},RESONANCE_DEFAULTS:{pve:['photon'],pvp:['electric']}};
-  vm.createContext(context);
-  vm.runInContext(code,context);
-  const result=context.normalizeResonancePresets({pve:['photon','electric',...others],pvp:others});
+  const base=require('../public/abyssal-solo-base.js');
+  const others=base.BUFFS.slice(0,12);
+  const result=base.normalizePresets({pve:['photon','electric',...others],pvp:others});
   for(const mode of ['pve','pvp']){
     assert.equal(result[mode].length,10);
-    assert.equal(result[mode].filter(id=>['photon','electric'].includes(id)).length,1);
+    assert.equal(result[mode].filter(id=>base.SHOTS.includes(id)).length,1);
   }
+  assert.equal(result.pve[0],'photon');
+  assert.equal(result.pvp[0],'electric');
 });
