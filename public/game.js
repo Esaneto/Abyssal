@@ -412,22 +412,20 @@ const SOLO_CAVERN=window.AbyssalSoloCavern;
 const PET_TACTICS=window.AbyssalPetTactics;
 const PET_HABIT_KEY='abyssalPetHabit';
 let petHabit=PET_TACTICS?.normalize?.(localStorage.getItem(PET_HABIT_KEY))||'passive';
-function setPetHabit(mode,announce=false){
+function setPetHabit(mode){
  petHabit=PET_TACTICS?.normalize?.(mode)||'passive';
  try{localStorage.setItem(PET_HABIT_KEY,petHabit);}catch(_){}
  document.querySelectorAll('[data-pet-habit]').forEach(button=>{
   const selected=button.dataset.petHabit===petHabit;
   button.classList.toggle('is-selected',selected);button.setAttribute('aria-pressed',String(selected));
  });
- const mobileHabit=$('mobilePetHabit');if(mobileHabit)mobileHabit.value=petHabit;
- if(announce)showToast('ESPÉCIME: '+({passive:'PASSIVO · COLETOR',aggressive:'AGRESSIVO · COLETOR',guardian:'PROTETOR · COLETOR'}[petHabit]));
+
 }
-document.querySelectorAll('[data-pet-habit]').forEach(button=>button.addEventListener('click',()=>setPetHabit(button.dataset.petHabit,true)));
- $('mobilePetHabit')?.addEventListener('change',e=>setPetHabit(e.target.value,true));
+document.querySelectorAll('[data-pet-habit]').forEach(button=>button.addEventListener('click',()=>setPetHabit(button.dataset.petHabit)));
 window.addEventListener('keydown',event=>{
  if(event.repeat||!document.body.classList.contains('game-active')||event.target?.matches?.('input,textarea,select'))return;
  const habit={'Digit4':'passive','Digit5':'aggressive','Digit6':'guardian'}[event.code];
- if(habit&&(!onlineMode||isClassicCavernRun())){event.preventDefault();setPetHabit(habit,true);}
+ if(habit&&(!onlineMode||isClassicCavernRun())){event.preventDefault();setPetHabit(habit);}
 });
 const SPECIMEN_RARITY=window.AbyssalSpecimenRarity;
 const SHOP_ECONOMY=window.AbyssalShopEconomy;
@@ -3717,9 +3715,16 @@ function updateAbilityButtons(force=false){
  if(!force&&now-lastAbilityUiAt<100)return;
  lastAbilityUiAt=now;
  const pulse=$('skillPulseBtn'),dash=$('skillDashBtn'),skinBtn=$('skinActiveBtn'),equipped=loadEquippedActiveSkills();
- if(pulse){const hidden=!(combatResearchUnlocked('pulse')&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'PULSO':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
- if(dash){const hidden=!(combatResearchUnlocked('dash')&&equipped.includes('dash')),disabled=!player||Boolean(player.propulsorPending);if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=(mobileViewport?(player?.propulsorEquipped?'GUARDAR':'PROPULSOR'):(player?.propulsorEquipped?'E · GUARDAR PROPULSOR':'E · PROPULSOR'))+' · '+Math.round(window.AbyssalPropulsor.charge(player?.propulsorEnergy))+'%';if(dash.textContent!==label)dash.textContent=label;dash.setAttribute('aria-pressed',String(Boolean(player?.propulsorEquipped)));}
- if(skinBtn){const spec=currentSkinActiveSpec(),trailing=Boolean(player&&Number(player.skinTrailUntil)>performance.now()),infused=Boolean(player&&Number(player.skinWeaponBuffUntil)>performance.now()),disabled=!player||(isRiftRun()||onlineRoomMode==='pvp')&&!spec||!specimenAlive()||player.skinActiveCooldown>0||trailing||infused;skinBtn.hidden=!player;skinBtn.disabled=disabled;const label=player&&!specimenAlive()?(mobileViewport?`ESPÉCIME · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`:`R · ESPÉCIME ABATIDO · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`):infused?(mobileViewport?`ARMA ${player.skinWeaponBuffKind==='paralysis'?'ELÉTRICA':'VENENOSA'} · ${((player.skinWeaponBuffUntil-performance.now())/1000).toFixed(1)}s`:`R · ARMA ${player.skinWeaponBuffKind==='paralysis'?'ELÉTRICA':'VENENOSA'} · ${((player.skinWeaponBuffUntil-performance.now())/1000).toFixed(1)}s`):trailing?(mobileViewport?`RASTRO ATIVO · ${((player.skinTrailUntil-performance.now())/1000).toFixed(1)}s`:`R · RASTRO ATIVO · ${((player.skinTrailUntil-performance.now())/1000).toFixed(1)}s`):player&&player.skinActiveCooldown>0?(mobileViewport?`${spec?.name||'HABILIDADE'} · ${player.skinActiveCooldown.toFixed(1)}s`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'} · ${player.skinActiveCooldown.toFixed(1)}s`):(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'}`);const displayLabel=isOpenSeaRun()?(player?.skinActiveCooldown>0?'SONAR · '+player.skinActiveCooldown.toFixed(1)+'s':(mobileViewport?'R · SONAR':'R · SONAR DO ESPÉCIME')):label;const shortLabel=mobileViewport?(player&&!specimenAlive()?'PET '+Number(player?.specimen?.respawnTimer||0).toFixed(1)+'s':player?.skinActiveCooldown>0?'PET '+player.skinActiveCooldown.toFixed(1)+'s':trailing||infused?'PET ATIVO':isOpenSeaRun()?'SONAR':'PET'):displayLabel;skinBtn.setAttribute('aria-label',displayLabel);if(skinBtn.textContent!==shortLabel)skinBtn.textContent=shortLabel;skinBtn.style.borderColor=spec?.color||'';}
+ const render=window.AbyssalHudLayout.renderAbilityButton;
+ if(pulse){const hidden=!(combatResearchUnlocked('pulse')&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;render(pulse,{icon:'pulse',key:'Q',label:'Pulso de maré',seconds:player?.pulseCooldown});}
+ if(dash){const hidden=!(combatResearchUnlocked('dash')&&equipped.includes('dash')),disabled=!player||Boolean(player.propulsorPending);if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const charge=Math.round(window.AbyssalPropulsor.charge(player?.propulsorEnergy));render(dash,{icon:'dash',key:'E',label:player?.propulsorEquipped?'Guardar propulsor':'Propulsor',charge});dash.setAttribute('aria-pressed',String(Boolean(player?.propulsorEquipped)));}
+ if(skinBtn){const spec=currentSkinActiveSpec(),trailing=Boolean(player&&Number(player.skinTrailUntil)>now),infused=Boolean(player&&Number(player.skinWeaponBuffUntil)>now),alive=Boolean(player&&specimenAlive()),disabled=!player||(isRiftRun()||onlineRoomMode==='pvp')&&!spec||!alive||player.skinActiveCooldown>0||trailing||infused;
+ skinBtn.hidden=!player;skinBtn.disabled=disabled;
+ const seconds=!alive?Number(player?.specimen?.respawnTimer||0):infused?(player.skinWeaponBuffUntil-now)/1000:trailing?(player.skinTrailUntil-now)/1000:player?.skinActiveCooldown;
+ const icon=isOpenSeaRun()?'sonar':(spec?.id||SKIN_STANDARD?.activeSpec?.(equippedSkin)?.id||'petAttack');
+ const label=!alive?'Espécime abatido':isOpenSeaRun()?'Sonar do espécime':spec?.name||'Habilidade do espécime';
+ render(skinBtn,{icon,key:'R',label,seconds});skinBtn.style.borderColor=spec?.color||'';}
+
 }
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
 function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(node&&node.style.width!==width)node.style.width=width;}
@@ -4503,12 +4508,13 @@ function drawHostileSpeciesEffect(enemy,t){
  ctx.restore();
 }
 const specimenPortraits=new Map(),profilePortraitAppearance=new WeakMap();
+const portraitVisibilityObserver=typeof ResizeObserver==='function'?new ResizeObserver(()=>scheduleSpecimenPortraits()):null;
 function registerSpecimenPortrait(canvas,skinId,appearance=null,gender=null){
- if(!canvas?.getContext)return;specimenPortraits.set(canvas,String(skinId||equippedSkin));if(canvas.id==='profileSpecimenCanvas')profilePortraitAppearance.set(canvas,{appearance,gender});scheduleSpecimenPortraits();
+ if(!canvas?.getContext)return;if(!specimenPortraits.has(canvas))portraitVisibilityObserver?.observe(canvas);specimenPortraits.set(canvas,String(skinId||equippedSkin));if(canvas.id==='profileSpecimenCanvas')profilePortraitAppearance.set(canvas,{appearance,gender});scheduleSpecimenPortraits();
 }
 function hasVisibleSpecimenPortrait(){
  for(const canvas of [...specimenPortraits.keys()]){
-  if(!canvas?.isConnected){specimenPortraits.delete(canvas);continue;}
+  if(!canvas?.isConnected){specimenPortraits.delete(canvas);portraitVisibilityObserver?.unobserve(canvas);continue;}
   if(canvas.getClientRects().length&&canvas.offsetWidth&&canvas.offsetHeight)return true;
  }
  return false;
@@ -4520,7 +4526,7 @@ function renderSpecimenPortraits(t){
  if(document.hidden||document.body.classList.contains('game-active')){registerSpecimenPortrait.running=false;return;}
  let visiblePortraits=0;
  for(const [canvas,skinId] of [...specimenPortraits]){
-  if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
+  if(!canvas.isConnected){specimenPortraits.delete(canvas);portraitVisibilityObserver?.unobserve(canvas);continue;}
   if(!canvas.getClientRects().length||!canvas.offsetWidth||!canvas.offsetHeight)continue;
   visiblePortraits++;
   const surface=preparePreviewCanvas(canvas);if(!surface)continue;const {c,w,h}=surface,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);

@@ -220,14 +220,14 @@ html.abyssal-handheld.abyssal-handheld-landscape #menuScreen.expedition-hub .hub
 }
 
 /* V250: compact icon-only resonance rail and fusion nodes. */
-#selectedSkillsPanel{width:64px!important;min-width:0!important;max-width:64px!important;max-height:46dvh!important;padding:4px!important;overflow-y:auto!important;overflow-x:hidden!important}
-#selectedSkillsPanel .selected-skills-title{display:none!important}
-#selectedSkillsList{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:4px!important;width:100%!important}
-#selectedSkillsPanel .selected-skill-row{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:3px!important;width:100%!important;min-width:0!important;min-height:38px!important;height:38px!important;padding:3px!important;border-radius:6px!important}
-#selectedSkillsPanel .selected-skill-row .abyss-tree-node-icon{display:grid!important;place-items:center!important;width:27px!important;height:27px!important;flex:0 0 27px!important;background:none!important}
-#selectedSkillsPanel .selected-skill-row svg{width:25px!important;height:25px!important}
+body.game-active #gameShell #gameplayOverlayRoot #selectedSkillsPanel{width:48px!important;min-width:48px!important;max-width:48px!important;max-height:46dvh!important;padding:2px!important;box-sizing:border-box!important;overflow-y:auto!important;overflow-x:hidden!important;pointer-events:auto!important}
+body.game-active #selectedSkillsPanel:has(#selectedSkillsList:empty){display:none!important}
+#selectedSkillsList{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:2px!important;width:100%!important;max-height:none!important;overflow:visible!important}
+#selectedSkillsPanel .selected-skill-row{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:3px!important;width:100%!important;min-width:0!important;min-height:32px!important;height:32px!important;padding:2px!important;border-radius:5px!important}
+#selectedSkillsPanel .selected-skill-row .abyss-tree-node-icon{display:grid!important;place-items:center!important;width:20px!important;height:20px!important;flex:0 0 20px!important;background:none!important}
+#selectedSkillsPanel .selected-skill-row svg{width:19px!important;height:19px!important}
 #selectedSkillsPanel .selected-skill-row strong{font:800 12px/1 system-ui!important;color:#f0dfb0!important}
-html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #selectedSkillsPanel{width:60px!important;max-width:60px!important;min-width:0!important;max-height:19dvh!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell #gameplayOverlayRoot #selectedSkillsPanel{width:48px!important;max-width:48px!important;min-width:48px!important;max-height:19dvh!important}
 html.abyssal-handheld.abyssal-handheld-landscape body.game-active.mobile-game-active #gameplayOverlayRoot #selectedSkillsPanel{max-height:23dvh!important}
 #resonanceFusionGuide .resonance-fusion-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(58px,1fr))!important;gap:8px!important}
 #resonanceFusionGuide .resonance-fusion-recipe{display:grid!important;place-items:center!important;height:58px!important;min-height:58px!important;max-height:58px!important;padding:5px!important;border:1px solid #987c4d!important;background:#1b2532!important;border-radius:8px!important}
@@ -238,3 +238,16 @@ html.abyssal-handheld.abyssal-handheld-landscape body.game-active.mobile-game-ac
 #resonanceFusionGuide .resonance-fusion-detail[hidden]{display:none!important}
 #resonanceFusionGuide .resonance-fusion-detail strong{color:#f3d278}
 #resonanceFusionGuide .resonance-fusion-detail small{color:#a9d6cf}
+
+/* Active abilities: shared fixed-size glyph slots, with no text-driven layout shifts. */
+html body.game-active #gameShell #gameplayOverlayRoot #activeAbilities .active-ability:not([hidden]){position:relative;display:grid!important;place-items:center!important;width:48px!important;min-width:48px!important;max-width:48px!important;height:48px!important;min-height:48px!important;max-height:48px!important;padding:4px!important;box-sizing:border-box!important;flex:0 0 48px!important;line-height:1!important;letter-spacing:0!important;overflow:visible!important;pointer-events:auto!important}
+#activeAbilities .ability-glyph{display:grid;place-items:center;width:28px;height:28px}
+#activeAbilities .ability-glyph .abyss-tree-node-icon{display:grid;place-items:center;width:28px!important;height:28px!important;background:none!important}
+#activeAbilities .ability-glyph svg{width:25px!important;height:25px!important}
+#activeAbilities .ability-glyph[hidden],#activeAbilities .ability-timer[hidden]{display:none!important}
+#activeAbilities .ability-timer{font:800 13px/1 system-ui,sans-serif;color:#f2fbff;font-variant-numeric:tabular-nums}
+#activeAbilities .ability-key{position:absolute;top:-5px;right:-4px;min-width:14px;padding:2px 3px;border:1px solid #56858f;border-radius:4px;background:#112938;color:#e0faff;font:800 10px/1 system-ui,sans-serif;box-sizing:border-box}
+html.abyssal-handheld #activeAbilities .ability-key,body.mobile-game-active #activeAbilities .ability-key{display:none!important}
+#activeAbilities .ability-charge{position:absolute;bottom:2px;left:0;right:0;text-align:center;font:800 8px/1 system-ui,sans-serif;color:#b8f4ec}
+#activeAbilities #skillDashBtn .ability-glyph{transform:translateY(-4px)}
+#activeAbilities #skillDashBtn[aria-pressed=true]{border-color:#80f7d5!important;box-shadow:0 0 12px #54e8b66b!important}
