@@ -1,0 +1,48 @@
+/* V247: viewport containment, independent mobile zones and compact command bridge. */
+html.abyssal-handheld{--mobile-touch:40px;--menu-unit:clamp(30px,5.5vmin,40px);width:100%;height:100%;overflow:hidden!important;overscroll-behavior:none}
+html.abyssal-handheld body{position:fixed!important;inset:0!important;margin:0!important;width:var(--abyssal-viewport-w,100vw)!important;height:var(--abyssal-viewport-h,100dvh)!important;min-width:0!important;min-height:0!important;max-width:none!important;overflow:hidden!important;overscroll-behavior:none}
+html.abyssal-handheld #app{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;box-sizing:border-box!important;padding:0!important;margin:0!important;overflow:hidden!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell{position:fixed!important;inset:0!important;width:100%!important;height:var(--abyssal-viewport-h,100dvh)!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important}
+html.abyssal-handheld body.game-active #game{display:block!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop{position:fixed!important;inset:0!important;width:100%!important;height:var(--abyssal-viewport-h,100dvh)!important;max-width:none!important;max-height:none!important;min-height:0!important;min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+html.abyssal-handheld #submarineWorkshop .abyss-cockpit-canvas{width:100%!important;height:100%!important;inset:0!important}
+html.abyssal-handheld #submarineWorkshop .abyss-cockpit-console{box-sizing:border-box!important;min-width:0!important;min-height:0!important}
+html.abyssal-handheld #submarineWorkshop .abyss-control-deck{gap:4px!important;padding:2px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-control-key{min-height:var(--menu-unit)!important;height:auto!important;padding:4px 3px!important;font-size:10px!important;line-height:1.15!important}
+html.abyssal-handheld #submarineWorkshop .abyss-control-key svg{width:16px!important;height:16px!important}
+html.abyssal-handheld #submarineWorkshop .cockpit-command{min-width:0!important;min-height:var(--menu-unit)!important;height:var(--menu-unit)!important;padding:3px!important;gap:2px!important}
+html.abyssal-handheld #submarineWorkshop .cockpit-command svg{width:17px!important;height:17px!important}
+html.abyssal-handheld #submarineWorkshop .cockpit-command span{font-size:8px!important;line-height:1!important}
+html.abyssal-handheld #submarineWorkshop .abyss-cockpit-utilities>button{min-height:var(--menu-unit)!important;height:var(--menu-unit)!important;padding:3px!important;font-size:10px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-cockpit-utilities>button svg{width:19px!important;height:19px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-visor-heading{min-height:36px!important;padding:3px 6px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-visor-heading strong{font-size:14px!important;line-height:1.1!important}
+html.abyssal-handheld #submarineWorkshop .abyss-visor-heading small,html.abyssal-handheld #submarineWorkshop .abyss-visor-heading>span{font-size:9px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-visor-body{padding:5px!important;min-width:0!important;overflow-x:hidden!important;overflow-y:auto!important}
+html.abyssal-handheld #submarineWorkshop .abyss-visor-body :is(h2,h3){font-size:14px!important;line-height:1.15!important;margin:0 0 3px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-visor-body p{font-size:11px!important;line-height:1.25!important;margin:3px 0!important}
+html.abyssal-handheld #submarineWorkshop .abyss-visor-body :is(.submarine-console-card,.abyss-visor-card){min-height:0!important;padding:6px!important;gap:4px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-visor-body :is(button,select):not(.hud-editor-piece){min-height:34px!important;padding:4px 6px!important;font-size:11px!important;line-height:1.2!important;max-width:100%;box-sizing:border-box}
+html.abyssal-handheld #submarineWorkshop .abyss-visor-body :is(input:not([type=range],[type=checkbox],[type=radio],[type=hidden]),textarea){font-size:16px!important;min-height:36px!important;box-sizing:border-box}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .mobile-cockpit-back{flex:0 0 36px!important;width:36px!important;height:36px!important;min-height:36px!important;font-size:20px!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body :is(.shop-filter-tabs,.shop-rarity-filters,.abyss-lab-subnav){flex-wrap:wrap!important;overflow-x:hidden!important;gap:3px!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body :is(.shop-filter-tabs,.shop-rarity-filters,.abyss-lab-subnav)>*{flex:0 1 auto!important;white-space:normal!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe :is(.aw-mobile-tools,.aw-mobile-catalog)>select{height:36px!important;min-height:36px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage{grid-template-rows:minmax(0,1fr) 40px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-footer>button{min-height:40px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-option{min-height:52px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-search-input{height:36px!important}
+html.abyssal-handheld #submarineWorkshop .hud-editor{gap:4px!important;padding:2px!important}
+html.abyssal-handheld #submarineWorkshop .hud-editor-note{font-size:10px!important;line-height:1.2!important}
+html.abyssal-handheld #submarineWorkshop .hud-editor-toolbar,html.abyssal-handheld #submarineWorkshop .hud-editor-actions{gap:4px!important}
+html.abyssal-handheld #submarineWorkshop .hud-editor-toolbar select{flex:1 1 90px!important}
+html.abyssal-handheld #submarineWorkshop .hud-editor-toolbar select[aria-label="Modo de jogo"]{flex:1 1 100%!important}
+html.abyssal-handheld #submarineWorkshop .hud-editor-actions button{flex:1 1 85px!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-console{inset:calc(var(--mobile-safe-top) + 39px) var(--mobile-safe-right) calc(var(--mobile-safe-bottom) + 39px) var(--mobile-safe-left)!important}
+html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) :is(.abyss-cockpit-chrome,.abyss-cockpit-top-actions,.abyss-cockpit-utilities){height:36px!important;min-height:0!important}
+html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .cockpit-command{flex:0 1 36px!important;min-width:30px!important}
+html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) :is(.abyss-cockpit-help,.abyss-cockpit-exit){height:36px!important;min-height:36px!important;min-width:36px!important;max-width:36px!important;flex:0 0 36px!important}
+html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-utilities>button{min-height:36px!important;height:36px!important;max-height:36px!important}
+html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .hud-editor-stage{width:min(100%,620px,calc(52dvh * var(--hud-preview-ratio,2.16)))!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell>.modal-screen:not([hidden]){max-height:var(--abyssal-viewport-h,100dvh)!important;overflow-x:hidden!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell>.modal-screen:not([hidden])>.modal-card{max-height:calc(var(--abyssal-viewport-h,100dvh) - 16px)!important;overflow-x:hidden!important}

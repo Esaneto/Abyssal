@@ -53,3 +53,11 @@ html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body 
 #submarineWorkshop .hud-editor-stage .hud-editor-piece:is([data-item="pause"],[data-item="fire"],[data-item="move"],[data-item="aim"]){border-radius:50%}
 html.abyssal-installed-android.abyssal-handheld:not(.abyssal-handheld-landscape) body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-top-actions{position:absolute!important;inset:auto!important;top:6px!important;left:50%!important;width:66%!important;transform:translateX(-50%)!important;justify-content:center!important;gap:4px!important}
 html.abyssal-installed-android.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-top-actions{justify-content:center!important}
+
+/* V247: actual DOM at reference viewport, scaled uniformly into the editor. */
+#submarineWorkshop .hud-editor-stage{box-sizing:border-box;min-height:0!important;max-height:none!important;width:min(100%,620px,calc(62dvh * var(--hud-preview-ratio,1.7778)))!important;aspect-ratio:var(--hud-preview-ratio,1.7778)}
+#submarineWorkshop .hud-editor-stage[data-profile=portrait]{width:min(100%,300px,calc(65dvh * var(--hud-preview-ratio,.5625)))!important}
+.hud-editor-live-preview{position:absolute!important;left:0!important;top:0!important;border:0!important;max-width:none!important;max-height:none!important;transform-origin:top left;pointer-events:none;z-index:0}
+#submarineWorkshop .hud-editor-piece{box-sizing:border-box!important;min-height:0!important;min-width:0!important;max-width:none!important;max-height:none!important}
+#submarineWorkshop .hud-editor-stage[data-measured=true] .hud-editor-piece[data-live=true]{background:transparent!important;color:transparent!important;border:1px dashed #79b2bc66!important;box-shadow:none!important}
+#submarineWorkshop .hud-editor-stage[data-measured=true] .hud-editor-piece[data-live=true][aria-pressed=true]{outline:2px solid #ffd16b!important;background:#ffd16b12!important}
