@@ -7,10 +7,10 @@ const cores=navigator.hardwareConcurrency||8;let lowPowerRendering=false,backgro
 let hostileSpritePaintFrame=-1,hostileSpritePaintsThisFrame=0;
 const ADAPTIVE_QUALITY=[{name:'LEVE',dpr:.75},{name:'MÉDIO',dpr:1},{name:'ULTRA',dpr:Infinity}];
 const MOBILE_DPR_CAPS=[1.25,1.75,2.5];
-function savedGraphicsLevel(){try{const v=localStorage.getItem('abyssalGraphicsQuality');return v==='0'?0:v==='1'?1:v==='2'?2:mobileViewport?1:2;}catch(_){return mobileViewport?1:2;}}
-let adaptiveQualityLevel=savedGraphicsLevel(),adaptiveQualityCeiling=adaptiveQualityLevel,adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr,adaptiveFrameCost=0,adaptiveFrameCount=0;
+function savedGraphicsPreference(){try{const v=localStorage.getItem('abyssalGraphicsQuality');return ['0','1','2','auto'].includes(v)?v:'auto';}catch(_){return 'auto';}}
+let graphicsPreference=savedGraphicsPreference(),adaptiveQualityLevel=graphicsPreference==='auto'?1:Number(graphicsPreference),adaptiveQualityCeiling=graphicsPreference==='auto'?2:adaptiveQualityLevel,adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr,adaptiveFrameCost=0,adaptiveFrameCount=0;
 lowPowerRendering=adaptiveQualityLevel===0;
-function graphicsDpr(){const nativeDpr=Math.max(1,window.devicePixelRatio||1),cap=mobileViewport?MOBILE_DPR_CAPS[adaptiveQualityCeiling]:Math.max(1,ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr),pixelBudget=mobileViewport?4000000:16777216;return Math.max(.5,Math.min(nativeDpr,cap,4096/viewW,4096/viewH,Math.sqrt(pixelBudget/(viewW*viewH))));}
+function graphicsDpr(){const nativeDpr=Math.max(1,window.devicePixelRatio||1),cap=mobileViewport?MOBILE_DPR_CAPS[adaptiveQualityLevel]:[1,1.5,Infinity][adaptiveQualityLevel],pixelBudget=mobileViewport?4000000:16777216;return Math.max(.5,Math.min(nativeDpr,cap,4096/viewW,4096/viewH,Math.sqrt(pixelBudget/(viewW*viewH))));}
 const $ = id => document.getElementById(id);
 const screens = ['menuScreen','upgradeScreen','pauseScreen','gameOverScreen'];
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -3824,8 +3824,8 @@ function pauseGame(){
  if(!onlineMode){gameState='paused';window.AbyssalAudio?.stopEffects();}
  $('diveSettingsKicker').textContent=onlineMode?'MERGULHO COOPERATIVO':'SINAL SUSPENSO';
  $('diveSettingsTitle').innerHTML=onlineMode?'AJUSTES DO<br><em>MERGULHO</em>':'PAUSA NAS<br><em>PROFUNDEZAS</em>';
- $('diveSettingsCopy').textContent=onlineMode?'A partida continua enquanto você ajusta o áudio.':'Ajuste o áudio ou retorne ao mergulho.';
- syncDiveVolumeSettings();$('pauseScreen').hidden=false;$('pauseBtn').hidden=true;
+ $('diveSettingsCopy').textContent=onlineMode?'A partida continua enquanto você ajusta áudio e gráficos.':'Ajuste áudio e gráficos ou retorne ao mergulho.';
+ syncDiveVolumeSettings();syncDiveGraphics();$('pauseScreen').hidden=false;$('pauseBtn').hidden=true;
 }
 document.getElementById('mobilePauseBtn')?.addEventListener('click',pauseGame);
 function resumeGame(){
@@ -3962,7 +3962,7 @@ function drawAbyssalCaveMap(t){
 }
 function drawBackground(t){
  if(drawAbyssalCaveMap(t))return;
- if(isClassicCavernRun()&&SOLO_CAVERN){SOLO_CAVERN.paint(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,W,H,mobileViewport,adaptiveQualityCeiling===2);return;}
+ if(isClassicCavernRun()&&SOLO_CAVERN){SOLO_CAVERN.paint(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,W,H,mobileViewport,adaptiveQualityLevel===2);return;}
  // Static gradients are created once per canvas size/zoom instead of allocating them every frame.
  if(!backgroundGradientCache){backgroundGradientCache=ctx.createRadialGradient(W*.5,H*.45,10,W*.5,H*.45,Math.max(W,H)*.82);backgroundGradientCache.addColorStop(0,'#0d2a39');backgroundGradientCache.addColorStop(.34,'#071a2b');backgroundGradientCache.addColorStop(.68,'#03111f');backgroundGradientCache.addColorStop(1,'#01040a');}
  if(!backgroundBloomCache){backgroundBloomCache=ctx.createRadialGradient(W*.79,H*.62,2,W*.79,H*.62,560);backgroundBloomCache.addColorStop(0,'rgba(145,25,70,.12)');backgroundBloomCache.addColorStop(.42,'rgba(91,29,95,.06)');backgroundBloomCache.addColorStop(1,'rgba(1,5,12,0)');}
@@ -5037,15 +5037,16 @@ function recordGameFrame(startedAt,endedAt,updateMs,drawMs){
 function applyAdaptiveQuality(level,reason='runtime'){
  const next=Number(level);if(!Number.isInteger(next)||next<0||next>2)return;if(next===adaptiveQualityLevel&&reason!=='user-preference')return;
  adaptiveQualityLevel=next;adaptiveDprScale=ADAPTIVE_QUALITY[next].dpr;lowPowerRendering=next===0;
- // Mobile adaptation reduces effects, not the player's chosen framebuffer density.
+ // Only automatic mode changes the effective rendering tier; HUD stays in CSS pixels.
  dpr=graphicsDpr();
  const pw=Math.max(1,Math.floor(viewW*dpr)),ph=Math.max(1,Math.floor(viewH*dpr));if(canvas.width!==pw||canvas.height!==ph){canvas.width=pw;canvas.height=ph;}canvas.style.width=viewW+'px';canvas.style.height=viewH+'px';
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  backgroundGradientCache=null;backgroundBloomCache=null;
  window.dispatchEvent(new CustomEvent('abyssal-quality-change',{detail:{level:next,name:ADAPTIVE_QUALITY[next].name,reason,dpr}}));
 }
+function resetAdaptivePerformance(){adaptiveQualityLastCheck=0;adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;adaptiveFrameCost=0;adaptiveFrameCount=0;}
 function updateAdaptivePerformance(now){
- if(!mobileViewport||!(gameState==='playing'||(onlineMode&&gameState==='upgrade'))){adaptiveQualityLastCheck=0;adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;adaptiveFrameCost=0;adaptiveFrameCount=0;return;}
+ if(graphicsPreference!=='auto'||document.hidden||abyssalTutorialActive||!(gameState==='playing'||(onlineMode&&gameState==='upgrade'))){resetAdaptivePerformance();return;}
  // Use whole-window measured work and actual delivered FPS; never alter simulation or network cadence.
  if(!adaptiveQualityLastCheck){adaptiveQualityLastCheck=now;return;}
  adaptiveFrameCost+=gameLastUpdateMs+gameLastDrawMs;adaptiveFrameCount++;
@@ -5058,7 +5059,21 @@ function updateAdaptivePerformance(now){
  if(adaptiveQualityBadWindows>=2&&adaptiveQualityLevel>0){applyAdaptiveQuality(adaptiveQualityLevel-1,'mobile-load');adaptiveQualityBadWindows=0;}
  else if(adaptiveQualityGoodWindows>=8&&adaptiveQualityLevel<adaptiveQualityCeiling){applyAdaptiveQuality(adaptiveQualityLevel+1,'mobile-recovery');adaptiveQualityGoodWindows=0;}
 }
-window.AbyssalAdaptivePerformance={snapshot:()=>({level:adaptiveQualityLevel,ceiling:adaptiveQualityCeiling,automatic:mobileViewport,name:ADAPTIVE_QUALITY[adaptiveQualityCeiling].name,effectsLevel:adaptiveQualityLevel,dpr:Number(dpr.toFixed(2)),fps:gameFrameFps}),setLevel:level=>applyAdaptiveQuality(level,'manual-diagnostic'),setPreference:level=>{const n=Number(level);if(!Number.isInteger(n)||n<0||n>2)return;adaptiveQualityCeiling=n;adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;try{localStorage.setItem('abyssalGraphicsQuality',String(n));}catch(_){}applyAdaptiveQuality(n,'user-preference');}};
+function setGraphicsPreference(value){
+ const preference=String(value);if(!['auto','0','1','2'].includes(preference))return;
+ graphicsPreference=preference;adaptiveQualityCeiling=preference==='auto'?2:Number(preference);
+ resetAdaptivePerformance();
+ try{localStorage.setItem('abyssalGraphicsQuality',preference);}catch(_){}
+ applyAdaptiveQuality(preference==='auto'?adaptiveQualityLevel:Number(preference),'user-preference');
+ syncDiveGraphics();
+}
+window.AbyssalAdaptivePerformance={snapshot:()=>({preference:graphicsPreference,level:adaptiveQualityLevel,ceiling:adaptiveQualityCeiling,automatic:graphicsPreference==='auto',name:ADAPTIVE_QUALITY[adaptiveQualityLevel].name,effectsLevel:adaptiveQualityLevel,dpr:Number(dpr.toFixed(2)),fps:gameFrameFps}),setLevel:level=>{if(graphicsPreference==='auto')applyAdaptiveQuality(level,'manual-diagnostic');},setPreference:setGraphicsPreference};
+function syncDiveGraphics(){
+ const select=$('diveGraphicsQuality'),status=$('diveGraphicsStatus');if(select)select.value=graphicsPreference;
+ if(status)status.textContent=(graphicsPreference==='auto'?'Automática · ':'Fixa · ')+ADAPTIVE_QUALITY[adaptiveQualityLevel].name;
+}
+$('diveGraphicsQuality')?.addEventListener('change',event=>setGraphicsPreference(event.target.value));
+window.addEventListener('abyssal-quality-change',syncDiveGraphics);
 function flushGameplayNetworkFrame(dt){
  if(!onlineMode||!window.AbyssalOnline||!player)return;
  gameplayFrameBudget.networkFlushes++;flushOnlineDamageBatch();window.AbyssalOnline.sendPosition({x:player.x,y:player.y,angle:player.angle});sendWorldSnapshot(dt);
@@ -5068,7 +5083,7 @@ function getAbyssalPerformanceSnapshot(){
  const samples=[];for(let i=0;i<gameFrameSampleCount;i++)samples.push(gameFrameSamples[i]);samples.sort((a,b)=>a-b);
  const p95=samples.length?samples[Math.min(samples.length-1,Math.ceil(samples.length*.95)-1)]:0;
  const memory=performance.memory?.usedJSHeapSize;
- return {fps:gameFrameFps,graphics:window.AbyssalAdaptivePerformance.snapshot(),canvasPixels:canvas.width*canvas.height,lastUpdateMs:Number(gameLastUpdateMs.toFixed(2)),lastDrawMs:Number(gameLastDrawMs.toFixed(2)),frameP95Ms:Number(p95.toFixed(2)),maxFrameMs:Number(gameMaxFrameMs.toFixed(2)),longTaskCount:gameLongTaskCount,maxLongTaskMs:Number(gameMaxLongTaskMs.toFixed(2)),inpMs:Number(gameInpMs.toFixed(1)),entities:{enemies:enemies.length,orbs:orbs.length,projectiles:projectiles.length,particles:particles.length,effects:effects.length},frameBudget:{faunaThink:gameplayFrameBudget.faunaThink,faunaThinkCap:faunaThinkBudget(),particleSpawns:gameplayFrameBudget.particleSpawns,particleSpawnCap:frameParticleSpawnBudget(),networkFlushes:gameplayFrameBudget.networkFlushes},network:window.AbyssalOnline?.positionDiagnostics?.()||null,heapUsedMb:Number.isFinite(memory)?Number((memory/1048576).toFixed(1)):null};
+ return {mode:onlineMode?onlineRoomMode:requestedRunMode,gameState,subsystems:{openSea:isOpenSeaRun()&&gameState==='playing',rift:isRiftRun()&&gameState==='playing',sonarPolling:window.AbyssalSonarMiniMap?.isRunning?.()||false},fps:gameFrameFps,graphics:window.AbyssalAdaptivePerformance.snapshot(),canvasPixels:canvas.width*canvas.height,lastUpdateMs:Number(gameLastUpdateMs.toFixed(2)),lastDrawMs:Number(gameLastDrawMs.toFixed(2)),frameP95Ms:Number(p95.toFixed(2)),maxFrameMs:Number(gameMaxFrameMs.toFixed(2)),longTaskCount:gameLongTaskCount,maxLongTaskMs:Number(gameMaxLongTaskMs.toFixed(2)),inpMs:Number(gameInpMs.toFixed(1)),entities:{enemies:enemies.length,orbs:orbs.length,projectiles:projectiles.length,particles:particles.length,effects:effects.length},frameBudget:{faunaThink:gameplayFrameBudget.faunaThink,faunaThinkCap:faunaThinkBudget(),particleSpawns:gameplayFrameBudget.particleSpawns,particleSpawnCap:frameParticleSpawnBudget(),networkFlushes:gameplayFrameBudget.networkFlushes},network:window.AbyssalOnline?.positionDiagnostics?.()||null,heapUsedMb:Number.isFinite(memory)?Number((memory/1048576).toFixed(1)):null};
 }
 window.AbyssalPerformance={snapshot:getAbyssalPerformanceSnapshot};
 if(typeof PerformanceObserver!=='undefined'){
@@ -5117,7 +5132,7 @@ function loop(t){
  scheduleGameLoop();
 }
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden){syncPropulsorAudio(performance.now(),false);stopGameLoop();return;}
+ if(document.hidden){syncPropulsorAudio(performance.now(),false);stopGameLoop();resetAdaptivePerformance();return;}
  last=performance.now();scheduleGameLoop();
 });
 function coords(e){const r=canvas.getBoundingClientRect();return{x:cameraX+(e.clientX-r.left)/worldZoom,y:cameraY+(e.clientY-r.top)/worldZoom}}
@@ -6115,13 +6130,12 @@ window.addEventListener('abyssal-purchase-result',e=>{
   }
 });
 function saveCosmeticsLocalOnly(){localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));}
-renderShop();
-
+// Shop content is constructed on demand when the catalogue is opened.
 initNotifSystem();resize();
 const gameplayResizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(()=>{if(document.body.classList.contains('game-active'))resize();}):null;
 gameplayResizeObserver?.observe($('gameShell'));
 gameState='menu';scheduleGameLoop();
-SOLO_CAVERN?.prepareWorldArt?.(4800,3000,Math.max(1,Math.ceil(graphicsDpr()*desiredWorldZoom())),()=>gameState==='menu'&&!document.hidden,mobileViewport&&adaptiveQualityCeiling<2);
+SOLO_CAVERN?.prepareWorldArt?.(4800,3000,Math.max(1,Math.ceil(graphicsDpr()*desiredWorldZoom())),()=>gameState==='menu'&&!document.hidden,mobileViewport&&adaptiveQualityLevel<2);
 
 const endDiveButton=document.createElement('button');endDiveButton.id='endDiveBtn';endDiveButton.type='button';endDiveButton.textContent='ENCERRAR MERGULHO';endDiveButton.style.cssText='position:absolute;right:18px;top:72px;z-index:8;border:1px solid rgba(255,130,160,.55);border-radius:8px;padding:8px 10px;background:rgba(30,10,25,.78);color:#ffd6e0;font:600 10px Manrope,system-ui;letter-spacing:.08em;cursor:pointer;display:none';document.getElementById('gameShell').appendChild(endDiveButton);
 endDiveButton.addEventListener('click',()=>{if(['playing','paused','upgrade'].includes(gameState)){ $('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;endGame('voluntary');}});

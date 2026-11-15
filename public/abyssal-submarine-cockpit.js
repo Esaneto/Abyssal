@@ -30,8 +30,8 @@
    note(page,'Ajuste música e efeitos. As preferências também são usadas durante o mergulho.');
   }else if(name==='filter'){
    const quality=window.AbyssalAdaptivePerformance;
-   page.append(field('Qualidade gráfica',[['0','Leve'],['1','Médio'],['2','Ultra']],String(quality?.snapshot().level??2),value=>quality?.setPreference(Number(value))));
-   note(page,'Leve: menos partículas, brilhos e resolução. Médio: resolução normal e efeitos moderados. Ultra: resolução nativa e efeitos completos. A escolha é salva neste dispositivo e não altera a jogabilidade.');
+   page.append(field('Qualidade gráfica',[['auto','Automática (recomendada)'],['0','Leve'],['1','Médio'],['2','Ultra']],String(quality?.snapshot().preference??'auto'),value=>quality?.setPreference(value)));
+   note(page,'Automática adapta resolução e efeitos durante o mergulho. Leve, Médio e Ultra são níveis fixos. O HUD permanece nítido e a simulação não muda. A escolha é salva neste dispositivo.');
   }else if(name==='fullscreen'){
    const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';const refresh=()=>{button.textContent=(window.AbyssalFullscreen?.isActive?.()??Boolean(document.fullscreenElement||document.webkitFullscreenElement))?'SAIR DA TELA CHEIA':'ATIVAR TELA CHEIA';};refresh();
    button.addEventListener('click',()=>{document.getElementById('fullscreenBtn')?.click();setTimeout(refresh,300);});page.append(button);note(page,'No APK Android, deslize a partir da borda para mostrar temporariamente os controles do sistema. No navegador, a disponibilidade depende do dispositivo.');
@@ -331,7 +331,7 @@
   frames++;
  }
  function tick(t){
-  if(!active||screen.hidden)return;
+  raf=0;if(!active||screen.hidden||document.hidden||document.body.classList.contains('game-active'))return;
   raf=requestAnimationFrame(tick);
   if(t-lastPaint<40)return;lastPaint=t;scene(t);
  }
@@ -341,6 +341,7 @@
  }
  function close(){active=false;cancelAnimationFrame(raf);raf=0;background=null;foreground=null;}
  function visualStatus(){return {original:true,rendered:frames>0,liveOcean:true,bitmapBackdrop:false,frames,mode:width<700?'compact':'desktop',width:Math.round(width),height:Math.round(height)};}
- window.addEventListener('resize',()=>{if(active){size();build();scene(lastPaint||0);}});
+ window.addEventListener('resize',()=>{if(active&&!screen.hidden&&!document.hidden&&!document.body.classList.contains('game-active')){size();build();scene(lastPaint||0);}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0;}else if(active&&!screen.hidden&&!document.body.classList.contains('game-active')&&!raf)raf=requestAnimationFrame(tick);});
  window.AbyssalSubmarineCockpit=Object.freeze({open,close,visualStatus});
 })();

@@ -5,29 +5,44 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const game=fs.readFileSync('public/game.js','utf8');
 const cave=require('../public/abyssal-solo-cavern.js');
-test('mobile DPR is bounded independently of desktop and world coordinates',()=>{
+test('graphics preference defaults to automatic on every device and preserves explicit choices',()=>{
+ const source=game.slice(game.indexOf('function savedGraphicsPreference()'),game.indexOf('let graphicsPreference='));
+ let saved=null;
+ const ctx={localStorage:{getItem:()=>saved},mobileViewport:true};
+ vm.createContext(ctx);vm.runInContext(source,ctx);
+ for(const mobile of [true,false]){
+  ctx.mobileViewport=mobile;saved=null;assert.equal(ctx.savedGraphicsPreference(),'auto');
+  for(const value of ['0','1','2','auto']){saved=value;assert.equal(ctx.savedGraphicsPreference(),value);}
+  saved='invalid';assert.equal(ctx.savedGraphicsPreference(),'auto');
+ }
+ ctx.localStorage.getItem=()=>{throw Error('blocked storage');};assert.equal(ctx.savedGraphicsPreference(),'auto');
+});
+test('mobile DPR follows the effective tier independently of desktop and world coordinates',()=>{
  const source=game.slice(game.indexOf('function graphicsDpr()'),game.indexOf('const $ ='));
  const ctx={window:{devicePixelRatio:3},ADAPTIVE_QUALITY:[{dpr:.75},{dpr:1},{dpr:Infinity}],MOBILE_DPR_CAPS:[1.25,1.75,2.5],adaptiveQualityLevel:2,adaptiveQualityCeiling:2,mobileViewport:true,viewW:390,viewH:844};
  vm.createContext(ctx);vm.runInContext(source,ctx);
- assert.equal(ctx.graphicsDpr(),2.5);ctx.adaptiveQualityLevel=0;assert.equal(ctx.graphicsDpr(),2.5);ctx.adaptiveQualityCeiling=1;assert.equal(ctx.graphicsDpr(),1.75);ctx.adaptiveQualityCeiling=0;assert.equal(ctx.graphicsDpr(),1.25);ctx.adaptiveQualityCeiling=2;ctx.viewW=1000;ctx.viewH=1000;assert.equal(ctx.graphicsDpr(),2);ctx.viewW=390;ctx.viewH=844;
- ctx.mobileViewport=false;ctx.adaptiveQualityLevel=2;assert.equal(ctx.graphicsDpr(),3);ctx.adaptiveQualityLevel=1;assert.equal(ctx.graphicsDpr(),1);ctx.adaptiveQualityLevel=0;assert.equal(ctx.graphicsDpr(),1);
+ assert.equal(ctx.graphicsDpr(),2.5);ctx.adaptiveQualityLevel=0;assert.equal(ctx.graphicsDpr(),1.25);ctx.adaptiveQualityLevel=1;assert.equal(ctx.graphicsDpr(),1.75);ctx.adaptiveQualityLevel=2;ctx.viewW=1000;ctx.viewH=1000;assert.equal(ctx.graphicsDpr(),2);ctx.viewW=390;ctx.viewH=844;
+ ctx.mobileViewport=false;assert.equal(ctx.graphicsDpr(),3);ctx.adaptiveQualityLevel=1;assert.equal(ctx.graphicsDpr(),1.5);ctx.adaptiveQualityLevel=0;assert.equal(ctx.graphicsDpr(),1);
 });
-test('mobile graphics falls after sustained overload and recovers slowly up to preference',()=>{
- const source=game.slice(game.indexOf('function updateAdaptivePerformance(now)'),game.indexOf('window.AbyssalAdaptivePerformance='));
- const ctx={mobileViewport:true,gameState:'playing',onlineMode:false,adaptiveQualityLevel:2,adaptiveQualityCeiling:2,adaptiveQualityLastCheck:0,adaptiveQualityBadWindows:0,adaptiveQualityGoodWindows:0,adaptiveFrameCost:0,adaptiveFrameCount:0,gameLastUpdateMs:10,gameLastDrawMs:20};
+test('automatic graphics falls after sustained overload and recovers slowly, fixed modes never adapt',()=>{
+ const source=game.slice(game.indexOf('function resetAdaptivePerformance()'),game.indexOf('window.AbyssalAdaptivePerformance='));
+ const ctx={graphicsPreference:'auto',document:{hidden:false},abyssalTutorialActive:false,mobileViewport:true,gameState:'playing',onlineMode:false,adaptiveQualityLevel:2,adaptiveQualityCeiling:2,adaptiveQualityLastCheck:0,adaptiveQualityBadWindows:0,adaptiveQualityGoodWindows:0,adaptiveFrameCost:0,adaptiveFrameCount:0,gameLastUpdateMs:10,gameLastDrawMs:20,localStorage:{setItem:(k,v)=>{ctx.saved=v;}},syncDiveGraphics(){}};
  ctx.applyAdaptiveQuality=(level)=>{ctx.adaptiveQualityLevel=level;};vm.createContext(ctx);vm.runInContext(source,ctx);
- let t=1;for(;t<4400;t+=34)ctx.updateAdaptivePerformance(t);
- assert.equal(ctx.adaptiveQualityLevel,1);
+ let t=1;for(;t<4400;t+=34)ctx.updateAdaptivePerformance(t);assert.equal(ctx.adaptiveQualityLevel,1);
  for(;t<8800;t+=34)ctx.updateAdaptivePerformance(t);assert.equal(ctx.adaptiveQualityLevel,0);
  ctx.gameLastUpdateMs=2;ctx.gameLastDrawMs=4;
- for(let i=0;i<1100;i++,t+=16)ctx.updateAdaptivePerformance(t);
- assert.equal(ctx.adaptiveQualityLevel,1);
- ctx.adaptiveQualityCeiling=1;
- for(let i=0;i<1200;i++,t+=16)ctx.updateAdaptivePerformance(t);
- assert.equal(ctx.adaptiveQualityLevel,1);
- ctx.mobileViewport=false;ctx.gameLastDrawMs=50;
+ for(let i=0;i<1100;i++,t+=16)ctx.updateAdaptivePerformance(t);assert.equal(ctx.adaptiveQualityLevel,1);
+ for(let i=0;i<1200;i++,t+=16)ctx.updateAdaptivePerformance(t);assert.equal(ctx.adaptiveQualityLevel,2);
+ for(const fixed of ['0','1','2']){
+  ctx.setGraphicsPreference(fixed);assert.equal(ctx.saved,fixed);ctx.gameLastDrawMs=50;
+  for(let i=0;i<300;i++,t+=34)ctx.updateAdaptivePerformance(t);
+  assert.equal(ctx.adaptiveQualityLevel,Number(fixed));assert.equal(ctx.saved,fixed);
+ }
+ ctx.mobileViewport=false;ctx.setGraphicsPreference('auto');assert.equal(ctx.saved,'auto');
  for(let i=0;i<300;i++,t+=34)ctx.updateAdaptivePerformance(t);
- assert.equal(ctx.adaptiveQualityLevel,1);
+ assert.equal(ctx.adaptiveQualityLevel,0);assert.equal(ctx.saved,'auto');
+ ctx.document.hidden=true;ctx.updateAdaptivePerformance(t);assert.equal(ctx.adaptiveQualityLastCheck,0);
+ ctx.document.hidden=false;ctx.abyssalTutorialActive=true;ctx.updateAdaptivePerformance(t+1000);assert.equal(ctx.adaptiveQualityLastCheck,0);
 });
 test('mobile static art is allocated once, mask stays bounded, ray geometry unchanged',()=>{
  const oldDocument=global.document,allocations=[];

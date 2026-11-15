@@ -7,10 +7,11 @@ function mount(parent,branches,options={}){
  const nodes=new Map();let selected=options.selected;
  function select(id){const entry=nodes.get(id);if(!entry)return;selected=id;options.onSelect?.(id);
   for(const [key,v] of nodes)v.button.setAttribute('aria-pressed',String(key===id));
-  const item=entry.item;detail.replaceChildren(el('h3','abyss-tree-detail-title',item.name),el('span','abyss-tree-state',item.state),el('p','abyss-tree-description',item.description));
+  const item=entry.item;detail.replaceChildren(el('h3','abyss-tree-detail-title',item.name),el('span','abyss-tree-state',item.state));
   if(item.recommended)detail.append(el('span','abyss-recommended','Recomendado'));
   if(item.costText)detail.append(el('p','abyss-tree-cost',item.costText));
   if(item.actions?.length){const actions=el('div','abyss-tree-actions');for(const action of item.actions){const btn=el('button','abyss-tree-action'+(action.secondary?' is-secondary':''),action.label);btn.type='button';btn.disabled=Boolean(action.disabled);btn.addEventListener('click',()=>action.run?.());actions.append(btn);}detail.append(actions);}
+  const description=el('details','abyss-tree-description-toggle');description.open=!document.documentElement.classList.contains('abyssal-handheld');description.append(el('summary','','Como funciona'),el('p','abyss-tree-description',item.description));detail.append(description);
  }
  for(const branch of branches){
   const section=el('section','abyss-tree-branch'),grid=el('div','abyss-tree-nodes'+(branch.linear?' is-linear':''));

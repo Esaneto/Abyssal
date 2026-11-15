@@ -103,7 +103,7 @@ test('cockpit renders a coherent original structural scene and animated water',(
  const win={AbyssalDiverGender:'female',addEventListener(){},AbyssalOnline:{getAccount:()=>null}};
  const queue=new Map();let next=0;
  const sandbox={
-  document:{getElementById:id=>id==='submarineWorkshop'?screen:id==='abyssCockpitCanvas'?element:null},
+  document:{hidden:false,body:{classList:{contains:()=>false}},addEventListener(){},getElementById:id=>id==='submarineWorkshop'?screen:id==='abyssCockpitCanvas'?element:null},
   window:win,requestAnimationFrame:callback=>{const id=++next;queue.set(id,callback);return id;},
   cancelAnimationFrame:id=>queue.delete(id)
  };
