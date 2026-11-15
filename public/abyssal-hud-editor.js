@@ -13,7 +13,7 @@ const ITEMS=[
  ['pulse','Q · Pulso',['#skillPulseBtn'],.36,.95,48,50,'both'],
  ['dash','E · Propulsor',['#skillDashBtn'],.51,.95,48,50,'both'],
  ['petSkill','R · Espécime',['#skinActiveBtn'],.66,.95,48,50,'both'],
- ['pet','Comportamento',['#petHabitBar .pet-habit-actions'],.20,.846,144,48,'both'],
+ ['pet','Comportamento',['#petHabitBar .pet-habit-actions'], .20,.846,150,48,'both'],
  ['repair','Reparar',['#soloSubmarineRepairBtn'],.23,.675,48,48,'both'],
  ['power','Energizar',['#soloSubmarinePowerBtn'],.23,.76,48,48,'both'],
  ['fire','Disparo',['#mobileFireBtn'],.91,.79,56,56,'mobile'],

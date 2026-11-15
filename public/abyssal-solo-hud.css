@@ -17,7 +17,7 @@ body.abyss-solo-run.game-active #gameplayOverlayRoot #petHabitBar,
 body.abyss-solo-run.game-active #gameplayOverlayRoot #activeAbilities{opacity:1!important}
 body.abyss-solo-run.game-active #petHabitBar{
  width:80px!important;max-width:80px!important;left:12px!important;bottom:84px!important;
- padding:4px!important;border-radius:7px!important
+ padding:0!important;border:0!important;background:none!important;box-shadow:none!important
 }
 body.abyss-solo-run.game-active #petHabitBar .pet-habit-actions{display:flex!important;flex-direction:column!important;gap:3px!important}
 body.abyss-solo-run.game-active #petHabitBar button{flex-direction:row!important;gap:3px!important;padding:4px 2px!important;min-height:26px!important}

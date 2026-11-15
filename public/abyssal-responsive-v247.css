@@ -112,8 +112,8 @@ html.abyssal-handheld body.game-active.mobile-game-active #hud .bar{height:8px!i
 html.abyssal-handheld body.game-active.mobile-game-active #hud .solo-energy-stock{font:650 11px/1.25 system-ui!important}
 html.abyssal-handheld body.game-active.mobile-game-active #hud :is(.track-title,.track-cycle-badge){font:650 10px/1.2 system-ui!important}
 html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){top:calc(var(--touch-top) + 212px)!important;width:clamp(110px,32vw,156px)!important;max-width:156px!important;max-height:19dvh!important}
-html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .selected-skill-row{min-height:36px!important;font-size:11px!important}
-html.abyssal-handheld body.game-active.mobile-game-active #activeAbilities .active-ability:not([hidden]){min-width:48px!important;min-height:52px!important;font:750 11px/1.15 system-ui!important}
+
+
 html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar #soloSubmarineRepairBtn>small{font:700 10px/1.1 system-ui!important}
 html.abyssal-handheld body.game-active.mobile-game-active #mobileFireBtn:not([hidden]){width:60px!important;height:60px!important;min-width:60px!important;min-height:60px!important}
 html.abyssal-handheld body.game-active.mobile-game-active .dive-graphics-settings select{width:100%;min-height:44px;font-size:16px}
@@ -251,3 +251,5 @@ html.abyssal-handheld #activeAbilities .ability-key,body.mobile-game-active #act
 #activeAbilities .ability-charge{position:absolute;bottom:2px;left:0;right:0;text-align:center;font:800 8px/1 system-ui,sans-serif;color:#b8f4ec}
 #activeAbilities #skillDashBtn .ability-glyph{transform:translateY(-4px)}
 #activeAbilities #skillDashBtn[aria-pressed=true]{border-color:#80f7d5!important;box-shadow:0 0 12px #54e8b66b!important}
+
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell #gameplayOverlayRoot #selectedSkillsPanel .selected-skill-row{height:32px!important;min-height:32px!important;max-height:32px!important;display:flex!important;gap:2px!important;padding:2px!important}
