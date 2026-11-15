@@ -276,3 +276,22 @@ html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #gameShe
  html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){top:calc(var(--touch-top) + 56px)!important;width:clamp(92px,18vw,142px)!important;max-height:16dvh!important}
  html.abyssal-handheld body.game-active.mobile-game-active #upgradeChoices{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))!important}
 }
+
+/* Communication has its own center slot above the ability dock. */
+html.abyssal-handheld body.game-active.mobile-game-active #quickComms:not([hidden]){
+ position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:calc(var(--touch-bottom) + 64px)!important;transform:translateX(-50%)!important;z-index:44!important
+}
+html.abyssal-handheld body.game-active.mobile-game-active #quickCommsToggle,
+html.abyssal-handheld body.game-active.mobile-game-active #quickCommsWheel button{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #quickCommsWheel{grid-template-columns:repeat(4,48px)!important;gap:6px!important;bottom:56px!important}
+@media(orientation:portrait){
+ html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #activeAbilities.active-abilities{
+  left:var(--touch-left)!important;right:calc(var(--touch-right) + var(--touch-stick-box) + 10px)!important;
+  transform:none!important;max-width:none!important;justify-content:center!important
+ }
+ html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #petHabitBar:not([hidden]){bottom:calc(var(--touch-bottom) + 68px)!important}
+}
+@media(max-width:360px) and (orientation:portrait){
+ html.abyssal-handheld body.game-active.mobile-game-active{--touch-action-width:48px}
+ html.abyssal-handheld body.game-active.mobile-game-active #hud .hud-stat small{font-size:7px!important}
+}
