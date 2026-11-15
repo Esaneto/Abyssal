@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-15-custom-hud-v245';
+const VERSION = '2026-11-15-mode-hud-v246';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [

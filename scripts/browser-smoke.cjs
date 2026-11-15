@@ -400,7 +400,7 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
   await command('Runtime.enable');
   console.log('[live-browser] navigating to actual game');
   if(mode==='mobile-wardrobe'||mode==='mobile-gameplay'){
-   if(mode==='mobile-gameplay')await command('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('abyssalControlsMobile','dual-stick')}catch(e){}"});
+   if(mode==='mobile-gameplay'||mode==='mobile-wardrobe')await command('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('abyssalControlsMobile','dual-stick')}catch(e){}"});
    await command('Emulation.setUserAgentOverride',{userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/128.0.0.0 Mobile Safari/537.36'});
    await command('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
    await command('Emulation.setDeviceMetricsOverride',{width:360,height:640,deviceScaleFactor:2,mobile:true,screenOrientation:{type:'portraitPrimary',angle:0}});
@@ -439,8 +439,12 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
 
    }
    assert.equal(await evaluate(`(()=>{const nav=window.AbyssalCockpitNavigation;if(!nav.routeCommand('hudEditor'))return false;const page=document.querySelector('.hud-editor');if(!page)return false;const s=page.querySelector('input[type=range]');s.value='125';s.dispatchEvent(new Event('input'));page.querySelector('.hud-editor-actions .primary-btn').click();const a=JSON.parse(localStorage.getItem('abyssalHudLayoutV1'));return a.portrait.aim.s===1.25&&Object.keys(a.landscape).length===0;})()`),true,'HUD editor must persist mobile scale separately');
-   await sleep(250);await screenshot('mobile-hud-editor');
+   await sleep(250);await screenshot('mobile-hud-editor-solo');
+   assert.equal(await evaluate(`(()=>{const p=document.querySelector('.hud-editor'),m=p.querySelector('[aria-label="Modo de jogo"]');const solo=[...p.querySelectorAll('.hud-editor-piece')].map(e=>e.dataset.item);m.value='online';m.dispatchEvent(new Event('change'));const online=[...p.querySelectorAll('.hud-editor-piece')].map(e=>e.dataset.item);return !solo.includes('comms')&&online.includes('comms')&&!online.includes('oxygen')&&!online.includes('sonar')&&m.options.length===2;})()`),true,'Only released mode HUD controls');await sleep(250);await screenshot('mobile-hud-editor-online');
+   await evaluate(`(()=>{const m=document.querySelector('.hud-editor [aria-label="Modo de jogo"]');m.value='solo';m.dispatchEvent(new Event('change'));})()`);
    assert.equal(await evaluate(`(()=>{const page=document.querySelector('.hud-editor');page.querySelector('.hud-editor-actions button:nth-child(2)').click();page.querySelector('.hud-editor-actions .primary-btn').click();return Object.keys(window.AbyssalHudLayout.get().portrait).length===0;})()`),true,'HUD restore must restore default layout');
+   await evaluate(`(()=>{window.AbyssalCockpitNavigation.back();window.AbyssalApplyInstalledAndroid();})()`);await sleep(400);
+   const nativeAudit=await evaluate(`(()=>{const strip=document.querySelector('#submarineWorkshop .abyss-cockpit-top-actions'),selectors=['#mobileDownloadTopBtn','#fullscreenBtn','#downloadBtn','#hubFullscreenBtn','[data-cockpit-proxy="mobileDownloadTopBtn"]','[data-cockpit-proxy="fullscreenBtn"]'];const hidden=selectors.map(s=>[s,getComputedStyle(document.querySelector(s)).display]);const r=strip.getBoundingClientRect(),p=strip.closest('.abyss-cockpit-chrome').getBoundingClientRect();return {hidden,centerError:Math.abs((r.left+r.right-p.left-p.right)/2),rect:[r.left,r.right],chrome:[p.left,p.right],expanded:strip.closest('#submarineWorkshop').classList.contains('abyss-visor-expanded'),visible:getComputedStyle(strip).visibility};})()`);console.log('[installed-android] '+JSON.stringify(nativeAudit));assert.ok(nativeAudit.hidden.every(v=>v[1]==='none')&&nativeAudit.centerError<3&&!nativeAudit.expanded&&nativeAudit.visible!=='hidden','Installed Android utilities hidden and cockpit strip centered: '+JSON.stringify(nativeAudit));await screenshot('android-installed-cockpit');
    return;
   }
   if(mode==='mobile-gameplay'){

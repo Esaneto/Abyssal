@@ -20,14 +20,6 @@
       "category": "fins"
     },
     {
-      "productId": "cosmetic_fins_medusa",
-      "gameId": "avatar:fins:medusa",
-      "title": "Véu de Medusa",
-      "priceMinorBRL": 199,
-      "type": "non_consumable",
-      "category": "fins"
-    },
-    {
       "productId": "cosmetic_fins_nautilus",
       "gameId": "avatar:fins:nautilus",
       "title": "Coroa Náutilo",
@@ -568,6 +560,11 @@
     {
       "gameId": "avatar:fins:amber",
       "title": "Nadadeiras Manta",
+      "priceEnergy": 2999
+    },
+    {
+      "gameId": "avatar:fins:medusa",
+      "title": "Véu de Medusa",
       "priceEnergy": 2999
     }
   ]
