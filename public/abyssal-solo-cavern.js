@@ -326,7 +326,8 @@
    c.fillStyle='rgba(175,228,220,'+(.14+.12*Math.sin(t*.001+p.phase)).toFixed(3)+')';c.beginPath();c.arc(x,y,p.r,0,TAU);c.fill();}
   c.restore();
  }
- const rockArtCache=new WeakMap();
+ const rockArtCache=new Map(),rockArtKeys=new WeakMap();let rockArtPixels=0;
+ const MAX_ROCK_ART_PIXELS=8000000,MAX_ROCK_ART_ENTRIES=20;
  function paintRockSurface(c,r){
   path(c,r.vertices);c.fillStyle=linear(c,-r.rx,-r.ry,r.rx,r.ry,[[0,'#204d4e'],[.20,'#122e35'],[.47,'#071b23'],[1,'#02090f']]);c.fill();
   c.save();c.clip();const rnd=rng(r.seed);
@@ -334,12 +335,37 @@
    path(c,[[x,y],[x+l*.32,y-18],[x+l,y+10],[x+l*.71,y+36],[x-12,y+24]]);c.fillStyle=j%3===0?'rgba(65,112,108,.20)':'rgba(1,9,15,.30)';c.fill();if(j%3===0){c.strokeStyle='rgba(82,137,130,.14)';c.lineWidth=1.5;c.stroke();}}
   c.restore();
  }
+ function getRockSurface(r,density){
+  const w=Math.ceil(r.rx*2+8),h=Math.ceil(r.ry*2+8),pixels=w*h*density*density;
+  if(w*density>4096||h*density>4096||pixels>MAX_ROCK_ART_PIXELS/3||typeof document==='undefined')return null;
+  // Static geometry is deterministic; reuse its pixels, not simulation objects.
+  let baseKey=rockArtKeys.get(r);if(!baseKey){baseKey=[r.seed,r.rx,r.ry,JSON.stringify(r.vertices)].join(':');rockArtKeys.set(r,baseKey);}
+  const key=baseKey+':'+density;
+  let art=rockArtCache.get(key);
+  if(art){rockArtCache.delete(key);rockArtCache.set(key,art);return art;}
+  while(rockArtCache.size&&(rockArtCache.size>=MAX_ROCK_ART_ENTRIES||rockArtPixels+pixels>MAX_ROCK_ART_PIXELS)){
+   const oldest=rockArtCache.keys().next().value,entry=rockArtCache.get(oldest);rockArtCache.delete(oldest);rockArtPixels-=entry.pixels;entry.canvas.width=1;entry.canvas.height=1;
+  }
+  const canvas=document.createElement('canvas');canvas.width=w*density;canvas.height=h*density;const off=canvas.getContext('2d');if(!off)return null;
+  off.setTransform(density,0,0,density,w*density/2,h*density/2);paintRockSurface(off,r);art={canvas,w,h,pixels};rockArtCache.set(key,art);rockArtPixels+=pixels;return art;
+ }
  function drawRockSurface(c,r){
-  const transform=c.getTransform?.(),scale=transform?Math.hypot(transform.a,transform.b):1,density=Math.max(1,Math.ceil(scale)),w=Math.ceil(r.rx*2+8),h=Math.ceil(r.ry*2+8);
-  // Cache static basalt at native display density. Large rocks remain vectors.
-  if(w*density>4096||h*density>4096||typeof document==='undefined'){paintRockSurface(c,r);return;}
-  let art=rockArtCache.get(r);if(!art||art.density!==density){const canvas=document.createElement('canvas');canvas.width=w*density;canvas.height=h*density;const off=canvas.getContext('2d');off.setTransform(density,0,0,density,w*density/2,h*density/2);paintRockSurface(off,r);art={canvas,density};rockArtCache.set(r,art);}
-  c.drawImage(art.canvas,-w/2,-h/2,w,h);
+  const transform=c.getTransform?.(),scale=transform?Math.hypot(transform.a,transform.b):1,density=Math.max(1,Math.ceil(scale));
+  const art=getRockSurface(r,density);if(!art){paintRockSurface(c,r);return;}
+  c.drawImage(art.canvas,-art.w/2,-art.h/2,art.w,art.h);
+ }
+ function prepareWorldArt(w,h,density,shouldContinue=()=>true){
+  if(typeof document==='undefined')return;
+  const rocks=buildRocks(w,h).sort((a,b)=>Math.hypot(a.x-w*.5,a.y-h*.39)-Math.hypot(b.x-w*.5,b.y-h*.39));
+  const schedule=typeof requestIdleCallback==='function'?fn=>requestIdleCallback(fn,{timeout:400}):fn=>setTimeout(fn,35);
+  let initialized=false,index=0;
+  function step(){
+   if(!shouldContinue())return;
+   if(!initialized){if(!worldCache||worldCache.w!==w||worldCache.h!==h)worldCache=worldArt(w,h);initialized=true;}
+   else if(index<Math.min(6,rocks.length))getRockSurface(rocks[index++],Math.max(1,Math.ceil(density)));
+   if(index<Math.min(6,rocks.length))schedule(step);
+  }
+  schedule(step);
  }
  function drawRocks(c,rocks,view,t){
   const {left,top,width,height}=view,right=left+width,bottom=top+height;
@@ -417,5 +443,5 @@
   }
   c.restore();
  }
- return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,orbWaterPoint,orbNeedsRelocation,orbReachable,submarineSpawn,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting});
+ return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,orbWaterPoint,orbNeedsRelocation,orbReachable,submarineSpawn,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting,prepareWorldArt});
 });

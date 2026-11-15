@@ -1,16 +1,136 @@
-#abyssalPortraitGate{position:fixed;inset:0;z-index:2147483646;display:none;place-items:center;padding:max(22px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));background:radial-gradient(circle at 50% 35%,rgba(20,74,112,.78),rgba(3,10,22,.98) 68%);color:#eefcff;text-align:center}
-#abyssalPortraitGate .portrait-gate-card{width:min(420px,88vw);padding:24px 20px;border:1px solid rgba(72,220,255,.45);border-radius:18px;background:rgba(2,10,22,.88);box-shadow:0 18px 60px #000b,0 0 32px rgba(117,66,255,.22);backdrop-filter:blur(10px)}
-#abyssalPortraitGate .portrait-gate-icon{display:block;margin:0 auto 14px;font-size:58px;line-height:1;filter:drop-shadow(0 0 14px rgba(85,228,255,.65))}
-#abyssalPortraitGate h2{margin:0 0 8px;font:800 22px/1.2 system-ui,sans-serif;letter-spacing:.08em;color:#f2fbff}
-#abyssalPortraitGate p{margin:0;font:600 14px/1.45 system-ui,sans-serif;color:#b7d7e4}
-html.abyssal-mobile-landscape,html.abyssal-mobile-landscape body{overflow:hidden!important;touch-action:none!important}
-html.abyssal-mobile-landscape #abyssalPortraitGate{display:grid}
-html.abyssal-mobile-landscape body>*:not(#abyssalPortraitGate){pointer-events:none!important;user-select:none!important}
-
-
 /* IME resize is not physical rotation. Keep the focused form scrollable. */
 html.abyssal-mobile-editing #app{min-height:0!important;height:var(--abyssal-edit-height,100dvh)!important}
 html.abyssal-mobile-editing .modal-screen:not([hidden]):not(.abyss-cockpit-embedded):has(:focus){min-height:0!important;max-height:var(--abyssal-edit-height,100dvh)!important;overflow:auto!important;align-items:start!important;touch-action:pan-y}
 html.abyssal-mobile-editing .modal-screen:not(.abyss-cockpit-embedded)>.modal-card:focus-within{min-height:0!important;max-height:calc(var(--abyssal-edit-height,100dvh) - 12px)!important;overflow:auto!important;overscroll-behavior:contain;scroll-padding:12px}
 html.abyssal-mobile-editing #submarineWorkshop .abyss-visor-body:focus-within{min-height:0!important;overflow:auto!important;scroll-padding:12px;touch-action:pan-y}
 html.abyssal-mobile-editing :is(input,textarea,[contenteditable]):focus{scroll-margin-block:12px;user-select:text!important;-webkit-user-select:text!important}
+
+/* Handheld application layout, independent of the desktop cockpit.
+   Portrait launch remains unchanged. Expanded screens occupy the whole visor. */
+html.abyssal-handheld{--mobile-safe-top:max(6px,env(safe-area-inset-top));--mobile-safe-bottom:max(6px,env(safe-area-inset-bottom));--mobile-safe-left:max(6px,env(safe-area-inset-left));--mobile-safe-right:max(6px,env(safe-area-inset-right));--mobile-touch:48px}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-cockpit-console{
+ position:absolute!important;inset:var(--mobile-safe-top) var(--mobile-safe-right) var(--mobile-safe-bottom) var(--mobile-safe-left)!important;transform:none!important;width:auto!important;height:auto!important;max-height:none!important;min-height:0!important;max-width:none!important;padding:4px!important;border:1px solid #527585!important;border-radius:12px!important;overflow:hidden!important;box-shadow:none!important;background:#071923!important;z-index:6!important
+}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded :is(.abyss-cockpit-chrome,.abyss-cockpit-utilities){visibility:hidden!important;pointer-events:none!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .submarine-workshop-grid{display:flex!important;flex-direction:column;gap:0!important;height:100%!important;min-height:0!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-control-deck{display:none!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-cockpit-visor{flex:1 1 0;height:100%!important;min-height:0!important;border-width:1px!important;border-radius:8px!important;box-shadow:none!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-heading{display:flex!important;align-items:center;gap:6px!important;padding:3px 6px!important;min-height:48px!important;flex-shrink:0;background:#102b3b!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-heading>div{flex:1;min-width:0}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-heading small{display:none!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-heading strong{font:750 14px/1.2 system-ui!important;overflow-wrap:anywhere}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-heading>span{font-size:9px!important;max-width:30%;line-height:1.2}
+.mobile-cockpit-back{display:none}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .mobile-cockpit-back{display:grid!important;place-items:center;position:relative!important;inset:auto!important;transform:none!important;flex:0 0 48px;width:48px!important;height:48px!important;min-height:48px!important;border:1px solid #496d7b;border-radius:7px;background:#163544;color:#e6fbff;font:700 24px/1 system-ui;cursor:pointer}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body{flex:1 1 0!important;min-height:0!important;padding:6px!important;overflow:auto!important;overscroll-behavior:contain;touch-action:pan-y}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body>.abyss-cockpit-embedded{min-width:0!important;width:100%!important;max-width:none!important;max-height:none!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body :is(.modal-card,.shop-modal,.codex-modal,.room-modal,.profile-modal,.wheel-modal,.cardumes-modal){min-width:0!important;width:100%!important;max-width:none!important;max-height:none!important;padding:8px!important;box-sizing:border-box}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded :is(.shop-catalog-intro,.room-form-row,.cockpit-settings-page){grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded :is(.shop-section-title,.codex-title,.room-title){font-size:15px!important;line-height:1.3!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded :is(.skin-grid,#skinGrid,.codex-grid){grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr))!important;gap:6px!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded :is(.skin-card,.codex-card,.cardume-card,.room-row,.ranking-row,.abyss-tree-node){min-width:0!important;padding:7px!important;overflow-wrap:anywhere}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded :is(.skin-card,.codex-card) :is(canvas,img){max-width:100%!important;object-fit:contain}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body :is(button,select,input:not([type=checkbox],[type=radio],[type=range],[type=hidden])){min-height:var(--mobile-touch)!important;max-width:100%;touch-action:manipulation}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body :is(input:not([type=checkbox],[type=radio],[type=range],[type=hidden]),textarea,select){font-size:16px!important}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body :is(.shop-filter-tabs,.shop-rarity-filters,.abyss-lab-subnav){display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;gap:5px;touch-action:pan-x;scrollbar-width:thin}
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body :is(.shop-filter-tabs,.shop-rarity-filters,.abyss-lab-subnav)>*{flex:0 0 auto}
+/* Wardrobe: preview never scrolls away, catalog alone scrolls; actions stay visible. */
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body:has(>.abyss-wardrobe){overflow:hidden!important;padding:4px!important;display:flex!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe,
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe[data-compact=true]{
+ display:grid!important;flex:1 1 0!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(132px,42%) minmax(0,1fr) auto!important;grid-template-areas:"stage" "panel" "actions"!important;gap:5px!important;height:100%!important;min-height:0!important;overflow:hidden!important
+}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-switch{display:none!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage{grid-area:stage;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:4px!important;padding:4px!important;overflow:hidden!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-intro{display:none!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-canvas{grid-column:1/-1;width:100%!important;height:100%!important;min-height:0!important;align-self:stretch;object-fit:contain}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage :is(.aw-tabs,.aw-view){display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;min-width:0;gap:4px!important;touch-action:pan-x;scrollbar-width:thin}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage :is(.aw-tabs,.aw-view)>button{flex:0 0 auto!important;white-space:nowrap!important;padding:4px 8px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-panel{grid-area:panel;display:flex!important;flex-direction:column!important;gap:5px!important;overflow-y:auto!important;overscroll-behavior:contain;touch-action:pan-y;padding:5px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-panel-head{display:none!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-panel>*{flex-shrink:0!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe :is(.aw-groups,.aw-categories){display:flex!important;flex-wrap:nowrap!important;gap:4px!important;overflow-x:auto!important;scrollbar-width:thin;touch-action:pan-x}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-categories[hidden]{display:none!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe :is(.aw-groups,.aw-categories)>button{flex:0 0 auto!important;padding:5px 9px!important;white-space:nowrap!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe button{font:650 11px/1.2 system-ui!important;min-height:48px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-search-input{height:48px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-choices{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,90px),1fr))!important;grid-auto-rows:max-content!important;gap:5px!important;min-height:60px!important;overflow:visible!important;padding:1px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-option{padding:4px!important;min-height:60px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-hair-thumb{max-width:76px!important;height:auto!important;aspect-ratio:1;object-fit:contain}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-option-copy strong{font-size:11px!important;line-height:1.25!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-selected{padding:4px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-actions{grid-area:actions;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:3px!important;padding:4px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-message{display:block!important;max-height:2.7em!important;overflow:auto;font-size:10px!important;line-height:1.3!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-footer{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)!important;gap:5px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-footer button{white-space:normal!important}
+html.abyssal-handheld.abyssal-mobile-editing #submarineWorkshop.abyss-visor-expanded .abyss-cockpit-console{bottom:auto!important;height:calc(var(--abyssal-edit-height,100dvh) - 12px)!important}
+html.abyssal-handheld.abyssal-mobile-editing #submarineWorkshop .abyss-wardrobe{grid-template-rows:minmax(70px,28%) minmax(0,1fr) auto!important}
+@media(orientation:landscape){
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe{grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)!important;grid-template-rows:minmax(0,1fr) auto!important;grid-template-areas:"stage panel" "actions actions"!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe .aw-stage{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);grid-template-rows:minmax(0,1fr) auto}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe .aw-actions{grid-template-columns:minmax(0,1fr) minmax(220px,1.15fr)!important;align-items:center}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe .aw-canvas{min-height:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe .aw-hair-thumb{max-width:68px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop.abyss-visor-expanded :is(.shop-catalog-intro,.room-form-row,.cockpit-settings-page){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-console{inset:calc(var(--mobile-safe-top) + 52px) var(--mobile-safe-right) calc(var(--mobile-safe-bottom) + 52px) var(--mobile-safe-left)!important;width:auto!important;height:auto!important;max-height:none!important;transform:none!important;padding:4px!important;border-width:2px!important;border-radius:10px!important;overflow:hidden!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-chrome{display:flex!important;position:absolute!important;inset:var(--mobile-safe-top) var(--mobile-safe-right) auto var(--mobile-safe-left)!important;width:auto!important;height:48px!important;align-items:center!important;gap:5px!important;pointer-events:auto!important;z-index:5}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-brand{display:none!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-top-actions{position:relative!important;inset:auto!important;transform:none!important;width:auto!important;height:48px!important;flex:1 1 0!important;min-width:0!important;justify-content:flex-start!important;overflow-x:auto!important;gap:4px!important;padding:0!important;scrollbar-width:thin;pointer-events:auto!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .cockpit-command{flex:0 0 48px!important;min-width:48px!important;height:48px!important;min-height:48px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .cockpit-command span{display:none!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) :is(.abyss-cockpit-help,.abyss-cockpit-exit){position:relative!important;inset:auto!important;transform:none!important;min-width:48px!important;max-width:48px!important;height:48px!important;min-height:48px!important;flex:0 0 48px!important;font-size:0!important;padding:3px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-exit span{font-size:18px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-utilities{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;position:absolute!important;inset:auto var(--mobile-safe-right) var(--mobile-safe-bottom) var(--mobile-safe-left)!important;height:48px!important;pointer-events:auto!important;z-index:5}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-utilities>button{position:relative!important;inset:auto!important;transform:none!important;min-width:0!important;width:100%!important;height:48px!important;min-height:48px!important;max-height:48px!important;font:700 10px/1 system-ui!important;display:flex!important;flex-direction:row!important;justify-content:center!important;align-items:center!important;padding:4px!important;gap:5px!important;border-radius:6px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-utilities>button svg{width:20px!important;height:20px!important;max-height:none!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .abyss-control-key{min-height:48px!important;padding:3px!important;gap:2px!important;font-size:10px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .abyss-visor-heading{padding:4px 8px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .abyss-visor-body{padding:5px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #app{height:100dvh!important;min-height:0!important;padding:0!important;max-width:none!important;overflow:hidden!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active :is(.topbar,.page-footer){display:none!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #gameShell{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;min-height:0!important;border:0!important;overflow:hidden!important;touch-action:none}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #game{position:absolute!important;inset:0!important;touch-action:none}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #mobileJoystick:not([hidden]){display:flex!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active .hud{top:var(--mobile-safe-top)!important;left:var(--mobile-safe-left)!important;right:var(--mobile-safe-right)!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active .active-abilities{right:var(--mobile-safe-right)!important;bottom:calc(var(--mobile-safe-bottom) + 55px)!important;max-width:35vw!important;gap:4px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active .active-ability{min-height:40px!important;font-size:10px!important;padding:4px 6px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #selectedSkillsPanel{max-height:28dvh!important;overflow:auto!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #endDiveBtn{font-size:9px!important;min-height:40px!important;max-width:35vw!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active .modal-screen:not([hidden])>.modal-card{max-height:calc(100dvh - 12px)!important;overflow:auto!important;min-width:0!important}
+}
+
+/* A landscape phone must use the handheld HUD even when Chromium reports a
+   fine pointer (external mouse, stylus or headless test). Keep the playfield
+   open and the pause/toggle targets outside the central stats. */
+@media(orientation:landscape){
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud:not([hidden]){
+  position:fixed!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  top:var(--mobile-safe-top)!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;
+  width:min(46vw,340px)!important;max-width:min(46vw,340px)!important;min-width:0!important;
+  height:auto!important;max-height:45dvh!important;overflow:hidden!important;padding:0!important;gap:3px!important;
+  background:transparent!important;box-shadow:none!important;pointer-events:none!important;
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .hud-top{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important;margin:0!important;order:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .hud-stat{min-width:0!important;padding:3px 2px!important;border-radius:4px!important;background:#061722b8!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .hud-stat small{font-size:7px!important;line-height:1!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .hud-stat strong{font-size:12px!important;line-height:1.1!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .bars{order:1!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .bar-label{font-size:7px!important;line-height:1.1!important;margin:2px 0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .bar{height:4px!important;margin:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .solo-energy-stock{font-size:7px!important;line-height:1.2!important;margin:2px 4px 0 0!important;display:inline-block!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .boss-progression-track{padding:2px 3px!important;margin:2px 0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .track-header{font-size:7px!important;line-height:1.1!important;gap:3px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud :is(.track-title,.track-cycle-badge){font-size:7px!important;line-height:1.1!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .mobile-tip{display:none!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #gameShell>#mobilePauseBtn:not([hidden]),html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #gameShell>#toggleHudBtn:not([hidden]){
+  position:fixed!important;display:grid!important;place-items:center!important;top:var(--mobile-safe-top)!important;
+  width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;
+  padding:0!important;z-index:46!important;touch-action:manipulation!important;transform:none!important
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #gameShell>#mobilePauseBtn:not([hidden]){left:auto!important;right:var(--mobile-safe-right)!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #gameShell>#toggleHudBtn:not([hidden]){left:var(--mobile-safe-left)!important;right:auto!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #selectedSkillsPanel{top:calc(var(--mobile-safe-top) + 53px)!important;right:var(--mobile-safe-right)!important;left:auto!important;max-height:27dvh!important;width:clamp(106px,20vw,150px)!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #runEnergyRanking{top:calc(var(--mobile-safe-top) + 53px)!important;left:var(--mobile-safe-left)!important;right:auto!important;max-height:27dvh!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #mobileAimStick.dual-stick-visible:not([hidden]){display:flex!important;position:fixed!important;right:var(--mobile-safe-right)!important;bottom:var(--mobile-safe-bottom)!important}
+}

@@ -316,11 +316,14 @@ function spawnEnemy(world, options = {}) {
 
   const id = ++world.nextEnemyId;
   const specimenSkinId=type==='boss'?null:world.mode==='rift'?riftSpecimenSkin(random):openSeaSkin;
-  if(world.mode==='rift'&&type!=='boss')stats.hp=RiftWildlife.health(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId));
-  const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId);
-  if(world.mode==='classic'){const safe=SoloCavern.nearestWater(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,point.x,point.y,Math.max(8,Math.min(110,stats.r/WORLD_ZOOM*.62)));if(!safe)return null;point={...point,...safe};}
+  const fullHp=specimenSkinId?SpecimenSystem.biologicalStats(specimenSkinId).hp:(CreatureScale.CLASSIC_HP[kind]||stats.hp);
+  stats.hp=CreatureScale.scaledHealth(fullHp,world.elapsed);
+  if(type==='boss')world.lastBossMaxHp=stats.hp;
+  // Network stores enemy radius in logical units; clients convert once to world units.
+  const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId,kind)*WORLD_ZOOM;
+  if(world.mode==='classic'){const safe=SoloCavern.nearestWater(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,point.x,point.y,Math.max(3,collisionRadius/WORLD_ZOOM));if(!safe)return null;point={...point,...safe};}
   const enemy = {
-    id, kind, x: point.x, y: point.y, r: collisionRadius, hp: stats.hp, maxHp: stats.hp,
+    id, kind, x: point.x, y: point.y, r: collisionRadius, hp: stats.hp, maxHp: stats.hp, fullHp,
     speed: stats.speed / WORLD_ZOOM, damage: stats.damage, color: stats.color,
     value: stats.value, seaXpMultiplier:stats.seaXpMultiplier||1, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
@@ -513,6 +516,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const dt = Math.max(0, Math.min(0.1, (now - previousTick) / 1000));
   world.lastTick = now;
   world.elapsed += dt;
+  let healthRampChanged=false;
+  for (const enemy of world.enemies) if(CreatureScale.applyHealthRamp(enemy, world.elapsed)){healthRampChanged=true;if(BOSS_KINDS.includes(enemy.kind))world.lastBossMaxHp=enemy.maxHp;}
   world.tickCount++;
   let eventEnded = null;
   if (world.activeEventId && Number(world.eventEndsAt) > 0 && world.elapsed >= Number(world.eventEndsAt)) {
@@ -1096,7 +1101,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   world.reliableSnapshotTimer = (Number(world.reliableSnapshotTimer) || 0) - dt;
   world.playerSnapshotTimer -= dt;
   const sendSnapshot = world.snapshotTimer <= 0;
-  const sendReliableSnapshot = world.reliableSnapshotTimer <= 0;
+  const sendReliableSnapshot = healthRampChanged || world.reliableSnapshotTimer <= 0;
   const sendPlayers = world.playerSnapshotTimer <= 0;
   // Preserve fractional tick remainder, avoiding alternate 10/20 Hz bursts on 49 ms ticks.
   if (sendSnapshot) world.snapshotTimer = Math.max(0, world.snapshotTimer + 0.05);

@@ -1,5 +1,5 @@
 /* Abyssal biological scale. Approximate adult lengths/spans (m).
- * Diver reference: 1.7 m. Giant/hadal fictional forms use art-directed sizes.
+ * Diver reference: 1.8 m. Giant/hadal fictional forms use art-directed sizes.
  * Visual size is distinct from a conservative central collision core in narrow caves.
  * All clients use the same table; no RNG, allocations or timers on animation ticks.
  */
@@ -14,7 +14,7 @@
   default:1.7,violet:1.1,solar:1.4,toxic:1.5,thorn:1.8,abyssking:2.8,
   royal:2.8,glacier:2.3,coral:1.8,bloodmoon:4.2,voidwing:4.6,abyssaleye:2.5,
   deepwarden:3.6,riftSmileRelic:13,kraken:11,aberration:6,angler:3.5,maw:7.5,
-  leviathan:13,devourer:14,saltcroc:5,blackcaiman:4.2,reefshark:2.4,
+  leviathan:13,devourer:14,saltcroc:5,blackcaiman:4.2,reefshark:4.8,
   hammerhead:4.5,abysscroc:5.2,armoredgator:4.3,greensnake:2.1,
   electriceel:2.0,electriceellegacy:2.0,
   eagleray:2.2,ribbonmoray:1.2,dumbo:.35,blanket:2.0,atolla:.25,
@@ -28,51 +28,46 @@
   viperfish:.32,blackdragon:.38,hatchetfish:.12,basketstar:.8,
   crinoid:.35,seapig:.16
  });
- const MONSTER_METERS=Object.freeze({
-  drifter:.7,stinger:.3,brute:1.9,lurker:2.6,whiteShark:4.8,
-  boss:5.2,angler:4,maw:8,leviathan:14,whiteSharkBoss:9,
-  kraken:16,devourer:20,riftSmile:29
- });
- // In-game art radius is based on the animal's major body axis, not weight.
- // At 1.7 m, the diver's drawn body is roughly 40 logical pixels high.
- const PIXELS_PER_METER=9.3;
+ // Gameplay lengths, in metres. The source adult specimen table remains biological.
+ const DIVER_METERS=1.8;
+ // 100 model units from crown to soles, scaled by the actual gameplay diver rig.
+ const DIVER_WORLD_LENGTH=100*(13/.78)*.60/14;
+ const PIXELS_PER_METER=DIVER_WORLD_LENGTH/DIVER_METERS;
+ const BOSS_METERS=Object.freeze({boss:5.2,angler:4,maw:6.5,leviathan:8,whiteSharkBoss:8,kraken:8,devourer:8,riftSmile:8});
+ const MONSTER_METERS=Object.freeze({drifter:.5,stinger:.5,brute:.5,lurker:.8,whiteShark:4.8,...BOSS_METERS});
+ const ART_SPAN=Object.freeze({drifter:2,stinger:3.02,brute:2.45,lurker:3.4,whiteShark:3.1,whiteSharkBoss:3.1,boss:5.5,angler:3.1,maw:4.5,leviathan:5.2,kraken:9.6,devourer:3.3,riftSmile:4.6});
+ // Collision uses the visible central body; elongated tails/fins remain non-solid.
+ const BODY_CORE=Object.freeze({drifter:.8,stinger:.65,brute:.95,lurker:.7,whiteShark:.84,whiteSharkBoss:.84,boss:1,angler:1,maw:1,leviathan:.8,kraken:.76,devourer:1.3,riftSmile:1});
+ const SKIN_SPAN=Object.freeze({reefshark:3.1,hammerhead:2.7,abysscroc:3.3,gharial:3.6,goblin:3.4,frilled:3.7,greenland:3.2,saltcroc:3.7,blackcaiman:3.7,greensnake:4.4,electriceellegacy:4.4,ribbonmoray:4.4,sawtootheel:4.4,zebramoray:4.4,dogtootheel:4.4,leviathan:5.2,maw:4.5,kraken:9.6,devourer:3.3,aberration:5.5,riftSmileRelic:5.4,phantomjelly:4.5,siphonophore:5.5});
+ const FAMILY_SPAN=Object.freeze({shark:3.2,eel:4.4,ray:3.5,octopus:5.5,squid:5.5,jelly:3.5,crustacean:3.2,mollusc:2.8,reptile:3.7,benthic:2.8,fish:3.1,signature:3.0});
  const sizeOf=id=>ADULT_METERS[String(id)]||null;
- // Gameplay-friendly visual scale: preserve biological ordering without letting
- // a companion obscure the diver or giant enemies fill a whole chamber.
- // A softer curve maintains visible differences between the smallest and largest.
- function visualRadius(id,base=11){
-  const meters=sizeOf(id);
-  if(meters===null)return Math.max(8,Math.min(18,Number(base)||11));
-  return Math.max(14.5,Math.min(38,14.5+Math.sqrt(meters)*6.25));
+ const skinFamily=id=>curated?.byId?.[id]?.family||null;
+ const skinSpan=id=>SKIN_SPAN[id]||FAMILY_SPAN[skinFamily(id)]||3.2;
+ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+ function monsterMeters(kind,skinId=null){if(skinId)return Math.max(.5,sizeOf(skinId)||MONSTER_METERS[kind]||1.8);return MONSTER_METERS[kind]||1.8;}
+ function companionMeters(id){return clamp(sizeOf(id)||1.8,.5,3);}
+ function visualRadius(id,base=11){return companionMeters(id)*PIXELS_PER_METER/skinSpan(id);}
+ function monsterVisualRadius(kind,base=10,skinId=null){return monsterMeters(kind,skinId)*PIXELS_PER_METER/(skinId?skinSpan(skinId):ART_SPAN[kind]||3.2);}
+ function riftVisualRadius(kind,base=10,skinId=null){return monsterVisualRadius(kind,base,skinId);}
+ function creatureCollisionRadius(base=10,skinId=null,kind=null){
+  if(!kind&&!skinId)return Math.max(2,Number(base)||10);
+  return monsterVisualRadius(kind,base,skinId)*(skinId ? .82 : (BODY_CORE[kind]||.82));
  }
- function monsterVisualRadius(kind,base=10,skinId=null){
-  const length=skinId?sizeOf(skinId):MONSTER_METERS[String(kind)];
-  if(!length)return Math.max(8,Math.min(78,Number(base)||10));
-  // Monsters can be bigger than companions; bosses are imposing without
-  // concealing the screen. The final boss has its own chamber-scale ceiling.
-  const boss=skinId===null&&['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'].includes(String(kind));
-  const cap=kind==='riftSmile'&&!skinId?175:boss?138:skinId?105:83;
-  const radius=(boss?29:19)+Math.sqrt(length)*(boss?20:12.4);
-  return Math.max(8,Math.min(cap,radius));
+ function companionCollisionRadius(id){return visualRadius(id)*.82;}
+ // The classic Abyssary displays these full, unscaled HP values.
+ const CLASSIC_HP=Object.freeze({drifter:72,stinger:65,brute:115,lurker:165,whiteShark:600,boss:5640,angler:6520,maw:7500,leviathan:9400,whiteSharkBoss:13200,kraken:18400,devourer:30000,riftSmile:52000});
+ function healthStep(seconds){return clamp(Math.floor(Math.max(0,Number(seconds)||0)/120),0,8);}
+ function healthMultiplier(seconds){return (2+healthStep(seconds))/10;}
+ function scaledHealth(base,seconds){return Math.max(1,Math.round(Math.max(1,Number(base)||1)*healthMultiplier(seconds)));}
+ function applyHealthRamp(enemy,seconds){
+  const base=Number(enemy.fullHp);if(!(base>0)||enemy.hp<=0)return false;
+  const next=scaledHealth(base,seconds),before=Math.max(1,Number(enemy.maxHp)||next);
+  if(next===before)return false;
+  const fraction=clamp((Number(enemy.hp)||0)/before,0,1);
+  enemy.maxHp=next;enemy.hp=Math.max(1,Math.min(next,Math.round(next*fraction)));
+  if(Number.isFinite(enemy.damageRevision))enemy.damageRevision++;
+  return true;
  }
- // Fossas use a legible, near-linear biological scale rather than the
- // compact sqrt scale of the open sea. Radius affects artwork only, not hits.
- // Tiny fauna remain at least half a diver's approximate 40px body length.
- function riftVisualRadius(kind,base=10,skinId=null){
-  const meters=skinId?sizeOf(skinId):MONSTER_METERS[String(kind)];
-  if(!Number.isFinite(meters)||meters<=0)return monsterVisualRadius(kind,base,skinId);
-  const boss=!skinId&&['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'].includes(String(kind));
-  const cap=kind==='riftSmile'&&!skinId?205:boss?190:skinId?165:110;
-  return Math.max(17,Math.min(cap,14+meters*12));
- }
- // Large octopus arms and jelly tentacles are non-solid; a central
- // collision body fits in caves while the full animal remains visible.
- function creatureCollisionRadius(base=10,skinId=null){
-  const original=Math.max(2,Number(base)||10);
-  if(!skinId)return original;
-  const meters=sizeOf(skinId);
-  if(meters===null)return original;
-  return Math.max(5,Math.min(original*1.55,Math.max(original*.8,meters*PIXELS_PER_METER*.36)));
- }
- return Object.freeze({ADULT_METERS,MONSTER_METERS,PIXELS_PER_METER,sizeOf,visualRadius,monsterVisualRadius,riftVisualRadius,creatureCollisionRadius});
+ return Object.freeze({ADULT_METERS,MONSTER_METERS,BOSS_METERS,DIVER_METERS,DIVER_WORLD_LENGTH,PIXELS_PER_METER,ART_SPAN,CLASSIC_HP,sizeOf,monsterMeters,companionMeters,visualRadius,monsterVisualRadius,riftVisualRadius,creatureCollisionRadius,companionCollisionRadius,healthStep,healthMultiplier,scaledHealth,applyHealthRamp});
+
 });

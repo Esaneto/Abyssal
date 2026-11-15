@@ -221,6 +221,9 @@ const injected=`<script>
       const monitor=box.querySelector('.abyss-cockpit-visor'),deck=box.querySelector('.abyss-control-deck');
       const monitorRect=monitor?.getBoundingClientRect(),deckRect=deck?.getBoundingClientRect();
       const currentKeys=[...box.querySelectorAll('.abyss-control-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
+      const handheld=document.documentElement.classList.contains('abyssal-handheld');
+      if(handheld){const back=box.querySelector('.mobile-cockpit-back'),r=back?.getBoundingClientRect();if(!r||r.width<40||r.height<40||monitorRect.height<150)throw Error('Mobile expanded visor or back action missing');}
+      else{
       if(currentKeys.length!==4||keyRects.some(r=>r.width<25||r.height<25))throw Error('Cockpit hardware buttons are hidden or detached');
       if(!monitorRect||!deckRect)throw Error('Cockpit monitor/deck missing');
       if(deckRect.top<monitorRect.bottom-4)throw Error('Console deck overlaps monitor or sits alongside it');
@@ -228,9 +231,22 @@ const injected=`<script>
       if(keyRects.some(r=>r.height>(innerWidth>700?100:72)))throw Error('Oversized vertically stretched console key');
       if(monitorRect.height<deckRect.height*1.5)throw Error('The central monitor must dominate the physical key deck');
       if(monitorRect.width<210||monitorRect.height<(innerWidth>700?180:150))throw Error('Central cockpit display is too small');
+      }
       document.body.dataset.cockpitLayout=JSON.stringify({visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],keys:[Math.round(deckRect.width),Math.round(deckRect.height)],keyHeight:Math.round(keyRects[0].height)});
       const view=new URLSearchParams(location.search).get('view')||'solo';
-      if(view==='shop'){
+      if(view==='wardrobe'){
+       if(!handheld)throw Error('Wardrobe mobile smoke must use handheld UA');
+       box.querySelector('.mobile-cockpit-back').click();
+       box.querySelector('[data-cockpit-setting="wardrobe"]').click();
+       const wardrobe=box.querySelector('.abyss-wardrobe'),stage=wardrobe?.querySelector('.aw-canvas'),panel=wardrobe?.querySelector('.aw-panel'),save=wardrobe?.querySelector('.aw-primary'),choice=wardrobe?.querySelector('.aw-option');
+       if(!wardrobe||!stage||!panel||!save||!choice)throw Error('Wardrobe controls missing');
+       const a=stage.getBoundingClientRect(),b=panel.getBoundingClientRect(),c=save.getBoundingClientRect();
+       if(a.width<80||a.height<60||b.width<120||b.height<80||c.height<40)throw Error('Preview/catalog/save clipped '+JSON.stringify({a:a.toJSON(),b:b.toJSON(),c:c.toJSON()}));
+       if(a.right>innerWidth+1||b.right>innerWidth+1||c.bottom>innerHeight+1)throw Error('Wardrobe extends outside viewport');
+       choice.click();if(choice.getAttribute('aria-pressed')!=='true')throw Error('Cosmetic selection failed');
+       const horizontal=document.documentElement.classList.contains('abyssal-handheld-landscape');
+       if(horizontal&&a.right>b.left+2||!horizontal&&a.bottom>b.top+2)throw Error('Wardrobe preview and catalog overlap');
+      }else if(view==='shop'){
        box.querySelector('.abyss-control-shop').click();
        const shop=document.getElementById('shopScreen'),grid=shop.querySelector('#skinGrid');
        if(shop.hidden||!shop.classList.contains('abyss-cockpit-embedded')||grid.querySelectorAll('.skin-card[data-skin-id]').length<50)throw Error('Embedded specimen shop missing real cards');
@@ -504,10 +520,11 @@ async function main(){
   if(process.argv.includes('--journal-only'))return;
   // Test the actual hatch transition and physical console in a real browser,
   // including mobile; save screenshots for visual acceptance inspection.
-  for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-shop',1280,720,'shop'],['cockpit-abyssario',1280,720,'specimens'],['cockpit-solo-upgrades',1280,720,'upgrades'],['cockpit-resonance',1280,720,'resonance']]){
+  for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-wardrobe-portrait',390,844,'wardrobe'],['cockpit-wardrobe-small',360,640,'wardrobe'],['cockpit-wardrobe-landscape',844,390,'wardrobe'],['cockpit-shop',1280,720,'shop'],['cockpit-abyssario',1280,720,'specimens'],['cockpit-solo-upgrades',1280,720,'upgrades'],['cockpit-resonance',1280,720,'resonance']]){
    const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
     '--no-first-run','--disable-background-networking','--window-size='+w+','+h,
     '--force-device-scale-factor=1','--virtual-time-budget=11000'];
+   if(label==='cockpit-mobile'||label.includes('wardrobe'))flags.push('--user-agent=Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36');
    const cockpitURL=url+'?stage=cockpit&view='+view;
    const dom=await run(browser,[...flags,'--dump-dom',cockpitURL]);
    const status=dom.match(/data-cockpit-status="([^"]*)"/)?.[1];
@@ -535,7 +552,8 @@ async function main(){
   }
   const soloScenarios=[
    ['solo-desktop',1280,720,null,null],
-   ['solo-mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null]
+   ['solo-mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null],
+   ['solo-mobile-landscape',844,390,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null]
   ];
   // These modes remain intact but cannot block the focused Solo release.
   if(legacyModes)soloScenarios.push(
@@ -559,6 +577,10 @@ async function main(){
    console.log('[browser-smoke] '+label+' layout '+JSON.stringify(layout));
    assert.equal(status,'playing',label+' did not start gameplay, canvas='+canvas+', error='+error);
    assert.ok(!error,label+' triggered a runtime error: '+error);
+   if(label==='solo-mobile-landscape'){
+    assert.ok(layout.mobilePauseBtn?.display!=='none'&&layout.mobilePauseBtn?.w>=40&&layout.mobilePauseBtn?.h>=40,label+' pause must be visible with usable touch target');
+    assert.ok(layout.hud?.h>0&&layout.hud.h<height*.48,label+' HUD must leave the majority of landscape height available for gameplay: '+JSON.stringify(layout.hud));
+   }
    const depth=Number(page.match(/data-smoke-depth="([^"]*)"/)?.[1]);
    if(stage==='sea'){
     assert.equal(Number(page.match(/data-smoke-world-height="([^"]*)"/)?.[1]),21000,label+' must actually run the deep Mar Aberto world');

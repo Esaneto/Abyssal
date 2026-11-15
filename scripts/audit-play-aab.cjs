@@ -18,8 +18,8 @@ assert.ok(!permissions.includes('android.permission.REQUEST_INSTALL_PACKAGES'),'
 const app=m.children.find(n=>n.name==='application');assert.equal(app.attrs.usesCleartextTraffic,'false');
 const providers=app.children.filter(n=>n.name==='provider'&&n.attrs.authorities==='com.esaneto.abyssal.fileprovider');assert.equal(providers.length,1,'Duplicate updater FileProvider');
 assert.equal(providers[0].attrs.exported,'false');
-const activity=app.children.find(n=>n.name==='activity'&&n.attrs.name==='com.esaneto.abyssal.MainActivity');assert.equal(activity.attrs.screenOrientation,'portrait');assert.equal(activity.attrs.windowSoftInputMode,'adjustResize');
-for(const f of ['index.html','game.js','online.js','cardume-comms.css','client-build.js','abyssal-admob.js','update-manager.js','mobile-portrait.js','audio/effects/morte_jogador.ogg'])assert.ok(entries.includes('base/assets/public/'+f),'Missing offline asset '+f);
+const activity=app.children.find(n=>n.name==='activity'&&n.attrs.name==='com.esaneto.abyssal.MainActivity');assert.equal(activity.attrs.screenOrientation,'fullUser');assert.equal(activity.attrs.windowSoftInputMode,'adjustResize');
+for(const f of ['index.html','game.js','online.js','cardume-comms.css','client-build.js','abyssal-admob.js','update-manager.js','mobile-portrait.js','mobile-portrait.css','audio/effects/morte_jogador.ogg'])assert.ok(entries.includes('base/assets/public/'+f),'Missing offline asset '+f);
 for(const f of ['index.html','online.js','cardume-comms.css','client-build.js','privacy.html','community.html','terms.html','delete-account.html','safety.html'])assert.deepEqual(read('base/assets/public/'+f),fs.readFileSync(require('node:path').join(__dirname,'..','public',f)),'Stale or missing Play asset '+f);
 const config=JSON.parse(read('base/assets/capacitor.config.json'));assert.ok(!config.server?.url,'AAB must bundle its own game');
 assert.ok(entries.some(n=>/^META-INF\/.*\.(RSA|DSA|EC)$/.test(n)),'Missing signature block');

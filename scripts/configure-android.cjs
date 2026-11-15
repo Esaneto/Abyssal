@@ -6,7 +6,7 @@ let xml=fs.readFileSync(manifest,'utf8');
 if(!xml.includes('android.permission.ACCESS_NETWORK_STATE'))xml=xml.replace(/<uses-permission android:name="android.permission.INTERNET"\s*\/>/,'<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />');
 xml=xml.replace(/<activity([^>]*android:name="\.MainActivity"[^>]*)>/,(_,attrs)=>{
  let a=attrs;
- if(/android:screenOrientation=/.test(a))a=a.replace(/android:screenOrientation="[^"]*"/,'android:screenOrientation="portrait"');else a+=' android:screenOrientation="portrait"';
+ if(/android:screenOrientation=/.test(a))a=a.replace(/android:screenOrientation="[^"]*"/,'android:screenOrientation="fullUser"');else a+=' android:screenOrientation="fullUser"';
  if(/android:windowSoftInputMode=/.test(a))a=a.replace(/android:windowSoftInputMode="[^"]*"/,'android:windowSoftInputMode="adjustResize"');else a+=' android:windowSoftInputMode="adjustResize"';
  return '<activity'+a+'>';
 });
@@ -380,7 +380,7 @@ public class MainActivity extends BridgeActivity {
   }
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
     registerPlugin(AbyssalUpdaterPlugin.class);
     registerPlugin(AbyssalFullscreenPlugin.class);
     super.onCreate(savedInstanceState);

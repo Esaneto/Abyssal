@@ -145,11 +145,12 @@
   /** True when a player overlaps an animated kraken arm, not only its central body. */
   function touchesKrakenTentacle(enemy, target, enemyRadiusScale = 1) {
     if (!enemy || enemy.kind !== 'kraken' || !target) return false;
-    const radius = Math.max(1, Number(enemy.r) || 80) * Math.max(0.001, Number(enemyRadiusScale) || 1);
+    const coreRadius = Math.max(1, Number(enemy.r) || 80) * Math.max(0.001, Number(enemyRadiusScale) || 1);
+    const radius = Number(enemy.fullHp)>0 ? coreRadius/.76 : coreRadius;
     const px = Number(target.x), py = Number(target.y);
     if (!Number.isFinite(px) || !Number.isFinite(py)) return false;
     const targetRadius = Math.max(1, Number(target.r) || 13 / WORLD_ZOOM);
-    const margin = 8 / WORLD_ZOOM;
+    const margin = Math.min(8 / WORLD_ZOOM,radius*.06);
     const facing = Number(enemy.angle) || 0, cs = Math.cos(facing), sn = Math.sin(facing);
     const phase = Number(enemy.phase) || 0;
     for (let arm = 0; arm < 8; arm++) {
@@ -440,12 +441,12 @@
     return Boolean(enemy&&(enemy.kind==='kraken'||enemy.kind==='devourer'||['octopus','squid','jelly'].includes(family)||['toxic','coral','riftSmileRelic'].includes(enemy.specimenSkinId)));
   }
   function tentacleStopDistance(enemy,radius,targetRadius,family){
-    return tentacleAttacker(enemy,family)?Math.max(1,radius)*(enemy.kind==='kraken'?3.1:enemy.kind==='devourer'?1.8:1.55)+Math.max(1,targetRadius):biteDistance(radius,targetRadius);
+    return tentacleAttacker(enemy,family)?Math.max(1,radius)*(enemy.kind==='kraken'?(Number(enemy.fullHp)>0?3.1/.76:3.1):enemy.kind==='devourer'?1.8:1.55)+Math.max(1,targetRadius):biteDistance(radius,targetRadius);
   }
   function tentacleContact(enemy,target,radius,family){
     if(!tentacleAttacker(enemy,family)||!target)return false;
     const r=Math.max(1,Number(radius)||1),tr=Math.max(1,Number(target.r)||1),d=Math.hypot(target.x-enemy.x,target.y-enemy.y);
-    if(enemy.kind==='kraken')return d<=r*5.2+tr&&touchesKrakenTentacle(enemy,target,r/Math.max(1,Number(enemy.r)||1));
+    if(enemy.kind==='kraken')return d<=r*(Number(enemy.fullHp)>0?5.2/.76:5.2)+tr&&touchesKrakenTentacle(enemy,target,r/Math.max(1,Number(enemy.r)||1));
     // Non-Kraken appendages extend beyond the mantle; contact is a bounded
     // envelope until each species has a dedicated anatomical curve.
     return d<=r*(enemy.kind==='devourer'?2.05:1.8)+tr;

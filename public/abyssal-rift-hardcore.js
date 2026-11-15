@@ -786,7 +786,7 @@ function drawNightmareKrakenHead(c,r,pulse=0){
 }
 function drawFinalBoss(c,enemy,now){
  // PES ADELO ROXO: the same true cephalopod mantle, face and eight-arm
- // anatomy as the playable relic, with cavern-scale scenic tentacles.
+ // anatomy as the playable relic. Separate cavern hazards retain their own reach.
  const x=enemy.x,y=enemy.y,r=enemy.r||154,t=now*.001,pulse=Math.sin(t*1.8);
  c.save();c.translate(x,y);
  const fog=c.createRadialGradient(-r*.14,r*.23,r*.16,0,0,r*4.3);
@@ -799,7 +799,7 @@ function drawFinalBoss(c,enemy,now){
  // These arms are scenic and never damage players.
  for(let i=0;i<8;i++){
   const a=(i+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a),normalX=-sn,normalY=cs;
-  const roomRx=Math.max(900,r*7.1),roomRy=Math.max(410,r*3.1);
+  const roomRx=r*2.05,roomRy=r*1.9;
   const reach=1/Math.sqrt((cs/roomRx)**2+(sn/roomRy)**2);
   const wave=Math.sin(t*.35+i*1.8),curveScale=Math.min(180,reach*.22),points=[];
   for(let k=0;k<=32;k++){
@@ -808,7 +808,7 @@ function drawFinalBoss(c,enemy,now){
      Math.sin(p*Math.PI*(5.3+(i%4)*.48)-wave)*.34)*Math.sin(p*Math.PI)*curveScale;
    points.push({x:cs*along+normalX*lateral,y:sn*along+normalY*lateral});
   }
-  drawNightmareArm(c,points,r*.76,32,.23);
+  drawNightmareArm(c,points,r*.24,32,.8);
  }
  drawNightmareKrakenHead(c,r,pulse);
  c.restore();
