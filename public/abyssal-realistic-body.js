@@ -240,9 +240,6 @@ function fantasyFin(id,pose,side){
  c.save();if(view)c.transform(1,view.shear,0,view.width,0,0);
  const hairStyle=look.hairStyle||'classic',hairFlow=Number.isFinite(options.motion?.hairFlow)?options.motion.hairFlow:(powered?1:0),locks=simulateHair(hairStyle,Number(t)||0,heading,options.motion,weight,hairFlow,options.reducedMotion,view);
  c.save();drawHairLayer(c,locks,'back',hair,detail);c.restore();
- // Low-profile paired tanks sit behind the rib cage; their outer edges alone
- // appear from the front. Equipment does not replace the anatomy.
- for(const side of [-1,1]){const far=side<0,y=profile?(far?-25+roll*1.8:-22+roll*1.0):side*13.3-4.2+(far?2.2:1.1)*yaw,w=8.4+(far?-1.6:1.7)*yaw+(profile?roll*(far?-.65:.65):0),len=34+(far?-3:2)*yaw,x0=-17+(far?1.5:-1)*yaw;c.save();const metal=grad([0,y],[0,y+w],[[0,tank[0]],[.24,far?tank[2]:tank[1]],[.51,tank[2]],[1,tank[4]]]);box(x0,y,len,w,Math.min(3.8,w/2),metal,'#0b1922',.7);for(const x of [-10,7])box(x,y+.3,2.8,w-.6,.7,'#152530','#829298',.42);box(x0+len-2,y+w*.24,4.2,w*.54,1,'#75898c','#253b42',.55);if(detail&&!far)line([x0+4,y+w*.22],[x0+len-5,y+w*.22],'#b7d6de55',.6);if(emission&&!far)neon(()=>{c.moveTo(x0+3,y+w*.22);c.lineTo(x0+len-5,y+w*.22);},emission,1.1);c.restore();}
  // The nape underlayer floats above the upper edge of the backplate, but behind the body and head.
  c.save();drawHairLayer(c,locks,'mane',hair,detail);c.restore();
  // Legs: the pelvis is drawn over the thigh roots, with separate crotch
@@ -303,9 +300,29 @@ function fantasyFin(id,pose,side){
  if(premium&&detail){const seam=industrial?'#e9b77e':polar?'#d9f4f6':scout?'#a6c08b':elite?'#a5f0d9':'#b7a2f0';for(const side of profile?[1]:[-1,1]){path(()=>{c.moveTo(-3,side*8);c.quadraticCurveTo(-7,side*6,-13,side*10);},null,seam,.62);box(13,side*7-1.3,2.9,2.6,.55,seam,'#15242c',.4);}}
  if(emission){for(const side of profile?[1]:[-1,1]){neon(()=>{c.moveTo(13,side*10.5);c.quadraticCurveTo(5,side*12.4,-2,side*7.9);c.lineTo(-11,side*8.2);},emission,1);neon(()=>{c.moveTo(-17,side*8.6);c.lineTo(-19,side*8.2);},emission,.8);}if(elite||stealth)neon(()=>{c.moveTo(13,-2);c.lineTo(10,0);c.lineTo(13,2);},emission,.8);}
  if(emission&&profile){neon(()=>{c.moveTo(16,-10);c.quadraticCurveTo(6,-12,-3,-9);c.lineTo(-14,-10);},emission,1.3);neon(()=>{c.moveTo(11,5);c.lineTo(7,2);c.lineTo(1,4);c.lineTo(-7,3);c.lineTo(-13,6);},emission,1.05);for(const x of [3,-3,-9])neon(()=>{c.moveTo(x,-5);c.lineTo(x-2,-2);},emission,.85);}
- // Dorsal equipment is an actual visible surface, progressively occluding chest details.
- if(rear>.001){c.save();c.globalAlpha*=rear;const plate=grad([0,-12],[0,12],[[0,s[0]],[.35,s[2]],[.65,s[1]],[1,'#0a141c']]);box(-17,-12,35,24,5,plate,'#0b1922',1);for(const side of [-1,1]){const y=side<0?-10:1;const metal=grad([0,y],[0,y+9],[[0,tank[0]],[.28,tank[1]],[.57,tank[2]],[1,tank[4]]]);box(-16,y,32,9,4,metal,'#0a1821',.8);for(const x of [-10,8])box(x,y,3,9,1,'#142630','#6c8790',.65);box(15,y+2,4,5,1,tank[2],'#182731',.6);line([-13,y+2],[12,y+2],tank[1],.8);if(emission)neon(()=>{c.moveTo(-12,y+5);c.lineTo(11,y+5);},emission,1);}
- box(-3,-2.4,11,4.8,1.5,'#142b36','#607b84',.7);line([16,-6],[22,-4],'#4b6671',1.2);line([16,6],[22,4],'#4b6671',1.2);c.restore();}
+ // One physical pair of cylinders, projected continuously with the body.
+ // Do not crossfade a second pair over the side cylinders: the same two
+ // shapes move from the outer edges to the visible dorsal mounting plate.
+ if(rear>.001){c.save();c.globalAlpha*=rear;const plate=grad([0,-12],[0,12],[[0,s[0]],[.35,s[2]],[.65,s[1]],[1,'#0a141c']]);box(-17,-12,35,24,5,plate,'#0b1922',1);box(-3,-2.4,11,4.8,1.5,'#142b36','#607b84',.7);line([16,-6],[22,-4],'#4b6671',1.2);line([16,6],[22,4],'#4b6671',1.2);c.restore();}
+ c.save();
+ // The torso hides the central portion from the front; reveal it as the
+ // back turns toward the camera. A single clip replaces duplicate layers.
+ const occlusion=13*(1-rear)*(1-.2*profileBlend);
+ if(occlusion>.001){c.beginPath();c.rect(-150,-150,300,300);c.rect(-24,-occlusion,46,occlusion*2);c.clip('evenodd');}
+ for(const side of [-1,1]){
+  const far=side<0,mix=(a,b,t)=>a+(b-a)*t;
+  const frontY=side*13.3-4.2+(far?2.2:1.1)*yaw,sideY=far?-25+roll*1.8:-22+roll;
+  const y=mix(mix(frontY,sideY,profileBlend),far?-10:1,rear);
+  const w=mix(8.4+(far?-1.6:1.7)*yaw+roll*(far?-.65:.65)*profileBlend,9,rear);
+  const len=mix(34+(far?-3:2)*yaw,32,rear),x0=mix(-17+(far?1.5:-1)*yaw,-16,rear);
+  const metal=grad([0,y],[0,y+w],[[0,tank[0]],[.28,far?tank[2]:tank[1]],[.55,tank[2]],[1,tank[4]]]);
+  box(x0,y,len,w,Math.min(3.8,w/2),metal,'#0a1821',.8);
+  for(const x of [-10,7])box(x,y+.3,2.8,w-.6,.7,'#152530','#829298',.42);
+  box(x0+len-2,y+w*.24,4.2,w*.54,1,'#75898c','#253b42',.55);
+  if(detail&&!far)line([x0+4,y+w*.22],[x0+len-5,y+w*.22],'#b7d6de55',.6);
+  if(emission)neon(()=>{c.moveTo(x0+3,y+w*.5);c.lineTo(x0+len-5,y+w*.5);},emission,1.1);
+ }
+ c.restore();
  // Neck and rounded anatomical head. Mask sits on a face, rather than a
  // rectangular head replacing the face. Hair roots retain original mounts.
  box(18,-4.1,7.1,8.2,2.3,grad([0,-4],[0,4],[[0,s[2]],[.5,s[1]],[1,s[0]]]),'#142631',.55);
