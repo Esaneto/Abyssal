@@ -14,7 +14,7 @@
   default:1.7,violet:1.1,solar:1.4,toxic:1.5,thorn:1.8,abyssking:2.8,
   royal:2.8,glacier:2.3,coral:1.8,bloodmoon:4.2,voidwing:4.6,abyssaleye:2.5,
   deepwarden:3.6,riftSmileRelic:13,kraken:11,aberration:6,angler:3.5,maw:7.5,
-  leviathan:13,devourer:14,saltcroc:5,blackcaiman:4.2,reefshark:2.4,
+  leviathan:13,devourer:14,saltcroc:5,blackcaiman:4.2,reefshark:4.8,
   hammerhead:4.5,abysscroc:5.2,armoredgator:4.3,greensnake:2.1,
   electriceel:2.0,electriceellegacy:2.0,
   eagleray:2.2,ribbonmoray:1.2,dumbo:.35,blanket:2.0,atolla:.25,
@@ -35,10 +35,10 @@
  const PIXELS_PER_METER=DIVER_WORLD_LENGTH/DIVER_METERS;
  const BOSS_METERS=Object.freeze({boss:5.2,angler:4,maw:6.5,leviathan:8,whiteSharkBoss:8,kraken:8,devourer:8,riftSmile:8});
  const MONSTER_METERS=Object.freeze({drifter:.5,stinger:.5,brute:.5,lurker:.8,whiteShark:4.8,...BOSS_METERS});
- const ART_SPAN=Object.freeze({drifter:2,stinger:3.02,brute:2.45,lurker:3.4,whiteShark:3.1,whiteSharkBoss:3.1,boss:5.5,angler:3.1,maw:4.5,leviathan:5.2,kraken:6.8,devourer:3.3,riftSmile:4.0});
+ const ART_SPAN=Object.freeze({drifter:2,stinger:3.02,brute:2.45,lurker:3.4,whiteShark:3.1,whiteSharkBoss:3.1,boss:5.5,angler:3.1,maw:4.5,leviathan:5.2,kraken:9.6,devourer:3.3,riftSmile:4.6});
  // Collision uses the visible central body; elongated tails/fins remain non-solid.
  const BODY_CORE=Object.freeze({drifter:.8,stinger:.65,brute:.95,lurker:.7,whiteShark:.84,whiteSharkBoss:.84,boss:1,angler:1,maw:1,leviathan:.8,kraken:.76,devourer:1.3,riftSmile:1});
- const SKIN_SPAN=Object.freeze({reefshark:3.1,hammerhead:2.7,abysscroc:3.3,gharial:3.6,goblin:3.4,frilled:3.7,greenland:3.2,saltcroc:3.7,blackcaiman:3.7,greensnake:4.4,electriceellegacy:4.4,ribbonmoray:4.4,sawtootheel:4.4,zebramoray:4.4,dogtootheel:4.4,leviathan:5.2,maw:4.5,kraken:6.8,devourer:3.3,aberration:5.5,riftSmileRelic:4.0,phantomjelly:4.5,siphonophore:5.5});
+ const SKIN_SPAN=Object.freeze({reefshark:3.1,hammerhead:2.7,abysscroc:3.3,gharial:3.6,goblin:3.4,frilled:3.7,greenland:3.2,saltcroc:3.7,blackcaiman:3.7,greensnake:4.4,electriceellegacy:4.4,ribbonmoray:4.4,sawtootheel:4.4,zebramoray:4.4,dogtootheel:4.4,leviathan:5.2,maw:4.5,kraken:9.6,devourer:3.3,aberration:5.5,riftSmileRelic:5.4,phantomjelly:4.5,siphonophore:5.5});
  const FAMILY_SPAN=Object.freeze({shark:3.2,eel:4.4,ray:3.5,octopus:5.5,squid:5.5,jelly:3.5,crustacean:3.2,mollusc:2.8,reptile:3.7,benthic:2.8,fish:3.1,signature:3.0});
  const sizeOf=id=>ADULT_METERS[String(id)]||null;
  const skinFamily=id=>curated?.byId?.[id]?.family||null;
