@@ -28,7 +28,10 @@
   const delta=Math.atan2(Math.sin(heading-finite(old.heading,heading)),Math.cos(heading-finite(old.heading,heading))),turn=finite(old.turn)+(clamp(delta/Math.max(.016,dt),-3,3)-finite(old.turn))*(1-Math.exp(-dt*6));
   const rollTarget=clamp(turn/3,-1,1)*.82+Math.sin(phase)*weight*(powered?.035:.10),roll=clamp(finite(old.roll)+(rollTarget-finite(old.roll))*(1-Math.exp(-dt*7)), -1,1);
   const breath=(finite(old.breath)+dt*(.31+.12*weight))%1;
-  const prevView=finite(old.viewHeading,heading),viewDelta=Math.atan2(Math.sin(heading-prevView),Math.cos(heading-prevView)),viewHeading=prevView+viewDelta*(1-Math.exp(-dt*16));
+  const prevView=finite(old.viewHeading,heading),viewDelta=Math.atan2(Math.sin(heading-prevView),Math.cos(heading-prevView));
+  // Settle exactly at the requested pose; no endless residual blend at rest.
+  const nextView=prevView+viewDelta*(1-Math.exp(-dt*16)),remaining=Math.atan2(Math.sin(heading-nextView),Math.cos(heading-nextView));
+  const viewHeading=Math.abs(remaining)<.012?heading:nextView;
   return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,viewHeading,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath};
  }
  function leg(side,phase,weight=1,powered=false,motion=null,view=null){
