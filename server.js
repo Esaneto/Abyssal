@@ -1524,7 +1524,7 @@ function tickRoom(room, now) {
   const spaced=combatTarget?PetTactics.limitApproach(pos,move,combatTarget,combatStop-1):move;
   peer.specimenX=spaced.x;peer.specimenY=spaced.y;peer.specimenEvasionHeading=move.angle;
  }
- if(activePlayers.length)io.to(channelFor(room)).volatile.emit('specimen-motion',{serverTime:now,rows:activePlayers.map(p=>[p.id,p.specimenX,p.specimenY,Number(p.specimenEvasionHeading)||0,p.specimenAlive!==false])});
+ if(activePlayers.length)io.to(channelFor(room)).volatile.emit('specimen-motion',{serverTime:now,rows:activePlayers.map(p=>[p.id,p.specimenX,p.specimenY,Number(p.specimenEvasionHeading)||0,p.specimenAlive!==false,ResBalance.rank(p.magneticField)])});
  const w = room.world;
  tickSpecimenOrbs(room,activePlayers);
  tickSkinTrailNodes(room,activePlayers,now);
@@ -2226,12 +2226,11 @@ io.on('connection', socket => {
   // Only gameplay inputs are accepted; HP/max HP remain server-authoritative.
   p.shieldCharges = clamp(Math.floor(Number(payload.shieldCharges) || 0), 0, 3);
   p.regenLevel = clamp(Math.floor(Number(payload.regenLevel) || 0), 0, 3);
-  if(payload.magneticField!=null)p.magneticField=ResBalance.rank(payload.magneticField);
-  if(payload.petAttack!=null)p.petAttack=ResBalance.rank(payload.petAttack);
-  if(payload.petLife!=null)p.petLife=ResBalance.rank(payload.petLife);
-  if(payload.petSpeed!=null)p.petSpeed=ResBalance.rank(payload.petSpeed);
-  if(payload.petCadence!=null)p.petCadence=ResBalance.rank(payload.petCadence);
-  if(payload.closePressureLevel!=null)p.closePressureLevel=ResBalance.rank(payload.closePressureLevel);
+  // A new rank can only be purchased by a confirmed level-up, once per credit.
+  const resonanceKeys=["magneticField","petAttack","petLife","petSpeed","petCadence","closePressureLevel"];
+  const increased=resonanceKeys.filter(k=>payload[k]!=null&&ResBalance.rank(payload[k])>ResBalance.rank(p[k]));
+  if(increased.length===1&&p.resonanceUpgradeGrant===true){const k=increased[0];if(ResBalance.rank(payload[k])===ResBalance.rank(p[k])+1)p[k]=ResBalance.rank(payload[k]);}
+  if(p.resonanceUpgradeGrant===true)p.resonanceUpgradeGrant=false;
   const petMax=Math.round(SpecimenSystem.effectiveStats(p.skinId,p.specimenPoints).hp*ResBalance.petLife(p.petLife));if(petMax!==p.specimenMaxHp){if(p.specimenAlive!==false)p.specimenHp=Math.min(petMax,p.specimenHp+Math.max(0,petMax-p.specimenMaxHp));p.specimenMaxHp=petMax;emitSpecimenState(room,p,'resonance-upgrade');}
   p.magnetStrength = clamp(Number(payload.magnetStrength) || 1, 1, 1.26);
   p.rangeStrength = clamp(Number(payload.rangeStrength) || 1, 1, Math.pow(1.22, 3));
@@ -2318,6 +2317,7 @@ io.on('connection', socket => {
   if (reason === 'upgrade-selected') {
    if (seconds !== 3 || (Number(p.upgradeProtectionUntil) || 0) <= 0 || now > (Number(p.upgradeProtectionUntil) || 0) + 1000) return;
    p.upgradeProtectionUntil = 0;
+   p.resonanceUpgradeGrant=true;
    p.skillSelectingUntil = 0;
    p.invulnerableUntil = now + 3000;
    return;
