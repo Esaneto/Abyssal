@@ -409,12 +409,12 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
   await sleep(6500);
   const auditControls=async(selectors,required,forceVisible=[])=>evaluate(`(()=>{const selectors=${JSON.stringify(selectors)},required=${JSON.stringify(required)},forceVisible=${JSON.stringify(forceVisible)},saved=[];try{
    for(const selector of forceVisible){const e=document.querySelector(selector);if(e){saved.push([e,e.hidden,e.className]);e.hidden=false;if(e.id==='mobileAimStick')e.classList.add('dual-stick-visible');}}
-   const result=[],missing=[],collisions=[],blocked=[];
-   const clip=(e,r)=>{let b={left:Math.max(0,r.left),top:Math.max(0,r.top),right:Math.min(innerWidth,r.right),bottom:Math.min(innerHeight,r.bottom)};for(let p=e.parentElement;p;p=p.parentElement){const c=getComputedStyle(p),q=p.getBoundingClientRect();if(/hidden|clip|auto|scroll/.test(c.overflowX)){b.left=Math.max(b.left,q.left);b.right=Math.min(b.right,q.right);}if(/hidden|clip|auto|scroll/.test(c.overflowY)){b.top=Math.max(b.top,q.top);b.bottom=Math.min(b.bottom,q.bottom);}}return b;};
-   for(const selector of selectors){for(const e of document.querySelectorAll(selector)){const c=getComputedStyle(e),r=e.getBoundingClientRect();if(c.display==='none'||c.visibility==='hidden'||r.width<1||r.height<1||e.closest('[hidden]'))continue;const q=clip(e,r),w=q.right-q.left,h=q.bottom-q.top;if(w<=1||h<=1)continue;const name=e.id||e.getAttribute('aria-label')||e.textContent.trim().slice(0,42)||selector;result.push({selector,name,...q,w,h,rawW:r.width,rawH:r.height});if(required.includes(selector)){if(w<44||h<44||w<r.width-2||h<r.height-2)missing.push(name+' clipped '+w+'x'+h);const at=document.elementFromPoint((q.left+q.right)/2,(q.top+q.bottom)/2);if(at&&!e.contains(at))blocked.push(name+' blocked by '+(at.id||at.className||at.tagName));}}}
+   const result=[],missing=[],collisions=[],blocked=[],raw=[];
+   const clip=(e,r)=>{let b={left:Math.max(0,r.left),top:Math.max(0,r.top),right:Math.min(innerWidth,r.right),bottom:Math.min(innerHeight,r.bottom)};if(getComputedStyle(e).position==='fixed')return b;for(let p=e.parentElement;p;p=p.parentElement){const c=getComputedStyle(p),q=p.getBoundingClientRect();if(/hidden|clip|auto|scroll/.test(c.overflowX)){b.left=Math.max(b.left,q.left);b.right=Math.min(b.right,q.right);}if(/hidden|clip|auto|scroll/.test(c.overflowY)){b.top=Math.max(b.top,q.top);b.bottom=Math.min(b.bottom,q.bottom);}if(c.position==='fixed')break;}return b;};
+   for(const selector of selectors){for(const e of document.querySelectorAll(selector)){const c=getComputedStyle(e),r=e.getBoundingClientRect();raw.push({selector,display:c.display,visibility:c.visibility,position:c.position,hidden:e.closest('[hidden]')?.id||null,rect:[r.left,r.top,r.width,r.height]});if(c.display==='none'||c.visibility==='hidden'||r.width<1||r.height<1||e.closest('[hidden]'))continue;const q=clip(e,r),w=q.right-q.left,h=q.bottom-q.top;if(w<=1||h<=1)continue;const name=e.id||e.getAttribute('aria-label')||e.textContent.trim().slice(0,42)||selector;result.push({selector,name,...q,w,h,rawW:r.width,rawH:r.height});if(required.includes(selector)){if(w<44||h<44||w<r.width-2||h<r.height-2)missing.push(name+' clipped '+w+'x'+h);const at=document.elementFromPoint((q.left+q.right)/2,(q.top+q.bottom)/2);if(!at||!e.contains(at))blocked.push(name+' blocked by '+(at?.id||at?.className||at?.tagName||'outside viewport'));}}}
    for(const selector of required)if(!result.some(x=>x.selector===selector))missing.push(selector+' missing');
    for(let i=0;i<result.length;i++)for(let j=i+1;j<result.length;j++){const a=result[i],b=result[j],w=Math.min(a.right,b.right)-Math.max(a.left,b.left),h=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);if(w>2&&h>2)collisions.push(a.name+' / '+b.name+' '+Math.round(w)+'x'+Math.round(h));}
-   return {count:result.length,missing,collisions,blocked,controls:result};
+   return {count:result.length,missing,collisions,blocked,controls:result,diagnostics:missing.length?{w:innerWidth,h:innerHeight,html:document.documentElement.className,body:document.body.className,raw}:undefined};
   }finally{for(const [e,hidden,cls] of saved){e.hidden=hidden;e.className=cls;}}})()`);
   const assertAudit=(name,a)=>{console.log('[mobile-control-audit] '+name+' '+JSON.stringify(a));assert.deepEqual(a.missing,[],name+' clipped or missing controls');assert.deepEqual(a.collisions,[],name+' overlapping controls');assert.deepEqual(a.blocked,[],name+' blocked controls');};
   if(mode==='mobile-wardrobe'){
@@ -454,8 +454,8 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     const active=await state();assert.equal(active.active,true,'Gameplay ended during viewport rotation '+JSON.stringify(active));
     assert.equal(await evaluate('window.__abyssalMobileLayoutKeepAlive?.()'),true,'Mobile game not playing after rotation '+JSON.stringify(active));
     const all=await auditControls([...required,'#hud','#selectedSkillsPanel','#runEnergyRanking'],required,['#skillPulseBtn','#skillDashBtn','#skinActiveBtn','#mobileAimStick','#mobileFireBtn','#soloSubmarineRepairBtn','#soloSubmarinePowerBtn','#quickComms']);
-    assertAudit('gameplay '+w+'x'+h,all);
     await screenshot('exact-mobile-gameplay-'+w+'x'+h);
+    assertAudit('gameplay '+w+'x'+h,all);
    }
    await evaluate("document.getElementById('mobilePauseBtn').click()");
    await sleep(200);
