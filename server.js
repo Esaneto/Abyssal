@@ -24,6 +24,7 @@ const CreatureScale=require('./public/creature-scale.js');
 const GravityCone = require('./public/gravity-cone.js');
 const SpecimenSystem = require('./public/specimen-system.js');
 const ResBalance = require('./public/abyssal-resonance-balance.js');
+const SoloBase = require('./public/abyssal-solo-base.js');
 const DiverHitbox = require('./public/diver-hitbox.js');
 const DiverArt = require('./public/diver-art.js');
 const AvatarBase = require('./public/avatar-base.js');
@@ -3005,7 +3006,7 @@ io.on('connection', socket => {
    const currentRoom=socketRoom(socket),activePlayer=currentRoom?.players.get(socket.id);
    if(activePlayer){activePlayer.diverGender=u.diverGender;io.to(channelFor(currentRoom)).emit('world-players',[...currentRoom.players.values()].map(({userKey,runStats,...p})=>p));}
   }
-  if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova','echoShot','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'];const shotSkills=new Set(['electric','pierce','photon','photonRay','nova','echoShot']);const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];let hasShot=false;presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].filter(id=>{if(!shotSkills.has(id))return true;if(hasShot)return false;hasShot=true;return true;}).slice(0,10);if(!presets[mode].some(id=>shotSkills.has(id))){if(presets[mode].length>=10)presets[mode].pop();presets[mode].unshift(mode==='pve'?'photon':'electric');}}u.resonancePresets=presets;}
+  if(payload.resonancePresets&&typeof payload.resonancePresets==='object')u.resonancePresets=SoloBase.normalizePresets(payload.resonancePresets);
   if (u.ownedSkins.includes(payload.equippedSkin)){
    u.equippedSkin = payload.equippedSkin;
    const room=socketRoom(socket),p=room?.players.get(socket.id);
