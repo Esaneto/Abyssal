@@ -6,7 +6,6 @@ const path=require('node:path');
 const geo=require('../public/abyssal-ocean-geography.js');
 const ecology=require('../public/abyssal-open-sea-ecology.js');
 const stream=require('../public/abyssal-ocean-stream.js');
-const renderer=require('../public/abyssal-open-sea-render.js');
 
 test('ocean is a wide side section with a sunlit shelf, canyon and abyssal basin',()=>{
  assert.equal(geo.WIDTH,24000);
@@ -63,7 +62,7 @@ test('streaming creates no wildlife or resources inside ocean rock',()=>{
  }
 });
 
-test('solo, coop, ecology, render and chart depend on one shared geography',()=>{
+test('game, server, ecology and chart depend on one shared geography',()=>{
  const game=fs.readFileSync(path.resolve(__dirname,'../public/game.js'),'utf8');
  const server=fs.readFileSync(path.resolve(__dirname,'../server.js'),'utf8');
  const world=fs.readFileSync(path.resolve(__dirname,'../world-simulation.js'),'utf8');
@@ -74,7 +73,6 @@ test('solo, coop, ecology, render and chart depend on one shared geography',()=>
  assert.match(server,/OceanGeography\.resolveMove/);
  assert.match(world,/OceanGeography\.isSolid/);
  assert.match(chart,/geo\.floorAt/);
- assert.equal(typeof renderer.draw,'function');
 });
 
 test('Mar Aberto entry remains a navigable water corridor without the removed overhead barrier',()=>{
