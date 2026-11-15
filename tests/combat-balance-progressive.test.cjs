@@ -32,7 +32,7 @@ test('health ramp preserves damage fraction and is idempotent',()=>{
 test('all common species meet minimum length, all bosses and companions are capped',()=>{
   assert.equal(Scale.DIVER_METERS,1.8);
   for(const [kind,length] of Object.entries(Scale.MONSTER_METERS)){
-    assert.ok(length>=.5,kind);
+    assert.ok(length>=Scale.MIN_HOSTILE_METERS,kind);
     assert.ok(Scale.creatureCollisionRadius(10,null,kind)>0,kind);
   }
   for(const [kind,length] of Object.entries(Scale.BOSS_METERS))assert.ok(length>=4&&length<=8,kind);
