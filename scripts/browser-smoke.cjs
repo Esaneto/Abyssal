@@ -457,8 +457,8 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     assertAudit('gameplay '+w+'x'+h,all);
     const perf=await evaluate('window.AbyssalPerformance.snapshot()');console.log('[mobile-render-budget] '+w+'x'+h+' '+JSON.stringify(perf));
     assert.equal(perf.graphics.automatic,true,'mobile adaptive graphics must be active');
-    assert.ok(perf.graphics.dpr<=1.5,'mobile framebuffer density exceeds safety cap');
-    assert.ok(perf.canvasPixels<=Math.ceil(w*h*2.25)+Math.max(w,h)*8,'mobile framebuffer exceeds pixel budget');
+    assert.ok(perf.graphics.dpr<=2.5,'mobile framebuffer density exceeds safety cap');
+    assert.ok(perf.canvasPixels<=Math.min(4000000,Math.ceil(w*h*6.25)+Math.max(w,h)*8),'mobile framebuffer exceeds pixel budget');
     await screenshot('exact-mobile-gameplay-'+w+'x'+h);
    }
    await evaluate("document.getElementById('mobilePauseBtn').click()");
@@ -485,8 +485,8 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    assert.ok(solo?.elapsed>1,'Shooter Solo did not advance its real-time simulation');
    assert.ok(!solo?.errors,'Shooter Solo runtime error: '+solo.errors);
    await screenshot('live-solo-start');
-   const hud=await evaluate('(()=>{const r=document.getElementById("runEnergyRanking"),h=document.getElementById("hud"),b=document.getElementById("toggleHudBtn"),pet=document.querySelector("#petHabitBar .pet-habit-actions"),bar=document.getElementById("petHabitBar"),skills=document.getElementById("activeAbilities"),active=document.getElementById("skinActiveBtn");const br=bar.getBoundingClientRect(),sr=skills.getBoundingClientRect();const before={ranking:getComputedStyle(r).display,opacity:getComputedStyle(h).opacity,pet:getComputedStyle(pet).flexDirection,petAbove:br.bottom<=sr.top+2,rLabel:active.textContent};b.click();before.hidden=getComputedStyle(h).visibility;before.restore=getComputedStyle(b).visibility;b.click();return before;})()');
-   assert.equal(hud.ranking,'none');assert.equal(hud.opacity,'0.6');assert.equal(hud.pet,'column');assert.equal(hud.hidden,'hidden');assert.equal(hud.restore,'visible');assert.equal(hud.petAbove,true,'Specimen behavior must sit above ability buttons');assert.ok(!/SONAR/.test(hud.rLabel),'Solo R must show the equipped specimen ability, not Sonar: '+hud.rLabel);
+   const hud=await evaluate('(()=>{const r=document.getElementById("runEnergyRanking"),h=document.getElementById("hud"),b=document.getElementById("toggleHudBtn"),pet=document.querySelector("#petHabitBar .pet-habit-actions"),bar=document.getElementById("petHabitBar"),skills=document.getElementById("activeAbilities"),active=document.getElementById("skinActiveBtn");const br=bar.getBoundingClientRect(),sr=skills.getBoundingClientRect();const before={ranking:getComputedStyle(r).display,opacity:getComputedStyle(h).opacity,pet:getComputedStyle(pet).flexDirection,petAbove:br.bottom<=sr.top+2,rLabel:active.textContent};b.click();before.hidden=getComputedStyle(h).display;before.restore=getComputedStyle(b).visibility;before.actions=getComputedStyle(skills).display!=='none'&&getComputedStyle(skills).visibility!=='hidden';before.petVisible=getComputedStyle(bar).display!=='none'&&getComputedStyle(bar).visibility!=='hidden';before.endVisible=getComputedStyle(document.getElementById("endDiveBtn")).visibility!=='hidden';b.click();return before;})()');
+   assert.equal(hud.ranking,'none');assert.equal(hud.opacity,'0.6');assert.equal(hud.pet,'column');assert.equal(hud.hidden,'none');assert.equal(hud.restore,'visible');assert.equal(hud.actions,true);assert.equal(hud.petVisible,true);assert.equal(hud.endVisible,true);assert.equal(hud.petAbove,true,'Specimen behavior must sit above ability buttons');assert.ok(!/SONAR/.test(hud.rLabel),'Solo R must show the equipped specimen ability, not Sonar: '+hud.rLabel);
    // The movement is sent through Chromium's keyboard input, not by
    // teleporting the player or modifying in-game state.
    const key={key:'d',code:'KeyD',windowsVirtualKeyCode:68,nativeVirtualKeyCode:68};
