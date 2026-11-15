@@ -326,6 +326,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
           <label for="diveMusicVolume"><span>MÚSICA</span><output id="diveMusicValue" for="diveMusicVolume">45%</output></label>
           <input id="diveMusicVolume" type="range" min="0" max="100" step="1" value="45" aria-label="Volume da música">
         </fieldset>
+        <fieldset class="dive-volume-settings dive-graphics-settings" aria-label="Qualidade gráfica"><legend>GRÁFICOS</legend><label for="diveGraphicsQuality"><span>QUALIDADE</span><output id="diveGraphicsStatus"></output></label><select id="diveGraphicsQuality" class="text-field" aria-label="Qualidade gráfica"><option value="auto">Automática</option><option value="0">Leve</option><option value="1">Médio</option><option value="2">Ultra</option></select></fieldset>
         <button id="resumeBtn" class="primary-btn">CONTINUAR <span>↗</span></button>
         <button id="quitBtn" class="secondary-btn">ENCERRAR MERGULHO</button>
       </div>
@@ -705,7 +706,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <link rel="stylesheet" href="abyssal-release-polish.css?v=3">
 <link rel="stylesheet" href="mobile-portrait.css?v=3.6.106">
 <link rel="stylesheet" href="abyssal-hud-editor.css?v=3.6.106">
-<link rel="stylesheet" href="abyssal-responsive-v247.css?v=3.6.106">
+<link rel="stylesheet" href="abyssal-responsive-v247.css?v=3.6.107-ui">
 <script src="server-config.js?v=1"></script>
 <script>
 (function(){
@@ -792,9 +793,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
  <script src="abyssal-feature-gates.js?v=2026.11.13.online-test"></script>
  <script src="abyssal-sample-audio.js?v=2026.11.14.death-v2"></script>
- <script src="abyssal-research-tree.js?v=2"></script>
-<script src="abyssal-hud-editor.js?v=3.6.106"></script>
- <script src="game.js?v=3.6.106"></script>
+ <script src="abyssal-research-tree.js?v=3"></script>
+<script src="abyssal-hud-editor.js?v=3.6.107-ui"></script>
+ <script src="game.js?v=3.6.107-ui"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=3.6.106"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
@@ -851,7 +852,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
 <script src="ocean-menu-scenery.js?v=2026.11.12.18"></script>
 <script src="abyssal-menu-ocean.js?v=3.6.102"></script>
-<script src="abyssal-submarine-cockpit.js?v=2026.11.14.playable-v226"></script>
+<script src="abyssal-submarine-cockpit.js?v=3.6.107-ui"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
 <script src="abyssal-exploration-runtime.js?v=3.6.106"></script>
