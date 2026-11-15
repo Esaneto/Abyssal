@@ -19,7 +19,7 @@ test('natural lengths preserve predator/prey hierarchy next to a 1.80 m diver',(
  assert.ok(length('leatherback')>length('hawksbill'));
  assert.ok(length('spidercrab')>length('pistolshrimp'));
  assert.ok(length('kraken')>length('reefshark'));
- assert.equal(Scale.monsterMeters('stinger'),.5);
+ assert.equal(Scale.monsterMeters('stinger'),.85);
  assert.equal(Scale.monsterMeters('whiteShark'),4.8);
 });
 test('every enemy has a proportional body radius and boss length is 4–8 m',()=>{
