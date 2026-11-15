@@ -448,9 +448,9 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    const frame=()=>evaluate(`(()=>{const c=document.getElementById('profileSpecimenCanvas'),x=Math.floor(c.width*.05),y=Math.floor(c.height*.43),w=Math.floor(c.width*.44),h=Math.floor(c.height*.54),a=c.getContext('2d').getImageData(x,y,w,h).data;let hash=2166136261,bright=0;for(let i=0;i<a.length;i+=4){hash=Math.imul(hash^a[i]^a[i+1]*257^a[i+2]*65537,16777619);if(a[i]+a[i+1]+a[i+2]>140&&a[i+3]>40)bright++;}return {hash,bright,w,h};})()`);
    for(const [w,h] of (mobile?[[390,844],[320,568],[844,390]]:[[1280,720],[900,600]])){
     await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:mobile?2:1,mobile,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});
-    await open();await fixture();await sleep(350);
+    await open();await fixture();await evaluate("document.querySelector('#profileScreen .profile-hero').scrollIntoView({block:'start'})");await sleep(350);
     const a=await geometry();await screenshot(mode+'-header-'+w+'x'+h);
-    assert.ok(!a.hidden&&a.identity.width>=100&&a.name.width>=100&&a.name.height<=a.line*4+2&&a.writing==='horizontal-tb'&&a.title.height<100&&a.actions.top>=a.identity.bottom-1&&a.panelScroll<=a.panelWidth+2&&a.nameText==='MergulhadorDasProfundezas'&&a.titleText.includes('Perseguidor de Leviatãs'),'Profile text/grid regression: '+JSON.stringify(a));
+    assert.ok(!a.hidden&&a.identity.width>=100&&a.name.width>=100&&a.name.height<=a.line*4+2&&a.writing==='horizontal-tb'&&a.title.height<100&&a.name.top>=0&&a.title.bottom<=h&&a.actions.top>=a.identity.bottom-1&&a.panelScroll<=a.panelWidth+2&&a.nameText==='MergulhadorDasProfundezas'&&a.titleText.includes('Perseguidor de Leviatãs'),'Profile text/grid regression: '+JSON.stringify(a));
     await evaluate("document.getElementById('profileSpecimenCanvas').scrollIntoView({block:'center'})");await sleep(200);
     const first=await frame();await screenshot(mode+'-swim-a-'+w+'x'+h);await sleep(300);const second=await frame();await screenshot(mode+'-swim-b-'+w+'x'+h);
     console.log('[profile-swim] '+JSON.stringify({w,h,a,first,second}));
@@ -461,6 +461,12 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     await evaluate("window.AbyssalCockpitNavigation.open()");await sleep(400);await open();await fixture();await sleep(300);
     const a=await geometry();await screenshot('desktop-profile-cockpit');assert.ok(a.embedded&&a.identity.width>=100&&a.panelScroll<=a.panelWidth+2,'Embedded profile geometry: '+JSON.stringify(a));
     const first=await frame();await sleep(300);const second=await frame();assert.notEqual(first.hash,second.hash,'Embedded desktop profile must resume swimming');
+    // Windows/browser reduced-motion must tone down, not freeze, the requested swimming pose.
+    await command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+    await evaluate("document.getElementById('profileSpecimenCanvas').scrollIntoView({block:'center'})");await sleep(300);
+    const gentleA=await frame();await screenshot('desktop-profile-reduced-swim-a');await sleep(450);const gentleB=await frame();await screenshot('desktop-profile-reduced-swim-b');
+    assert.ok(gentleA.bright>20&&gentleB.bright>20&&gentleA.hash!==gentleB.hash,'Reduced motion must retain a subtle diver fin kick: '+JSON.stringify({gentleA,gentleB}));
+    console.log('[profile-reduced-swim] '+JSON.stringify({gentleA,gentleB}));
    }
    return;
   }

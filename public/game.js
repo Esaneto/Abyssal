@@ -4558,14 +4558,15 @@ function renderSpecimenPortraits(t){
    // Persist swimming and hair physics across frames, including reopens.
    motion=profilePortraitMotion.get(canvas)||{phase:0,weight:1,swimSide:1,last:t,breath:0};
    const dt=Math.min(.05,Math.max(0,(t-motion.last)/1000));motion.last=t;
-   motion.phase+=dt*(reduced?0:6.4);
-   motion.weight=reduced?0:1;motion.roll=reduced?0:Math.sin(motion.phase)*.22;motion.breath=reduced?0:(motion.breath+dt*.25)%1;
+   // Reduced motion keeps a quiet in-place fin kick instead of freezing the avatar.
+   motion.phase+=dt*(reduced?2.2:6.4);
+   motion.weight=reduced?.28:1;motion.roll=reduced?0:Math.sin(motion.phase)*.22;motion.breath=reduced?0:(motion.breath+dt*.25)%1;
    motion.hairFlow=0;profilePortraitMotion.set(canvas,motion);
   }
   const bob=reduced?0:Math.sin(profile?motion.phase*.5:t*.0022)*3;
   const dx=profile?w*.50:w*.42,dy=h*.60;
   const portraitRadius=profile?Math.min(27,w*.14,h*.35):27;
-  DIVER_ART?.draw?.(c,dx,dy+bob,portraitRadius,profile?0:-.10,profile?0:-.10,reduced?0:t,{gender:portraitLook?.gender||diverGender,appearance:portraitLook?.appearance||undefined,moving:!reduced,viewYaw:profile?1:undefined,reducedMotion:reduced,gameplay:profile,motion:motion||undefined});
+  DIVER_ART?.draw?.(c,dx,dy+bob,portraitRadius,profile?0:-.10,profile?0:-.10,reduced?0:t,{gender:portraitLook?.gender||diverGender,appearance:portraitLook?.appearance||undefined,moving:profile||!reduced,viewYaw:profile?1:undefined,reducedMotion:reduced,gameplay:profile,motion:motion||undefined});
   const sx=w*.62,sy=h*.30+(reduced?0:Math.cos(t*.002)*5);
   try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',reduced?0:t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
  }
