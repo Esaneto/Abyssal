@@ -311,7 +311,7 @@ function fantasyFin(id,pose,side){
  if(occlusion>.001){c.beginPath();c.rect(-150,-150,300,300);c.rect(-24,-occlusion,46,occlusion*2);c.clip('evenodd');}
  for(const side of [-1,1]){
   const far=side<0,mix=(a,b,t)=>a+(b-a)*t;
-  const frontY=side*13.3-4.2+(far?2.2:1.1)*yaw,sideY=far?-25+roll*1.8:-22+roll;
+  const frontY=side*13.3-4.2+(far?2.2:1.1)*yaw,sideY=far?-23+roll*.6:-21+roll*.6;
   const y=mix(mix(frontY,sideY,profileBlend),far?-10:1,rear);
   const w=mix(8.4+(far?-1.6:1.7)*yaw+roll*(far?-.65:.65)*profileBlend,9,rear);
   const len=mix(34+(far?-3:2)*yaw,32,rear),x0=mix(-17+(far?1.5:-1)*yaw,-16,rear);
