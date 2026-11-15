@@ -108,8 +108,7 @@
    if(!initialized){initialized=true;resetToHatch();}
    else if(!transition&&oldW>0&&oldH>0){
     // Keep the same normalized diver position when the phone rotates.
-    px=clamp(px/oldW*w,24,w-24);
-    py=clamp(py/oldH*h,24,h-24);
+    if(menu.classList.contains('expedition-hub')){px=hatch().x;py=arrivalEnd();}else{px=clamp(px/oldW*w,24,w-24);py=clamp(py/oldH*h,24,h-24);}diver.style.setProperty('--diver-x',px+'px');diver.style.setProperty('--diver-y',py+'px');
    }
   }
   function playEntrance(s){
@@ -409,6 +408,7 @@
   menu.classList.add('menu-ready');
   window.addEventListener('abyssal-menu-return',()=>{pendingCabinExit=false;wasVisible=false;waitingForModal=false;requestAnimationFrame(()=>{if(!menu.hidden){sizeScene();resetToHatch();}});});
   window.addEventListener('resize',()=>{if(hatchVisible())sizeScene();});
+  window.addEventListener('abyssal-viewport-change',()=>{if(hatchVisible())requestAnimationFrame(sizeScene);});
   if(typeof ResizeObserver==='function'){
    const ro=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>80&&(Math.abs(stage.clientWidth-w)>2||Math.abs(stage.clientHeight-h)>2))sizeScene();});
    ro.observe(stage);
