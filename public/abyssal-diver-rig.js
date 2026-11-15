@@ -8,9 +8,21 @@
  const viewFor=(yaw=.65,heading=0)=>{yaw=clamp(finite(yaw,.65),0,1);const profile=clamp((yaw-.65)/.35,0,1),side=profile>.5?facing(heading):1;return {yaw,profile,facing:side,width:(1-.22*yaw-.10*profile)*side,shear:.055*yaw*(1-profile)*side,headTilt:-.72*profile};};
  // Continuous projected body yaw from the movement heading. Vertical directions
  // are full-width frontal/dorsal views, horizontal directions are profiles.
- function gameplayView(heading=0){
-  const a=finite(heading),x=Math.cos(a),y=Math.sin(a),p=Math.abs(x),blend=p*p*(3-2*p),side=x<0?-1:1;
+ function gameplayView(heading=0,lastSide=null){
+  const a=finite(heading),rawX=Math.cos(a),rawY=Math.sin(a);
+  // Exact front/back at vertical endpoints: suppress infinitesimal profile
+  // contributions from floating point or a nearly settled body rotation.
+  const x=Math.abs(rawX)<.012?0:rawX,y=x===0?(rawY<0?-1:1):rawY;
+  const p=Math.abs(x),blend=p*p*(3-2*p),side=x===0?(lastSide===-1?-1:1):(x<0?-1:1);
   return {yaw:blend,profile:blend,facing:side,width:(1-.32*blend)*side,shear:.045*blend*(1-blend)*side,headTilt:-.72*blend,rear:Math.max(0,y)**2,front:Math.max(0,-y)**2,directional:true};
+ }
+ // Exactly two physical cylinders; every viewpoint projects these same mounts.
+ function tankMounts(view,roll=0){
+  const profile=clamp(finite(view?.profile),0,1),yaw=clamp(finite(view?.yaw),0,1),rear=clamp(finite(view?.rear),0,1),mix=(a,b,t)=>a+(b-a)*t;
+  roll=clamp(finite(roll),-1,1);
+  return [-1,1].map(side=>{const far=side<0,frontY=side*13.3-4.2+(far?2.2:1.1)*yaw,sideY=far?-23+roll*.6:-21+roll*.6;
+   return {far,y:mix(mix(frontY,sideY,profile),far?-10:1,rear),w:mix(8.4+(far?-1.6:1.7)*yaw+roll*(far?-.65:.65)*profile,9,rear),len:mix(34+(far?-3:2)*yaw,32,rear),x0:mix(-17+(far?1.5:-1)*yaw,-16,rear)};
+  });
  }
  // Gameplay stays in one swimming profile at every heading. Vertical travel
  // keeps the last horizontal side; no frontal/dorsal model is introduced.
@@ -144,5 +156,5 @@
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
   const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.directional){const mix=view.profile,sideView=idleArm(side,phase,weight,motion,{...view,directional:false,profile:1},mode),frontView=idleArm(side*view.facing,phase,weight,motion,{...view,directional:false,profile:0},mode);return Object.fromEntries(['shoulder','elbow','hand'].map(k=>[k,frontView[k].map((v,i)=>v+(sideView[k][i]-v)*mix)]));}if(view?.profile>.5){const tucked=mode==='tool';return {shoulder:project([13,side*13],view),elbow:project([tucked?-5:0,side<0?2:19+brake*2],view),hand:project([tucked?-26:18-brake*3,side<0?8:16+sway*.35+brake*2],view)};}return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
- return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,swimView,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
+ return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,swimView,tankMounts,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });
