@@ -13,7 +13,7 @@ body.game-active.hud-collapsed #abyssalMiniMap,body.game-active.hud-collapsed #a
 html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #gameShell #hud:not([hidden]),html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){display:none!important}
 body.game-active.hud-collapsed #explorationOverlay .exploration-instruments,body.game-active.abyss-hud-folded #explorationOverlay .exploration-instruments,body.game-active.abyss-hud-folded #abyssalMiniMap,body.game-active.abyss-hud-folded #hud{display:none!important}
 body.game-active.custom-hud-active #gameplayOverlayRoot #petHabitBar{pointer-events:none!important}
-body.game-active.custom-hud-active #petHabitBar :is(button,select){pointer-events:auto!important}
+body.game-active.custom-hud-active #petHabitBar button{pointer-events:auto!important}
 body.game-active.custom-hud-active #activeAbilities{pointer-events:none!important}
 body.game-active.custom-hud-active #activeAbilities button{pointer-events:auto!important}
 
@@ -74,6 +74,4 @@ body.game-active.custom-hud-active #gameShell [data-hud-custom-opacity],body.gam
 .hud-editor-fullscreen .hud-editor-dock-row button{flex:1;white-space:nowrap!important;letter-spacing:0!important;font:700 10px/1.15 system-ui!important;padding:4px!important}
 .hud-editor-fullscreen .hud-editor-size,.hud-editor-fullscreen .hud-editor-size output{font:600 11px/1.15 system-ui!important;letter-spacing:0!important;text-transform:none!important}
 .hud-editor-fullscreen .hud-editor-dock>p{font:500 11px/1.2 system-ui!important}
-html.abyssal-handheld body.game-active.mobile-game-active #gameShell #gameplayOverlayRoot #activeAbilities .active-ability:not([hidden]){font:750 9px/1.12 system-ui!important;letter-spacing:0!important;white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important;text-align:center!important;padding:2px!important}
-html.abyssal-handheld body.game-active.mobile-game-active #gameShell #gameplayOverlayRoot #activeAbilities #skillDashBtn:not([hidden]){font-size:8px!important}
 html.abyssal-handheld body.game-active.mobile-game-active #gameShell #soloSubmarineRepairBtn:not([hidden]){font:750 8px/1.1 system-ui!important;letter-spacing:0!important;overflow-wrap:normal!important;word-break:normal!important}

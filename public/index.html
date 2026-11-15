@@ -75,8 +75,8 @@
 <link rel="stylesheet" href="abyssal-exploration-hud.css?v=2026.11.10.66">
 <link rel="stylesheet" href="abyssal-cinematic-refresh.css?v=2026.11.11.1">
 <link rel="stylesheet" href="abyssal-solo-focus.css?v=2026.11.13.online-parity">
-<link rel="stylesheet" href="abyssal-solo-hud.css?v=3.6.112">
-<link rel="stylesheet" href="abyssal-pet-habits.css?v=2026.11.11.1">
+<link rel="stylesheet" href="abyssal-solo-hud.css?v=3.6.118">
+<link rel="stylesheet" href="abyssal-pet-habits.css?v=3.6.118">
 <style>
 #gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }
 /* The loading shell must not reveal leftover legacy menu DOM before the swimmer initializes. */
@@ -269,22 +269,20 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
     <!-- Gameplay overlays are siblings of HUD so their coordinates resolve against the arena, not the HUD box. -->
     <div id="gameplayOverlayRoot" class="gameplay-overlay-root">
-      <aside id="selectedSkillsPanel" class="selected-skills-panel" aria-live="polite" aria-label="Ressonância, habilidades adquiridas"><strong class="selected-skills-title">RESSONÂNCIA</strong><div id="selectedSkillsList" class="selected-skills-list"><p class="selected-skills-empty">Nenhuma habilidade adquirida</p></div></aside>
+      <aside id="selectedSkillsPanel" class="selected-skills-panel" aria-live="polite" aria-label="Ressonância, habilidades adquiridas"><div id="selectedSkillsList" class="selected-skills-list"></div></aside>
       <div id="skillDescriptionTooltip" class="skill-description-tooltip" role="tooltip" hidden></div>
       <aside id="runEnergyRanking" class="run-energy-ranking" aria-live="polite"><strong>DANO · TOP 6</strong><div id="runEnergyRankingList"><span>1. Você — 0</span></div></aside>
       <aside id="petHabitBar" class="pet-habit-bar" aria-label="Comportamento do espécime">
- <strong>COMPORTAMENTO DO ESPÉCIME</strong>
- <select id="mobilePetHabit" aria-label="Comportamento do espécime"><option value="passive">Passivo</option><option value="aggressive">Agressivo</option><option value="guardian">Protetor</option></select>
- <div class="pet-habit-actions">
+ <div class="pet-habit-actions" role="group" aria-label="Comportamento do espécime">
   <button type="button" data-pet-habit="passive" aria-pressed="true" title="4 · Evita monstros e coleta orbs de Energia pela rota mais segura"><span aria-hidden="true">⛏</span><small>4 · PASSIVO</small></button>
   <button type="button" data-pet-habit="aggressive" aria-pressed="false" title="5 · Ataca os monstros mais próximos e coleta Energia"><span aria-hidden="true">⚔</span><small>5 · AGRESSIVO</small></button>
   <button type="button" data-pet-habit="guardian" aria-pressed="false" title="6 · Protege o jogador dos monstros próximos e coleta Energia"><span aria-hidden="true">🛡</span><small>6 · PROTETOR</small></button>
  </div>
 </aside>
       <div class="active-abilities" id="activeAbilities">
-        <button id="skillPulseBtn" class="active-ability pulse-ability" hidden>Q · PULSO DE MARÉ</button>
-        <button id="skillDashBtn" class="active-ability dash-ability" hidden>E · PROPULSOR · 100%</button>
-<button id="skinActiveBtn" class="active-ability skin-active-ability">R · HABILIDADE DO ESPÉCIME</button>
+        <button id="skillPulseBtn" type="button" aria-label="Pulso de maré" class="active-ability pulse-ability" hidden><span class="ability-glyph" aria-hidden="true"></span><span class="ability-timer" hidden></span><kbd class="ability-key" aria-hidden="true">Q</kbd></button>
+        <button id="skillDashBtn" type="button" aria-label="Propulsor" class="active-ability dash-ability" hidden><span class="ability-glyph" aria-hidden="true"></span><span class="ability-timer" hidden></span><kbd class="ability-key" aria-hidden="true">E</kbd></button>
+<button id="skinActiveBtn" type="button" aria-label="Habilidade do espécime" class="active-ability skin-active-ability"><span class="ability-glyph" aria-hidden="true"></span><span class="ability-timer" hidden></span><kbd class="ability-key" aria-hidden="true">R</kbd></button>
       </div>
     </div>
 
@@ -691,9 +689,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 </div>
 <link rel="stylesheet" href="avatar-wardrobe.css?v=3.6.117.rail5">
 <link rel="stylesheet" href="abyssal-release-polish.css?v=3">
-<link rel="stylesheet" href="mobile-portrait.css?v=3.6.117.rail3">
-<link rel="stylesheet" href="abyssal-hud-editor.css?v=3.6.116">
-<link rel="stylesheet" href="abyssal-responsive-v247.css?v=3.6.117">
+<link rel="stylesheet" href="mobile-portrait.css?v=3.6.118">
+<link rel="stylesheet" href="abyssal-hud-editor.css?v=3.6.118">
+<link rel="stylesheet" href="abyssal-responsive-v247.css?v=3.6.118">
 <script src="server-config.js?v=1"></script>
 <script>
 (function(){
@@ -723,7 +721,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.117"></script>
+<script src="client-build.js?v=3.6.118"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=3.6.108"></script>
 <script src="age-slider.js?v=1"></script>
@@ -778,9 +776,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
  <script src="abyssal-feature-gates.js?v=3.6.113"></script>
  <script src="abyssal-sample-audio.js?v=2026.11.14.death-v2"></script>
- <script src="abyssal-research-tree.js?v=3.6.110"></script>
-<script src="abyssal-hud-editor.js?v=3.6.116"></script>
- <script src="game.js?v=3.6.113"></script>
+ <script src="abyssal-research-tree.js?v=3.6.118"></script>
+<script src="abyssal-hud-editor.js?v=3.6.118"></script>
+ <script src="game.js?v=3.6.118"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=3.6.110"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
