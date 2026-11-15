@@ -147,7 +147,7 @@ html.abyssal-handheld body.game-active.mobile-game-active #hud .bar-label{font:6
 html.abyssal-handheld body.game-active.mobile-game-active #hud .bar{height:8px!important}
 html.abyssal-handheld body.game-active.mobile-game-active #hud .solo-energy-stock{font:650 11px/1.25 system-ui!important}
 html.abyssal-handheld body.game-active.mobile-game-active #hud :is(.track-title,.track-cycle-badge){font:650 10px/1.2 system-ui!important}
-html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){top:calc(var(--touch-top) + 190px)!important;width:clamp(110px,32vw,156px)!important;max-width:156px!important;max-height:19dvh!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){top:calc(var(--touch-top) + 212px)!important;width:clamp(110px,32vw,156px)!important;max-width:156px!important;max-height:19dvh!important}
 html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .selected-skill-row{min-height:36px!important;font-size:11px!important}
 html.abyssal-handheld body.game-active.mobile-game-active #activeAbilities .active-ability:not([hidden]){min-width:48px!important;min-height:52px!important;font:750 11px/1.15 system-ui!important}
 html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar #soloSubmarineRepairBtn>small{font:700 10px/1.1 system-ui!important}
