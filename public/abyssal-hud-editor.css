@@ -1,0 +1,27 @@
+/* The saved layout changes presentation only, not game state or controls. */
+body.game-active.custom-hud-active #hud,body.game-active.custom-hud-active #hud .bars,body.game-active.custom-hud-active #gameplayOverlayRoot{overflow:visible!important}
+body.game-active.custom-hud-active #hud{pointer-events:none!important}
+body.game-active.custom-hud-active #petHabitBar{overflow:visible!important}
+body.game-active.custom-hud-active #activeAbilities{overflow:visible!important}
+body.game-active #mobileAimStick .joystick-base{background:rgba(20,4,13,.36)!important;border:1px solid #ff50626b!important;box-shadow:none!important}
+body.game-active #mobileAimStick .joystick-knob{background:transparent url('abyssal-red-reticle.svg') center/contain no-repeat!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+body.game-active #mobileAimStick small{color:#ff8790!important}
+body.game-active.hud-collapsed #abyssalMiniMap,body.game-active.hud-collapsed #abyssDepthMeter{display:none!important}
+#copyProfileHudBtn{width:auto!important;min-width:82px!important;padding:5px 9px!important;font:750 10px/1.1 system-ui!important;white-space:nowrap;color:#99f6ed!important}
+#submarineWorkshop .hud-editor{display:grid;gap:8px;width:100%;min-width:0;padding:4px;box-sizing:border-box;color:#d9faff}
+#submarineWorkshop .hud-editor-note{font:500 12px/1.4 system-ui;margin:0;color:#b3d6e0}
+#submarineWorkshop .hud-editor-toolbar,#submarineWorkshop .hud-editor-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#submarineWorkshop .hud-editor-toolbar select{flex:1 1 130px;min-width:0;max-width:100%;padding:6px;background:#0e2936;color:#d9faff;border:1px solid #467682;border-radius:5px}
+#submarineWorkshop .hud-editor-stage{position:relative;isolation:isolate;width:min(100%,620px);aspect-ratio:16/9;max-height:55dvh;min-height:180px;margin:auto;overflow:hidden;touch-action:none;background:radial-gradient(ellipse at 50% 45%,#154653,#092632 52%,#030e17);border:1px solid #4f8d99;border-radius:8px}
+#submarineWorkshop .hud-editor-stage[data-profile=portrait]{width:min(100%,270px);aspect-ratio:390/844;max-height:59dvh;min-height:280px}
+#submarineWorkshop .hud-editor-stage[data-profile=landscape]{aspect-ratio:844/390}
+#submarineWorkshop .hud-editor-stage:before{content:'';position:absolute;inset:6px;border:1px dashed #69959f55;pointer-events:none}
+#submarineWorkshop .hud-editor-piece{position:absolute!important;transform:translate(-50%,-50%)!important;min-height:0!important;min-width:0!important;max-width:none!important;max-height:none!important;padding:2px!important;touch-action:none!important;user-select:none;cursor:grab;display:grid;place-items:center;overflow:hidden;text-align:center;line-height:1.05;background:#112e3deb;color:#dbfaff;border:1px solid #6ba8b4;border-radius:4px;z-index:1}
+#submarineWorkshop .hud-editor-piece[aria-pressed=true]{outline:2px solid #ffd16b;z-index:3;background-color:#345160}
+#submarineWorkshop .hud-editor-piece:active{cursor:grabbing}
+#submarineWorkshop .hud-editor-reticle{background:#240b12 url('abyssal-red-reticle.svg') center/70% no-repeat!important;border-radius:50%}
+#submarineWorkshop .hud-editor-stick{border-radius:50%;background:radial-gradient(circle,#76b8c188 22%,#153743 25%,#0c2634 70%)}
+#submarineWorkshop .hud-editor-size{display:grid;grid-template-columns:auto auto;gap:5px;flex:1;font:600 12px system-ui}
+#submarineWorkshop .hud-editor-size input{grid-column:1/-1;width:100%;accent-color:#79e7e4}
+#submarineWorkshop .hud-editor-actions button{flex:1 1 120px;padding:7px;border:1px solid #477c89;border-radius:5px;background:#163747;color:#d9faff;font:700 12px system-ui}
+#submarineWorkshop .hud-editor-actions .primary-btn{background:#75e0d7;color:#072029}
