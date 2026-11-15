@@ -716,15 +716,14 @@ function updateSoloSubmarineInteraction(){
  if(!soloSubmarineActive()||!player){button.hidden=true;return;}
  const near=Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM;
  button.hidden=!near;if(!near)return;
- const full=onlineMode?20+10*onlineSubmarineWeapons.length:20,seconds=Math.max(0,soloSubmarine.powerSeconds),minutes=seconds/60;
+ const full=onlineMode?20+10*onlineSubmarineWeapons.length:(window.AbyssalSoloBase?.fullPowerCost?.()||20),seconds=Math.max(0,soloSubmarine.powerSeconds),minutes=seconds/60;
  const missing=Math.max(0,300-seconds),needed=missing<=.01?0:Math.max(1,Math.ceil(full*missing/300)),wallet=onlineMode?Math.max(0,Number(window.AbyssalOnline?.getAccount?.()?.energy)||0):Math.max(0,Number(energyWallet?.get().energy)||0),cost=wallet>0?Math.min(needed,wallet):needed;
  const parent=mobileViewport?$('petHabitBar'):$('gameShell');if(parent&&button.parentElement!==parent)parent.prepend(button);
- button.classList.toggle('compact-submarine-power',mobileViewport);
+ button.classList.add('compact-submarine-power');
  button.disabled=needed===0||wallet<=0;
  button.setAttribute('aria-label','Energizar submarino: '+cost+' energia');
- if(mobileViewport){
-  if(button.dataset.displayCost!==String(cost)||!button.querySelector('.sub-power-cost')){button.replaceChildren();const icon=document.createElement('span'),label=document.createElement('small');icon.textContent='⚡';icon.setAttribute('aria-hidden','true');label.className='sub-power-cost';label.textContent=String(cost);button.append(icon,label);button.dataset.displayCost=String(cost);}
- }else{delete button.dataset.displayCost;const text='F · ENERGIZAR SUBMARINO · '+cost+'⚡ / 5 MIN · '+minutes.toFixed(1)+' MIN · '+(onlineMode?onlineSubmarineWeapons.length:(window.AbyssalSoloBase?.installedWeapons?.().length||0))+' TORRE(S) / '+(window.AbyssalSoloBase?.MAX_WEAPONS||6);if(button.textContent!==text)button.textContent=text;}
+ button.title='Energizar submarino · '+cost+' energia · '+minutes.toFixed(1)+' min restantes'+(mobileViewport?'':' · F');
+ if(button.dataset.displayCost!==String(cost)||!button.querySelector('.sub-power-cost')){button.replaceChildren();const icon=document.createElement('span'),label=document.createElement('small');icon.textContent='⚡';icon.setAttribute('aria-hidden','true');label.className='sub-power-cost';label.textContent=String(cost);button.append(icon,label);button.dataset.displayCost=String(cost);}
 }
 window.addEventListener('keydown',event=>{if(event.code==='KeyF'&&!event.repeat&&soloSubmarineActive()&&player&&Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM){event.preventDefault();soloSubmarineTopUp();}});
 const SOLO_WEAPON_MOUNTS=Object.freeze({photon:[-105,70,Math.PI/2],electric:[105,-80,-Math.PI/2],pierce:[-188,-48,-Math.PI*.75],photonRay:[257,-24,0],nova:[-230,25,Math.PI],echoShot:[168,78,Math.PI/2]});
@@ -1466,58 +1465,23 @@ function getBossXpMultiplier() {
 }
 
 function updateProgressionTrackUI() {
-  var track = $('bossProgressionTrack');
-  if (!track) return;
-  // A arena PvP não possui ciclos de bosses nem progressão de expedição.
-  if (!isClassicShooterRun()) { track.style.display = 'none'; return; }
-  track.style.display = 'block';
-  var healthPercent = Math.round((CREATURE_SCALE?.healthMultiplier?.(elapsed) ?? 1) * 100);
-  var xpBonusPercent = Math.round(bossProgressionCycle * 2);
-  var cycleBadge = $('trackCycleBadge');
-  if (cycleBadge) {
-    if (bossProgressionCycle >= PROGRESSION_MAX_CYCLES) {
-      cycleBadge.classList.add('maxed');
-      cycleBadge.textContent = 'CICLO MÁXIMO · VIDA '+healthPercent+'% · +10% XP';
-    } else {
-      cycleBadge.classList.remove('maxed');
-      cycleBadge.textContent = 'CICLO ' + (bossProgressionCycle + 1) + ' · VIDA ' + healthPercent + '% · +' + xpBonusPercent + '% XP';
-    }
-  }
-  var fill = $('trackFill');
-  var marker = $('trackPlayerMarker');
-  var totalBosses = bossCycleBosses.length;
-  var segmentRatio = progressionPausedForBoss ? 1 : clamp(progressionDistance / 100, 0, 1);
-  var totalPercent = clamp(((bossCycleIndex + (progressionPausedForBoss ? 0 : segmentRatio)) / totalBosses) * 100, 0, 100);
-  if (fill) fill.style.width = totalPercent + '%';
-  if (marker) marker.style.left = totalPercent + '%';
-  var nodesContainer = $('trackBossNodes');
-  if (!nodesContainer) return;
-  var bossIcons = {
-    boss: "<svg viewBox=\"0 0 24 24\" class=\"boss-node-svg\"><path fill=\"currentColor\" d=\"M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm-7 9c0 2 3 3 7 3s7-1 7-3v1c0 4-3 7-7 7s-7-3-7-7v-1zm4 8.5 3 2 3-2\"/><circle cx=\"9\" cy=\"5.5\" r=\"1\" fill=\"#fff\"/><circle cx=\"15\" cy=\"5.5\" r=\"1\" fill=\"#fff\"/></svg>",
-    angler: "<svg viewBox=\"0 0 24 24\" class=\"boss-node-svg\"><circle cx=\"17\" cy=\"3\" r=\"2.2\" fill=\"currentColor\"/><path stroke=\"currentColor\" stroke-width=\"1.6\" fill=\"none\" d=\"M12 11c1.5-5 5-8 5-8\"/><ellipse cx=\"10\" cy=\"14\" rx=\"7\" ry=\"4.5\" fill=\"currentColor\"/><path d=\"M6 13l1 4m4-5v5m4-5l-1 4\" stroke=\"#fff\" stroke-width=\"1.3\"/></svg>",
-    maw: "<svg viewBox=\"0 0 24 24\" class=\"boss-node-svg\"><circle cx=\"12\" cy=\"12\" r=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/><circle cx=\"12\" cy=\"12\" r=\"3\" fill=\"currentColor\" opacity=\".6\"/><path stroke=\"currentColor\" stroke-width=\"1.2\" d=\"M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3\"/></svg>",
-    leviathan: "<svg viewBox=\"0 0 24 24\" class=\"boss-node-svg\"><path fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.8\" stroke-linecap=\"round\" d=\"M2 17c3-9 7-10 12-4s8 7 6-5\"/><circle cx=\"20\" cy=\"8\" r=\"2.5\" fill=\"currentColor\"/></svg>",
-    whiteSharkBoss: "<svg viewBox=\"0 0 24 24\" class=\"boss-node-svg\"><path fill=\"currentColor\" d=\"M2 14c4-2 9-8 14-8 4 0 7 3 7 6s-7 8-14 7l-6 4 3-5z\"/><polygon points=\"13,6 16,1 18,7\" fill=\"currentColor\"/><circle cx=\"19\" cy=\"12\" r=\"1.5\" fill=\"#fff\"/><path d=\"M8 14c1 2 5 2 7 0\" stroke=\"#fff\" stroke-width=\"1.2\" fill=\"none\"/></svg>",
-    kraken: "<svg viewBox=\"0 0 24 24\" class=\"boss-node-svg\"><ellipse cx=\"12\" cy=\"9\" rx=\"7\" ry=\"6\" fill=\"currentColor\"/><circle cx=\"9.5\" cy=\"8\" r=\"1.5\" fill=\"#fff\"/><circle cx=\"14.5\" cy=\"8\" r=\"1.5\" fill=\"#fff\"/><circle cx=\"9.5\" cy=\"8\" r=\".7\" fill=\"#111\"/><circle cx=\"14.5\" cy=\"8\" r=\".7\" fill=\"#111\"/><path fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" d=\"M6 15c-1 3-3 5-4 4m6-4c0 3-1 5-2 6m5-6v6m3-6c0 3 1 5 2 6m1-7c1 3 3 5 4 4\"/></svg>",
-    devourer: "<svg viewBox=\"0 0 24 24\" class=\"boss-node-svg\"><path fill=\"currentColor\" d=\"M2 12c3-7 11-8 16-4l5 4-5 4C13 20 5 19 2 12z\"/><circle cx=\"17\" cy=\"12\" r=\"4\" fill=\"#04202c\"/><circle cx=\"17\" cy=\"12\" r=\"2\" fill=\"currentColor\" opacity=\".4\"/><path stroke=\"currentColor\" stroke-width=\"1.2\" d=\"M10 8c2 3 2 7 0 9\"/></svg>"
-  };
-  var nodesHtml = '';
-  for (var ni = 0; ni < totalBosses; ni++) {
-    var leftPercent = 8 + (ni / Math.max(1, totalBosses - 1)) * 84;
-    var kind = bossCycleBosses[ni];
-    var statusClass = 'pending';
-    var label = bossIcons[kind] || '<span style="font-size:14px">☠</span>';
-    if (ni < bossCycleIndex) { statusClass = 'defeated'; label = '<span style="font-size:13px;font-weight:700">✓</span>'; }
-    else if (ni === bossCycleIndex && progressionPausedForBoss) { statusClass = 'active'; }
-    else if (ni === bossCycleIndex) { statusClass = 'next'; }
-    var bossName = getBossDisplayName(kind);
-    var tooltip = ni < bossCycleIndex ? (bossName + ' — DERROTADO') :
-      ni === bossCycleIndex && progressionPausedForBoss ? (bossName + ' — EM COMBATE!') :
-      ni === bossCycleIndex ? (bossName + ' — PRÓXIMO') :
-      (bossName + ' — AGUARDANDO');
-    nodesHtml += '<div class="track-node ' + statusClass + '" style="left:' + leftPercent + '%" title="' + tooltip + '">' + label + '</div>';
-  }
-  nodesContainer.innerHTML = nodesHtml;
+  const track=$('bossProgressionTrack');if(!track)return;
+  const visible=isClassicCavernRun()&&bossCycleBosses.length>0;
+  track.style.display=visible?'block':'none';if(!visible)return;
+  const total=bossCycleBosses.length,index=Math.max(0,Math.min(total-1,bossCycleIndex));
+  const kind=progressionPausedForBoss?(activeBossEntity?.kind||bossCycleBosses[index]):bossCycleBosses[index];
+  const progress=progressionPausedForBoss?100:clamp(progressionDistance,0,100);
+  const remaining=Math.ceil((100-progress)/3.8);
+  const name=getBossDisplayName(kind);
+  const text=(id,value)=>{const el=$(id);if(el&&el.textContent!==value)el.textContent=value;};
+  text('trackCycleBadge','CICLO '+(bossProgressionCycle+1)+' · '+bossCycleIndex+'/'+total);
+  text('trackBossName',bossVictoryPending?'EXPEDIÇÃO CONCLUÍDA':progressionPausedForBoss?'EM COMBATE · '+name:'PRÓXIMO · '+name);
+  text('trackBossTime',bossVictoryPending?'VITÓRIA':progressionPausedForBoss?'ATIVO':remaining+'s');
+  track.classList.toggle('is-boss-active',progressionPausedForBoss);
+  const fill=$('trackFill');if(fill)fill.style.width=progress+'%';
+  const progressBar=$('trackProgressMeter');if(progressBar)progressBar.setAttribute('aria-valuenow',String(Math.round(progress)));
+  const nodes=$('trackBossNodes');const signature=bossCycleBosses.join(',')+':'+bossCycleIndex+':'+progressionPausedForBoss;
+  if(nodes&&nodes.dataset.signature!==signature){nodes.dataset.signature=signature;nodes.replaceChildren();for(let i=0;i<total;i++){const node=document.createElement('span');node.className='track-step'+(i<bossCycleIndex?' is-done':i===bossCycleIndex?' is-current':'');node.title=getBossDisplayName(bossCycleBosses[i])+(i<bossCycleIndex?' · Derrotado':i===bossCycleIndex?(progressionPausedForBoss?' · Em combate':' · Próximo'):' · Aguardando');node.setAttribute('aria-label',node.title);nodes.append(node);}}
 }
 
 function updateBossProgressionStep(dt) {
@@ -1772,7 +1736,7 @@ const upgradeList=[
  {id:'rate',name:'Ressonância veloz',icon:'⟡',desc:'Acelera a cadência em 28% por nível. A pulsação ao redor do núcleo acompanha o ritmo de disparo.',apply:()=>upgrades.rate*=1.28},
  {id:'speed',name:'Propulsão abissal',icon:'➤',desc:'Aumenta a velocidade de movimento em 18% por nível e reforça o rastro hidrodinâmico.',apply:()=>upgrades.speed*=1.18},
  {id:'range',name:'Olho profundo',icon:'◎',desc:'Afasta a câmera e amplia a visão e o alcance dos disparos em 22% por nível, até o nível 3.',apply:()=>upgrades.range*=1.22},
- {id:'magnet',name:'Afinidade abissal',icon:'⌁',desc:'Aumenta em 8% por nível a energia de evolução recebida.',apply:()=>upgrades.magnet*=1.08},
+ {id:'magnet',name:'Campo Magnético',icon:'⌁',desc:'Aumenta em 8% por nível a energia de evolução recebida.',apply:()=>upgrades.magnet*=1.08},
  {id:'regen',name:'Membrana viva',icon:'✚',desc:'Regenera vida gradualmente. Cada nível aumenta a frequência efetiva da recuperação e produz um pulso orgânico verde ao curar.',apply:()=>upgrades.regen+=1},
  {id:'shield',name:'Escudo espectral',icon:'◉',desc:'Adiciona uma carga de escudo, até 3. Cada carga bloqueia um dano e aparece como uma camada espectral ao redor do corpo.',apply:()=>upgrades.shield=Math.min(3,upgrades.shield+1)},
  {id:'burst',name:'Pulso de ruptura',icon:'✺',desc:'Libera dano em área: começa a cada 7 segundos, com intervalo mínimo de 3,5 segundos e dano crescente por nível.',apply:()=>upgrades.burst=Math.min(3,upgrades.burst+1)},
@@ -3245,7 +3209,7 @@ function update(dt){
  updateSpecimenRuntime(dt);
  tickSoloSpecimenOrbs();
  updateSkinTrailRuntime();
- if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){for(const enemy of enemies)if(CREATURE_SCALE?.applyHealthRamp?.(enemy,elapsed)&&BOSS_KINDS.includes(enemy.kind))lastBossMaxHp=enemy.maxHp;updateSoloRiftHardcore(dt);}publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(isClassicShooterRun())updateBossProgressionStep(dt);}else if(onlineRoomMode==='coop'){if(!progressionPausedForBoss)progressionDistance=Math.min(100,progressionDistance+dt*3.8);updateProgressionTrackUI();}
+ if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){for(const enemy of enemies)if(CREATURE_SCALE?.applyHealthRamp?.(enemy,elapsed)&&BOSS_KINDS.includes(enemy.kind))lastBossMaxHp=enemy.maxHp;updateSoloRiftHardcore(dt);}publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(isClassicShooterRun())updateBossProgressionStep(dt);}else if(onlineRoomMode==='coop'){if(!progressionPausedForBoss)progressionDistance=Math.min(99.99,progressionDistance+dt*3.8);updateProgressionTrackUI();}
 
   // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano reduzido)
   let areaGridReady=false;
@@ -5804,10 +5768,10 @@ $('skillPulseBtn')?.addEventListener('click',()=>activateAbility('pulse'));$('sk
 const catalogBtn=$('catalogBtn');if(catalogBtn)catalogBtn.addEventListener('click',renderCatalog);const rankingsBtn=$('rankingsBtn');if(rankingsBtn)rankingsBtn.addEventListener('click',()=>{if(window.AbyssalCockpitNavigation?.routeScreen?.('rankingsScreen'))return;const el=$('rankingsScreen');if(el)el.hidden=false;if(window.AbyssalOnline?.loadRankings)window.AbyssalOnline.loadRankings()});const catalogClose=$('catalogCloseBtn');if(catalogClose)catalogClose.addEventListener('click',()=>{$('catalogScreen').hidden=true});const rankingsClose=$('rankingsCloseBtn');if(rankingsClose)rankingsClose.addEventListener('click',()=>{$('rankingsScreen').hidden=true});
 
 const resonanceSkillLabels={power:['✦','Pulso Intenso'],rate:['≋','Ressonância Veloz'],speed:['➤','Propulsão Abissal'],range:['◎','Olho Profundo'],magnet:['⌁','Campo Magnético'],regen:['♧','Membrana Viva'],shield:['◉','Escudo Espectral'],burst:['✺','Pulso de Ruptura'],electric:['ϟ','Tempestade Elétrica'],pierce:['➵','Lança do Abismo'],ricochet:['⤴','Ricochete Caótico'],spread:['✣','Rajada Prismática'],photon:['☄','Lança de Fótons'],photonRay:['⌁⃒','Raio de Fótons'],nova:['⊛','Nova Gravitacional'],echoShot:['⋔','Eco de Maré'],shell:['▰','Carapaça Abissal'],ward:['◇','Véu de Maré'],lastStand:['♥','Último Fôlego'],pressureCocoon:['⬡','Casulo de Pressão'],vitality:['♢','Reserva Vital'],predator:['☠','Instinto Predatório'],closePressure:['⌾','Pressão de Caça']};
-const resonanceSkillDescriptions={power:'+50% de dano dos disparos por nível.',rate:'+28% de cadência por nível.',speed:'+18% de velocidade de movimento por nível.',range:'+22% de alcance dos disparos por nível.',magnet:'+8% de experiência recebida por nível.',regen:'Recupera vida gradualmente durante o mergulho.',shield:'Adiciona uma carga que bloqueia o próximo dano, até 3.',burst:'Explosão periódica de dano ao redor do jogador.',electric:'Corrente elétrica com até 3 saltos de dano reduzido.',pierce:'Arpão pesado que atravessa inimigos alinhados.',ricochet:'Projéteis saltam para outros alvos próximos.',spread:'Nv. 1/2/3: +2/+4/+6 disparos em leque, ou feixes laterais do Raio de Fótons (42% do dano, sem acúmulo no mesmo alvo), ou estilhaços radiais da Nova (28% do dano distribuído entre eles).',photon:'Dardo fotônico extremamente rápido e focado em alvo único.',photonRay:'Feixe automático contínuo no inimigo mais próximo.',nova:'Pulso gravitacional que atinge todos dentro do alcance.',echoShot:'Dois projéteis paralelos de maré com dano dividido e trajetória estreita.',shell:'Reduz o dano recebido em 8% por nível, até 24%.',ward:'Invulnerabilidade automática breve com recarga decrescente.',lastStand:'Com até 30% de vida, reduz dano recebido em 20%, 25% ou 30%, segundo o nível.',pressureCocoon:'Com escudo zerado, recompõe 1 carga após 24, 20 ou 16 segundos.',vitality:'+10% de vida máxima por nível e cura o valor acrescentado.',predator:'+14% de dano por nível em chefes e elites, +3% em comuns e +6% extra contra alvos com até 30% de vida.',closePressure:'+18% de dano por nível contra inimigos a menos de 175 unidades.'};
+const resonanceSkillDescriptions={power:'Aumenta o dano dos disparos em 50% sobre o valor atual a cada nível.',rate:'Aumenta a frequência dos disparos em 28% sobre o valor atual por nível.',speed:'Aumenta a velocidade normal de nado em 18% sobre o valor atual por nível.',range:'Aumenta o alcance de tiro em 22% por nível e afasta a câmera, ampliando a área visível.',magnet:'Multiplica a energia de evolução recebida por 1,08 a cada nível. Não aumenta o raio de coleta.',regen:'Recupera vida aos poucos. Cada nível aumenta a frequência média da cura.',shield:'Concede uma carga que absorve o próximo impacto. Limite de 3 cargas; cada impacto consome uma.',burst:'Passiva: onda automática ao redor do mergulhador, com dano base de 12/24/36 e intervalo de 7/3,5/3,5 segundos nos níveis 1/2/3. O alcance acompanha Olho Profundo.',electric:'Disparo elétrico que salta entre inimigos próximos. Níveis 1/2/3 permitem 1/2/3 saltos, com dano reduzido nos saltos.',pierce:'Arpão pesado e mais lento que os fótons. Atravessa 1/2/3 inimigos adicionais nos níveis 1/2/3.',ricochet:'Passiva: ataques que acertam podem saltar para inimigos próximos. Até 1/2/3 saltos, com dano reduzido; obstáculos bloqueiam o ricochete.',spread:'Passiva: adiciona 2/4/6 ataques laterais. Projéteis comuns dividem o dano; feixes laterais causam 42% do principal sem somar no mesmo alvo; estilhaços da Nova dividem 28% do dano do pulso.',photon:'Dardo fotônico muito rápido, de precisão e alto dano em um único alvo. Não perfura fileiras.',photonRay:'Feixe contínuo que atinge os inimigos que atravessa. Mira automática no Controle 1; mouse ou joystick de mira no Controle 2. Níveis aumentam a potência e a espessura.',nova:'Pulso gravitacional em cone à frente. Intervalo de 1,8 s no PvE e 2,4 s no PvP; obstáculos bloqueiam o dano.',echoShot:'Dois projéteis paralelos com dano individual reduzido. Níveis aumentam dano e velocidade, mantendo a trajetória estreita.',shell:'Reduz o dano recebido em 8/16/24% nos níveis 1/2/3.',ward:'Concede automaticamente 0,55 s de invulnerabilidade a cada 28/24/20 segundos nos níveis 1/2/3.',lastStand:'Com 30% ou menos de vida, reduz o dano recebido em 20/25/30% nos níveis 1/2/3.',pressureCocoon:'Quando não há escudo, recompõe uma carga após 24/20/16 s. Não acumula cargas acima de uma por regeneração.',vitality:'Aumenta a vida máxima em 10% sobre o valor atual por nível e cura imediatamente a diferença.',predator:'Por nível, +14% de dano contra chefes e elites, +3% contra inimigos comuns e +6% adicional contra alvos com até 30% de vida.',closePressure:'Aumenta o dano em 18/36/54% nos níveis 1/2/3 contra alvos a até 175 unidades de alcance.'};
 function resonanceCategoryOf(id){for(const [category,ids] of Object.entries(RESONANCE_CATEGORIES))if(ids.includes(id))return category;return 'buffs';}
 function resonanceCounts(ids=resonancePresets[resonanceEditingMode]||[]){ids=ids.filter(id=>resonanceAvailable(id,resonanceEditingMode));return {shots:ids.filter(id=>RESONANCE_CATEGORIES.shots.includes(id)).length,passive:ids.filter(id=>RESONANCE_CATEGORIES.passive.includes(id)).length,buffs:ids.filter(id=>RESONANCE_CATEGORIES.buffs.includes(id)).length,total:ids.length};}
-let resonanceTreeSelected='photon';
+let resonanceTreeSelected=null;
 function renderResonanceChoices(){
  const root=$('resonanceSkillChoices');if(!root)return;
  const scroll=root.closest('.abyss-visor-body')||root.closest('.resonance-modal'),saved=scroll?.scrollTop||0;root.replaceChildren();
@@ -5822,7 +5786,7 @@ function renderResonanceChoices(){
   }});
   return {id,name:label,icon,recommended:['range','regen'].includes(id),owned:available,active:selected,locked:!available,state:fixed?'Inicial obrigatório':selected?'Selecionada':available?'Pesquisada':'Não pesquisada',description:resonanceSkillDescriptions[id]||'Habilidade de combate abissal.',costText:!available?price+' energia'+(energy<price?' · faltam '+(price-energy):''):fixed?'Incluída na configuração inicial':'',actions};
  })}));
- window.AbyssalResearchTree?.mount(root,branches,{title:'Árvore de ressonância',copy:'Passe o mouse ou selecione uma habilidade. Pesquise para desbloquear e escolha até dez habilidades, com exatamente um disparo. Só o disparo começa no nível 1; as demais são adquiridas ao subir de nível.',selected:resonanceTreeSelected,onSelect:id=>{resonanceTreeSelected=id;}});
+ window.AbyssalResearchTree?.mount(root,branches,{title:'Árvore de ressonância',copy:'Clique em um ícone para consultar e manter a habilidade selecionada. Pesquise para desbloquear e escolha até dez habilidades, com exatamente um disparo. Só o disparo começa no nível 1; as demais são adquiridas ao subir de nível.',selected:resonanceTreeSelected,onSelect:id=>{resonanceTreeSelected=id;}});
  const modal=document.querySelector('#resonanceScreen .resonance-modal');if(modal)modal.classList.toggle('resonance-pvp-theme',resonanceEditingMode==='pvp');
  updateResonanceCount();document.querySelectorAll('[data-resonance-mode]').forEach(btn=>{const active=btn.dataset.resonanceMode===resonanceEditingMode;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});if(scroll)scroll.scrollTop=saved;
 }
