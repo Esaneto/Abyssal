@@ -14,12 +14,9 @@ test('cockpit grid forces monitor over a compact accessible physical deck',()=>{
  assert.match(read('public/abyssal-exploration-runtime.js'),/hint\.textContent='Deslize para ver mais';[\s\S]{0,350}body\.scrollHeight<=body\.clientHeight\+5/);
  assert.match(smoke,/Oversized vertically stretched console key/);
 });
-test('2.5D world and diver add genuine art geometry',()=>{
- const ocean=read('public/abyssal-open-sea-render.js');
+test('cockpit and diver retain genuine art geometry',()=>{
  const cabin=read('public/abyssal-submarine-cockpit.js');
  const diver=read('public/diver-art.js');
- assert.match(ocean,/Localized natural rock illumination/);
- assert.match(ocean,/strataLines=lowPower\?3:6/);
  assert.match(cabin,/function exteriorReef\(/);
  assert.match(cabin,/function reflectedWater\(/);
  assert.match(diver,/const visorGlass=c\.createLinearGradient/);
@@ -44,16 +41,8 @@ test('diver keeps the server-matched rifle and readable animated hair',()=>{
  assert.match(source,/const step=longHair\?4:5/);
  assert.match(source,/Paired metal oxygen tanks/);
 });
-test('open sea implements actual visual facets, rock roots and 3 depth provinces',()=>{
- const source=read('public/abyssal-open-sea-render.js');
+test('shared geography retains its depth provinces',()=>{
  const geo=require('../public/abyssal-ocean-geography.js');
- assert.match(source,/const faces=Math\.min\(lowPower\?12:30/);
- assert.match(source,/geo\.rockSurfaceAt\(rock,-Math\.acos\(q\)/);
- assert.match(source,/Fractured cliff edge instead of an uninterrupted vertical column/);
- assert.match(source,/Limit atmospheric relief to a nearby distant ledge/);
- assert.match(source,/Extruded rear geology gives an actual directional depth cue/);
- assert.match(source,/Shallow-water caustics reflect across real/);
- assert.match(source,/Separate sandstone\/basalt plates show up at gameplay camera scales/);
  assert.equal(geo.visualBiomeAt(800,400).id,'coastal');
  assert.equal(geo.visualBiomeAt(8500,2900).id,'cinematic');
  assert.equal(geo.visualBiomeAt(19000,9000).id,'geological');

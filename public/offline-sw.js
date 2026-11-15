@@ -63,7 +63,6 @@ const GAME_FILES = [
   'abyssal-ocean-respawn.js',
   'abyssal-ocean-stream.js',
   'abyssal-cinematic-art.js',
-  'abyssal-basalt-material.webp',
   'abyssal-exploration-config.js',
   'abyssal-offshore-system.js',
   'abyssal-extraction-ui.js',

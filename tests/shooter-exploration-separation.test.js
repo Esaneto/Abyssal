@@ -64,8 +64,8 @@ test('old solo/online handlers live outside the visual menu',()=>{
  const menu=html.slice(start,bridge);
  assert.doesNotMatch(menu,/id="(?:playBtn|onlineBtn)"/);
  assert.match(menu,/id="divePortalBtn"/);
- assert.match(menu,/id="openSeaPortalBtn"/);
- assert.match(menu,/id="riftPortalBtn"/);
+ assert.doesNotMatch(menu,/id="openSeaPortalBtn"/);
+ assert.doesNotMatch(menu,/id="riftPortalBtn"/);
  assert.match(html,/id="playBtn" type="button" hidden tabindex="-1"/);
  assert.match(html,/id="onlineBtn" type="button" hidden tabindex="-1"/);
  assert.match(html,/#menuScreen\.ocean-menu-v2:not\(\.menu-ready\),body:not\(\.abyss-hatch-navigation\) #menuScreen\{visibility:hidden!important;pointer-events:none!important\}/);
@@ -87,7 +87,7 @@ test('classic arena builds visible perimeter rocks but exploration does not',()=
  assert.match(game,/const spacing=95\/worldZoom,offset=24\/worldZoom;/);
  assert.match(game,/arenaRocks\.push\(\{x,y,r:radius,edge,vertices,shade:fraction,visualOnly:true\}\)/);
  assert.match(game,/createArenaRocks\(\);[\s\S]{0,220}let soloSpawn=/);
- assert.match(game,/if\(usesNaturalOceanTerrain\(\)\)\{\s*window\.AbyssalOpenSeaRender/);
+ assert.match(game,/if\(usesNaturalOceanTerrain\(\)\)\{\s*window\.AbyssalExplorationWorldRender/);
 });
 
 test('T follows mouse with manual control 2 and never toggles auto-fire',()=>{

@@ -42,13 +42,12 @@ test('catalog previews show diver and specimen together',()=>{
  assert.match(game,/CATÁLOGO DE ESPÉCIMES/);
 });
 
-test('profile exposes adaptation bar and ocean menu uses navigable portals',()=>{
+test('profile exposes adaptation and only released dive routes',()=>{
  const html=read('public/index.html'),css=read('public/style.css'),menu=read('public/abyssal-menu-ocean.js');
  for(const id of ['profileSpecimenCanvas','profileAdaptationFill','profileAdaptationPoints','profileAdaptCooldown','profileAdaptAttribute','profileAdaptRange','profileAdaptRespawn'])assert.ok(html.includes('id="'+id+'"'),id);
- assert.ok(html.includes('id="riftPortalBtn"'));
- assert.match(read('public/abyssal-menu-v2.css'),/#menuScreen\.ocean-menu-v2 #riftPortalBtn/);
+ assert.ok(!html.includes('id="riftPortalBtn"'));
+ assert.match(menu,/if\(stations\.length!==ROUTES\.length\+1\)return;/);
  assert.match(menu,/keyMap=\{w:'up'/);
  assert.match(menu,/stage\.addEventListener\('pointerdown'/);
- assert.match(read('public/abyssal-rebuild.js'),/window\.AbyssalPreferredRoomMode='rift'/);
  assert.doesNotMatch(html,/abyss-orbit-navigation|menu-fauna|menu-secondary-actions/);
 });

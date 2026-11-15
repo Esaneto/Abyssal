@@ -12,11 +12,9 @@ test('shark vision is half as wide and shark/predator biology is strengthened',(
  assert.ok(AI.ENEMY_STATS.whiteSharkBoss.hp>=13200);
 });
 
-test('solo and open sea unlit regions are darker',()=>{
- const solo=read('public/abyssal-solo-cavern.js'),sea=read('public/abyssal-open-sea-lighting.js');
+test('solo unlit regions are darker',()=>{
+ const solo=read('public/abyssal-solo-cavern.js');
  assert.match(solo,/rgba\(0,2,5,\.78\)/);
- assert.match(sea,/lamp\.darkness\*\.20/);
- assert.match(sea,/const dark=\.28\*/);
 });
 
 test('cockpit is the only visible main menu and utility buttons inherit shop/codex themes',()=>{

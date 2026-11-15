@@ -27,9 +27,8 @@ test('cinematic lighting has viewport-bounded scenes and does not mutate gamepla
  assert.doesNotThrow(()=>art.seaAtmosphere(c,{left:23000,top:17000,width:400,height:500},1800,true,geo));
  assert.equal(geo.ROCKS.length,before);
 });
-test('new bridge renders original procedural materials while Open Sea keeps its cinematic lighting',()=>{
+test('new bridge renders original procedural materials',()=>{
  const cabin=read('public/abyssal-submarine-cockpit.js');
- const ocean=read('public/abyssal-open-sea-render.js');
  const html=read('public/index.html');
  assert.match(cabin,/function waterBase\(/);
  assert.match(cabin,/function livingOcean\(t\)/);
@@ -38,9 +37,7 @@ test('new bridge renders original procedural materials while Open Sea keeps its 
  assert.match(cabin,/bitmapBackdrop:false/);
  assert.doesNotMatch(cabin,/new Image\(|abyssal-cabin-deck\.webp|abyssal-cabin-ocean/);
  assert.doesNotMatch(read('public/offline-sw.js'),/abyssal-cabin-ocean-hq\.webp|abyssal-cabin-deck\.webp/);
- assert.match(ocean,/AbyssalCinematicArt\?\.seaAtmosphere/);
- assert.match(ocean,/AbyssalCinematicArt\?\.seaHighlights/);
- assert.ok(html.indexOf('abyssal-cinematic-art.js')<html.indexOf('abyssal-open-sea-render.js'));
+ assert.ok(!html.includes('abyssal-open-sea-render.js'));
  assert.match(html,/<script src="abyssal-submarine-cockpit\.js\?v=[^"]+"><\/script>/);
 });
 test('bridge has original moving water and separate cached structural render passes',()=>{
