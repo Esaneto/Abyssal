@@ -103,7 +103,7 @@ function rifleTop(c,id,alpha){
   c.save();c.translate(x,y);c.rotate(a);c.scale(r*DRAW_SCALE/14,r*DRAW_SCALE/14);
   c.lineJoin='round';c.lineCap='round';
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
-  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(held==='abyssPropulsor'||held==='abyssPropulsorIdle')?0:(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=options.gameplay&&options.viewYaw==null?rig?.gameplayView?.(options.motion?.viewHeading??a):rig?.viewFor?.(options.viewYaw??.65,a),itemSide=weaponSide(a+relativeAim),gunRoll=held==='abyssWeapon'?weaponRoll(a+relativeAim):itemSide;
+  const held=String(options.heldItem||'abyssWeapon'),relativeAim=(held==='abyssPropulsor'||held==='abyssPropulsorIdle')?0:(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=options.gameplay&&options.viewYaw==null?rig?.swimView?.(a,options.motion?.swimSide):rig?.viewFor?.(options.viewYaw??.65,a),itemSide=weaponSide(a+relativeAim),gunRoll=held==='abyssWeapon'?weaponRoll(a+relativeAim):itemSide;
   const offset=(held==='abyssWeapon'?GUN_OFFSET_Y:5)*gunRoll,tool=rig?.toolPose(held,Number(options.swing)||0,view)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
   const grips=(held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[22,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co])).map(([x,y])=>[x,y*gunRoll]);
   const pair=(held!=='abyssWelder'&&held!=='none'?rig?.armPair?.(relativeAim,offset,grips,'standard',view):null)||grips.map((g,i)=>rig?.arm(i?1:-1,relativeAim,offset,g,held==='abyssWelder'?'welder':'standard',view)||{shoulder:[6,i?7:-7],elbow:[16,i?12:-12],hand:g});

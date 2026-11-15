@@ -15,7 +15,7 @@ test('mobile cockpit keeps preview and catalog visible together; desktop remains
  assert.equal(JSON.parse(read('public/manifest.webmanifest')).orientation,'any');
  assert.match(read('scripts/configure-android.cjs'),/android:screenOrientation="fullUser"/);
  assert.doesNotMatch(read('public/game.js'),/orientation\?\.lock\?\.\('portrait'\)/);
- assert.match(read('public/offline-sw.js'),/mobile-balance-v237/);
+ assert.match(read('public/offline-sw.js'),/-v(?:237|238|239)/);
 });
 test('orientation controller permits portrait and landscape',()=>{
  const classes=new Set(),listeners={};

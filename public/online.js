@@ -105,7 +105,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   if($('profileAdaptAttribute'))$('profileAdaptAttribute').textContent='ATRIBUTO: +'+(stats.attributeBonus*100).toFixed(1).replace('.',',')+'%';
   if($('profileAdaptRange'))$('profileAdaptRange').textContent='ALCANCE DA ATIVA: FIXO';
   if($('profileAdaptRespawn'))$('profileAdaptRespawn').textContent='RESSURGIMENTO: '+Math.floor(stats.respawnSeconds/60).toString().padStart(2,'0')+':'+Math.floor(stats.respawnSeconds%60).toString().padStart(2,'0');
-  window.dispatchEvent(new CustomEvent('abyssal-profile-specimen-render',{detail:{canvas:$('profileSpecimenCanvas'),skinId:id}}));
+  window.dispatchEvent(new CustomEvent('abyssal-profile-specimen-render',{detail:{canvas:$('profileSpecimenCanvas'),skinId:id,appearance:user.avatarAppearance||null,gender:user.diverGender||null}}));
  }
  let viewedPublicProfile=null;
  function renderProfile(data=serverAccount){

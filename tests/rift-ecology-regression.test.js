@@ -32,7 +32,7 @@ test('Smart endangered fauna flee and invisible wildlife follows patrol',()=>{
 });
 
 test('Fossas and classic fauna share the same meter scale and proportional hitbox',()=>{
- assert.equal(scale.monsterMeters('drifter','scalyfoot'),.5);
+ assert.equal(scale.monsterMeters('drifter','scalyfoot'),scale.MIN_HOSTILE_METERS);
  assert.ok(scale.riftVisualRadius('drifter',8,'leviathan')>scale.riftVisualRadius('drifter',8,'scalyfoot'));
  assert.equal(scale.riftVisualRadius('kraken',80),scale.monsterVisualRadius('kraken',80));
  assert.ok(scale.creatureCollisionRadius(10,'scalyfoot')<scale.creatureCollisionRadius(10,'leviathan'));
