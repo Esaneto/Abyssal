@@ -67,7 +67,7 @@ html.abyssal-handheld.abyssal-mobile-editing #submarineWorkshop.abyss-visor-expa
 html.abyssal-handheld.abyssal-mobile-editing #submarineWorkshop .abyss-wardrobe{grid-template-rows:minmax(70px,28%) minmax(0,1fr) auto!important}
 @media(orientation:landscape){
  html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe{grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)!important;grid-template-rows:minmax(0,1fr) auto!important;grid-template-areas:"stage panel" "actions actions"!important}
- html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe .aw-stage{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto}
+ html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe .aw-stage{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);grid-template-rows:minmax(0,1fr) auto}
  html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe .aw-actions{grid-template-columns:minmax(0,1fr) minmax(220px,1.15fr)!important;align-items:center}
  html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe .aw-canvas{min-height:0!important}
  html.abyssal-handheld.abyssal-handheld-landscape #submarineWorkshop .abyss-wardrobe .aw-hair-thumb{max-width:68px!important}
