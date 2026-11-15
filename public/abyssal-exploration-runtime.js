@@ -82,7 +82,7 @@
   if(!workshopGrid)return;
   // Account updates must not destroy live editors, drafts or catalog scroll positions.
   if(activeConsoleSection==='wardrobe'&&workshopGrid.querySelector('.abyss-wardrobe'))return;
-  if(activeConsoleSection==='hudEditor'&&workshopGrid.querySelector('.hud-editor-fullscreen[open]'))return;
+  if(activeConsoleSection==='hudEditor'&&workshopGrid.querySelector('.hud-editor-anchor')&&document.querySelector('body > .hud-editor-fullscreen[data-cockpit-portal]'))return;
   const previous=workshopGrid.querySelector('.abyss-visor-body');
   if(previous?.dataset.pageKey)visorScrollByPage.set(previous.dataset.pageKey,previous.scrollTop);
   renderWorkshopContent();
@@ -252,7 +252,7 @@
  window.addEventListener('abyssal-modal-closed',event=>{if(event.detail?.screenId==='resonanceScreen')for(const nav of workshop?.querySelectorAll('.solo-research-tabs')||[]){const buttons=nav.querySelectorAll('button');buttons[2]?.setAttribute('aria-pressed','false');}});
  function renderConsoleUtility(){
   if(!workshopGrid)return;
-  if(activeConsoleSection==='hudEditor'){const page=window.AbyssalHudLayout?.createPage?.();if(page){mountCockpitConsole(page);return;}}
+  if(activeConsoleSection==='hudEditor'){const page=window.AbyssalHudLayout?.createPage?.();if(page){const anchor=document.createElement('span');anchor.className='hud-editor-anchor';anchor.hidden=true;mountCockpitConsole(anchor);page.dataset.cockpitPortal='true';page.hudEditorAnchor=anchor;document.body.append(page);return;}}
   if(activeConsoleSection==='wardrobe'){const page=window.AbyssalAvatarWardrobe?.createPage?.();if(page){mountCockpitConsole(page);return;}}
   if(commandPages.has(activeConsoleSection)){const utility=window.AbyssalCockpitSettings?.createPage?.(activeConsoleSection);if(utility){mountCockpitConsole(utility);return;}}
   if(embeddedPages[activeConsoleSection]){const utility=document.createElement('div');if(activeConsoleSection==='resonance'){utility.className='abyss-console-info';utility.append(createSoloResearchNav());}mountCockpitConsole(utility);return;}
@@ -371,7 +371,7 @@
 
  let openedPrimaryCockpit=false;
  const openWorkshop=()=>{if(!workshop)return;openedPrimaryCockpit=true;document.body.classList.remove('abyss-hatch-navigation');activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();window.AbyssalRevealStartup?.();};
- const closeWorkshop=(animateExit=false)=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop',animateExit:animateExit===true}}));};
+ const closeWorkshop=(animateExit=false)=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;document.querySelector('body > .hud-editor-fullscreen[data-cockpit-portal]')?.remove();window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop',animateExit:animateExit===true}}));};
  const showExterior=()=>{document.body.classList.add('abyss-hatch-navigation');closeWorkshop(false);const menu=document.getElementById('menuScreen');if(menu&&!document.body.classList.contains('game-active'))menu.hidden=false;window.AbyssalRevealStartup?.();};
  window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,showExterior,routeScreen:navigateEmbedded,routeCommand:navigateCommand,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded});
  window.addEventListener('abyssal-authenticated',()=>{if(!workshop.hidden&&activeConsoleSection==='login'){activeConsoleSection=loginReturn==='login'?'profile':loginReturn;renderWorkshop();}});
