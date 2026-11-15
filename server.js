@@ -23,6 +23,7 @@ const PetTactics=require('./public/abyssal-pet-tactics.js');
 const CreatureScale=require('./public/creature-scale.js');
 const GravityCone = require('./public/gravity-cone.js');
 const SpecimenSystem = require('./public/specimen-system.js');
+const ResBalance = require('./public/abyssal-resonance-balance.js');
 const DiverHitbox = require('./public/diver-hitbox.js');
 const DiverArt = require('./public/diver-art.js');
 const AvatarBase = require('./public/avatar-base.js');
@@ -633,7 +634,7 @@ function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
  const shellDefense=1-shellLevel*.08;
  const predatorLevel=clamp(Math.floor(Number(attacker?.predatorLevel)||0),0,3);
  const preyHpRatio=Number(target?.maxHp)>0?Number(target.hp)/Number(target.maxHp):1;
- const hunter=1+predatorLevel*.03+(preyHpRatio<=.30?predatorLevel*.06:0);
+ const hunter=ResBalance.predator(predatorLevel,false,preyHpRatio)*ResBalance.close(attacker?.closePressureLevel,distance,WORLD_ZOOM);
  const lastStandLevel=clamp(Math.floor(Number(target?.lastStandLevel)||0),0,3);
  const lowHealth=Number(target?.maxHp)>0&&Number(target?.hp)/Number(target.maxHp)<=.30;
  const lastStandDefense=lowHealth&&lastStandLevel>0?1-(.15+lastStandLevel*.05):1;
@@ -727,25 +728,22 @@ function grantSharedXp(room,total,_contributors={},source='kill',enemyId=null,po
  io.to(channelFor(room)).emit('world-orb-spawned',orb);
 }
 function tickSpecimenOrbs(room,players){
- const w=room.world,orbs=w?.orbs;
- if(!Array.isArray(orbs)||!orbs.length)return;
- const rocks=room.mode==='coop'?WorldSimulation.classicCavernRocks(w):null;
- for(const member of players){
-  if(member.alive===false||member.specimenAlive===false||member.runStats?.settled)continue;
-  const position=specimenPositionFor(member);
-  for(let i=orbs.length-1;i>=0;i--){
-   const orb=orbs[i];
-   if(rocks?!ClassicCavern.orbReachable(rocks,position,orb,12/WORLD_ZOOM):Math.hypot(position.x-orb.x,position.y-orb.y)>(position.r+7/WORLD_ZOOM))continue;
-   const range=294/WORLD_ZOOM*clamp(Number(member.rangeStrength)||1,1,2.5)*
-    SkinAbilities.targetRangeMultiplier(member.skinId,member.specimenPoints,true);
-   if(Math.hypot((Number(member.x)||0)-orb.x,(Number(member.y)||0)-orb.y)>range)continue;
-   const amount=Math.max(1,Math.round(orb.value));
-   orbs.splice(i,1);
-   if(member.runStats){creditRunXp(member.runStats,amount);member.runStats.energyCollected=(Number(member.runStats.energyCollected)||0)+amount;}const owner=users[member.userKey];if(owner){migrateEnergy(owner);owner.energy+=amount;scheduleTitleStatsSave();}
-   io.to(member.id).emit('shared-xp-award',{value:amount,source:'specimen-orb',orbId:orb.id});
-   io.to(channelFor(room)).emit('world-orb-collected',{id:orb.id,playerId:member.id});
-  }
+ const w=room.world,orbs=w?.orbs;if(!Array.isArray(orbs)||!orbs.length)return;
+ const rocks=room.mode==='coop'?WorldSimulation.classicCavernRocks(w):null,layout=room.mode==='rift'?WorldSimulation.mapLayoutFor(w):null;
+ const clear=(ax,ay,bx,by)=>rocks?!ClassicCavern.segmentBlocked(rocks,ax,ay,bx,by,0):layout?AbyssalMap.segmentWalkable(layout,ax,ay,bx,by,0):room.mode==='open-sea'?OceanGeography.segmentClear(ax,ay,bx,by,0):true;
+ const pets=players.filter(member=>member.alive!==false&&member.specimenAlive!==false&&!member.runStats?.settled).map(member=>({...specimenPositionFor(member),id:member.id,field:member.magneticField,member}));
+ const now=Date.now(),dt=Math.min(.12,Math.max(0,(now-(Number(w.lastMagneticOrbAt)||now-50))/1000));w.lastMagneticOrbAt=now;
+ const moved=[];
+ for(let i=orbs.length-1;i>=0;i--){
+  const orb=orbs[i],result=ResBalance.stepOrb(orb,pets,dt,WORLD_ZOOM,clear);
+  if(!result.winner){if(result.moved)moved.push([orb.id,orb.x,orb.y]);continue;}
+  const member=result.winner.member,amount=Math.max(1,Math.round(orb.value)),evolution=amount*clamp(Number(member.magnetStrength)||1,1,1.26);
+  orbs.splice(i,1);
+  if(member.runStats){creditRunXp(member.runStats,evolution);member.runStats.energyCollected=(Number(member.runStats.energyCollected)||0)+amount;}const owner=users[member.userKey];if(owner){migrateEnergy(owner);owner.energy+=amount;scheduleTitleStatsSave();}
+  io.to(member.id).emit('shared-xp-award',{value:evolution,source:'specimen-orb',orbId:orb.id});
+  io.to(channelFor(room)).emit('world-orb-collected',{id:orb.id,playerId:member.id});
  }
+ if(moved.length)io.to(channelFor(room)).volatile.emit('world-orb-motion',moved);
 }
 // PvP has no neutral monsters: XP is credited on an actual elimination,
 // never from collectable arena objects or a client-sent reward.
@@ -788,7 +786,7 @@ allowedSkinIds.add(RiftRewards.FINAL_SKIN);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, monstersKilled:0, energyCollected:0, damageDealt:0, score: 0, level: 1, authoritativeXp:0, authoritativeXpNeed:10, pendingUpgradeCredits:0, settled: false, historySaved:false }; }
 function deployRunResumePayload(run){const state=ensureRunProgression(run);if(!state)return null;return {id:String(state.id||''),score:Math.max(0,Number(state.score)||0),level:Math.max(1,Math.floor(Number(state.level)||1)),bossesKilled:Math.max(0,Math.floor(Number(state.bossesKilled)||0)),monstersKilled:Math.max(0,Math.floor(Number(state.monstersKilled)||0)),energyCollected:Math.max(0,Math.floor(Number(state.energyCollected)||0)),damageDealt:Math.max(0,Number(state.damageDealt)||0),xp:Math.max(0,Number(state.authoritativeXp)||0),xpNeed:Math.max(1,Math.floor(Number(state.authoritativeXpNeed)||10)),pendingUpgradeCredits:Math.max(0,Math.floor(Number(state.pendingUpgradeCredits)||0))};}
-function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;const deployWorld=room.world?JSON.parse(JSON.stringify(room.world)):null;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:normalizeRoomMode(room.mode),roomResume:{id:room.id,name:room.name||room.id,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),passwordSalt:room.passwordSalt||null,passwordHash:room.passwordHash||null,capacity:room.capacity,world:deployWorld},resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,resumeBuild:{regenLevel:Number(member.regenLevel)||0,magnetStrength:Number(member.magnetStrength)||1,rangeStrength:Number(member.rangeStrength)||1,speedStrength:Number(member.speedStrength)||1,arcChainActive:member.arcChainActive===true,hadalBeamActive:member.hadalBeamActive===true,ricochetLevel:Number(member.ricochetLevel)||0,prismaticLevel:Number(member.prismaticLevel)||0,predatorLevel:Number(member.predatorLevel)||0,electricLevel:Number(member.electricLevel)||0,shellLevel:Number(member.shellLevel)||0,lastStandLevel:Number(member.lastStandLevel)||0},savedAt:Date.now(),expiresAt:Date.now()+15*60*1000};return true;}
+function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;const deployWorld=room.world?JSON.parse(JSON.stringify(room.world)):null;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:normalizeRoomMode(room.mode),roomResume:{id:room.id,name:room.name||room.id,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),passwordSalt:room.passwordSalt||null,passwordHash:room.passwordHash||null,capacity:room.capacity,world:deployWorld},resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,resumeBuild:{magneticField:ResBalance.rank(member.magneticField),petAttack:ResBalance.rank(member.petAttack),petLife:ResBalance.rank(member.petLife),petSpeed:ResBalance.rank(member.petSpeed),petCadence:ResBalance.rank(member.petCadence),closePressureLevel:ResBalance.rank(member.closePressureLevel),regenLevel:Number(member.regenLevel)||0,magnetStrength:Number(member.magnetStrength)||1,rangeStrength:Number(member.rangeStrength)||1,speedStrength:Number(member.speedStrength)||1,arcChainActive:member.arcChainActive===true,hadalBeamActive:member.hadalBeamActive===true,ricochetLevel:Number(member.ricochetLevel)||0,prismaticLevel:Number(member.prismaticLevel)||0,predatorLevel:Number(member.predatorLevel)||0,electricLevel:Number(member.electricLevel)||0,shellLevel:Number(member.shellLevel)||0,lastStandLevel:Number(member.lastStandLevel)||0},savedAt:Date.now(),expiresAt:Date.now()+15*60*1000};return true;}
 function takeDeployRun(user,room){const saved=user?.pendingRunResume;if(!saved)return null;const valid=Number(saved.expiresAt)>=Date.now()&&!saved.settled&&saved.roomId===room.id&&saved.roomMode===normalizeRoomMode(room.mode);if(!valid)return null;delete user.pendingRunResume;return {...makeRunStats(),...saved,settled:false,historySaved:Boolean(saved.historySaved)};}
 function restoreDeployRoom(user,requestedId){const saved=user?.pendingRunResume,meta=saved?.roomResume;if(!saved||!meta||String(saved.roomId)!==String(requestedId)||Number(saved.expiresAt)<Date.now()||saved.settled)return null;let room=rooms.get(requestedId);if(!room){room=makeRoom({id:String(meta.id||requestedId),name:String(meta.name||requestedId).slice(0,28),isPrivate:false,capacity:Number(meta.capacity)||6,mode:meta.mode});room.isPrivate=Boolean(meta.isPrivate);room.passwordSalt=meta.passwordSalt||null;room.passwordHash=meta.passwordHash||null;rooms.set(room.id,room);}if(room.players.size===0&&meta.world&&typeof meta.world==='object'){room.world=JSON.parse(JSON.stringify(meta.world));room.world.mode=room.mode==='rift'?'rift':room.mode==='open-sea'?'open-sea':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}return room;}
 function ensureMatchParticipant(room,p){
@@ -1188,7 +1186,9 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  }
  const targetDistance=Math.hypot(Number(player?.x)-Number(enemy.x),Number(player?.y)-Number(enemy.y));
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1,player?.specimenPoints,player?.specimenAlive!==false);
- const applied=Math.min(250,requestedDamage*skinMultiplier);
+ const elite=isBossKind(enemy.kind)||enemy.elite===true||enemy.isElite===true,ratio=Number(enemy.maxHp)>0?Number(enemy.hp)/Number(enemy.maxHp):1;
+ const hunter=ResBalance.predator(player?.predatorLevel,elite,ratio)*ResBalance.close(player?.closePressureLevel,targetDistance,WORLD_ZOOM);
+ const applied=Math.min(250,requestedDamage*skinMultiplier*hunter);
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date(now).toISOString();combatDiagnostics.lastDamageReason='accepted';
  const hpBefore=Math.max(0,Number(enemy.hp)||0);
  enemy.hp=Math.max(0,hpBefore-applied);
@@ -1215,7 +1215,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    if(player?.specimenAlive!==false){
     killer.specimenProficiency=SpecimenSystem.addKill(killer.specimenProficiency,player.skinId,boss);
     player.specimenPoints=SpecimenSystem.pointsFor(killer.specimenProficiency,player.skinId);
-    const nextHp=SpecimenSystem.effectiveStats(player.skinId,player.specimenPoints).hp;player.specimenHp=Math.min(nextHp,player.specimenHp+Math.max(0,nextHp-player.specimenMaxHp));player.specimenMaxHp=nextHp;
+    const nextHp=Math.round(SpecimenSystem.effectiveStats(player.skinId,player.specimenPoints).hp*ResBalance.petLife(player.petLife));player.specimenHp=Math.min(nextHp,player.specimenHp+Math.max(0,nextHp-player.specimenMaxHp));player.specimenMaxHp=nextHp;
     io.to(socket.id).emit('specimen-proficiency',{skinId:player.skinId,points:player.specimenPoints,stats:SpecimenSystem.stats(player.specimenPoints)});
    }
    scheduleTitleStatsSave();
@@ -1505,7 +1505,7 @@ function tickRoom(room, now) {
     if(peer.specimenAttackId!==combatTarget.id||!Number.isFinite(peer.specimenApproachAngle))peer.specimenApproachAngle=direct;else peer.specimenApproachAngle+=clamp(Math.atan2(Math.sin(direct-peer.specimenApproachAngle),Math.cos(direct-peer.specimenApproachAngle)),-dt*2.6,dt*2.6);
     peer.specimenAttackId=combatTarget.id;const goal=PetTactics.attackGoal(pos,combatTarget,profile,peer.specimenApproachAngle);target=goal;combatStop=goal.stop;
     const angle=goal.angle,phase=now*.0018,clear=!ClassicCavern.segmentBlocked(specimenClassicRocks,pos.x,pos.y,combatTarget.x,combatTarget.y,2),contact=clear&&PetTactics.attackContact(pos,combatTarget,profile,angle,phase,EnemyAI.touchesKrakenTentacle);
-    if(contact){peer.specimenAttackHoldUntil=now+180;if(now>=(Number(peer.nextSpecimenAttackAt)||0)){const live=(room.world?.enemies||[]).find(e=>e.id===combatTarget.id&&e.hp>0),owner=io.sockets.sockets.get(peer.id);if(live&&owner){peer.nextSpecimenAttackAt=now+1020;peer.skinActiveServerResolving=true;peer.skinActiveDamageOrigin=pos;try{processWorldDamage(owner,Number(live.id),SpecimenSystem.effectiveStats(peer.skinId,peer.specimenPoints).damage,profile.body?'specimen-body-contact':'specimen-bite');}finally{peer.skinActiveServerResolving=false;peer.skinActiveDamageOrigin=null;}io.to(channelFor(room)).emit('specimen-attack',{fromId:peer.id,x:pos.x,y:pos.y,angle});}}}
+    if(contact){peer.specimenAttackHoldUntil=now+180;if(now>=(Number(peer.nextSpecimenAttackAt)||0)){const live=(room.world?.enemies||[]).find(e=>e.id===combatTarget.id&&e.hp>0),owner=io.sockets.sockets.get(peer.id);if(live&&owner){peer.nextSpecimenAttackAt=now+ResBalance.petInterval(peer.petCadence);peer.skinActiveServerResolving=true;peer.skinActiveDamageOrigin=pos;try{processWorldDamage(owner,Number(live.id),(SpecimenSystem.effectiveStats(peer.skinId,peer.specimenPoints).damage*ResBalance.petAttack(peer.petAttack)),profile.body?'specimen-body-contact':'specimen-bite');}finally{peer.skinActiveServerResolving=false;peer.skinActiveDamageOrigin=null;}io.to(channelFor(room)).emit('specimen-attack',{fromId:peer.id,x:pos.x,y:pos.y,angle});}}}
     attackHolding=now<(Number(peer.specimenAttackHoldUntil)||0)&&goal.distance>=goal.stop-1&&goal.distance<=goal.stop+Math.max(7/WORLD_ZOOM,profile.slack*1.8);if(attackHolding){peer.specimenEvasionHeading=angle;continue;}
    }else{peer.specimenAttackId=null;peer.specimenAttackHoldUntil=0;}
    if(ClassicCavern.isBlocked(specimenClassicRocks,target.x,target.y,radius+1/WORLD_ZOOM)&&!combatTarget)target={x:peer.x,y:peer.y};
@@ -1515,7 +1515,7 @@ function tickRoom(room, now) {
    const route=AbyssalMap.navigationTarget(specimenCaveLayout,pos.x,pos.y,target.x,target.y,{padding:5/WORLD_ZOOM});
    if(route&&!route.blocked)target={x:route.x,y:route.y};
   }
-  const speed=SpecimenSystem.effectiveStats(peer.skinId,peer.specimenPoints).speed/WORLD_ZOOM;
+  const speed=SpecimenSystem.effectiveStats(peer.skinId,peer.specimenPoints).speed*ResBalance.petSpeed(peer.petSpeed)/WORLD_ZOOM;
   const avoidSq=(280/WORLD_ZOOM)**2;
    const nearbyHostile=hostile.filter(e=>e.id!==combatTarget?.id&&(e.x-pos.x)**2+(e.y-pos.y)**2<avoidSq);
    const move=SpecimenEvasion.steer({position:pos,target,enemies:nearbyHostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
@@ -2023,7 +2023,7 @@ io.on('connection', socket => {
   const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
   const coopSub=room.mode==='coop'?room.world?.submarine:null,coopSpawn=coopSub?ClassicCavern.submarineSpawn(WorldSimulation.classicCavernRocks(room.world),roomWorldWidth(room),roomWorldHeight(room),coopSub,WORLD_ZOOM,spawnIndex):null;const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(room.mode==='open-sea'?1300:coopSpawn?coopSpawn.x:roomWorldWidth(room)*.5+Math.cos(spawnAngle)*spawnRadius,80,roomWorldWidth(room)-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(room.mode==='open-sea'?420:coopSpawn?coopSpawn.y:roomWorldHeight(room)*.5+Math.sin(spawnAngle)*spawnRadius,80,roomWorldHeight(room)-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':room.mode==='open-sea'?'open-sea':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,roomWorldWidth(room)-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
-  const resumeBuild=resumedRun?.resumeBuild||{};const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,isDeveloper:isDeveloperUser(u),userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:clamp(Math.floor(Number(resumeBuild.regenLevel)||0),0,3),magnetStrength:clamp(Number(resumeBuild.magnetStrength)||1,1,1.26),rangeStrength:clamp(Number(resumeBuild.rangeStrength)||1,1,Math.pow(1.22,3)),arcChainActive:resumeBuild.arcChainActive===true,hadalBeamActive:resumeBuild.hadalBeamActive===true,ricochetLevel:clamp(Math.floor(Number(resumeBuild.ricochetLevel)||0),0,3),prismaticLevel:clamp(Math.floor(Number(resumeBuild.prismaticLevel)||0),0,3),predatorLevel:clamp(Math.floor(Number(resumeBuild.predatorLevel)||0),0,3),electricLevel:clamp(Math.floor(Number(resumeBuild.electricLevel)||0),0,3),shellLevel:clamp(Math.floor(Number(resumeBuild.shellLevel)||0),0,3),lastStandLevel:clamp(Math.floor(Number(resumeBuild.lastStandLevel)||0),0,3),regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:roomWorldWidth(room),worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u?.avatarAppearance,AvatarBase.normalizeOwned(u?.ownedAvatarCosmetics)),speedStrength:clamp(Number(resumeBuild.speedStrength)||1,1,4),specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:SpecimenSystem.effectiveStats(equippedSkinId,specimenPoints).hp,specimenMaxHp:SpecimenSystem.effectiveStats(equippedSkinId,specimenPoints).hp,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runLevel:Math.max(1,Math.floor(Number(resumedRun?.level)||1)),energy:Math.max(0,Number(resumedRun?.score)||0),runStats:resumedRun||{...makeRunStats(),energySkinId:equippedSkinId}};ensureMatchParticipant(room,p);
+  const resumeBuild=resumedRun?.resumeBuild||{};const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,isDeveloper:isDeveloperUser(u),userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,magneticField:ResBalance.rank(resumeBuild.magneticField),petAttack:ResBalance.rank(resumeBuild.petAttack),petLife:ResBalance.rank(resumeBuild.petLife),petSpeed:ResBalance.rank(resumeBuild.petSpeed),petCadence:ResBalance.rank(resumeBuild.petCadence),closePressureLevel:ResBalance.rank(resumeBuild.closePressureLevel),regenLevel:clamp(Math.floor(Number(resumeBuild.regenLevel)||0),0,3),magnetStrength:clamp(Number(resumeBuild.magnetStrength)||1,1,1.26),rangeStrength:clamp(Number(resumeBuild.rangeStrength)||1,1,Math.pow(1.22,3)),arcChainActive:resumeBuild.arcChainActive===true,hadalBeamActive:resumeBuild.hadalBeamActive===true,ricochetLevel:clamp(Math.floor(Number(resumeBuild.ricochetLevel)||0),0,3),prismaticLevel:clamp(Math.floor(Number(resumeBuild.prismaticLevel)||0),0,3),predatorLevel:clamp(Math.floor(Number(resumeBuild.predatorLevel)||0),0,3),electricLevel:clamp(Math.floor(Number(resumeBuild.electricLevel)||0),0,3),shellLevel:clamp(Math.floor(Number(resumeBuild.shellLevel)||0),0,3),lastStandLevel:clamp(Math.floor(Number(resumeBuild.lastStandLevel)||0),0,3),regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:roomWorldWidth(room),worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u?.avatarAppearance,AvatarBase.normalizeOwned(u?.ownedAvatarCosmetics)),speedStrength:clamp(Number(resumeBuild.speedStrength)||1,1,4),specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:Math.round(SpecimenSystem.effectiveStats(equippedSkinId,specimenPoints).hp*ResBalance.petLife(resumeBuild.petLife)),specimenMaxHp:Math.round(SpecimenSystem.effectiveStats(equippedSkinId,specimenPoints).hp*ResBalance.petLife(resumeBuild.petLife)),specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runLevel:Math.max(1,Math.floor(Number(resumedRun?.level)||1)),energy:Math.max(0,Number(resumedRun?.score)||0),runStats:resumedRun||{...makeRunStats(),energySkinId:equippedSkinId}};ensureMatchParticipant(room,p);
    if(room.mode==='rift'||room.mode==='open-sea'){
     const research=ResearchSystem.migrateLegacy(u?.researchLevels||{},u?.metaUpgrades||{}).levels;
     p.oxygenCapacity=ExplorationConfig.oxygenCapacity(research.oxygenTank);
@@ -2226,6 +2226,13 @@ io.on('connection', socket => {
   // Only gameplay inputs are accepted; HP/max HP remain server-authoritative.
   p.shieldCharges = clamp(Math.floor(Number(payload.shieldCharges) || 0), 0, 3);
   p.regenLevel = clamp(Math.floor(Number(payload.regenLevel) || 0), 0, 3);
+  if(payload.magneticField!=null)p.magneticField=ResBalance.rank(payload.magneticField);
+  if(payload.petAttack!=null)p.petAttack=ResBalance.rank(payload.petAttack);
+  if(payload.petLife!=null)p.petLife=ResBalance.rank(payload.petLife);
+  if(payload.petSpeed!=null)p.petSpeed=ResBalance.rank(payload.petSpeed);
+  if(payload.petCadence!=null)p.petCadence=ResBalance.rank(payload.petCadence);
+  if(payload.closePressureLevel!=null)p.closePressureLevel=ResBalance.rank(payload.closePressureLevel);
+  const petMax=Math.round(SpecimenSystem.effectiveStats(p.skinId,p.specimenPoints).hp*ResBalance.petLife(p.petLife));if(petMax!==p.specimenMaxHp){if(p.specimenAlive!==false)p.specimenHp=Math.min(petMax,p.specimenHp+Math.max(0,petMax-p.specimenMaxHp));p.specimenMaxHp=petMax;emitSpecimenState(room,p,'resonance-upgrade');}
   p.magnetStrength = clamp(Number(payload.magnetStrength) || 1, 1, 1.26);
   p.rangeStrength = clamp(Number(payload.rangeStrength) || 1, 1, Math.pow(1.22, 3));
   p.speedStrength=clamp(Number(payload.speedStrength)||1,1,4);
@@ -3006,7 +3013,7 @@ io.on('connection', socket => {
     const now=Date.now(),stillDefeated=p.specimenAlive===false&&now<(Number(p.specimenRespawnAt)||0);
     p.skinId=u.equippedSkin;
     p.specimenPoints=SpecimenSystem.pointsFor(u.specimenProficiency,p.skinId);
-    p.specimenMaxHp=SpecimenSystem.effectiveStats(p.skinId,p.specimenPoints).hp;
+    p.specimenMaxHp=Math.round(SpecimenSystem.effectiveStats(p.skinId,p.specimenPoints).hp*ResBalance.petLife(p.petLife));
     // Equipping a different specimen must not cancel an existing death penalty.
     p.specimenAlive=!stillDefeated;
     p.specimenHp=stillDefeated?0:p.specimenMaxHp;
