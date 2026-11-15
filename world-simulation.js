@@ -319,8 +319,9 @@ function spawnEnemy(world, options = {}) {
   const fullHp=specimenSkinId?SpecimenSystem.biologicalStats(specimenSkinId).hp:(CreatureScale.CLASSIC_HP[kind]||stats.hp);
   stats.hp=CreatureScale.scaledHealth(fullHp,world.elapsed);
   if(type==='boss')world.lastBossMaxHp=stats.hp;
-  const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId,kind);
-  if(world.mode==='classic'){const safe=SoloCavern.nearestWater(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,point.x,point.y,Math.max(3,collisionRadius));if(!safe)return null;point={...point,...safe};}
+  // Network stores enemy radius in logical units; clients convert once to world units.
+  const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId,kind)*WORLD_ZOOM;
+  if(world.mode==='classic'){const safe=SoloCavern.nearestWater(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,point.x,point.y,Math.max(3,collisionRadius/WORLD_ZOOM));if(!safe)return null;point={...point,...safe};}
   const enemy = {
     id, kind, x: point.x, y: point.y, r: collisionRadius, hp: stats.hp, maxHp: stats.hp, fullHp,
     speed: stats.speed / WORLD_ZOOM, damage: stats.damage, color: stats.color,
