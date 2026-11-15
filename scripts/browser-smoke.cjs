@@ -398,8 +398,31 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
   await command('Page.enable');
   await command('Runtime.enable');
   console.log('[live-browser] navigating to actual game');
+  if(mode==='mobile-wardrobe'){
+   await command('Emulation.setUserAgentOverride',{userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/128.0.0.0 Mobile Safari/537.36'});
+   await command('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
+   await command('Emulation.setDeviceMetricsOverride',{width:360,height:640,deviceScaleFactor:2,mobile:true,screenOrientation:{type:'portraitPrimary',angle:0}});
+  }
   await command('Page.navigate',{url});
   await sleep(6500);
+  if(mode==='mobile-wardrobe'){
+   for(let attempt=0;attempt<10;attempt++){if(await evaluate('document.body.dataset.cockpitStatus==="ok"'))break;await sleep(500);}
+   assert.equal(await evaluate('document.body.dataset.cockpitStatus'), 'ok', await evaluate('document.body.dataset.cockpitError'));
+   const rects=()=>evaluate(`(()=>{const root=document.querySelector('#submarineWorkshop .abyss-wardrobe'),box=s=>{const r=root.querySelector(s).getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}};return {w:innerWidth,h:innerHeight,mobile:document.documentElement.classList.contains('abyssal-handheld'),landscape:document.documentElement.classList.contains('abyssal-handheld-landscape'),stage:box('.aw-canvas'),panel:box('.aw-panel'),save:box('.aw-primary'),scrollable:root.querySelector('.aw-panel').scrollHeight>root.querySelector('.aw-panel').clientHeight,choices:root.querySelectorAll('.aw-option').length};})()`);
+   for(const [w,h] of [[360,640],[320,568],[640,360],[844,390],[360,640]]){
+    await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:2,mobile:true,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});
+    await sleep(450);
+    const m=await rects();console.log('[exact-mobile-wardrobe] '+JSON.stringify(m));
+    assert.equal(m.w,w,'Actual CSS viewport width');assert.equal(m.h,h,'Actual CSS viewport height');
+    assert.equal(m.mobile,true);assert.equal(m.landscape,w>h);
+    assert.ok(m.stage.width>=80&&m.stage.height>=60&&m.panel.width>=120&&m.panel.height>=80&&m.save.height>=40,'Preview, catalog or save clipped: '+JSON.stringify(m));
+    for(const part of [m.stage,m.panel,m.save])assert.ok(part.left>=-1&&part.right<=w+1&&part.top>=-1&&part.bottom<=h+1,'Wardrobe outside real viewport: '+JSON.stringify(m));
+    assert.ok(w>h?m.stage.right<=m.panel.left+2:m.stage.bottom<=m.panel.top+2,'Preview overlaps catalog');
+    assert.ok(m.choices>0,'No selectable cosmetics');
+    await screenshot('exact-mobile-wardrobe-'+w+'x'+h);
+   }
+   return;
+  }
   if(mode==='solo'){
    // Verify that the actual Solo frame loop advances in wall-clock time.
    // DOM existence and virtual-time screenshots cannot prove this.
@@ -628,6 +651,7 @@ async function main(){
   }
   // Full Fossa replay is retained as an isolated localhost regression for the
   // frozen mode; public players still enter the classic Solo shooter only.
+  await realGameplaySmoke(browser,url+'?stage=cockpit&view=wardrobe','mobile-wardrobe');
   await realGameplaySmoke(browser,url,'solo');
   if(legacyModes)await realGameplaySmoke(browser,url+'?stage=deep','legacy');
   else console.log('[browser-smoke] Active release: Shooter Solo, legacy expeditions excluded from gating');

@@ -134,7 +134,7 @@ jobs:
 
   android-api36:
     needs: [syntax-and-tests, online-solo-live-acceptance, open-sea-regression, specimen-journal-acceptance, roxycloud-node26]
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -226,6 +226,11 @@ jobs:
           grep -q 'controller.hide(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           cmp public/avatar-base.js android/app/src/main/assets/public/avatar-base.js
           cmp public/avatar-wardrobe.js android/app/src/main/assets/public/avatar-wardrobe.js
+          for asset in mobile-portrait.css mobile-portrait.js avatar-wardrobe.css manifest.webmanifest abyssal-exploration-runtime.js; do
+            cmp "public/$asset" "android/app/src/main/assets/public/$asset"
+          done
+          grep -q 'android:screenOrientation="fullUser"' android/app/src/main/AndroidManifest.xml
+          grep -q 'SCREEN_ORIENTATION_FULL_USER' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           cmp public/abyssal-realistic-body.js android/app/src/main/assets/public/abyssal-realistic-body.js
           cmp public/index.html android/app/src/main/assets/public/index.html
           grep -q 'registerPlugin(AbyssalAdMobPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
@@ -277,7 +282,7 @@ jobs:
         run: |
           set -euo pipefail
           APK=android/app/build/outputs/apk/release/app-release.apk
-          for asset in index.html game.js online.js client-build.js avatar-base.js avatar-wardrobe.js avatar-wardrobe.css abyssal-realistic-body.js abyssal-submarine-cockpit.js update-manager.js abyssal-admob.js; do
+          for asset in index.html game.js online.js client-build.js avatar-base.js avatar-wardrobe.js avatar-wardrobe.css mobile-portrait.css mobile-portrait.js manifest.webmanifest abyssal-exploration-runtime.js abyssal-diver-rig.js abyssal-realistic-body.js abyssal-submarine-cockpit.js update-manager.js abyssal-admob.js; do
             unzip -p "$APK" "assets/public/$asset" > "/tmp/abyssal-verify-$asset"
             cmp "public/$asset" "/tmp/abyssal-verify-$asset"
           done

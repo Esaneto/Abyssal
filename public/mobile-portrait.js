@@ -15,6 +15,9 @@
  }
  const ua=String(navigator.userAgent||'');
  function detectHandheld(){
+   // Capacitor can use a customized desktop-like UA; native Android must
+   // still receive the handheld layout on phones and tablets.
+   if(root.Capacitor?.getPlatform?.()==='android')return true;
    if(/Android|iPhone|iPod|Mobile/i.test(ua))return true;
    if(/iPad/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))return true;
    const touch=Number(navigator.maxTouchPoints)||0;
