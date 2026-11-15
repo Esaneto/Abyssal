@@ -139,7 +139,9 @@ html.abyssal-handheld.abyssal-mobile-editing #submarineWorkshop .abyss-wardrobe{
    Never inherit the desktop minimum height on a horizontal phone. */
 html.abyssal-handheld body:not(.game-active) #app{min-height:0!important;height:var(--abyssal-edit-height,100dvh)!important;max-width:100%!important;overflow:hidden!important}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop{max-width:100%!important;max-height:var(--abyssal-edit-height,100dvh)!important;min-height:0!important}
-html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage .aw-view{grid-column:1/-1;min-width:0;width:100%!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) 52px!important;align-items:stretch!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage .aw-view{grid-column:1/-1;min-width:0;min-height:0!important;height:52px!important;max-height:52px!important;width:100%!important;align-items:start!important;overflow-x:auto!important;overflow-y:hidden!important;flex-wrap:nowrap!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage .aw-view>button{flex:0 0 auto!important;height:48px!important;min-height:48px!important;max-height:48px!important}
 html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-panel{min-height:0!important;min-width:0!important}
 html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-tabs{min-width:0!important;flex-wrap:nowrap!important;overflow-x:auto!important}
 html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-tabs>button{flex:0 0 auto!important}
@@ -151,7 +153,7 @@ html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-footer button{min-w
 html.abyssal-handheld body:not(.game-active) .modal-screen:not([hidden]):not(.abyss-cockpit-embedded){max-height:100dvh!important;min-height:0!important;overflow:auto!important;overscroll-behavior:contain}
 html.abyssal-handheld body:not(.game-active) .modal-screen:not(.abyss-cockpit-embedded)>.modal-card{min-width:0!important;max-width:calc(100vw - 12px)!important;max-height:calc(100dvh - 12px)!important;overflow:auto!important}
 @media (max-width:380px) and (orientation:portrait){
- html.abyssal-handheld #submarineWorkshop .abyss-wardrobe{grid-template-rows:minmax(120px,36%) minmax(0,1fr) auto!important;gap:3px!important}
+ html.abyssal-handheld #submarineWorkshop .abyss-wardrobe{grid-template-rows:minmax(136px,38%) minmax(0,1fr) auto!important;gap:3px!important}
  html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-choices{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-option{min-width:0!important;overflow:hidden}
 }
