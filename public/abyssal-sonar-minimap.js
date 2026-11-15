@@ -76,8 +76,8 @@
  let timer=0;
  function syncSonar(){
   const active=!document.hidden&&window.AbyssalGameHooks?.explorationPosition?.()?.mode==='open-sea';
-  if(active&&!timer){update(performance.now());timer=window.setInterval(()=>update(performance.now()),230);}
-  else if(!active){if(timer)window.clearInterval(timer);timer=0;visible=false;root.hidden=true;fold(false);}
+  if(active&&!timer){update(performance.now());timer=window.setInterval(()=>{if(document.hidden||window.AbyssalGameHooks?.explorationPosition?.()?.mode!=='open-sea'){syncSonar();return;}update(performance.now());},230);}
+  else if(!active&&(timer||visible||!root.hidden||folded)){if(timer)window.clearInterval(timer);timer=0;visible=false;root.hidden=true;fold(false);}
  }
  const modeObserver=new MutationObserver(syncSonar);modeObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
  for(const event of ['abyssal-start-open-sea','abyssal-start-rift-solo','abyssal-room-joined','abyssal-room-left','abyssal-menu-return'])window.addEventListener(event,()=>queueMicrotask(syncSonar));
