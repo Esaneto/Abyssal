@@ -151,23 +151,74 @@ const MOBILE_PRESET={
   }
  }
 };
+// Nekko's public Solo desktop layout, retrieved 2026-11-15. Unedited controls retain their native baseline.
+const DESKTOP_PRESET={
+ "skills": {
+  "x": 0.9932291666666667,
+  "y": 0.12840043525571274,
+  "s": 1
+ },
+ "hide": {
+  "x": 0.996875,
+  "y": 0.08378672470076169,
+  "s": 1
+ },
+ "pulse": {
+  "x": 0.007291666666666667,
+  "y": 1,
+  "s": 1
+ },
+ "dash": {
+  "x": 0.043229166666666666,
+  "y": 0.9912948857453754,
+  "s": 1
+ },
+ "petSkill": {
+  "x": 0.07083333333333333,
+  "y": 1,
+  "s": 1
+ },
+ "pet": {
+  "x": 0,
+  "y": 0.8813928182807399,
+  "s": 1
+ },
+ "repair": {
+  "x": 0.009895833333333333,
+  "y": 0.8030467899891186,
+  "s": 1
+ },
+ "power": {
+  "x": 0.008854166666666666,
+  "y": 0.750816104461371,
+  "s": 1
+ },
+ "end": {
+  "x": 1,
+  "y": 1,
+  "s": 1
+ }
+};
 function defaultLayout(mode,profile){
- const source=MOBILE_PRESET[profile];if(!source)return {};
+ const source=profile==='desktop'?DESKTOP_PRESET:MOBILE_PRESET[profile];if(!source)return {};
  const layout=Object.fromEntries(Object.entries(source).map(([id,pos])=>[id,{...pos}]));
- if(mode==='online')layout.comms=profile==='portrait'?{x:.15,y:.47,s:1}:{x:.15,y:.52,s:1};
+ if(mode==='online')layout.comms=profile==='desktop'?{x:layout.power.x,y:layout.power.y-.085,s:1}:profile==='portrait'?{x:.15,y:.47,s:1}:{x:.15,y:.52,s:1};
  return layout;
 }
 function effectiveLayout(layout,mode,profile){return {...defaultLayout(mode,profile),...modeLayout(layout,mode)[profile]};}
 // Preserve authored controls. Fit untouched baseline controls against the actual
 // rendered bounds, on narrow screens and rotations, without changing saved data.
 const PRESET_ORDER=['pause','hide','repair','power','petSkill','pulse','dash','pet','aim','fire','comms','stats','health','xp','energy','progress','skills'];
-function resolvePositions(entries,w,h,safe={},avoidOverlap=true){
+function resolvePositions(entries,w,h,safe={},avoidOverlap=true,device='portrait'){
  const result={},occupied=[],gap=3;
- const priority=e=>e.custom?-1:PRESET_ORDER.indexOf(e.id)<0?99:PRESET_ORDER.indexOf(e.id);
+ const order=device==='desktop'?['pause','hide','power','comms','repair','pulse','dash','petSkill','pet','end','stats','health','xp','energy','progress','skills']:PRESET_ORDER;
+ const priority=e=>e.custom?-1:order.indexOf(e.id)<0?99:order.indexOf(e.id);
  const ordered=[...entries].sort((a,b)=>priority(a)-priority(b));
  for(const e of ordered){
   if(e.pos.hidden)continue;
-  const target=fit(e.pos,e.box,w,h,safe),hw=e.box.w*target.s/2,hh=e.box.h*target.s/2;
+  let wanted=e.pos;
+  if(device==='desktop'&&e.id==='comms'&&!e.custom){const power=entries.find(v=>v.id==='power'),p=power?.pos||DESKTOP_PRESET.power,box=power?.box||{w:48,h:48},actual=result.power||p,pf=fit(actual,box,w,h,safe);wanted={...e.pos,x:pf.x/w,y:(pf.y-box.h*pf.s/2-e.box.h*e.pos.s/2-8)/h};}
+  const target=fit(wanted,e.box,w,h,safe),hw=e.box.w*target.s/2,hh=e.box.h*target.s/2;
   const rect=(x,y)=>({l:x-hw,r:x+hw,t:y-hh,b:y+hh});
   const intersects=(a,b)=>a.l<b.r+gap-.001&&a.r>b.l-gap+.001&&a.t<b.b+gap-.001&&a.b>b.t-gap+.001;
   let best=target,bestRect=rect(target.x,target.y);
@@ -176,7 +227,7 @@ function resolvePositions(entries,w,h,safe={},avoidOverlap=true){
    for(const r of occupied){xs.push(r.l-hw-gap,r.r+hw+gap);ys.push(r.t-hh-gap,r.b+hh+gap);}
    let cost=Infinity;
    for(const x of xs)for(const y of ys){
-    const p=fit({...e.pos,x:x/w,y:y/h},e.box,w,h,safe),r=rect(p.x,p.y);
+    const p=fit({...wanted,x:x/w,y:y/h},e.box,w,h,safe),r=rect(p.x,p.y);
     if(occupied.some(o=>intersects(r,o)))continue;
     const d=(p.x-target.x)**2+(p.y-target.y)**2;
     if(d<cost){cost=d;best=p;bestRect=r;}
@@ -191,11 +242,25 @@ function safeInsets(doc){const html=doc.documentElement;if(!html.classList.conta
 function groupRect(els){if(!els.length)return null;const rects=els.map(el=>el.getBoundingClientRect()),l=Math.min(...rects.map(r=>r.left)),t=Math.min(...rects.map(r=>r.top)),r=Math.max(...rects.map(r=>r.right)),b=Math.max(...rects.map(r=>r.bottom));return {rects,l,t,r,b,w:r-l,h:b-t,cx:(l+r)/2,cy:(t+b)/2};}
 function visibleGroup(doc,selectors){return selectors.flatMap(s=>[...doc.querySelectorAll(s)]).filter(el=>{const r=el.getBoundingClientRect(),cs=doc.defaultView.getComputedStyle(el);return r.width>0&&r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden';});}
 function placeGroup(els,g,pos,sr,safe=safeInsets(els[0].ownerDocument)){const f=fit(pos,g,sr.width,sr.height,safe);els.forEach((el,i)=>{const rc=g.rects[i],ex=(rc.left+rc.right)/2,ey=(rc.top+rc.bottom)/2;el.style.setProperty('translate',(sr.left+f.x+(ex-g.cx)*f.s-ex)+'px '+(sr.top+f.y+(ey-g.cy)*f.s-ey)+'px','important');el.style.setProperty('scale',String(f.s),'important');el.style.setProperty('transform-origin','center','important');el.toggleAttribute('data-hud-custom-opacity',typeof pos.o==='number');if(typeof pos.o==='number')el.style.setProperty('--hud-custom-opacity',String(pos.o));else el.style.removeProperty('--hud-custom-opacity');});return f;}
-const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
+function ownerKey(name){return String(name||'').trim().toLowerCase();}
+function changedProfiles(before,after){const result=[];for(const mode of MODES)for(const device of PROFILES)if(JSON.stringify(modeLayout(before,mode)[device])!==JSON.stringify(modeLayout(after,mode)[device]))result.push(mode+':'+device);return result;}
+function mergeProfiles(remote,local,changes){const out=normalize(remote),next=normalize(local);for(const key of changes||[]){const [mode,device]=key.split(':');if(MODES.includes(mode)&&PROFILES.includes(device))modeLayout(out,mode)[device]=modeLayout(next,mode)[device];}return out;}
+function hasEdits(layout){return MODES.some(mode=>PROFILES.some(device=>Object.keys(modeLayout(layout,mode)[device]).length));}
+const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
 const doc=root.document;if(!doc)return;
 function read(key){try{return JSON.parse(root.localStorage.getItem(key)||'null');}catch{return null;}}
 function write(key,v){try{root.localStorage.setItem(key,JSON.stringify(v));return true;}catch{return false;}}
-let saved=normalize(read(KEY)),imported=null,scheduled=false,publishing=false;
+const OWNER=KEY+'Owner',GUEST='@guest';
+const scoped=(key,owner)=>key+'.'+encodeURIComponent(owner||GUEST);
+const cachedIdentity=()=>{try{return root.localStorage.getItem('abyssalSessionToken')?ownerKey(read('abyssalAccount')?.nickname):'';}catch{return '';}};
+let owner=cachedIdentity(),imported=null,scheduled=false;
+const publishing=new Set();
+function readScoped(name){const record=read(scoped(KEY,name));if(record)return {layout:normalize(record.layout),revision:Number(record.revision)||0};const marker=read(OWNER),legacy=read(KEY);return {layout:normalize((marker===null&&name===cachedIdentity()||marker===(name||GUEST))?legacy:null),revision:0};}
+let record=readScoped(owner),saved=record.layout,revision=record.revision;
+function storeCurrent(){write(scoped(KEY,owner),{layout:saved,revision});write(OWNER,owner||GUEST);return write(KEY,saved);}
+function pendingFor(name){const key=scoped(PENDING,name),v=read(key);if(v)return v;const old=read(PENDING);if(name&&ownerKey(old?.owner)===name&&old.layout){const next={layout:normalize(old.layout),changes:changedProfiles(normalize(null),normalize(old.layout))};write(key,next);try{root.localStorage.removeItem(PENDING);}catch{}return next;}return null;}
+function switchOwner(name){name=ownerKey(name);if(name===owner)return;storeCurrent();owner=name;record=readScoped(owner);saved=record.layout;revision=record.revision;storeCurrent();schedule();}
+storeCurrent();
 const applied=new Map(),scales=new Map(),userHidden=new Set();
 function profile(){return doc.documentElement.classList.contains('abyssal-handheld')||root.matchMedia('(pointer: coarse)').matches||root.innerWidth<=700?root.innerWidth>root.innerHeight?'landscape':'portrait':'desktop';}
 function gameMode(){return doc.body.dataset.hudMode==='online'?'online':'solo';}
@@ -204,22 +269,56 @@ function activeLayout(){return effectiveLayout(saved,gameMode(),profile());}
 function active(){return doc.body.classList.contains('game-active');}
 function clear(){for(const el of applied.keys()){el.style.removeProperty('translate');el.style.removeProperty('scale');el.style.removeProperty('transform-origin');el.removeAttribute('data-hud-custom-opacity');el.style.removeProperty('--hud-custom-opacity');}applied.clear();scales.clear();for(const el of userHidden)el.removeAttribute('data-hud-user-hidden');userHidden.clear();}
 function refresh(){scheduled=false;clear();const shell=doc.getElementById('gameShell'),layout=activeLayout();if(!shell||!active()){doc.body.classList.remove('custom-hud-active');return;}const has=Object.keys(layout).length>0;doc.body.classList.toggle('custom-hud-active',has);if(!has)return;const sr=shell.getBoundingClientRect();if(!sr.width||!sr.height)return;
- const device=profile(),mode=gameMode(),mobile=device!=='desktop',raw=modeLayout(saved,mode)[device],safe=safeInsets(doc),entries=[];
+ const device=profile(),mode=gameMode(),raw=modeLayout(saved,mode)[device],safe=safeInsets(doc),entries=[];
  for(const [id,,selectors] of eligibleItems(mode,device,mobileControls())){
   let pos=layout[id];if(canRemove(id)&&pos?.hidden){for(const sel of selectors)for(const el of doc.querySelectorAll(sel)){el.setAttribute('data-hud-user-hidden','');userHidden.add(el);}continue;}
-  if(!pos&&!mobile)continue;const els=visibleGroup(doc,selectors),g=groupRect(els);if(!g)continue;
+  const els=visibleGroup(doc,selectors),g=groupRect(els);if(!g)continue;
   if(!pos)pos={x:(g.cx-sr.left)/sr.width,y:(g.cy-sr.top)/sr.height,s:1};
   entries.push({id,pos,box:g,els,custom:Boolean(raw[id])});
  }
- const resolved=resolvePositions(entries,sr.width,sr.height,safe,mobile);
+ const resolved=resolvePositions(entries,sr.width,sr.height,safe,true,device);
  for(const e of entries){const pos=resolved[e.id];if(!pos)continue;const f=placeGroup(e.els,e.box,pos,sr,safe);scales.set(e.id,f.s);for(const el of e.els)applied.set(el,true);}
 }
 function schedule(){if(scheduled)return;scheduled=true;root.requestAnimationFrame(refresh);}
-function publish(message){const online=root.AbyssalOnline,account=online?.getAccount?.();if(!online?.isAuthenticated?.()||!account?.nickname){message?.('Salvo neste dispositivo. Entre na conta e salve para compartilhar no perfil.');return;}
- const payload={owner:account.nickname,layout:normalize(saved)};write(PENDING,payload);
- if(!online.isConnected?.()){message?.('Salvo neste dispositivo. Compartilhamento pendente de conexão.');return;}if(publishing)return;publishing=true;online.saveCosmetics({hudLayout:payload.layout},res=>{publishing=false;if(res?.ok){const pending=read(PENDING);if(pending?.owner===payload.owner&&JSON.stringify(pending.layout)===JSON.stringify(payload.layout)){try{root.localStorage.removeItem(PENDING);}catch{}}message?.('HUD salvo e disponível no seu perfil.');flushPending();}else message?.('HUD salvo localmente; não foi possível compartilhar agora.');});
+function publish(message,changes){
+ if(!owner){message?.('Salvo neste dispositivo como visitante.');return;}
+ const pending=pendingFor(owner),keys=[...new Set([...(pending?.changes||[]),...changes])];if(!keys.length){message?.('HUD salvo neste dispositivo.');return;}
+ write(scoped(PENDING,owner),{layout:normalize(saved),changes:keys});
+ message?.('HUD salvo localmente. Sincronização pendente.');
+ flushPending(message);
 }
-function flushPending(){const pending=read(PENDING),online=root.AbyssalOnline;if(!pending||publishing||!online?.isAuthenticated?.()||!online?.isConnected?.()||online.getAccount?.()?.nickname!==pending.owner)return;publishing=true;online.saveCosmetics({hudLayout:normalize(pending.layout)},res=>{publishing=false;if(res?.ok&&JSON.stringify(read(PENDING))===JSON.stringify(pending)){try{root.localStorage.removeItem(PENDING);}catch{}}});}
+function flushPending(message){
+ const online=root.AbyssalOnline,name=owner,pending=pendingFor(name);
+ if(!name||!pending||publishing.has(name)||!online?.isAuthenticated?.()||!online?.isConnected?.()||ownerKey(online.getAccount?.()?.nickname)!==name)return;
+ publishing.add(name);
+ const remote=normalize(online.getAccount()?.hudLayout),layout=mergeProfiles(remote,pending.layout,pending.changes);
+ online.saveCosmetics({hudLayout:layout},res=>{
+  publishing.delete(name);
+  if(!res?.ok){message?.('HUD salvo localmente; sincronização pendente.');return;}
+  const latest=pendingFor(name),same=JSON.stringify(latest)===JSON.stringify(pending),key=scoped(PENDING,name);
+  if(same){try{root.localStorage.removeItem(key);}catch{}}
+  if(owner!==name)return;
+  const authoritative=normalize(res.account?.hudLayout||layout);
+  revision=Math.max(revision,Number(res.account?.hudLayoutRevision)||0);
+  saved=same?authoritative:mergeProfiles(authoritative,latest?.layout,latest?.changes);
+  storeCurrent();schedule();message?.(same?'HUD salvo e disponível no seu perfil.':'HUD salvo localmente. Sincronizando novas alterações.');
+  if(!same)flushPending(message);
+ });
+}
+function reconcileAccount(event){
+ const data=event?.detail,online=root.AbyssalOnline,name=ownerKey(data?.nickname);
+ if(!name||!online?.isAuthenticated?.()||ownerKey(online.getAccount?.()?.nickname)!==name||!data.hudLayout)return;
+ switchOwner(name);const incoming=Number(data.hudLayoutRevision)||0;
+ if(incoming<revision)return;
+ const remote=normalize(data.hudLayout),pending=pendingFor(name);
+ if(pending){saved=mergeProfiles(remote,pending.layout,pending.changes);}
+ else if(incoming===0&&revision===0&&!hasEdits(remote)&&hasEdits(saved)){
+  // Old clients had no owner marker or revision. Only adopt a local legacy layout
+  // already associated with this account, never another player's or a guest's.
+  write(scoped(PENDING,name),{layout:normalize(saved),changes:changedProfiles(remote,saved)});
+ }else saved=remote;
+ revision=incoming;storeCurrent();schedule();flushPending();
+}
 const create=(tag,cls,text)=>{const e=doc.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e;};
 // Identical glyph, countdown and keyboard badge in the live HUD and editor iframe.
 function renderAbilityButton(button,{icon,key,label,seconds=0,charge=null}){
@@ -238,7 +337,7 @@ const DESKTOP_BOXES={stats:[330,40],health:[330,28],xp:[330,24],energy:[330,34],
 const LANDSCAPE_DEFAULTS={stats:[.23,.06],health:[.23,.13],xp:[.23,.19],energy:[.23,.25],progress:[.23,.31],skills:[.90,.28],pulse:[.39,.92],dash:[.50,.92],petSkill:[.61,.92],pet:[.12,.67],repair:[.08,.50],power:[.17,.50]};
 function defaults(item,profile){const pos=(profile==='desktop'?DESKTOP_DEFAULTS:profile==='landscape'?LANDSCAPE_DEFAULTS:{})[item[0]];return {x:pos?.[0]??item[3],y:pos?.[1]??item[4],s:1};}
 function previewSpecimenIcon(){try{const equipped=root.AbyssalOnline?.getAccount?.()?.equippedSkin||root.localStorage.getItem('abyssalSkin')||'default';return root.AbyssalSkinStandard?.activeSpec?.(equipped)?.id||'petAttack';}catch{return 'petAttack';}}
-function createPage(){let draft=normalize(imported?.layout||saved),selectedProfile=profile(),selectedMode=active()?gameMode():'solo',selected='aim',source=imported?.name||'';imported=null;
+function createPage(){const editorOwner=owner,starting=normalize(saved),copied=Boolean(imported);let draft=normalize(imported?.layout||saved),selectedProfile=profile(),selectedMode=active()?gameMode():'solo',selected='aim',source=imported?.name||'';imported=null;
  const page=create('dialog','hud-editor hud-editor-fullscreen'),title=create('p','hud-editor-note',source?'HUD de '+source+' carregado em prévia. Salve para substituir seu layout.':'Selecione o mergulho e arraste os controles. Cada modo e dispositivo tem seu próprio layout.');
  const bar=create('div','hud-editor-toolbar'),sel=create('select');sel.setAttribute('aria-label','Layout do dispositivo');for(const [id,label] of [['portrait','Celular vertical'],['landscape','Celular horizontal'],['desktop','Computador']]){const o=create('option','',label);o.value=id;sel.append(o);}sel.value=selectedProfile;
  const itemSel=create('select');itemSel.setAttribute('aria-label','Elemento da interface');const modeSel=create('select');modeSel.setAttribute('aria-label','Modo de jogo');for(const [id,label] of [['solo','Mergulho Solo'],['online','Mergulho Online']]){const o=create('option','',label);o.value=id;modeSel.append(o);}modeSel.value=selectedMode;bar.append(sel,itemSel,modeSel);
@@ -277,7 +376,7 @@ function createPage(){let draft=normalize(imported?.layout||saved),selectedProfi
   const css=Array.from(doc.querySelectorAll('link[rel="stylesheet"],style'));for(const node of css){const n=d.importNode(node,true);if(n.tagName==='LINK'){n.href=node.href;pending++;n.onload=n.onerror=()=>{pending--;done();};}d.head.append(n);}
   const fix=d.createElement('style');fix.textContent='html,body{overflow:hidden!important;margin:0!important} #app{padding:0!important} #gameShell{background:radial-gradient(ellipse at 50% 45%,#154653,#092632 52%,#030e17)!important}';d.head.append(fix);done();root.setTimeout(()=>{pending=0;done();},1800);
  }
- function paint(){const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const w=reference[0],h=reference[1],factor=Math.min(stage.clientWidth/w,stage.clientHeight/h),ox=(stage.clientWidth-w*factor)/2,oy=(stage.clientHeight-h*factor)/2;if(frame){const transform='translate('+ox+'px,'+oy+'px) scale('+factor+')';if(frame.style.transform!==transform)frame.style.transform=transform;}stage.dataset.scale=String(factor);const entries=eligible().map(item=>{const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]];return {id:item[0],pos:target(item),box:m||{w:dimensions[0],h:dimensions[1]},custom:Boolean(selectedLayout()[selectedProfile][item[0]])};});resolvedPreview=resolvePositions(entries,w,h,previewSafe,selectedProfile!=='desktop');for(const item of eligible()){const el=previewEls.get(item[0]);if(!el)continue;const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]],box=m||{w:dimensions[0],h:dimensions[1]},v=resolvedPreview[item[0]]||target(item),f=fit(v,box,w,h,previewSafe);el.style.left=ox+f.x*factor+'px';el.style.top=oy+f.y*factor+'px';el.style.width=box.w*f.s*factor+'px';el.style.height=box.h*f.s*factor+'px';el.style.fontSize=Math.max(8,12*factor*f.s)+'px';el.dataset.realWidth=String(box.w*f.s);el.dataset.realHeight=String(box.h*f.s);el.dataset.live=String(Boolean(m));el.hidden=Boolean(v.hidden);if(m){const sig=[v.x,v.y,v.s,v.o??1,Boolean(v.hidden)].join(':');if(m.signature!==sig){m.signature=sig;for(const node of m.els)node.toggleAttribute('data-hud-user-hidden',Boolean(v.hidden));if(!v.hidden)placeGroup(m.els,m.g,v,m.sr,previewSafe);}}const option=Array.from(itemSel.options).find(o=>o.value===item[0]);if(option)option.textContent=item[1]+(v.hidden?' (excluído)':'');el.setAttribute('aria-pressed',String(item[0]===selected));if(item[0]===selected)tools.dataset.side=f.y>h*.50?'top':'bottom';}updateSize();}
+ function paint(){const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const w=reference[0],h=reference[1],factor=Math.min(stage.clientWidth/w,stage.clientHeight/h),ox=(stage.clientWidth-w*factor)/2,oy=(stage.clientHeight-h*factor)/2;if(frame){const transform='translate('+ox+'px,'+oy+'px) scale('+factor+')';if(frame.style.transform!==transform)frame.style.transform=transform;}stage.dataset.scale=String(factor);const entries=eligible().map(item=>{const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]];return {id:item[0],pos:target(item),box:m||{w:dimensions[0],h:dimensions[1]},custom:Boolean(selectedLayout()[selectedProfile][item[0]])};});resolvedPreview=resolvePositions(entries,w,h,previewSafe,true,selectedProfile);for(const item of eligible()){const el=previewEls.get(item[0]);if(!el)continue;const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]],box=m||{w:dimensions[0],h:dimensions[1]},v=resolvedPreview[item[0]]||target(item),f=fit(v,box,w,h,previewSafe);el.style.left=ox+f.x*factor+'px';el.style.top=oy+f.y*factor+'px';el.style.width=box.w*f.s*factor+'px';el.style.height=box.h*f.s*factor+'px';el.style.fontSize=Math.max(8,12*factor*f.s)+'px';el.dataset.realWidth=String(box.w*f.s);el.dataset.realHeight=String(box.h*f.s);el.dataset.live=String(Boolean(m));el.hidden=Boolean(v.hidden);if(m){const sig=[v.x,v.y,v.s,v.o??1,Boolean(v.hidden)].join(':');if(m.signature!==sig){m.signature=sig;for(const node of m.els)node.toggleAttribute('data-hud-user-hidden',Boolean(v.hidden));if(!v.hidden)placeGroup(m.els,m.g,v,m.sr,previewSafe);}}const option=Array.from(itemSel.options).find(o=>o.value===item[0]);if(option)option.textContent=item[1]+(v.hidden?' (excluído)':'');el.setAttribute('aria-pressed',String(item[0]===selected));if(item[0]===selected)tools.dataset.side=f.y>h*.50?'top':'bottom';}updateSize();}
  function queuePaint(){if(paintQueued)return;paintQueued=true;root.requestAnimationFrame(()=>{paintQueued=false;if(page.isConnected)paint();});}
  function select(id){selected=id;itemSel.value=id;tools.hidden=false;settingsPanel.hidden=true;settings.setAttribute('aria-expanded','false');paint();}
  function rebuild(){const items=eligible();if(!items.some(i=>i[0]===selected))selected=items[0][0];itemSel.replaceChildren();stage.replaceChildren();previewEls.clear();for(const item of items){const o=create('option','',item[1]);o.value=item[0];itemSel.append(o);const labels={stats:'TEMPO · NV · BOSSES · DANO',health:'VITALIDADE',xp:'ENERGIA · EVOLUÇÃO',energy:'ENERGIA / BASE',progress:'CICLO · PROGRESSÃO',skills:'RESSONÂNCIA',pause:'Ⅱ',hide:'›',pulse:'Q · PULSO',dash:'E · PROPULSOR',petSkill:'R · PET',pet:'PASSIVO',repair:'🔧',power:'⚡ 20',fire:'DISPARO',comms:'💬',end:'ENCERRAR'};const b=create('button','hud-editor-piece',labels[item[0]]||item[1]);b.setAttribute('aria-label',item[1]);b.type='button';b.dataset.item=item[0];if(item[0]==='aim'){b.classList.add('hud-editor-reticle');b.textContent='';b.setAttribute('aria-label',item[1]);}let drag=null;b.addEventListener('pointerdown',e=>{e.preventDefault();select(item[0]);const br=b.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-br.left-br.width/2,dy:e.clientY-br.top-br.height/2};b.setPointerCapture?.(e.pointerId);});b.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const r=stage.getBoundingClientRect(),v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp((e.clientX-r.left-stage.clientLeft-drag.dx-(stage.clientWidth-reference[0]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1]))/2)/(reference[0]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1])),0,1),y:clamp((e.clientY-r.top-stage.clientTop-drag.dy-(stage.clientHeight-reference[1]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1]))/2)/(reference[1]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1])),0,1)};queuePaint();});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>{drag=null;});b.addEventListener('click',()=>select(item[0]));b.addEventListener('keydown',e=>{const dx=e.key==='ArrowLeft'?-.01:e.key==='ArrowRight'?.01:0,dy=e.key==='ArrowUp'?-.01:e.key==='ArrowDown'?.01:0;if(!dx&&!dy)return;e.preventDefault();const v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp(v.x+dx,0,1),y:clamp(v.y+dy,0,1)};paint();});previewEls.set(item[0],b);stage.append(b);}itemSel.value=selected;stage.dataset.profile=selectedProfile;stage.dataset.mode=selectedMode;root.requestAnimationFrame(()=>{if(page.isConnected)measurePreview();paint();});}
@@ -286,12 +385,25 @@ function createPage(){let draft=normalize(imported?.layout||saved),selectedProfi
  removeItem.onclick=()=>{const item=getItem();if(!canRemove(item[0]))return;selectedLayout()[selectedProfile][item[0]]={...current(item),hidden:true};paint();status.textContent='Elemento excluído em prévia. Use Restaurar elemento para recuperá-lo.';};
  resetItem.onclick=()=>{delete selectedLayout()[selectedProfile][selected];paint();status.textContent='Elemento restaurado em prévia.';};
  reset.onclick=()=>{selectedLayout()[selectedProfile]={};paint();status.textContent='Layout restaurado em prévia.';};
- save.onclick=()=>{const next=normalize(draft);if(!write(KEY,next)){status.textContent='Não foi possível salvar neste dispositivo.';return;}saved=next;schedule();status.textContent='HUD salvo neste dispositivo.';publish(v=>{status.title=v;status.textContent=v.startsWith('Salvo neste dispositivo')?'HUD salvo localmente.':v;});};
+ let lastSaved=normalize(starting);
+ save.onclick=()=>{
+  if(editorOwner!==owner){status.textContent='A conta mudou. Reabra o editor para salvar o HUD correto.';return;}
+  const next=normalize(draft),changes=copied?MODES.flatMap(m=>PROFILES.map(p=>m+':'+p)):changedProfiles(lastSaved,next);
+  // Freeze the measured preview for the edited orientation, including untouched
+  // default controls. A deliberate restore remains empty and tracks the preset.
+  const key=selectedMode+':'+selectedProfile,raw=modeLayout(next,selectedMode)[selectedProfile];
+  if(!copied&&changes.includes(key)&&Object.keys(raw).length&&stage.dataset.measured==='true'){
+   for(const item of eligible()){const id=item[0];if(!raw[id]&&resolvedPreview[id])raw[id]={...resolvedPreview[id]};}
+  }
+  saved=mergeProfiles(saved,next,changes);if(!storeCurrent()){status.textContent='Não foi possível salvar neste dispositivo.';return;}
+  draft=normalize(saved);lastSaved=normalize(saved);schedule();status.textContent='HUD salvo neste dispositivo.';
+  publish(v=>{status.title=v;status.textContent=v;},changes);
+ };
  root.requestAnimationFrame(()=>{if(page.isConnected&&!page.open){if(typeof page.showModal==='function')page.showModal();else page.setAttribute('open','');}});rebuild();const observer=new ResizeObserver(paint);observer.observe(stage);const viewportChanged=()=>{const device=profile();if(selectedProfile===lastDevice&&device!==lastDevice){selectedProfile=device;sel.value=device;lastDevice=device;tools.hidden=true;rebuild();return;}lastDevice=device;const next=referenceSize();if(next[0]!==reference[0]||next[1]!==reference[1])measurePreview();};root.addEventListener('resize',viewportChanged);const life=new MutationObserver(()=>{if(page.hudEditorAnchor&&!page.hudEditorAnchor.isConnected)page.remove();if(!page.isConnected){generation++;observer.disconnect();root.removeEventListener('resize',viewportChanged);life.disconnect();}});root.requestAnimationFrame(()=>{if(page.isConnected)life.observe(doc.body,{childList:true,subtree:true});else observer.disconnect();});return page;
 }
 function copyFromProfile(layout,name){if(layout==null)return false;imported={layout:normalize(layout),name:String(name||'jogador')};const nav=root.AbyssalCockpitNavigation;if(nav?.routeCommand?.('hudEditor'))return true;nav?.open?.();if(nav?.routeCommand?.('hudEditor'))return true;imported=null;return false;}
 root.AbyssalHudLayout=Object.freeze({...core,createPage,copyFromProfile,renderAbilityButton,refresh:schedule,scaleFor:id=>scales.get(id)||1,get:()=>normalize(saved),getEffective:(mode,device)=>effectiveLayout(saved,mode,device)});
 const selectors=ITEMS.flatMap(i=>i[2]).join(',');
-function install(){const obs=new MutationObserver(records=>{if(!Object.keys(activeLayout()).length&&!applied.size)return;if(!active()&&!applied.size)return;for(const rec of records){if(rec.type==='attributes'){if(rec.oldValue===rec.target.getAttribute(rec.attributeName))continue;if(rec.target===doc.body||rec.target===doc.documentElement||rec.target.matches?.(selectors)||rec.target.id==='quickComms'||rec.target.id==='explorationOverlay'||rec.target.id==='abyssInventoryRoot'||rec.target.id==='abyssalSonarShell'||rec.target.id==='petHabitBar'||rec.target.id==='upgradeScreen') {schedule();return;}}else if([...rec.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(selectors)||n.querySelector?.(selectors)))){schedule();return;}}});obs.observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','data-hud-mode'],attributeOldValue:true});obs.observe(doc.documentElement,{attributes:true,attributeFilter:['class'],attributeOldValue:true});root.addEventListener('resize',schedule,{passive:true});root.addEventListener('orientationchange',schedule);root.addEventListener('abyssal-account-data',flushPending);schedule();}
+function install(){const obs=new MutationObserver(records=>{if(!Object.keys(activeLayout()).length&&!applied.size)return;if(!active()&&!applied.size)return;for(const rec of records){if(rec.type==='attributes'){if(rec.oldValue===rec.target.getAttribute(rec.attributeName))continue;if(rec.target===doc.body||rec.target===doc.documentElement||rec.target.matches?.(selectors)||rec.target.id==='quickComms'||rec.target.id==='explorationOverlay'||rec.target.id==='abyssInventoryRoot'||rec.target.id==='abyssalSonarShell'||rec.target.id==='petHabitBar'||rec.target.id==='upgradeScreen') {schedule();return;}}else if([...rec.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(selectors)||n.querySelector?.(selectors)))){schedule();return;}}});obs.observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','data-hud-mode'],attributeOldValue:true});obs.observe(doc.documentElement,{attributes:true,attributeFilter:['class'],attributeOldValue:true});root.addEventListener('resize',schedule,{passive:true});root.addEventListener('orientationchange',schedule);root.addEventListener('abyssal-account-data',reconcileAccount);root.addEventListener('abyssal-account-signed-out',()=>switchOwner(''));root.addEventListener('abyssal-authenticated',()=>flushPending());root.addEventListener('storage',e=>{if(e.key===scoped(KEY,owner)){const next=readScoped(owner);if(next.revision>=revision){saved=next.layout;revision=next.revision;schedule();}}});schedule();}
 if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(typeof globalThis!=='undefined'?globalThis:this);
