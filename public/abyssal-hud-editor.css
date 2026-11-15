@@ -78,6 +78,8 @@ body.game-active.custom-hud-active #gameShell [data-hud-custom-opacity],body.gam
 html.abyssal-handheld body.game-active.mobile-game-active #gameShell #soloSubmarineRepairBtn:not([hidden]){font:750 8px/1.1 system-ui!important;letter-spacing:0!important;overflow-wrap:normal!important;word-break:normal!important}
 
 /* Level-up is a modal interaction; custom HUD items cannot intercept or cover choices. */
-html body.game-active #gameShell:has(> #upgradeScreen:not([hidden])) > #upgradeScreen{z-index:1000!important;isolation:isolate;pointer-events:auto!important}
-html body.game-active:has(#upgradeScreen:not([hidden])) :is(#hud,#gameplayOverlayRoot,#mobilePauseBtn,#toggleHudBtn,#mobileJoystick,#mobileAimStick,#mobileFireBtn,#quickComms,#roomBadge,#endDiveBtn,#bossAlert,#abyssalDangerAlert,#soloSubmarinePowerBtn,#soloSubmarineRepairBtn,#abyssMapInteractBtn,.topbar) ,
-html body.game-active:has(#upgradeScreen:not([hidden])) :is(#hud,#gameplayOverlayRoot,#mobilePauseBtn,#toggleHudBtn,#mobileJoystick,#mobileAimStick,#mobileFireBtn,#quickComms,#roomBadge,#endDiveBtn,#bossAlert,#abyssalDangerAlert,#soloSubmarinePowerBtn,#soloSubmarineRepairBtn,#abyssMapInteractBtn,.topbar) *{visibility:hidden!important;pointer-events:none!important}
+html body.game-active #gameShell:has(> #upgradeScreen:not([hidden])) > #upgradeScreen{z-index:2147483646!important;isolation:isolate;pointer-events:auto!important}
+html body.game-active #gameShell:has(> #upgradeScreen:not([hidden])) > :not(#game,#upgradeScreen,#maintenanceOverlay),
+html body.game-active #gameShell:has(> #upgradeScreen:not([hidden])) > :not(#game,#upgradeScreen,#maintenanceOverlay) *,
+html body.game-active:has(#upgradeScreen:not([hidden])) :is(.topbar,#abyssalTutorialOverlay),
+html body.game-active:has(#upgradeScreen:not([hidden])) :is(.topbar,#abyssalTutorialOverlay) *{visibility:hidden!important;pointer-events:none!important}
