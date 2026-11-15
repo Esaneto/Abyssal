@@ -244,7 +244,7 @@ function visibleGroup(doc,selectors){return selectors.flatMap(s=>[...doc.querySe
 function placeGroup(els,g,pos,sr,safe=safeInsets(els[0].ownerDocument)){const f=fit(pos,g,sr.width,sr.height,safe);els.forEach((el,i)=>{const rc=g.rects[i],ex=(rc.left+rc.right)/2,ey=(rc.top+rc.bottom)/2;el.style.setProperty('translate',(sr.left+f.x+(ex-g.cx)*f.s-ex)+'px '+(sr.top+f.y+(ey-g.cy)*f.s-ey)+'px','important');el.style.setProperty('scale',String(f.s),'important');el.style.setProperty('transform-origin','center','important');el.toggleAttribute('data-hud-custom-opacity',typeof pos.o==='number');if(typeof pos.o==='number')el.style.setProperty('--hud-custom-opacity',String(pos.o));else el.style.removeProperty('--hud-custom-opacity');});return f;}
 function ownerKey(name){return String(name||'').trim().toLowerCase();}
 function changedProfiles(before,after){const result=[];for(const mode of MODES)for(const device of PROFILES)if(JSON.stringify(modeLayout(before,mode)[device])!==JSON.stringify(modeLayout(after,mode)[device]))result.push(mode+':'+device);return result;}
-function mergeProfiles(remote,local,changes){const out=normalize(remote),next=normalize(local);for(const key of changes||[]){const [mode,device]=key.split(':');if(MODES.includes(mode)&&PROFILES.includes(device))modeLayout(out,mode)[device]=modeLayout(next,mode)[device];}return out;}
+function mergeProfiles(remote,local,changes){const out=normalize(remote),next=normalize(local);for(const key of (Array.isArray(changes)?changes.slice(0,6):[])){if(typeof key!=='string')continue;const [mode,device]=key.split(':');if(MODES.includes(mode)&&PROFILES.includes(device))modeLayout(out,mode)[device]=modeLayout(next,mode)[device];}return out;}
 function hasEdits(layout){return MODES.some(mode=>PROFILES.some(device=>Object.keys(modeLayout(layout,mode)[device]).length));}
 const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
 const doc=root.document;if(!doc)return;
@@ -292,14 +292,15 @@ function flushPending(message){
  if(!name||!pending||publishing.has(name)||!online?.isAuthenticated?.()||!online?.isConnected?.()||ownerKey(online.getAccount?.()?.nickname)!==name)return;
  publishing.add(name);
  const remote=normalize(online.getAccount()?.hudLayout),layout=mergeProfiles(remote,pending.layout,pending.changes);
- online.saveCosmetics({hudLayout:layout},res=>{
+ online.saveCosmetics({hudLayout:layout,hudLayoutChanges:pending.changes},res=>{
   publishing.delete(name);
   if(!res?.ok){message?.('HUD salvo localmente; sincronização pendente.');return;}
   const latest=pendingFor(name),same=JSON.stringify(latest)===JSON.stringify(pending),key=scoped(PENDING,name);
   if(same){try{root.localStorage.removeItem(key);}catch{}}
   if(owner!==name)return;
-  const authoritative=normalize(res.account?.hudLayout||layout);
-  revision=Math.max(revision,Number(res.account?.hudLayoutRevision)||0);
+  const ackRevision=Number(res.account?.hudLayoutRevision)||0,known=online.getAccount?.(),knownRevision=Number(known?.hudLayoutRevision)||0;
+  const authoritative=normalize(knownRevision>ackRevision?known.hudLayout:res.account?.hudLayout||layout);
+  revision=Math.max(revision,ackRevision,knownRevision);
   saved=same?authoritative:mergeProfiles(authoritative,latest?.layout,latest?.changes);
   storeCurrent();schedule();message?.(same?'HUD salvo e disponível no seu perfil.':'HUD salvo localmente. Sincronizando novas alterações.');
   if(!same)flushPending(message);
@@ -337,7 +338,7 @@ const DESKTOP_BOXES={stats:[330,40],health:[330,28],xp:[330,24],energy:[330,34],
 const LANDSCAPE_DEFAULTS={stats:[.23,.06],health:[.23,.13],xp:[.23,.19],energy:[.23,.25],progress:[.23,.31],skills:[.90,.28],pulse:[.39,.92],dash:[.50,.92],petSkill:[.61,.92],pet:[.12,.67],repair:[.08,.50],power:[.17,.50]};
 function defaults(item,profile){const pos=(profile==='desktop'?DESKTOP_DEFAULTS:profile==='landscape'?LANDSCAPE_DEFAULTS:{})[item[0]];return {x:pos?.[0]??item[3],y:pos?.[1]??item[4],s:1};}
 function previewSpecimenIcon(){try{const equipped=root.AbyssalOnline?.getAccount?.()?.equippedSkin||root.localStorage.getItem('abyssalSkin')||'default';return root.AbyssalSkinStandard?.activeSpec?.(equipped)?.id||'petAttack';}catch{return 'petAttack';}}
-function createPage(){const editorOwner=owner,starting=normalize(saved),copied=Boolean(imported);let draft=normalize(imported?.layout||saved),selectedProfile=profile(),selectedMode=active()?gameMode():'solo',selected='aim',source=imported?.name||'';imported=null;
+function createPage(){const editorOwner=owner,starting=normalize(saved);let copied=Boolean(imported),draft=normalize(imported?.layout||saved),selectedProfile=profile(),selectedMode=active()?gameMode():'solo',selected='aim',source=imported?.name||'';imported=null;
  const page=create('dialog','hud-editor hud-editor-fullscreen'),title=create('p','hud-editor-note',source?'HUD de '+source+' carregado em prévia. Salve para substituir seu layout.':'Selecione o mergulho e arraste os controles. Cada modo e dispositivo tem seu próprio layout.');
  const bar=create('div','hud-editor-toolbar'),sel=create('select');sel.setAttribute('aria-label','Layout do dispositivo');for(const [id,label] of [['portrait','Celular vertical'],['landscape','Celular horizontal'],['desktop','Computador']]){const o=create('option','',label);o.value=id;sel.append(o);}sel.value=selectedProfile;
  const itemSel=create('select');itemSel.setAttribute('aria-label','Elemento da interface');const modeSel=create('select');modeSel.setAttribute('aria-label','Modo de jogo');for(const [id,label] of [['solo','Mergulho Solo'],['online','Mergulho Online']]){const o=create('option','',label);o.value=id;modeSel.append(o);}modeSel.value=selectedMode;bar.append(sel,itemSel,modeSel);
@@ -396,7 +397,7 @@ function createPage(){const editorOwner=owner,starting=normalize(saved),copied=B
    for(const item of eligible()){const id=item[0];if(!raw[id]&&resolvedPreview[id])raw[id]={...resolvedPreview[id]};}
   }
   saved=mergeProfiles(saved,next,changes);if(!storeCurrent()){status.textContent='Não foi possível salvar neste dispositivo.';return;}
-  draft=normalize(saved);lastSaved=normalize(saved);schedule();status.textContent='HUD salvo neste dispositivo.';
+  draft=normalize(saved);lastSaved=normalize(saved);copied=false;schedule();status.textContent='HUD salvo neste dispositivo.';
   publish(v=>{status.title=v;status.textContent=v;},changes);
  };
  root.requestAnimationFrame(()=>{if(page.isConnected&&!page.open){if(typeof page.showModal==='function')page.showModal();else page.setAttribute('open','');}});rebuild();const observer=new ResizeObserver(paint);observer.observe(stage);const viewportChanged=()=>{const device=profile();if(selectedProfile===lastDevice&&device!==lastDevice){selectedProfile=device;sel.value=device;lastDevice=device;tools.hidden=true;rebuild();return;}lastDevice=device;const next=referenceSize();if(next[0]!==reference[0]||next[1]!==reference[1])measurePreview();};root.addEventListener('resize',viewportChanged);const life=new MutationObserver(()=>{if(page.hudEditorAnchor&&!page.hudEditorAnchor.isConnected)page.remove();if(!page.isConnected){generation++;observer.disconnect();root.removeEventListener('resize',viewportChanged);life.disconnect();}});root.requestAnimationFrame(()=>{if(page.isConnected)life.observe(doc.body,{childList:true,subtree:true});else observer.disconnect();});return page;

@@ -332,6 +332,7 @@ function connect(){
  socket.on('specimen-discovered',data=>window.dispatchEvent(new CustomEvent('abyssal-specimen-discovery-confirmed',{detail:data||{}})));
  socket.on('account-data',data=>{
   if(!authenticated||!data)return;
+  if(Number(serverAccount?.hudLayoutRevision||0)>Number(data.hudLayoutRevision||0))data={...data,hudLayout:serverAccount.hudLayout,hudLayoutRevision:serverAccount.hudLayoutRevision};
   serverAccount=data;
   if($('profileMessage')&&!$('profileScreen').hidden)$('profileMessage').textContent='Perfil sincronizado com sua conta.';
   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:data}));

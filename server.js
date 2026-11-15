@@ -2995,7 +2995,7 @@ io.on('connection', socket => {
      (room?.mode==='coop'||(!room&&run.mode==='solo'&&Date.now()-(Number(run.startedAt)||Date.now())>=900000));
    if(reachedFinal)grantFinalConquest(u);
   }
-  if(payload.hudLayout&&typeof payload.hudLayout==='object'){u.hudLayout=HudLayout.normalize(payload.hudLayout);u.hudLayoutRevision=(Math.max(0,Number(u.hudLayoutRevision)||0))+1;}
+  if(payload.hudLayout&&typeof payload.hudLayout==='object'){u.hudLayout=Array.isArray(payload.hudLayoutChanges)?HudLayout.mergeProfiles(u.hudLayout,payload.hudLayout,payload.hudLayoutChanges):HudLayout.normalize(payload.hudLayout);u.hudLayoutRevision=(Math.max(0,Number(u.hudLayoutRevision)||0))+1;}
   if(payload.avatarAppearance&&typeof payload.avatarAppearance==='object'){
    u.avatarAppearance=AvatarBase.authorized(payload.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics));
    const room=socketRoom(socket),activePlayer=room?.players.get(socket.id);
