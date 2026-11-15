@@ -10,7 +10,7 @@
 #submarineWorkshop .aw-intro strong,#submarineWorkshop .aw-panel-head strong{font:750 15px/1.2 system-ui}
 #submarineWorkshop .aw-stage-status{font-size:9px;color:#a9d9d6;letter-spacing:.08em}
 #submarineWorkshop .aw-canvas{display:block;position:relative!important;inset:auto!important;width:100%!important;height:0!important;flex:1 1 0;min-height:0;object-fit:contain;border-radius:6px;background:radial-gradient(ellipse at 50% 70%,#285666 0%,#0b2230 57%,#07131d 100%);border:1px solid #335f72}
-#submarineWorkshop .aw-panel{grid-area:panel;display:flex;flex-direction:column;gap:6px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#submarineWorkshop .abyss-wardrobe>.aw-panel{grid-area:panel;display:flex;flex-direction:column;gap:6px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 #submarineWorkshop .aw-panel>*{flex-shrink:0}
 #submarineWorkshop .abyss-wardrobe button{position:relative!important;inset:auto!important;transform:none!important;min-height:34px;min-width:0;border:1px solid #3e6577;border-radius:6px;background:#112b39;color:#e3f3f8;padding:5px 6px;font:650 11px/1.2 system-ui;cursor:pointer;box-shadow:none;white-space:normal;overflow-wrap:normal}
 #submarineWorkshop .abyss-wardrobe button:hover,#submarineWorkshop .abyss-wardrobe button[aria-pressed=true]{background:#1c4351;border-color:#71e6ec;color:#f6ffff}
@@ -63,8 +63,13 @@
 #submarineWorkshop .abyss-wardrobe[data-short=true] .aw-intro,#submarineWorkshop .abyss-wardrobe[data-short=true] .aw-selected small{display:none}
 #submarineWorkshop .abyss-wardrobe[data-short=true] .aw-message{max-height:2.5em;overflow:auto}
 @media (max-width:600px) and (orientation:portrait){
- #submarineWorkshop .abyss-wardrobe,#submarineWorkshop .abyss-wardrobe[data-narrow=true]{grid-template-columns:64px minmax(0,1fr);grid-template-rows:minmax(134px,39%) minmax(0,1fr) auto;grid-template-areas:"stage stage" "nav panel" "actions actions";gap:4px}
- #submarineWorkshop .aw-panel{padding:4px!important;gap:4px}
+ #submarineWorkshop .abyss-wardrobe,#submarineWorkshop .abyss-wardrobe[data-narrow=true]{grid-template-columns:72px minmax(0,1fr);grid-template-rows:minmax(134px,40%) minmax(0,1fr) auto;grid-template-areas:"stage stage" "nav panel" "actions actions";gap:4px}
+ #submarineWorkshop .abyss-wardrobe>.aw-panel{padding:4px!important;gap:4px}
+ #submarineWorkshop .aw-intro{display:none}
+ #submarineWorkshop .aw-mobile-tools select{min-height:40px}
+ #submarineWorkshop .aw-footer button{min-height:44px!important}
+ #submarineWorkshop .aw-search-input{font-size:13px!important;min-height:38px!important}
+ #submarineWorkshop .aw-group span{overflow-wrap:normal;font-size:9px;letter-spacing:0}
  #submarineWorkshop .aw-groups .aw-group{min-height:48px;font-size:9px;padding:4px 1px}
  #submarineWorkshop .aw-group svg{width:20px;height:20px}
  #submarineWorkshop .aw-choices{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}

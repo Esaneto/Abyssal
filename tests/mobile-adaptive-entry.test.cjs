@@ -7,10 +7,11 @@ const read=p=>fs.readFileSync(p,'utf8');
 test('mobile cockpit keeps preview and catalog visible together; desktop remains scoped',()=>{
  const css=read('public/mobile-portrait.css');
  assert.match(css,/html\.abyssal-handheld/);
- assert.match(css,/grid-template-areas:"stage" "panel" "actions"/);
- assert.match(css,/grid-template-areas:"stage panel" "actions actions"/);
- assert.match(css,/\.aw-mobile-switch\{display:none!important\}/);
- assert.match(read('public/avatar-wardrobe.js'),/compact=!document\.documentElement\.classList\.contains\('abyssal-handheld'\)/);
+ const wardrobe=read('public/avatar-wardrobe.css');
+ assert.match(wardrobe,/grid-template-areas:"stage stage" "nav panel" "actions actions"/);
+ assert.match(wardrobe,/grid-template-areas:"nav stage panel" "actions actions actions"/);
+ assert.doesNotMatch(css,/aw-mobile-switch|aw-mobile-catalog/);
+ assert.match(read('public/avatar-wardrobe.js'),/page\.append\(groupsRow,stage,panel,actions\)/);
  assert.match(read('public/abyssal-exploration-runtime.js'),/mobile-cockpit-back/);
  assert.equal(JSON.parse(read('public/manifest.webmanifest')).orientation,'any');
  assert.match(read('scripts/configure-android.cjs'),/android:screenOrientation="fullUser"/);
