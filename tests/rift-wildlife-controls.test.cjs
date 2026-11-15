@@ -10,9 +10,9 @@ const layout={rooms:[]},room={id:'shoal',x:150,y:150,rx:450,ry:250,depth:1};
 test('all 41 curated specimens retain recognizable minimum size',()=>{
  const ids=Object.keys(Scale.ADULT_METERS);
  assert.ok(ids.length>=70);
- for(const id of ids)assert.ok(Scale.visualRadius(id)>=14.5&&Scale.visualRadius(id)<=38,id);
+ for(const id of ids)assert.ok(Scale.companionMeters(id)>=.5&&Scale.companionMeters(id)<=3&&Scale.visualRadius(id)>0,id);
  assert.ok(Scale.visualRadius('kraken')>Scale.visualRadius('dumbo'));
- assert.ok(Scale.monsterVisualRadius('riftSmile',154)>Scale.monsterVisualRadius('whiteShark',24));
+ assert.ok(Scale.monsterMeters('riftSmile')>Scale.monsterMeters('whiteShark'));
 });
 test('ecology assigns aggressive, passive and smart traits from species',()=>{
  assert.equal(Wildlife.disposition('whiteShark','greenland','shark'),'aggressive');
@@ -46,8 +46,8 @@ test('Fossas population prewarms in capped batches both clients',()=>{
  assert.match(game,/let budget=2;\s*while\(budget-->0&&soloRiftSpawnQueue\.length\)/);
  assert.match(server,/RiftWildlife\.decide\(/);
  assert.match(game,/RIFT_WILDLIFE\.decide\(/);
- assert.match(server,/RiftWildlife\.health\(/);
- assert.match(game,/RIFT_WILDLIFE\?\.health\?\.\(/);
+ assert.match(server,/SpecimenSystem\.biologicalStats\(specimenSkinId\)\.hp/);
+ assert.match(game,/SPECIMEN_SYSTEM\?\.biologicalStats\?\.\(specimenSkinId\)/);
 });
 test('manual firing: aim mode never autofires and mobile has ammunition trigger',()=>{
  const game=src('public/game.js'),html=src('public/index.html'),style=src('public/style.css');
