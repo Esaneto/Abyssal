@@ -329,9 +329,7 @@
    const pages={
     solo:['MERGULHAR','A expedição ativa do Abyssal. Sobreviva, evolua seus disparos e comande o seu espécime durante a partida.','INICIAR MERGULHO','playBtn'],
     shop:['ESPÉCIMES','Consulte os espécimes disponíveis, suas habilidades e os preços de aquisição.','ABRIR ESPÉCIMES','shopBtn'],
-    specimens:['REGISTRO DE ESPÉCIES','Consulte espécies registradas, raridades e habilidades descobertas.','ABRIR ABYSSÁRIO','catalogBtn'],
-    sea:['EXPEDIÇÃO OCEÂNICA','Nade pelo Mar Aberto, colete amostras e monte instalações de extração.','INICIAR EXPLORAÇÃO','openSeaPortalBtn'],
-    rift:['DESCIDA ÀS FOSSAS','Enfrente as cavernas, armadilhas e os chefes das Fossas Abissais.','INICIAR DESCIDA','riftPortalBtn']
+    specimens:['REGISTRO DE ESPÉCIES','Consulte espécies registradas, raridades e habilidades descobertas.','ABRIR ABYSSÁRIO','catalogBtn']
    };
    const info=pages[activeConsoleSection];if(info){
     const heading=document.createElement('strong');heading.textContent=info[0];

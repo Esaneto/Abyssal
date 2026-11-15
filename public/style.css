@@ -2837,7 +2837,6 @@ body.game-active .gameplay-overlay-root{display:block!important}
 
 /* UI V8 · portrait mobile + hybrid controls + PC corner corrections */
 @media (max-width:700px),(pointer:coarse){
- body.mobile-game-active #mobileMoveStick{display:none!important}
  body.mobile-game-active #mobileAimStick.dual-stick-visible{
   display:flex!important;width:118px!important;height:132px!important;
   right:var(--game-safe-right)!important;bottom:calc(var(--game-safe-bottom) + 4px)!important;

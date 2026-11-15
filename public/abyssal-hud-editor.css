@@ -67,24 +67,24 @@ body.game-active.custom-hud-active #gameShell [data-hud-user-hidden],body.game-a
 #submarineWorkshop .hud-editor-actions button:disabled{opacity:.42;cursor:not-allowed}
 
 /* Native top-layer dialog: the preview uses the entire viewport, not a cabin thumbnail. */
-#submarineWorkshop dialog.hud-editor-fullscreen{position:fixed!important;inset:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;overflow:hidden!important;background:#03101c!important;box-sizing:border-box!important;z-index:2147483000!important;color:#d9faff!important}
-#submarineWorkshop dialog.hud-editor-fullscreen:not([open]){display:none!important}
-#submarineWorkshop dialog.hud-editor-fullscreen[open]{display:block!important}
-#submarineWorkshop dialog.hud-editor-fullscreen::backdrop{background:#03101c}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-stage{position:absolute!important;inset:0!important;margin:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;border:0!important;border-radius:0!important;aspect-ratio:auto!important;touch-action:none}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-stage:before{display:none}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-dock{position:absolute;z-index:12;bottom:max(8px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(94vw,520px);display:grid;gap:4px;pointer-events:none}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-dock-row,#submarineWorkshop .hud-editor-fullscreen .hud-editor-settings,#submarineWorkshop .hud-editor-fullscreen .hud-editor-context{display:flex;gap:6px;align-items:center;padding:7px;background:#0b202eea;border:1px solid #548b98;border-radius:9px;box-shadow:0 4px 18px #0008;pointer-events:auto;box-sizing:border-box}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-dock-row button{flex:1}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-settings{display:grid;gap:7px}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-context{position:absolute;z-index:13;left:50%;transform:translateX(-50%);width:min(94vw,390px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 62px);display:grid;gap:6px}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-context[data-side=top]{bottom:auto;top:max(8px,env(safe-area-inset-top))}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-stepper,#submarineWorkshop .hud-editor-fullscreen .hud-editor-context-actions{display:flex;align-items:center;gap:6px}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-context-actions button{flex:1}
-#submarineWorkshop .hud-editor-fullscreen :is(.hud-editor-context,.hud-editor-settings)[hidden]{display:none!important}
-#submarineWorkshop .hud-editor-fullscreen :is(.hud-editor-dock,.hud-editor-context) button{position:relative!important;inset:auto!important;transform:none!important;min-height:40px!important;padding:5px 8px!important;border:1px solid #477c89;border-radius:6px;background:#163747;color:#d9faff;font:700 12px/1.2 system-ui;white-space:normal;cursor:pointer}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-dock .primary-btn{background:#75e0d7;color:#072029}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-remove{color:#ffd4d9;border-color:#a55565;background:#45232d}
-#submarineWorkshop .hud-editor-fullscreen button:disabled{opacity:.4;cursor:not-allowed}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-dock>p{margin:0;text-align:center;color:#b3d6e0;background:#071925d9;border-radius:4px;pointer-events:none}
-#submarineWorkshop .hud-editor-fullscreen .hud-editor-dock>p:empty{display:none}
+dialog.hud-editor-fullscreen{position:fixed!important;inset:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;overflow:hidden!important;background:#03101c!important;box-sizing:border-box!important;z-index:2147483000!important;color:#d9faff!important}
+dialog.hud-editor-fullscreen:not([open]){display:none!important}
+dialog.hud-editor-fullscreen[open]{display:block!important}
+dialog.hud-editor-fullscreen::backdrop{background:#03101c}
+.hud-editor-fullscreen .hud-editor-stage{position:absolute!important;inset:0!important;margin:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;border:0!important;border-radius:0!important;aspect-ratio:auto!important;touch-action:none}
+.hud-editor-fullscreen .hud-editor-stage:before{display:none}
+.hud-editor-fullscreen .hud-editor-dock{position:absolute;z-index:12;bottom:max(8px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(94vw,520px);display:grid;gap:4px;pointer-events:none}
+.hud-editor-fullscreen .hud-editor-dock-row,.hud-editor-fullscreen .hud-editor-settings,.hud-editor-fullscreen .hud-editor-context{display:flex;gap:6px;align-items:center;padding:7px;background:#0b202eea;border:1px solid #548b98;border-radius:9px;box-shadow:0 4px 18px #0008;pointer-events:auto;box-sizing:border-box}
+.hud-editor-fullscreen .hud-editor-dock-row button{flex:1}
+.hud-editor-fullscreen .hud-editor-settings{display:grid;gap:7px}
+.hud-editor-fullscreen .hud-editor-context{position:absolute;z-index:13;left:50%;transform:translateX(-50%);width:min(94vw,390px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 62px);display:grid;gap:6px}
+.hud-editor-fullscreen .hud-editor-context[data-side=top]{bottom:auto;top:max(8px,env(safe-area-inset-top))}
+.hud-editor-fullscreen .hud-editor-stepper,.hud-editor-fullscreen .hud-editor-context-actions{display:flex;align-items:center;gap:6px}
+.hud-editor-fullscreen .hud-editor-context-actions button{flex:1}
+.hud-editor-fullscreen :is(.hud-editor-context,.hud-editor-settings)[hidden]{display:none!important}
+.hud-editor-fullscreen :is(.hud-editor-dock,.hud-editor-context) button{position:relative!important;inset:auto!important;transform:none!important;min-height:40px!important;padding:5px 8px!important;border:1px solid #477c89;border-radius:6px;background:#163747;color:#d9faff;font:700 12px/1.2 system-ui;white-space:normal;cursor:pointer}
+.hud-editor-fullscreen .hud-editor-dock .primary-btn{background:#75e0d7;color:#072029}
+.hud-editor-fullscreen .hud-editor-remove{color:#ffd4d9;border-color:#a55565;background:#45232d}
+.hud-editor-fullscreen button:disabled{opacity:.4;cursor:not-allowed}
+.hud-editor-fullscreen .hud-editor-dock>p{margin:0;text-align:center;color:#b3d6e0;background:#071925d9;border-radius:4px;pointer-events:none}
+.hud-editor-fullscreen .hud-editor-dock>p:empty{display:none}

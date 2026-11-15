@@ -5,13 +5,7 @@
  const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
  const lerp=(a,b,t)=>a+(b-a)*t;
  const ease=t=>t*t*(3-2*t);
- // The playable classics share the LEFT current; the new open sea is RIGHT.
- // Fossas remain a separate fissure in the bottom of the same swimming scene.
- const ROUTES=[
-  {id:'divePortalBtn',x:.19,y:.47,tone:'#68e7ff',label:'MERGULHAR',kind:'dive'},
-  {id:'openSeaPortalBtn',x:.81,y:.47,tone:'#60eed3',label:'MAR ABERTO',kind:'sea'},
-  {id:'riftPortalBtn',x:.50,y:.835,tone:'#aa3347',label:'FOSSAS ABISSAIS',kind:'rift'}
- ];
+ const ROUTES=[{id:'divePortalBtn',x:.19,y:.47,tone:'#68e7ff',label:'MERGULHAR',kind:'dive'}];
  function boot(){
   const menu=document.getElementById('menuScreen'),stage=document.getElementById('menuOceanStage');
   if(!menu||!stage||menu.dataset.oceanV4Ready)return;
@@ -98,10 +92,10 @@
    stage.style.setProperty('--abyss-hatch-scale',subScale);
    for(const s of stations){
     s.wx=w*s.x;s.wy=s.kind==='lab'?hatch().y:h*s.y;
-    s.button.dataset.portalTone=s.kind==='rift'?'blood':s.kind==='dive'?'cyan':'teal';
+    s.button.dataset.portalTone=s.kind==='dive'?'cyan':'teal';
     s.button.classList.remove('abyss-rift-gate');
-    s.button.classList.toggle('abyss-current-entry',s.kind!=='rift');
-    s.button.classList.toggle('abyss-fissure-entry',s.kind==='rift');
+    s.button.classList.add('abyss-current-entry');
+    
     s.button.style.setProperty('--portal-x',s.wx+'px');
     s.button.style.setProperty('--portal-y',s.wy+'px');
    }
@@ -115,7 +109,7 @@
    if(!interactive()||!s||s.button.disabled||s.button.hidden)return;
    if(window.AbyssalLaunchFocus?.isLocked?.(s.kind)){window.AbyssalLaunchFocus.notify();return;}
    held.clear();moveTarget=null;followPointer=null;joystickX=0;joystickY=0;
-   transition={station:s,x:px,y:py,t:0,duration:s.kind==='lab'?1.28:s.kind==='rift'?1.04:.87};
+   transition={station:s,x:px,y:py,t:0,duration:s.kind==='lab'?1.28:.87};
    nearElapsed=0;nearStationId=null;
    vx=0;vy=0;
    stage.dataset.abyssTransit=s.kind;
@@ -132,19 +126,15 @@
   function finishEntrance(){
    const s=transition?.station;if(!s)return;
    transition=null;stage.removeAttribute('data-abyss-transit');
-   waitingForModal=s.kind==='dive'||s.kind==='rift'||s.kind==='lab';
+   waitingForModal=s.kind==='dive'||s.kind==='lab';
    s.button.dataset.portalArriving='1';
    try{s.button.click();}
    finally{delete s.button.dataset.portalArriving;}
    // The laboratory remains in the main menu, behind a full-screen cockpit interior.
    if(s.kind==='lab'){diver.style.opacity='0';return;}
    // A right current enters exploration; the left opens the Solo/Online selector.
-   if(s.kind==='sea'||document.body.classList.contains('game-active')||menu.hidden){
+   if(document.body.classList.contains('game-active')||menu.hidden){
     wasVisible=false;return;
-   }
-   // The pre-existing room browser and Fossas choice dialog stay authoritative.
-   if(s.kind==='rift'&&document.getElementById('abyssDescentPanel')?.hidden){
-    resetToHatch();return;
    }
   }
   for(const s of stations){
@@ -181,9 +171,6 @@
    divePanel.hidden=false;
    divePanel.querySelector('#abyssDiveSoloChoice')?.focus();
   });
-  document.getElementById('openSeaPortalBtn').addEventListener('click',()=>{
-   window.dispatchEvent(new CustomEvent('abyssal-start-open-sea'));
-  });
   divePanel.querySelector('#abyssDiveChoiceClose')?.addEventListener('click',closeDive);
   divePanel.addEventListener('click',e=>{if(e.target===divePanel)closeDive();});
   divePanel.querySelector('#abyssDiveSoloChoice')?.addEventListener('click',()=>{
@@ -210,9 +197,6 @@
    if(event.detail?.screenId==='submarineWorkshop'&&!menu.hidden){pendingCabinExit=event.detail.animateExit===true;if(initialized&&wasVisible){resetToHatch(pendingCabinExit);pendingCabinExit=false;}}else if(event.detail?.screenId==='roomsScreen')closeReturn();
   });
   window.addEventListener('abyssal-descent-closed',closeReturn);
-  window.addEventListener('abyssal-menu-portal-cancelled',event=>{
-   if(event.detail?.portal==='riftPortalBtn')closeReturn();
-  });
   document.getElementById('loginCancelBtn')?.addEventListener('click',()=>{
    if(waitingForModal)closeReturn();
   });
@@ -280,7 +264,7 @@
    // Water streams past the gates and disappears off-screen. The flow belongs
    // to the ocean, never to the diver's current position.
    for(const s of stations){
-    if(s.kind!=='dive'&&s.kind!=='sea')continue;
+    if(s.kind!=='dive')continue;
     const direction=s.kind==='dive'?-1:1;
     const startX=s.wx-direction*w*.19,endX=s.wx+direction*w*.37;
     const span=endX-startX,band=Math.min(64,h*.105);
@@ -331,7 +315,7 @@
      const tx=transition;
      tx.t=Math.min(1,tx.t+dt/tx.duration);
      const t=ease(tx.t),s=tx.station,curve=Math.sin(Math.PI*t)*Math.min(38,w*.055);
-     px=lerp(tx.x,s.wx,t)+(s.kind==='lab'?Math.sin(t*Math.PI)*10:s.kind==='rift'?0:(s.kind==='dive'?-1:1)*curve);
+     px=lerp(tx.x,s.wx,t)+(s.kind==='lab'?Math.sin(t*Math.PI)*10:-curve);
      py=lerp(tx.y,s.wy,t)+(s.kind==='lab'?-Math.sin(Math.PI*t)*16:s.kind==='rift'?-Math.sin(Math.PI*t)*17:Math.sin(Math.PI*t)*8);
      if(s.kind==='lab'){
       const fade=clamp((t-.64)/.36,0,1);
