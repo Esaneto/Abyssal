@@ -67,7 +67,7 @@
   rate:{id:'rate',name:'Ressonância Veloz',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:4,phosphorite:2}},
   speed:{id:'speed',name:'Propulsão Abissal',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:5,phosphorite:3}},
   range:{id:'range',name:'Olho Profundo',group:'essential',max:1,requires:[],cost:{},starter:true,effect:'range',description:'Óptica essencial do traje para enxergar e combater no Mar Aberto.'},
-  magnet:{id:'magnet',name:'Campo Magnético',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:3,phosphorite:2}},
+  magnet:{id:'magnet',name:'Energização',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:3,phosphorite:2}},
   regen:{id:'regen',name:'Membrana Viva',group:'essential',max:1,requires:[],cost:{},starter:true,effect:'regen',description:'Sistema biotecnológico básico de recuperação do mergulhador.'},
   shield:{id:'shield',name:'Escudo Espectral',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:5,phosphorite:1}},
   shell:{id:'shell',name:'Carapaça Abissal',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:6,phosphorite:2}},
