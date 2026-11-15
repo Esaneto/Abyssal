@@ -42,3 +42,14 @@ html.abyssal-installed-android body #mobileDownloadTopBtn,html.abyssal-installed
 html.abyssal-installed-android body #submarineWorkshop .abyss-cockpit-top-actions{left:50%!important;transform:translateX(-50%)!important;justify-content:center!important;gap:4px!important;width:56%!important}
 html.abyssal-installed-android body #submarineWorkshop .abyss-cockpit-top-actions .cockpit-command{flex:1 1 0!important;min-width:0!important}
 html.abyssal-installed-android body .top-actions{justify-content:center!important;gap:6px!important}
+
+/* Preview must not inherit the 48px minimum hit target of the real cockpit controls. */
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .hud-editor-stage .hud-editor-piece{min-height:0!important;max-width:none!important;min-width:0!important;touch-action:none!important}
+#submarineWorkshop .hud-editor-toolbar select[aria-label="Modo de jogo"]{order:-1;flex:1 1 100%}
+#submarineWorkshop .hud-editor-stage[data-profile=portrait]{width:min(100%,270px,calc(66dvh * .5625));aspect-ratio:360/640;max-height:none;min-height:0}
+#submarineWorkshop .hud-editor-stage .hud-editor-piece:is([data-item="health"],[data-item="xp"]){border-width:0 0 3px;border-color:#6ecbc9;background:#173740;white-space:nowrap}
+#submarineWorkshop .hud-editor-stage .hud-editor-piece[data-item="energy"]{color:#d3a6ff;background:#17242f}
+#submarineWorkshop .hud-editor-stage .hud-editor-piece[data-item="skills"]{background:#281c46;border-color:#a78bdb}
+#submarineWorkshop .hud-editor-stage .hud-editor-piece:is([data-item="pause"],[data-item="fire"],[data-item="move"],[data-item="aim"]){border-radius:50%}
+html.abyssal-installed-android.abyssal-handheld:not(.abyssal-handheld-landscape) body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-top-actions{position:absolute!important;inset:auto!important;top:6px!important;left:50%!important;width:66%!important;transform:translateX(-50%)!important;justify-content:center!important;gap:4px!important}
+html.abyssal-installed-android.abyssal-handheld-landscape #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-top-actions{justify-content:center!important}

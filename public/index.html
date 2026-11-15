@@ -711,7 +711,8 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
   var nativeShell=Boolean(window.Capacitor?.isNativePlatform?.())||(location.hostname==='localhost'&&(location.protocol==='https:'||location.protocol==='capacitor:'));
   window.ABYSSAL_NATIVE_SHELL=nativeShell;
   var androidInstalled=nativeShell&&(window.Capacitor?.getPlatform?.()==='android'||/Android/i.test(navigator.userAgent));
-  if(androidInstalled)document.documentElement.classList.add('abyssal-installed-android');
+  window.AbyssalApplyInstalledAndroid=function(){document.documentElement.classList.add('abyssal-installed-android');for(const e of document.querySelectorAll('#mobileDownloadTopBtn,#fullscreenBtn,#downloadBtn,#hubFullscreenBtn,[data-cockpit-proxy="mobileDownloadTopBtn"],[data-cockpit-proxy="fullscreenBtn"]')){e.hidden=true;e.tabIndex=-1;e.setAttribute('aria-hidden','true');e.style.setProperty('display','none','important');}};
+  if(androidInstalled)window.AbyssalApplyInstalledAndroid();
   if(nativeShell&&!window.ABYSSAL_SERVER_URL)window.ABYSSAL_SERVER_URL=window.ABYSSAL_SERVER_CONFIG?.nativeUrl||window.location.origin;
 })();
 </script>

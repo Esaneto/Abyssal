@@ -1714,8 +1714,8 @@ function startGame(resumingDeploy=false){
  else {controlSettings.pc=localStorage.getItem('abyssalControlsPc')||'classic';controlSettings.mobile=localStorage.getItem('abyssalControlsMobile')||'classic';}
  // Control 1 belongs to the classic shooter. Exploration and Fossas force Control 2.
  mobileFireHeld=false;pointer.down=false;autoFollowCursor=false;
- document.body.dataset.hudMode=onlineMode?'online':'solo';
  document.body.classList.add('game-active');
+ document.body.dataset.hudMode=onlineMode?'online':'solo';
  document.body.classList.toggle('abyss-solo-run',isClassicCavernRun());
  const ranking=$('runEnergyRanking');if(ranking)ranking.hidden=!onlineMode;
  runResultPending=false;

@@ -2,23 +2,23 @@
 'use strict';
 const KEY='abyssalHudLayoutV1',PENDING=KEY+'Pending',PROFILES=['portrait','landscape','desktop'];
 const ITEMS=[
- ['stats','Estatísticas',['#hud .hud-top'],.50,.045,260,32,'both'],
- ['health','Vida',['#hud .bars .bar-label:not(.xp-label)','#hud .bars .bar:not(.xp-bar)'],.50,.105,240,20,'both'],
- ['xp','Experiência',['#hud .xp-label','#hud .xp-bar'],.50,.15,240,20,'both'],
- ['energy','Energia / base',['#hud .solo-energy-stock'],.50,.19,220,20,'both'],
- ['progress','Progressão',['#bossProgressionTrack'],.50,.235,240,25,'both'],
- ['skills','Habilidades adquiridas',['#selectedSkillsPanel'],.84,.35,112,65,'both'],
- ['pause','Pausar',['#mobilePauseBtn','#pauseBtn'],.92,.05,44,44,'both'],
- ['hide','Ocultar HUD',['#toggleHudBtn'],.08,.05,44,44,'both'],
- ['pulse','Q · Pulso',['#skillPulseBtn'],.36,.90,66,48,'both'],
- ['dash','E · Propulsor',['#skillDashBtn'],.51,.90,66,48,'both'],
- ['petSkill','R · Espécime',['#skinActiveBtn'],.66,.90,66,48,'both'],
- ['pet','Comportamento',['#mobilePetHabit','#petHabitBar .pet-habit-actions'],.16,.76,100,48,'both'],
- ['repair','Reparar',['#soloSubmarineRepairBtn'],.09,.66,48,48,'both'],
- ['power','Energizar',['#soloSubmarinePowerBtn'],.23,.66,48,48,'both'],
- ['fire','Disparo',['#mobileFireBtn'],.88,.76,56,56,'mobile'],
- ['aim','Mira',['#mobileAimStick'],.86,.91,84,84,'mobile'],
- ['move','Movimento',['#mobileJoystick'],.14,.91,84,84,'mobile'],
+ ['stats','Estatísticas',['#hud .hud-top'],.50,.037,236,35,'both'],
+ ['health','Vida',['#hud .bars .bar-label:not(.xp-label)','#hud .bars .bar:not(.xp-bar)'],.50,.087,236,18,'both'],
+ ['xp','Experiência',['#hud .xp-label','#hud .xp-bar'],.50,.12,236,18,'both'],
+ ['energy','Energia / base',['#hud .solo-energy-stock'],.50,.158,236,25,'both'],
+ ['progress','Progressão',['#bossProgressionTrack'],.50,.202,236,28,'both'],
+ ['skills','Habilidades adquiridas',['#selectedSkillsPanel'],.825,.31,115,77,'both'],
+ ['pause','Pausar',['#mobilePauseBtn','#pauseBtn'],.92,.047,48,48,'both'],
+ ['hide','Ocultar HUD',['#toggleHudBtn'],.08,.047,48,48,'both'],
+ ['pulse','Q · Pulso',['#skillPulseBtn'],.36,.95,48,50,'both'],
+ ['dash','E · Propulsor',['#skillDashBtn'],.51,.95,48,50,'both'],
+ ['petSkill','R · Espécime',['#skinActiveBtn'],.66,.95,48,50,'both'],
+ ['pet','Comportamento',['#mobilePetHabit','#petHabitBar .pet-habit-actions'],.16,.846,101,48,'both'],
+ ['repair','Reparar',['#soloSubmarineRepairBtn'],.23,.675,48,48,'both'],
+ ['power','Energizar',['#soloSubmarinePowerBtn'],.23,.76,48,48,'both'],
+ ['fire','Disparo',['#mobileFireBtn'],.91,.79,56,56,'mobile'],
+ ['aim','Mira',['#mobileAimStick'],.855,.908,76,76,'mobile'],
+ ['move','Movimento',['#mobileJoystick'],.14,.94,76,76,'mobile'],
  ['comms','Comunicação',['#quickComms'],.90,.55,46,46,'both'],
  ['end','Encerrar',['#endDiveBtn'],.85,.84,118,36,'desktop'],
 ];
@@ -58,7 +58,8 @@ function publish(message){const online=root.AbyssalOnline,account=online?.getAcc
 }
 function flushPending(){const pending=read(PENDING),online=root.AbyssalOnline;if(!pending||publishing||!online?.isAuthenticated?.()||!online?.isConnected?.()||online.getAccount?.()?.nickname!==pending.owner)return;publishing=true;online.saveCosmetics({hudLayout:normalize(pending.layout)},res=>{publishing=false;if(res?.ok&&JSON.stringify(read(PENDING))===JSON.stringify(pending)){try{root.localStorage.removeItem(PENDING);}catch{}}});}
 const create=(tag,cls,text)=>{const e=doc.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e;};
-const DESKTOP_DEFAULTS={stats:[.13,.12],health:[.13,.18],xp:[.13,.22],energy:[.13,.27],progress:[.13,.32],skills:[.91,.13],pause:[.08,.045],hide:[.96,.045],pulse:[.07,.86],dash:[.07,.91],petSkill:[.07,.96],pet:[.06,.72],repair:[.06,.60],power:[.06,.66],end:[.92,.95]};
+const DESKTOP_DEFAULTS={stats:[.14,.395],health:[.14,.135],xp:[.14,.18],energy:[.14,.225],progress:[.14,.305],skills:[.915,.185],pause:[.97,.045],hide:[.815,.13],pulse:[.405,.90],dash:[.48,.90],petSkill:[.565,.90],pet:[.042,.70],repair:[.045,.59],power:[.50,.955],end:[.925,.115],comms:[.93,.55]};
+const DESKTOP_BOXES={stats:[330,40],health:[330,28],xp:[330,24],energy:[330,34],progress:[330,70],skills:[190,65],pulse:[110,38],dash:[118,38],petSkill:[108,38],pet:[80,112],power:[500,44],repair:[80,42],end:[156,32]};
 const LANDSCAPE_DEFAULTS={stats:[.23,.06],health:[.23,.13],xp:[.23,.19],energy:[.23,.25],progress:[.23,.31],skills:[.90,.28],pulse:[.39,.92],dash:[.50,.92],petSkill:[.61,.92],pet:[.12,.67],repair:[.08,.50],power:[.17,.50]};
 function defaults(item,profile){const pos=(profile==='desktop'?DESKTOP_DEFAULTS:profile==='landscape'?LANDSCAPE_DEFAULTS:{})[item[0]];return {x:pos?.[0]??item[3],y:pos?.[1]??item[4],s:1};}
 function createPage(){let draft=normalize(imported?.layout||saved),selectedProfile=profile(),selectedMode=active()?gameMode():'solo',selected='aim',source=imported?.name||'';imported=null;
@@ -74,9 +75,9 @@ function createPage(){let draft=normalize(imported?.layout||saved),selectedProfi
  function current(item){return selectedLayout()[selectedProfile][item[0]]||defaults(item,selectedProfile);}
  function updateSize(){const v=current(getItem());size.value=String(Math.round(v.s*100));amount.textContent=size.value+'%';}
  const previewEls=new Map();
- function paint(){const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const ref=selectedProfile==='portrait'?[390,844]:selectedProfile==='landscape'?[844,390]:[1280,720],factor=Math.min(r.width/ref[0],r.height/ref[1]);for(const item of eligible()){const v=current(item),el=previewEls.get(item[0]),box={w:item[5]*factor,h:item[6]*factor},f=fit(v,box,r.width,r.height);el.style.left=f.x+'px';el.style.top=f.y+'px';el.style.width=box.w*f.s+'px';el.style.height=box.h*f.s+'px';el.style.fontSize=Math.max(7,10*factor*f.s)+'px';el.setAttribute('aria-pressed',String(item[0]===selected));}updateSize();}
+ function paint(){const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const ref=selectedProfile==='portrait'?[360,640]:selectedProfile==='landscape'?[844,390]:[1280,720],factor=Math.min(r.width/ref[0],r.height/ref[1]);for(const item of eligible()){const v=current(item),el=previewEls.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]],box={w:dimensions[0]*factor,h:dimensions[1]*factor},f=fit(v,box,r.width,r.height);el.style.left=f.x+'px';el.style.top=f.y+'px';el.style.width=box.w*f.s+'px';el.style.height=box.h*f.s+'px';el.style.fontSize=Math.max(7,10*factor*f.s)+'px';el.setAttribute('aria-pressed',String(item[0]===selected));}updateSize();}
  function select(id){selected=id;itemSel.value=id;paint();}
- function rebuild(){const items=eligible();if(!items.some(i=>i[0]===selected))selected=items[0][0];itemSel.replaceChildren();stage.replaceChildren();previewEls.clear();for(const item of items){const o=create('option','',item[1]);o.value=item[0];itemSel.append(o);const b=create('button','hud-editor-piece',item[1]);b.type='button';b.dataset.item=item[0];if(item[0]==='aim'){b.classList.add('hud-editor-reticle');b.textContent='';b.setAttribute('aria-label',item[1]);}if(item[0]==='move')b.classList.add('hud-editor-stick');let drag=null;b.addEventListener('pointerdown',e=>{e.preventDefault();select(item[0]);const br=b.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-br.left-br.width/2,dy:e.clientY-br.top-br.height/2};b.setPointerCapture?.(e.pointerId);});b.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const r=stage.getBoundingClientRect(),v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp((e.clientX-r.left-drag.dx)/r.width,0,1),y:clamp((e.clientY-r.top-drag.dy)/r.height,0,1)};paint();});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>{drag=null;});b.addEventListener('click',()=>select(item[0]));b.addEventListener('keydown',e=>{const dx=e.key==='ArrowLeft'?-.01:e.key==='ArrowRight'?.01:0,dy=e.key==='ArrowUp'?-.01:e.key==='ArrowDown'?.01:0;if(!dx&&!dy)return;e.preventDefault();const v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp(v.x+dx,0,1),y:clamp(v.y+dy,0,1)};paint();});previewEls.set(item[0],b);stage.append(b);}itemSel.value=selected;stage.dataset.profile=selectedProfile;stage.dataset.mode=selectedMode;root.requestAnimationFrame(paint);}
+ function rebuild(){const items=eligible();if(!items.some(i=>i[0]===selected))selected=items[0][0];itemSel.replaceChildren();stage.replaceChildren();previewEls.clear();for(const item of items){const o=create('option','',item[1]);o.value=item[0];itemSel.append(o);const labels={stats:'TEMPO · NV · BOSSES · DANO',health:'VITALIDADE',xp:'ENERGIA · EVOLUÇÃO',energy:'ENERGIA / BASE',progress:'CICLO · PROGRESSÃO',skills:'RESSONÂNCIA',pause:'Ⅱ',hide:'›',pulse:'Q · PULSO',dash:'E · PROPULSOR',petSkill:'R · PET',pet:'PASSIVO',repair:'🔧',power:'⚡ 20',fire:'DISPARO',comms:'💬',end:'ENCERRAR'};const b=create('button','hud-editor-piece',labels[item[0]]||item[1]);b.setAttribute('aria-label',item[1]);b.type='button';b.dataset.item=item[0];if(item[0]==='aim'){b.classList.add('hud-editor-reticle');b.textContent='';b.setAttribute('aria-label',item[1]);}if(item[0]==='move')b.classList.add('hud-editor-stick');let drag=null;b.addEventListener('pointerdown',e=>{e.preventDefault();select(item[0]);const br=b.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-br.left-br.width/2,dy:e.clientY-br.top-br.height/2};b.setPointerCapture?.(e.pointerId);});b.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const r=stage.getBoundingClientRect(),v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp((e.clientX-r.left-drag.dx)/r.width,0,1),y:clamp((e.clientY-r.top-drag.dy)/r.height,0,1)};paint();});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>{drag=null;});b.addEventListener('click',()=>select(item[0]));b.addEventListener('keydown',e=>{const dx=e.key==='ArrowLeft'?-.01:e.key==='ArrowRight'?.01:0,dy=e.key==='ArrowUp'?-.01:e.key==='ArrowDown'?.01:0;if(!dx&&!dy)return;e.preventDefault();const v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp(v.x+dx,0,1),y:clamp(v.y+dy,0,1)};paint();});previewEls.set(item[0],b);stage.append(b);}itemSel.value=selected;stage.dataset.profile=selectedProfile;stage.dataset.mode=selectedMode;root.requestAnimationFrame(paint);}
  modeSel.onchange=()=>{selectedMode=modeSel.value;rebuild();};sel.onchange=()=>{selectedProfile=sel.value;rebuild();};itemSel.onchange=()=>select(itemSel.value);
  size.oninput=()=>{const item=getItem();selectedLayout()[selectedProfile][item[0]]={...current(item),s:Number(size.value)/100};paint();};
  resetItem.onclick=()=>{delete selectedLayout()[selectedProfile][selected];paint();status.textContent='Elemento restaurado em prévia.';};
