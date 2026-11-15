@@ -196,3 +196,47 @@ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud
  html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-map{grid-column:1!important;grid-row:2!important}
  html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-detail{grid-column:2!important;grid-row:2!important;max-height:65dvh!important}
 }
+
+/* V249: shared encounter HUD, compact original research artwork, stable rotated viewport. */
+#bossProgressionTrack.boss-encounter{padding:6px 7px!important;min-height:0!important;max-height:none!important;box-sizing:border-box!important;border:1px solid #315769!important;border-radius:7px!important;background:#081b29e8!important;display:block;color:#dcecf4}
+#bossProgressionTrack.boss-encounter .track-header{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:4px!important;margin:0 0 4px!important}
+#bossProgressionTrack.boss-encounter :is(.track-title,.track-cycle-badge){font:700 10px/1.2 system-ui!important;letter-spacing:0!important;white-space:nowrap!important}
+#bossProgressionTrack.boss-encounter .track-encounter-label{display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:5px;font:650 10px/1.2 system-ui;color:#a8d9e4}
+#trackBossName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#trackBossTime{color:#ffe08a;white-space:nowrap;font:800 11px/1.2 system-ui}
+#bossProgressionTrack.boss-encounter .track-line-bg{position:relative!important;inset:auto!important;width:100%!important;height:5px!important;border:0!important;background:#1d3949!important;overflow:hidden!important;border-radius:4px!important}
+#bossProgressionTrack.boss-encounter .track-fill{height:100%!important;background:linear-gradient(90deg,#3bd5cd,#f6c968)!important;border-radius:4px;transition:width .15s linear}
+#bossProgressionTrack.boss-encounter.is-boss-active .track-fill{background:#ff5979!important}
+#bossProgressionTrack.boss-encounter.is-boss-active #trackBossTime{color:#ff8b9e}
+#bossProgressionTrack.boss-encounter .track-boss-nodes{position:static!important;display:flex!important;gap:3px!important;width:100%!important;height:auto!important;margin-top:5px!important;transform:none!important}
+#bossProgressionTrack .track-step{flex:1 1 0;min-width:0;height:4px;border-radius:2px;background:#294554}
+#bossProgressionTrack .track-step.is-done{background:#53d8ab}
+#bossProgressionTrack .track-step.is-current{background:#f4c76e}
+#bossProgressionTrack.is-boss-active .track-step.is-current{background:#ff5979}
+body.game-active #gameShell>#soloSubmarinePowerBtn.compact-submarine-power:not([hidden]){display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;gap:2px!important;min-width:48px!important;width:48px!important;max-width:48px!important;height:48px!important;min-height:48px!important;padding:3px!important;white-space:nowrap!important}
+body.game-active #soloSubmarinePowerBtn.compact-submarine-power>span{font-size:18px!important;line-height:1!important;color:#ffd36b!important}
+body.game-active #soloSubmarinePowerBtn.compact-submarine-power>.sub-power-cost{font:800 12px/1 system-ui!important;color:#fff0be!important}
+.abyss-research-tree .abyss-tree-detail[hidden]{display:none!important}
+.abyss-research-tree .abyss-tree-nodes,.abyss-research-tree .abyss-tree-nodes.is-linear{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(58px,1fr))!important;gap:8px!important;align-items:start!important}
+.abyss-research-tree .abyss-tree-node,.abyss-research-tree .abyss-tree-node.is-owned,.abyss-research-tree .abyss-tree-node.is-equipped,.abyss-research-tree .abyss-tree-node.is-locked{position:relative!important;display:grid!important;place-items:center!important;min-width:0!important;width:100%!important;min-height:58px!important;height:58px!important;max-height:58px!important;padding:6px!important;gap:0!important;border-radius:9px!important;overflow:visible!important;box-sizing:border-box!important}
+.abyss-research-tree .abyss-tree-nodes.is-linear .abyss-tree-node:after{display:none!important}
+.abyss-research-tree .abyss-tree-node[data-state=equipped]{box-shadow:inset 0 0 0 2px #54d9a0!important}
+.abyss-research-tree .abyss-tree-node[data-state=locked]{opacity:.66!important;filter:none!important}
+.abyss-research-tree .abyss-tree-node[aria-pressed=true]{outline:2px solid #8af0e3!important;outline-offset:2px!important;opacity:1!important}
+.abyss-research-tree .abyss-tree-node:focus-visible{outline:3px solid #fff!important;outline-offset:2px!important}
+.abyss-research-tree .abyss-tree-node-icon{display:grid!important;place-items:center!important;width:40px!important;height:40px!important;flex:none!important;color:var(--research-icon,#7bddea);background:radial-gradient(circle,color-mix(in srgb,var(--research-icon,#7bddea) 18%,#13232e),#07121d 78%)!important;border:1px solid color-mix(in srgb,var(--research-icon,#7bddea) 45%,#223746)!important;border-radius:8px!important}
+.abyss-research-tree .abyss-tree-node-icon svg{width:28px!important;height:28px!important;display:block!important;filter:drop-shadow(0 0 3px color-mix(in srgb,var(--research-icon,#7bddea) 55%,transparent))}
+.abyss-research-tree .abyss-tree-detail .abyss-tree-node-icon{width:44px!important;height:44px!important}
+.abyss-research-tree .abyss-tree-description{line-height:1.4!important;white-space:normal!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-research-tree .abyss-tree-nodes{grid-template-columns:repeat(auto-fill,minmax(54px,1fr))!important;gap:8px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-research-tree .abyss-tree-node{min-height:58px!important;height:58px!important;max-height:58px!important;padding:5px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-research-tree .abyss-tree-detail{max-height:48dvh!important;overflow:auto!important}
+html.abyssal-handheld body:not(.game-active).abyss-hatch-navigation #gameShell{position:fixed!important;inset:0!important;width:var(--abyssal-viewport-w,100vw)!important;height:var(--abyssal-viewport-h,100dvh)!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;transform:none!important;overflow:hidden!important}
+html.abyssal-handheld body:not(.game-active) #menuScreen.ocean-menu-v2.expedition-hub{position:absolute!important;inset:0!important;transform:none!important;translate:none!important;scale:none!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;overflow:hidden!important}
+html.abyssal-handheld #menuScreen.expedition-hub .hub-shell{position:relative!important;width:100%!important;max-width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;transform:none!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;box-sizing:border-box!important;padding:clamp(8px,2.5vmin,16px)!important;gap:clamp(8px,2vmin,16px)!important}
+html.abyssal-handheld #menuScreen.expedition-hub .hub-shell>*{flex-shrink:0;min-width:0}
+html.abyssal-handheld #menuScreen.expedition-hub .hub-content{margin-block:auto!important;min-width:0!important;width:100%!important}
+html.abyssal-handheld #menuScreen.expedition-hub .hub-nav{min-width:0!important}
+html.abyssal-handheld #menuScreen.expedition-hub .hub-intro h2{font-size:clamp(26px,7.5vmin,44px)!important}
+html.abyssal-handheld #menuScreen.expedition-hub .hub-footer{margin-top:0!important}
+html.abyssal-handheld #menuScreen.expedition-hub #menuOceanStage{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;transform:none!important}
