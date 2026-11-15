@@ -454,8 +454,8 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     const active=await state();assert.equal(active.active,true,'Gameplay ended during viewport rotation '+JSON.stringify(active));
     assert.equal(await evaluate('window.__abyssalMobileLayoutKeepAlive?.()'),true,'Mobile game not playing after rotation '+JSON.stringify(active));
     const all=await auditControls([...required,'#hud','#selectedSkillsPanel','#runEnergyRanking'],required,['#skillPulseBtn','#skillDashBtn','#skinActiveBtn','#mobileAimStick','#mobileFireBtn','#soloSubmarineRepairBtn','#soloSubmarinePowerBtn','#quickComms']);
-    await screenshot('exact-mobile-gameplay-'+w+'x'+h);
     assertAudit('gameplay '+w+'x'+h,all);
+    await screenshot('exact-mobile-gameplay-'+w+'x'+h);
    }
    await evaluate("document.getElementById('mobilePauseBtn').click()");
    await sleep(200);
@@ -581,6 +581,9 @@ async function main(){
    assert.ok(fs.statSync(png).size>7000,'Journal screenshot missing');
   }
   if(process.argv.includes('--journal-only'))return;
+  await realGameplaySmoke(browser,url+'?stage=cockpit&view=wardrobe','mobile-wardrobe');
+  await realGameplaySmoke(browser,url,'mobile-gameplay');
+
   // Test the actual hatch transition and physical console in a real browser,
   // including mobile; save screenshots for visual acceptance inspection.
   for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-wardrobe-portrait',390,844,'wardrobe'],['cockpit-wardrobe-small',360,640,'wardrobe'],['cockpit-wardrobe-landscape',844,390,'wardrobe'],['cockpit-shop',1280,720,'shop'],['cockpit-abyssario',1280,720,'specimens'],['cockpit-solo-upgrades',1280,720,'upgrades'],['cockpit-resonance',1280,720,'resonance']]){
@@ -691,8 +694,6 @@ async function main(){
   }
   // Full Fossa replay is retained as an isolated localhost regression for the
   // frozen mode; public players still enter the classic Solo shooter only.
-  await realGameplaySmoke(browser,url+'?stage=cockpit&view=wardrobe','mobile-wardrobe');
-  await realGameplaySmoke(browser,url,'mobile-gameplay');
   await realGameplaySmoke(browser,url,'solo');
   if(legacyModes)await realGameplaySmoke(browser,url+'?stage=deep','legacy');
   else console.log('[browser-smoke] Active release: Shooter Solo, legacy expeditions excluded from gating');
