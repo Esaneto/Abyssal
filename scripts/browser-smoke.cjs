@@ -157,7 +157,8 @@ const injected=`<script>
     document.getElementById('ageTermsContinue')?.click();
    },300);
    const stage=new URLSearchParams(location.search).get('stage');
-   if(stage!=='cockpit'){
+   if(stage==='hub'){setInterval(()=>{const tour=document.getElementById('abyssalMenuTour');if(tour&&!tour.hidden)tour.querySelector('.amt-skip')?.click();},250);}
+   else if(stage!=='cockpit'){
     let attempts=0;
     const enter=()=>{
      if(document.body.classList.contains('game-active')){
@@ -216,9 +217,10 @@ const injected=`<script>
       for(const id of ['solo','research','shop','specimens'])if(!box.querySelector('.abyss-control-'+id))throw Error('Missing current cockpit control '+id);
       box.querySelector('.abyss-control-research').click();
       const research=box.querySelector('.abyss-tree-map'),nodes=research?.querySelectorAll('.abyss-tree-node')||[];
-      if(nodes.length<5||!research.textContent.includes('Pulso de Maré')||!research.textContent.includes('Propulsor Abissal'))throw Error('Diver research Q/E or lamp nodes missing');
+      if(nodes.length<5||!research.querySelector('[data-research-id="pulse"]')||!research.querySelector('[data-research-id="dash"]'))throw Error('Diver research Q/E or lamp nodes missing');
       const cards=nodes.length,icons=research.querySelectorAll('.abyss-tree-node-icon').length;
-      if(cards!==icons)throw Error('Missing research node symbols');
+      if(cards!==icons||[...nodes].some(n=>!n.querySelector('svg')||n.textContent.trim()))throw Error('Missing icon-only research nodes');
+      const pulse=research.querySelector('[data-research-id="pulse"]'),dash=research.querySelector('[data-research-id="dash"]');pulse.click();dash.dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'}));dash.focus();if(pulse.getAttribute('aria-pressed')!=='true'||!box.querySelector('.abyss-tree-detail-title')?.textContent.includes('Pulso de Maré'))throw Error('Research selection changed without click');dash.click();if(dash.getAttribute('aria-pressed')!=='true'||!box.querySelector('.abyss-tree-detail-title')?.textContent.includes('Propulsor Abissal'))throw Error('Research selection did not change on click');
       const monitor=box.querySelector('.abyss-cockpit-visor'),deck=box.querySelector('.abyss-control-deck');
       const monitorRect=monitor?.getBoundingClientRect(),deckRect=deck?.getBoundingClientRect();
       const currentKeys=[...box.querySelectorAll('.abyss-control-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
@@ -266,7 +268,7 @@ const injected=`<script>
        if(document.getElementById('resonanceScreen').hidden||!box.querySelector('#resonanceScreen'))throw Error('Resonance panel not integrated');
       }else if(view==='upgrades'){
        const btn=[...box.querySelectorAll('.solo-research-tabs button')].find(b=>b.textContent==='SUBMARINO');if(!btn)throw Error('Submarine research access missing');btn.click();
-       if(!box.querySelector('.abyss-tree-map')?.textContent.includes('Escudo do submarino'))throw Error('Submarine research missing');
+       if(!box.querySelector('.abyss-tree-map [data-research-id="submarineShield"]'))throw Error('Submarine research missing');
       }else{
        box.querySelector('.abyss-control-solo').click();
        if(!box.querySelector('#cockpitSoloDiveBtn')||!box.querySelector('#cockpitOnlineDiveBtn'))throw Error('Default cockpit launch action is missing');
@@ -399,7 +401,7 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
   await command('Page.enable');
   await command('Runtime.enable');
   console.log('[live-browser] navigating to actual game');
-  if(mode==='mobile-wardrobe'||mode==='mobile-gameplay'){
+  if(mode==='mobile-wardrobe'||mode==='mobile-gameplay'||mode==='mobile-hub'){
    if(mode==='mobile-gameplay'||mode==='mobile-wardrobe')await command('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('abyssalControlsMobile','dual-stick')}catch(e){}"});
    await command('Emulation.setUserAgentOverride',{userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/128.0.0.0 Mobile Safari/537.36'});
    await command('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
@@ -417,6 +419,11 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    return {count:result.length,missing,collisions,blocked,controls:result,diagnostics:missing.length?{w:innerWidth,h:innerHeight,html:document.documentElement.className,body:document.body.className,raw}:undefined};
   }finally{for(const [e,hidden,cls] of saved){e.hidden=hidden;e.className=cls;}}})()`);
   const assertAudit=(name,a)=>{console.log('[mobile-control-audit] '+name+' '+JSON.stringify(a));assert.deepEqual(a.missing,[],name+' clipped or missing controls');assert.deepEqual(a.collisions,[],name+' overlapping controls');assert.deepEqual(a.blocked,[],name+' blocked controls');};
+  if(mode==='mobile-hub'){
+   for(const [w,h] of [[360,640],[844,390],[360,640],[320,568]]){await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:2,mobile:true,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});await sleep(600);
+    const m=await evaluate(`(()=>{const menu=document.getElementById('menuScreen'),hub=menu.querySelector('.hub-shell'),stage=document.getElementById('menuOceanStage'),r=menu.getBoundingClientRect(),s=stage.getBoundingClientRect(),u=hub.getBoundingClientRect(),launch=document.getElementById('divePortalBtn').getBoundingClientRect();return {w:innerWidth,h:innerHeight,hidden:menu.hidden,menu:r.toJSON(),stage:s.toJSON(),hub:u.toJSON(),launch:launch.toJSON(),scrollWidth:hub.scrollWidth,clientWidth:hub.clientWidth,landscape:document.documentElement.classList.contains('abyssal-handheld-landscape'),canvas:document.getElementById('menuOceanScenery').width};})()`);console.log('[mobile-hub-rotation] '+JSON.stringify(m));assert.ok(!m.hidden&&m.landscape===(w>h)&&Math.abs(m.menu.width-w)<2&&Math.abs(m.menu.height-h)<2&&Math.abs(m.menu.left)<2&&Math.abs(m.menu.top)<2&&m.scrollWidth<=m.clientWidth+2&&m.launch.width>100&&m.launch.left>=0&&m.launch.right<=w+1&&m.canvas>0,'Initial hub clipped after rotation: '+JSON.stringify(m));await screenshot('mobile-hub-'+w+'x'+h);
+   }return;
+  }
   if(mode==='mobile-wardrobe'){
    for(let attempt=0;attempt<10;attempt++){if(await evaluate('document.body.dataset.cockpitStatus==="ok"'))break;await sleep(500);}
    assert.equal(await evaluate('document.body.dataset.cockpitStatus'), 'ok', await evaluate('document.body.dataset.cockpitError'));
@@ -456,6 +463,7 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    const state=()=>evaluate("({active:document.body.classList.contains('game-active'),paused:window.AbyssalGameHooks?.explorationPosition?.()?.paused,elapsed:window.AbyssalGameHooks?.expeditionState?.()?.elapsed})");
    for(let i=0;i<8;i++){const a=await state();if(a.active&&!a.paused)break;await evaluate("document.querySelector('#upgradeChoices .upgrade-card')?.click()");await sleep(500);}
    assert.equal((await state()).active,true,'Mobile Solo did not enter gameplay');
+   const bossHud=await evaluate(`(()=>{const t=document.getElementById('bossProgressionTrack'),b=document.getElementById('trackProgressMeter');return {visible:getComputedStyle(t).display!=='none',steps:t.querySelectorAll('.track-step').length,time:document.getElementById('trackBossTime').textContent,name:document.getElementById('trackBossName').textContent,value:Number(b.getAttribute('aria-valuenow'))};})()`);assert.ok(bossHud.visible&&bossHud.steps===7&&bossHud.name&&bossHud.value>=0&&bossHud.value<=100,'Classic boss progress not rendered: '+JSON.stringify(bossHud));
    const qualityModes=await evaluate(`(()=>{const q=window.AbyssalAdaptivePerformance,h=document.getElementById('hud');const widths=[],states=[];for(const mode of ['0','1','2']){q.setPreference(mode);widths.push(h.getBoundingClientRect().width);states.push(q.snapshot());q.setLevel(0);if(q.snapshot().level!==Number(mode))return {fixed:false,states};}q.setPreference('auto');const auto=q.snapshot();q.setLevel(0);const light=q.snapshot();q.setLevel(2);const ultra=q.snapshot();return {fixed:states.every((s,i)=>s.preference===String(i)&&s.automatic===false&&s.level===i),widths,states,auto,light,ultra,subsystems:window.AbyssalPerformance.snapshot().subsystems};})()`);
    assert.ok(qualityModes.fixed&&qualityModes.auto.automatic&&qualityModes.auto.preference==='auto'&&qualityModes.light.level===0&&qualityModes.ultra.level===2&&qualityModes.light.dpr<qualityModes.ultra.dpr&&qualityModes.widths.every(w=>Math.abs(w-qualityModes.widths[0])<1)&&!qualityModes.subsystems.sonarPolling&&!qualityModes.subsystems.openSea&&!qualityModes.subsystems.rift,'Fixed/automatic graphics and active-mode isolation: '+JSON.stringify(qualityModes));
    assert.equal(await evaluate('window.__abyssalMobileLayoutKeepAlive?.()'),true,'Mobile layout fixture could not keep active Solo alive');
@@ -612,6 +620,7 @@ async function main(){
    assert.ok(fs.statSync(png).size>7000,'Journal screenshot missing');
   }
   if(process.argv.includes('--journal-only'))return;
+  await realGameplaySmoke(browser,url+'?stage=hub','mobile-hub');
   await realGameplaySmoke(browser,url+'?stage=cockpit&view=wardrobe','mobile-wardrobe');
   await realGameplaySmoke(browser,url,'mobile-gameplay');
 
