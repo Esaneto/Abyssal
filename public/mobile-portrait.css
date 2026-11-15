@@ -295,3 +295,20 @@ html.abyssal-handheld body.game-active.mobile-game-active #quickCommsWheel{grid-
  html.abyssal-handheld body.game-active.mobile-game-active{--touch-action-width:48px}
  html.abyssal-handheld body.game-active.mobile-game-active #hud .hud-stat small{font-size:7px!important}
 }
+
+/* The native select's chosen label must fit as well as its tap rectangle. */
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-catalog[data-single=true]{grid-template-columns:minmax(0,1fr)!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-catalog>select[hidden]{display:none!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .abyss-wardrobe :is(.aw-mobile-tools,.aw-mobile-catalog)>select{font:650 13px/1.2 system-ui!important}
+/* Keep the numerical cycle status, but leave the detailed decorative track
+   to the full-size desktop HUD. This frees the upper playfield on phones. */
+html.abyssal-handheld body.game-active.mobile-game-active #hud .track-line-wrapper{display:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .track-title{display:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .track-cycle-badge{font:700 9px/1.2 system-ui!important;white-space:normal!important;max-width:100%!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .boss-progression-track{min-height:0!important;height:auto!important;padding:2px 3px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .selected-skill-row{grid-template-columns:14px minmax(0,1fr) auto!important;gap:3px!important;padding:5px 3px!important;min-height:44px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .selected-skill-name{font:650 9px/1.15 system-ui!important;white-space:normal!important;overflow-wrap:anywhere!important;overflow:visible!important;text-overflow:clip!important}
+html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .selected-skill-row strong{font:650 8px/1.1 system-ui!important}
+@media(orientation:portrait){
+ html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){top:calc(var(--touch-top) + 153px)!important;width:clamp(106px,32vw,142px)!important;max-width:142px!important}
+}
