@@ -2854,17 +2854,7 @@ body.game-active .gameplay-overlay-root{display:block!important}
  body.mobile-game-active #activeAbilities.active-abilities{bottom:calc(var(--game-safe-bottom) + 8px)!important}
 }
 
-/* Browser fallback when Orientation Lock API is unavailable. */
-@media (pointer:coarse) and (orientation:landscape){
- body.mobile-game-active #gameShell::after{
-  content:'GIRE O CELULAR PARA A VERTICAL';
-  position:absolute;inset:0;z-index:1000;display:grid;place-items:center;
-  background:rgba(2,10,17,.96);color:var(--cyan);font:600 13px 'DM Mono',monospace;
-  letter-spacing:.12em;text-align:center;padding:24px;
- }
- body.mobile-game-active #gameShell>*{visibility:hidden!important}
- body.mobile-game-active #gameShell::after{visibility:visible!important}
-}
+/* Mobile gameplay supports portrait and landscape; never hide the arena on rotation. */
 
 /* PC: right stack is deterministic, toggle hugs edge when panels collapse, Q/E stay inside arena. */
 @media (min-width:701px) and (pointer:fine){

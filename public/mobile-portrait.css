@@ -159,3 +159,156 @@ html.abyssal-handheld body:not(.game-active) .modal-screen:not(.abyss-cockpit-em
  html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-choices{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-option{min-width:0!important;overflow:hidden}
 }
+
+/* MOBILE V242: one independent layout per zone, not desktop scaled down. */
+.aw-mobile-tools,.aw-mobile-catalog,#mobilePetHabit{display:none}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage>.aw-tabs,
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage>.aw-view,
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-panel>.aw-groups,
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-panel>.aw-categories{display:none!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) 52px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-tools,
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-catalog{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;min-width:0;min-height:0;flex-shrink:0}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-tools{grid-row:2;grid-column:1/-1;align-items:center}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe :is(.aw-mobile-tools,.aw-mobile-catalog)>select{
+ box-sizing:border-box;width:100%!important;min-width:0!important;min-height:48px!important;height:48px!important;
+ padding:5px 6px!important;font:650 13px/1.2 system-ui!important;color:#e5f5f9;background:#163543;border:1px solid #4a7484;border-radius:6px;
+}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-catalog select{font-size:13px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-actions{min-height:0!important;min-width:0!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-footer{gap:8px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-footer>button{min-height:48px!important;overflow-wrap:normal!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-option{box-sizing:border-box;overflow:hidden!important;min-width:0!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-choices{grid-template-columns:repeat(auto-fit,minmax(min(100%,110px),1fr))!important}
+
+/* Gameplay: top information band, bottom action band, and independent side
+   strips. All offsets use safe-area variables instead of desktop positions. */
+html.abyssal-handheld body.game-active.mobile-game-active{
+ --touch-left:var(--mobile-safe-left);--touch-right:var(--mobile-safe-right);
+ --touch-top:var(--mobile-safe-top);--touch-bottom:var(--mobile-safe-bottom);
+ --touch-stick:clamp(66px,21vw,88px);--touch-stick-box:calc(var(--touch-stick) + 16px);
+ --touch-action-width:clamp(48px,15vw,72px);
+}
+html.abyssal-handheld body.game-active.mobile-game-active #app{width:100%!important;max-width:none!important;height:100dvh!important;min-height:0!important;padding:0!important;overflow:hidden!important}
+html.abyssal-handheld body.game-active.mobile-game-active :is(.topbar,.page-footer){display:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell{position:fixed!important;inset:0!important;width:100%!important;height:100dvh!important;min-height:0!important;border:0!important;overflow:hidden!important;touch-action:none}
+html.abyssal-handheld body.game-active.mobile-game-active #game{position:absolute!important;inset:0!important;touch-action:none}
+html.abyssal-handheld body.game-active.mobile-game-active #hud:not([hidden]){
+ position:fixed!important;top:var(--touch-top)!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translateX(-50%)!important;
+ width:min(calc(100vw - 124px),360px)!important;max-width:min(calc(100vw - 124px),360px)!important;
+ min-width:0!important;height:auto!important;max-height:32dvh!important;padding:0!important;gap:4px!important;
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;overflow:hidden!important;background:transparent!important;pointer-events:none!important;
+}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .hud-top{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;order:0!important;gap:3px!important;margin:0!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .hud-stat{min-width:0!important;padding:4px 1px!important;border-radius:5px!important;text-align:center!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .hud-stat small{font:700 8px/1.1 system-ui!important;letter-spacing:0!important;white-space:nowrap!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .hud-stat strong{font:800 12px/1.1 system-ui!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .bars{width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;order:1!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .bar-label{font:650 9px/1.2 system-ui!important;letter-spacing:0!important;margin:3px 0!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .bar{height:5px!important;margin:0!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .solo-energy-stock{font:650 8px/1.2 system-ui!important;display:block!important;letter-spacing:0!important;margin:2px 0!important}
+html.abyssal-handheld body.game-active.mobile-game-active:not(.abyss-solo-run) #hud .solo-energy-stock{display:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .boss-progression-track{padding:2px 3px!important;margin:2px 0!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .track-header{display:flex!important;flex-wrap:wrap!important;gap:2px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud :is(.track-title,.track-cycle-badge){font:650 8px/1.1 system-ui!important;letter-spacing:0!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .mobile-tip{display:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell>:is(#mobilePauseBtn,#toggleHudBtn):not([hidden]){
+ position:fixed!important;display:grid!important;place-items:center!important;top:var(--touch-top)!important;bottom:auto!important;transform:none!important;
+ width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;max-width:48px!important;padding:0!important;z-index:46!important;
+}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell>#mobilePauseBtn{right:var(--touch-right)!important;left:auto!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell>#toggleHudBtn{left:var(--touch-left)!important;right:auto!important}
+html.abyssal-handheld body.game-active.mobile-game-active #endDiveBtn{display:none!important} /* still available in pause/settings */
+html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot{position:fixed!important;inset:0!important;pointer-events:none!important;overflow:hidden!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){
+ position:fixed!important;top:calc(var(--touch-top) + 158px)!important;bottom:auto!important;
+ width:clamp(92px,29vw,130px)!important;max-width:130px!important;max-height:18dvh!important;
+ padding:5px!important;overflow:auto!important;transform:none!important;pointer-events:auto!important;
+}
+html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #selectedSkillsPanel{left:auto!important;right:var(--touch-right)!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #runEnergyRanking{left:var(--touch-left)!important;right:auto!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #activeAbilities.active-abilities{
+ position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:var(--touch-bottom)!important;transform:translateX(-50%)!important;
+ width:auto!important;max-width:calc(100vw - 2 * var(--touch-stick-box) - 24px)!important;
+ display:flex!important;flex-direction:row!important;justify-content:center!important;align-items:stretch!important;gap:4px!important;padding:0!important;
+}
+html.abyssal-handheld body.game-active.mobile-game-active #activeAbilities .active-ability:not([hidden]){
+ box-sizing:border-box;display:flex!important;align-items:center!important;justify-content:center!important;
+ flex:0 1 var(--touch-action-width)!important;width:var(--touch-action-width)!important;min-width:44px!important;max-width:var(--touch-action-width)!important;
+ min-height:48px!important;height:52px!important;padding:3px!important;font:750 9px/1.15 system-ui!important;letter-spacing:0!important;text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important;pointer-events:auto!important;
+}
+html.abyssal-handheld body.game-active.mobile-game-active #activeAbilities .active-ability[hidden]{display:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #mobileAimStick.dual-stick-visible:not([hidden]){
+ position:fixed!important;display:flex!important;right:var(--touch-right)!important;left:auto!important;top:auto!important;bottom:var(--touch-bottom)!important;
+ width:var(--touch-stick-box)!important;height:var(--touch-stick-box)!important;max-width:none!important;max-height:none!important;z-index:40!important;
+}
+html.abyssal-handheld body.game-active.mobile-game-active #mobileAimStick .joystick-base{width:var(--touch-stick)!important;height:var(--touch-stick)!important}
+html.abyssal-handheld body.game-active.mobile-game-active #mobileAimStick .joystick-knob{width:32px!important;height:32px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #mobileFireBtn:not([hidden]){
+ position:fixed!important;display:grid!important;place-items:center!important;right:var(--touch-right)!important;left:auto!important;top:auto!important;
+ bottom:calc(var(--touch-bottom) + var(--touch-stick-box) + 8px)!important;width:56px!important;height:56px!important;min-width:56px!important;min-height:56px!important;padding:7px!important;z-index:45!important;
+}
+html.abyssal-handheld body.game-active.mobile-game-active #mobileFireBtn svg{width:32px!important;height:32px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #mobileJoystick.is-floating:not([hidden]){width:88px!important;height:88px!important;max-width:88px!important;max-height:88px!important;z-index:40!important;pointer-events:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #mobileJoystick.is-floating .joystick-base{width:76px!important;height:76px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #petHabitBar:not([hidden]){
+ position:fixed!important;left:var(--touch-left)!important;right:auto!important;top:auto!important;bottom:calc(var(--touch-bottom) + var(--touch-stick-box) + 8px)!important;
+ width:102px!important;min-width:102px!important;max-width:102px!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;transform:none!important;pointer-events:auto!important;z-index:36!important;
+}
+html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar>strong,
+html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar .pet-habit-actions{display:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #mobilePetHabit{display:block!important;width:102px!important;min-width:0!important;height:48px!important;min-height:48px!important;padding:4px!important;box-sizing:border-box;font:750 11px/1.1 system-ui!important;color:#dffff8;background:#0e2c3b;border:1px solid #5c939a;border-radius:7px}
+html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar :is(#soloSubmarineRepairBtn,#soloSubmarinePowerBtn).compact-submarine-power:not([hidden]),
+html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar #soloSubmarineRepairBtn:not([hidden]){
+ position:absolute!important;top:auto!important;bottom:56px!important;width:48px!important;min-width:48px!important;max-width:48px!important;height:48px!important;min-height:48px!important;max-height:48px!important;display:flex!important;flex-direction:column!important;gap:2px!important;padding:2px!important;transform:none!important;
+}
+html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar #soloSubmarineRepairBtn:not([hidden]){left:0!important;right:auto!important}
+html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar #soloSubmarinePowerBtn.compact-submarine-power:not([hidden]){left:54px!important;right:auto!important}
+html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar #soloSubmarineRepairBtn>small{font:700 8px/1.05 system-ui!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell>.modal-screen:not([hidden]){max-height:100dvh!important;overflow:auto!important;align-items:center!important;justify-content:center!important;padding:8px!important;box-sizing:border-box}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell>.modal-screen:not([hidden])>.modal-card{box-sizing:border-box;max-height:calc(100dvh - 16px)!important;max-width:calc(100vw - 16px)!important;width:min(100%,550px)!important;min-width:0!important;overflow:auto!important;padding:12px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #upgradeChoices{grid-template-columns:1fr!important;gap:8px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #upgradeChoices .upgrade-card{min-height:56px!important;max-width:100%!important}
+html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #gameShell>#toggleHudBtn{visibility:visible!important;pointer-events:auto!important;left:var(--touch-left)!important;right:auto!important;top:var(--touch-top)!important}
+@media(orientation:landscape){
+ html.abyssal-handheld body.game-active.mobile-game-active{--touch-stick:74px;--touch-action-width:72px}
+ html.abyssal-handheld body.game-active.mobile-game-active #hud:not([hidden]){width:min(44vw,360px)!important;max-width:min(44vw,360px)!important;max-height:45dvh!important}
+ html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){top:calc(var(--touch-top) + 56px)!important;width:clamp(92px,18vw,142px)!important;max-height:16dvh!important}
+ html.abyssal-handheld body.game-active.mobile-game-active #upgradeChoices{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))!important}
+}
+
+/* Communication has its own center slot above the ability dock. */
+html.abyssal-handheld body.game-active.mobile-game-active #quickComms:not([hidden]){
+ position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:calc(var(--touch-bottom) + 64px)!important;transform:translateX(-50%)!important;z-index:44!important
+}
+html.abyssal-handheld body.game-active.mobile-game-active #quickCommsToggle,
+html.abyssal-handheld body.game-active.mobile-game-active #quickCommsWheel button{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #quickCommsWheel{grid-template-columns:repeat(4,48px)!important;gap:6px!important;bottom:56px!important}
+@media(orientation:portrait){
+ html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #activeAbilities.active-abilities{
+  left:var(--touch-left)!important;right:calc(var(--touch-right) + var(--touch-stick-box) + 10px)!important;
+  transform:none!important;max-width:none!important;justify-content:center!important
+ }
+ html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #petHabitBar:not([hidden]){bottom:calc(var(--touch-bottom) + 68px)!important}
+}
+@media(max-width:360px) and (orientation:portrait){
+ html.abyssal-handheld body.game-active.mobile-game-active{--touch-action-width:48px}
+ html.abyssal-handheld body.game-active.mobile-game-active #hud .hud-stat small{font-size:7px!important}
+}
+
+/* The native select's chosen label must fit as well as its tap rectangle. */
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-catalog[data-single=true]{grid-template-columns:minmax(0,1fr)!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-catalog>select[hidden]{display:none!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .abyss-wardrobe :is(.aw-mobile-tools,.aw-mobile-catalog)>select{font:650 13px/1.2 system-ui!important}
+/* Keep the numerical cycle status, but leave the detailed decorative track
+   to the full-size desktop HUD. This frees the upper playfield on phones. */
+html.abyssal-handheld body.game-active.mobile-game-active #hud .track-line-wrapper{display:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .track-title{display:none!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .track-cycle-badge{font:700 9px/1.2 system-ui!important;white-space:normal!important;max-width:100%!important}
+html.abyssal-handheld body.game-active.mobile-game-active #hud .boss-progression-track{min-height:0!important;height:auto!important;padding:2px 3px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .selected-skill-row{grid-template-columns:14px minmax(0,1fr) auto!important;gap:3px!important;padding:5px 3px!important;min-height:44px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .selected-skill-name{font:650 9px/1.15 system-ui!important;white-space:normal!important;overflow-wrap:anywhere!important;overflow:visible!important;text-overflow:clip!important}
+html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .selected-skill-row strong{font:650 8px/1.1 system-ui!important}
+@media(orientation:portrait){
+ html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){top:calc(var(--touch-top) + 153px)!important;width:clamp(106px,32vw,142px)!important;max-width:142px!important}
+}

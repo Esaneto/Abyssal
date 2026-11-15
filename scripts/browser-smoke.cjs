@@ -72,6 +72,7 @@ const contentTypes={'.html':'text/html; charset=utf-8','.js':'application/javasc
 const artGallery = "<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>html,body{margin:0;min-height:100%;background:#020b13;color:#e5f6fc;font:14px system-ui}main{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px}section{background:radial-gradient(ellipse at center,#142d38,#06131f 72%);border:1px solid #33505a;border-radius:12px;text-align:center;overflow:hidden}canvas{display:block;width:100%;height:274px}h2{font-size:15px;margin:6px 0 8px;font-weight:600;letter-spacing:.04em}</style></head><body><main>\n<section><canvas id=\"gharial\" width=\"402\" height=\"274\"></canvas><h2>Gavial das Águas Negras</h2></section>\n<section><canvas id=\"leatherback\" width=\"402\" height=\"274\"></canvas><h2>Tartaruga-de-Couro</h2></section>\n<section><canvas id=\"hawksbill\" width=\"402\" height=\"274\"></canvas><h2>Tartaruga-de-Pente</h2></section>\n<section><canvas id=\"nightmareBoss\" width=\"402\" height=\"274\"></canvas><h2>Pesadelo Roxo, boss</h2></section>\n<section><canvas id=\"nightmareRelic\" width=\"402\" height=\"274\"></canvas><h2>Vestígio do Pesadelo, loja</h2></section>\n<section><canvas id=\"ribbonmoray\" width=\"402\" height=\"274\"></canvas><h2>Moreia-Fita Noturna</h2></section></main>\n<script src=\"/abyssal-curated-skins.js\"></script><script src=\"/marine-art.js\"></script><script src=\"/abyssal-rift-hardcore.js\"></script>\n<script>try{const catalog=window.AbyssalCuratedSkins.byId;for(const id of ['gharial','leatherback','hawksbill','ribbonmoray']){const canvas=document.getElementById(id),ctx=canvas.getContext('2d');ctx.lineCap='round';ctx.lineJoin='round';window.AbyssalMarineArt.draw(ctx,id==='ribbonmoray'?265:220,132,id==='ribbonmoray'?44:54,0,catalog[id],1600,false);}window.AbyssalRiftHardcore.drawFinalBoss(document.getElementById('nightmareBoss').getContext('2d'),{x:201,y:140,r:64,hp:100,maxHp:100},1600);window.AbyssalRiftHardcore.drawNightmareRelic(document.getElementById('nightmareRelic').getContext('2d'),201,137,66,1600);document.body.dataset.artStatus='painted';}catch(error){document.body.dataset.artStatus=String(error);}</script></body></html>";
 const localGameSmoke = [
 "// Browser smoke only. Injected by its local HTTP server, never committed to public/game.js.",
+"window.__abyssalMobileLayoutKeepAlive=()=>{if(!player||onlineMode||!isClassicShooterRun())return false;if(gameState==='upgrade'&&upgradeOptions.length)chooseUpgrade(upgradeOptions[0]);if(gameState!=='playing')return false;player.invuln=Math.max(player.invuln||0,120);hp=maxHp;return true;};",
 "window.__abyssalSmokeStep = () => {",
 " if(!isRiftRun() || onlineMode || !activeMapLayout) throw Error('Solo Fossa not active');",
 " // A real player can be in a paused level-up screen when this step begins.",
@@ -398,13 +399,24 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
   await command('Page.enable');
   await command('Runtime.enable');
   console.log('[live-browser] navigating to actual game');
-  if(mode==='mobile-wardrobe'){
+  if(mode==='mobile-wardrobe'||mode==='mobile-gameplay'){
+   if(mode==='mobile-gameplay')await command('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('abyssalControlsMobile','dual-stick')}catch(e){}"});
    await command('Emulation.setUserAgentOverride',{userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/128.0.0.0 Mobile Safari/537.36'});
    await command('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
    await command('Emulation.setDeviceMetricsOverride',{width:360,height:640,deviceScaleFactor:2,mobile:true,screenOrientation:{type:'portraitPrimary',angle:0}});
   }
   await command('Page.navigate',{url});
   await sleep(6500);
+  const auditControls=async(selectors,required,forceVisible=[])=>evaluate(`(()=>{const selectors=${JSON.stringify(selectors)},required=${JSON.stringify(required)},forceVisible=${JSON.stringify(forceVisible)},saved=[];try{
+   for(const selector of forceVisible){const e=document.querySelector(selector);if(e){saved.push([e,e.hidden,e.className]);e.hidden=false;if(e.id==='mobileAimStick')e.classList.add('dual-stick-visible');}}
+   const result=[],missing=[],collisions=[],blocked=[],raw=[];
+   const clip=(e,r)=>{let b={left:Math.max(0,r.left),top:Math.max(0,r.top),right:Math.min(innerWidth,r.right),bottom:Math.min(innerHeight,r.bottom)};if(getComputedStyle(e).position==='fixed')return b;for(let p=e.parentElement;p;p=p.parentElement){const c=getComputedStyle(p),q=p.getBoundingClientRect();if(/hidden|clip|auto|scroll/.test(c.overflowX)){b.left=Math.max(b.left,q.left);b.right=Math.min(b.right,q.right);}if(/hidden|clip|auto|scroll/.test(c.overflowY)){b.top=Math.max(b.top,q.top);b.bottom=Math.min(b.bottom,q.bottom);}if(c.position==='fixed')break;}return b;};
+   for(const selector of selectors){for(const e of document.querySelectorAll(selector)){const c=getComputedStyle(e),r=e.getBoundingClientRect();raw.push({selector,display:c.display,visibility:c.visibility,position:c.position,hidden:e.closest('[hidden]')?.id||null,rect:[r.left,r.top,r.width,r.height]});if(c.display==='none'||c.visibility==='hidden'||r.width<1||r.height<1||e.closest('[hidden]'))continue;const q=clip(e,r),w=q.right-q.left,h=q.bottom-q.top;if(w<=1||h<=1)continue;const name=e.id||e.getAttribute('aria-label')||e.textContent.trim().slice(0,42)||selector;result.push({selector,name,...q,w,h,rawW:r.width,rawH:r.height});if(required.includes(selector)){if(w<44||h<44||w<r.width-2||h<r.height-2)missing.push(name+' clipped '+w+'x'+h);const at=document.elementFromPoint((q.left+q.right)/2,(q.top+q.bottom)/2);if(!at||!e.contains(at))blocked.push(name+' blocked by '+(at?.id||at?.className||at?.tagName||'outside viewport'));}}}
+   for(const selector of required)if(!result.some(x=>x.selector===selector))missing.push(selector+' missing');
+   for(let i=0;i<result.length;i++)for(let j=i+1;j<result.length;j++){const a=result[i],b=result[j],w=Math.min(a.right,b.right)-Math.max(a.left,b.left),h=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);if(w>2&&h>2)collisions.push(a.name+' / '+b.name+' '+Math.round(w)+'x'+Math.round(h));}
+   return {count:result.length,missing,collisions,blocked,controls:result,diagnostics:missing.length?{w:innerWidth,h:innerHeight,html:document.documentElement.className,body:document.body.className,raw}:undefined};
+  }finally{for(const [e,hidden,cls] of saved){e.hidden=hidden;e.className=cls;}}})()`);
+  const assertAudit=(name,a)=>{console.log('[mobile-control-audit] '+name+' '+JSON.stringify(a));assert.deepEqual(a.missing,[],name+' clipped or missing controls');assert.deepEqual(a.collisions,[],name+' overlapping controls');assert.deepEqual(a.blocked,[],name+' blocked controls');};
   if(mode==='mobile-wardrobe'){
    for(let attempt=0;attempt<10;attempt++){if(await evaluate('document.body.dataset.cockpitStatus==="ok"'))break;await sleep(500);}
    assert.equal(await evaluate('document.body.dataset.cockpitStatus'), 'ok', await evaluate('document.body.dataset.cockpitError'));
@@ -419,8 +431,36 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     for(const part of [m.stage,m.panel,m.save])assert.ok(part.left>=-1&&part.right<=w+1&&part.top>=-1&&part.bottom<=h+1,'Wardrobe outside real viewport: '+JSON.stringify(m));
     assert.ok(w>h?m.stage.right<=m.panel.left+2:m.stage.bottom<=m.panel.top+2,'Preview overlaps catalog');
     assert.ok(m.choices>0,'No selectable cosmetics');
+    const selectors=['.aw-mobile-gender','.aw-mobile-view','.aw-mobile-group','.aw-mobile-category','.aw-primary','.aw-secondary','.aw-option','.aw-search-input'];
+    // Catalog content may scroll; its items must not overlap other visible controls.
+    assertAudit('wardrobe '+w+'x'+h,await auditControls(selectors,selectors.slice(0,2).concat(['.aw-primary','.aw-secondary'])));
     await screenshot('exact-mobile-wardrobe-'+w+'x'+h);
+    await evaluate("(()=>{const g=document.querySelector('.aw-mobile-group');g.value='gear';g.dispatchEvent(new Event('change'));const c=document.querySelector('.aw-mobile-category');c.value='fins';c.dispatchEvent(new Event('change'));if(document.querySelector('.aw-choices').dataset.category!=='fins')throw Error('Mobile category selection failed');g.value='suits';g.dispatchEvent(new Event('change'));return true})()");
+
    }
+   return;
+  }
+  if(mode==='mobile-gameplay'){
+   const state=()=>evaluate("({active:document.body.classList.contains('game-active'),paused:window.AbyssalGameHooks?.explorationPosition?.()?.paused,elapsed:window.AbyssalGameHooks?.expeditionState?.()?.elapsed})");
+   for(let i=0;i<8;i++){const a=await state();if(a.active&&!a.paused)break;await evaluate("document.querySelector('#upgradeChoices .upgrade-card')?.click()");await sleep(500);}
+   assert.equal((await state()).active,true,'Mobile Solo did not enter gameplay');
+   assert.equal(await evaluate('window.__abyssalMobileLayoutKeepAlive?.()'),true,'Mobile layout fixture could not keep active Solo alive');
+   const required=['#mobilePauseBtn','#toggleHudBtn','#mobilePetHabit','#skillPulseBtn','#skillDashBtn','#skinActiveBtn','#mobileAimStick','#mobileFireBtn','#soloSubmarineRepairBtn','#soloSubmarinePowerBtn','#quickCommsToggle'];
+   for(const [w,h] of [[320,568],[360,640],[640,360],[844,390]]){
+    await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:2,mobile:true,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});
+    await sleep(400);
+    // Exercise all optional actions at once, including contextual submarine actions
+    // and the Online emoji button, without modifying simulation or unlocks.
+    const active=await state();assert.equal(active.active,true,'Gameplay ended during viewport rotation '+JSON.stringify(active));
+    assert.equal(await evaluate('window.__abyssalMobileLayoutKeepAlive?.()'),true,'Mobile game not playing after rotation '+JSON.stringify(active));
+    const all=await auditControls([...required,'#hud','#selectedSkillsPanel','#runEnergyRanking'],required,['#skillPulseBtn','#skillDashBtn','#skinActiveBtn','#mobileAimStick','#mobileFireBtn','#soloSubmarineRepairBtn','#soloSubmarinePowerBtn','#quickComms']);
+    assertAudit('gameplay '+w+'x'+h,all);
+    await screenshot('exact-mobile-gameplay-'+w+'x'+h);
+   }
+   await evaluate("document.getElementById('mobilePauseBtn').click()");
+   await sleep(200);
+   assert.equal(await evaluate("document.getElementById('pauseScreen').hidden"),false,'Mobile pause must remain accessible');
+   assert.equal(await evaluate("document.getElementById('quitBtn').getBoundingClientRect().height>=40"),true,'Quit action must remain in pause menu');
    return;
   }
   if(mode==='solo'){
@@ -541,6 +581,9 @@ async function main(){
    assert.ok(fs.statSync(png).size>7000,'Journal screenshot missing');
   }
   if(process.argv.includes('--journal-only'))return;
+  await realGameplaySmoke(browser,url+'?stage=cockpit&view=wardrobe','mobile-wardrobe');
+  await realGameplaySmoke(browser,url,'mobile-gameplay');
+
   // Test the actual hatch transition and physical console in a real browser,
   // including mobile; save screenshots for visual acceptance inspection.
   for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-wardrobe-portrait',390,844,'wardrobe'],['cockpit-wardrobe-small',360,640,'wardrobe'],['cockpit-wardrobe-landscape',844,390,'wardrobe'],['cockpit-shop',1280,720,'shop'],['cockpit-abyssario',1280,720,'specimens'],['cockpit-solo-upgrades',1280,720,'upgrades'],['cockpit-resonance',1280,720,'resonance']]){
@@ -651,7 +694,6 @@ async function main(){
   }
   // Full Fossa replay is retained as an isolated localhost regression for the
   // frozen mode; public players still enter the classic Solo shooter only.
-  await realGameplaySmoke(browser,url+'?stage=cockpit&view=wardrobe','mobile-wardrobe');
   await realGameplaySmoke(browser,url,'solo');
   if(legacyModes)await realGameplaySmoke(browser,url+'?stage=deep','legacy');
   else console.log('[browser-smoke] Active release: Shooter Solo, legacy expeditions excluded from gating');
