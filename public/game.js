@@ -5,7 +5,7 @@ const ctx = canvas.getContext('2d', { alpha: false });
 let mobileViewport=document.documentElement.classList.contains('abyssal-handheld')||window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
 const cores=navigator.hardwareConcurrency||8;let lowPowerRendering=false,backgroundGradientCache=null,backgroundBloomCache=null,lastPaintAt=0;
 let hostileSpritePaintFrame=-1,hostileSpritePaintsThisFrame=0;
-const ADAPTIVE_QUALITY=[{name:'LEVE',dpr:1.25},{name:'MÉDIO',dpr:1.75},{name:'ULTRA',dpr:Infinity}];
+const ADAPTIVE_QUALITY=[{name:'LEVE',dpr:.75},{name:'MÉDIO',dpr:1},{name:'ULTRA',dpr:Infinity}];
 const MOBILE_DPR_CAPS=[1.25,1.75,2.5];
 function savedGraphicsLevel(){try{const v=localStorage.getItem('abyssalGraphicsQuality');return v==='0'?0:v==='1'?1:v==='2'?2:mobileViewport?1:2;}catch(_){return mobileViewport?1:2;}}
 let adaptiveQualityLevel=savedGraphicsLevel(),adaptiveQualityCeiling=adaptiveQualityLevel,adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr,adaptiveFrameCost=0,adaptiveFrameCount=0;

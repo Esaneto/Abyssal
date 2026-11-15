@@ -7,10 +7,10 @@ const game=fs.readFileSync('public/game.js','utf8');
 const cave=require('../public/abyssal-solo-cavern.js');
 test('mobile DPR is bounded independently of desktop and world coordinates',()=>{
  const source=game.slice(game.indexOf('function graphicsDpr()'),game.indexOf('const $ ='));
- const ctx={window:{devicePixelRatio:3},ADAPTIVE_QUALITY:[{dpr:1.25},{dpr:1.75},{dpr:Infinity}],MOBILE_DPR_CAPS:[1.25,1.75,2.5],adaptiveQualityLevel:2,adaptiveQualityCeiling:2,mobileViewport:true,viewW:390,viewH:844};
+ const ctx={window:{devicePixelRatio:3},ADAPTIVE_QUALITY:[{dpr:.75},{dpr:1},{dpr:Infinity}],MOBILE_DPR_CAPS:[1.25,1.75,2.5],adaptiveQualityLevel:2,adaptiveQualityCeiling:2,mobileViewport:true,viewW:390,viewH:844};
  vm.createContext(ctx);vm.runInContext(source,ctx);
  assert.equal(ctx.graphicsDpr(),2.5);ctx.adaptiveQualityLevel=0;assert.equal(ctx.graphicsDpr(),2.5);ctx.adaptiveQualityCeiling=1;assert.equal(ctx.graphicsDpr(),1.75);ctx.adaptiveQualityCeiling=0;assert.equal(ctx.graphicsDpr(),1.25);ctx.adaptiveQualityCeiling=2;ctx.viewW=1000;ctx.viewH=1000;assert.equal(ctx.graphicsDpr(),2);ctx.viewW=390;ctx.viewH=844;
- ctx.mobileViewport=false;ctx.adaptiveQualityLevel=2;assert.equal(ctx.graphicsDpr(),3);
+ ctx.mobileViewport=false;ctx.adaptiveQualityLevel=2;assert.equal(ctx.graphicsDpr(),3);ctx.adaptiveQualityLevel=1;assert.equal(ctx.graphicsDpr(),1);ctx.adaptiveQualityLevel=0;assert.equal(ctx.graphicsDpr(),1);
 });
 test('mobile graphics falls after sustained overload and recovers slowly up to preference',()=>{
  const source=game.slice(game.indexOf('function updateAdaptivePerformance(now)'),game.indexOf('window.AbyssalAdaptivePerformance='));
