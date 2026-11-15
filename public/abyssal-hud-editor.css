@@ -61,3 +61,12 @@ html.abyssal-installed-android.abyssal-handheld-landscape #submarineWorkshop:not
 #submarineWorkshop .hud-editor-piece{box-sizing:border-box!important;min-height:0!important;min-width:0!important;max-width:none!important;max-height:none!important}
 #submarineWorkshop .hud-editor-stage[data-measured=true] .hud-editor-piece[data-live=true]{background:transparent!important;color:transparent!important;border:1px dashed #79b2bc66!important;box-shadow:none!important}
 #submarineWorkshop .hud-editor-stage[data-measured=true] .hud-editor-piece[data-live=true][aria-pressed=true]{outline:2px solid #ffd16b!important;background:#ffd16b12!important}
+
+/* Compact submarine action regardless of parent, device or generic map styles. */
+body.game-active #gameShell #soloSubmarinePowerBtn.compact-submarine-power:not([hidden]){box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;width:48px!important;min-width:48px!important;max-width:48px!important;height:48px!important;min-height:48px!important;max-height:48px!important;padding:2px!important;letter-spacing:0!important;border-radius:7px!important;box-shadow:none!important;pointer-events:auto!important;touch-action:manipulation!important}
+body.game-active #gameShell #soloSubmarinePowerBtn.compact-submarine-power>span{font-size:17px!important;line-height:1!important;color:#ffd36b!important}
+body.game-active #gameShell #soloSubmarinePowerBtn.compact-submarine-power>small{font:900 12px/1 Inter,sans-serif!important;color:#fff0be!important}
+body.game-active.custom-hud-active #gameShell [data-hud-user-hidden],body.game-active.custom-hud-active #gameShell [data-hud-user-hidden] *{visibility:hidden!important;pointer-events:none!important}
+#submarineWorkshop .hud-editor-piece[hidden]{display:none!important}
+#submarineWorkshop .hud-editor-actions .hud-editor-remove{color:#ffd4d9;border-color:#a55565;background:#45232d}
+#submarineWorkshop .hud-editor-actions button:disabled{opacity:.42;cursor:not-allowed}

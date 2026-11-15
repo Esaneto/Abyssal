@@ -709,7 +709,7 @@ function soloSubmarineTopUp(){
 }
 function ensureSoloSubmarineButton(){
  let button=document.getElementById('soloSubmarinePowerBtn');if(button)return button;
- button=document.createElement('button');button.id='soloSubmarinePowerBtn';button.type='button';button.className='abyss-map-interact';button.hidden=true;
+ button=document.createElement('button');button.id='soloSubmarinePowerBtn';button.type='button';button.className='abyss-map-interact compact-submarine-power';button.hidden=true;
  button.addEventListener('click',soloSubmarineTopUp);document.getElementById('gameShell')?.append(button);return button;
 }
 function updateSoloSubmarineInteraction(){
@@ -5112,17 +5112,17 @@ canvas.addEventListener('pointermove',e=>{if(!isMobileDevice()){pointer.clientX=
 window.addEventListener('pointermove',e=>{if(isMobileDevice())return;pointer.clientX=e.clientX;pointer.clientY=e.clientY;if(gameState==='playing')updateMouseAimFromCursor();},{passive:true});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>canvas.addEventListener(ev,()=>{pointer.down=false;pointer.active=false}));
 const joystick=$('mobileJoystick'),joystickKnob=$('joystickKnob'),gameShell=$('gameShell');
-function setJoystickFromPointer(e){if(!joystick||!joystickKnob)return;const base=joystick.querySelector('.joystick-base');if(!base)return;const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(1,r.width*.34);let dx=e.clientX-cx,dy=e.clientY-cy;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}joystickVector.x=dx/max;joystickVector.y=dy/max;joystickVector.active=Math.hypot(joystickVector.x,joystickVector.y)>.13;const visualScale=window.AbyssalHudLayout?.scaleFor('move')||1;joystickKnob.style.transform=`translate(${dx/visualScale}px, ${dy/visualScale}px)`;}
+function setJoystickFromPointer(e){if(!joystick||!joystickKnob)return;const base=joystick.querySelector('.joystick-base');if(!base)return;const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(1,r.width*.34);let dx=e.clientX-cx,dy=e.clientY-cy;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}joystickVector.x=dx/max;joystickVector.y=dy/max;joystickVector.active=Math.hypot(joystickVector.x,joystickVector.y)>.13;joystickKnob.style.transform=`translate(${dx}px, ${dy}px)`;}
 function releaseMobileJoystick(e){if(!joystick||joystickVector.pointerId!==e.pointerId)return;joystickVector={x:0,y:0,active:false,pointerId:null};joystick.hidden=true;joystick.classList.remove('is-floating');joystick.style.left='';joystick.style.top='';joystick.style.bottom='';joystick.style.transform='';if(joystickKnob)joystickKnob.style.transform='translate(0, 0)';window.AbyssalHudLayout?.refresh?.();}
 if(gameShell&&joystick){
  gameShell.addEventListener('pointerdown',e=>{
   if(gameState!=='playing'||!isMobileDevice()||joystickVector.pointerId!==null)return;
   if(e.target.closest('button,a,input,select,textarea,.active-ability,.screen,#mobileJoystick,#mobileMoveStick,#mobileAimStick'))return;
-  const fixedMove=window.AbyssalHudLayout?.movementRect?.();if(fixedMove){if(e.clientX<fixedMove.left||e.clientX>fixedMove.right||e.clientY<fixedMove.top||e.clientY>fixedMove.bottom)return;}else if(controlSettings.mobile==='dual-stick'&&e.clientX>innerWidth*.5)return;
+  if(controlSettings.mobile==='dual-stick'&&e.clientX>innerWidth*.5)return;
   e.preventDefault();
   joystickVector={x:0,y:0,active:false,pointerId:e.pointerId};
   joystick.hidden=false;joystick.classList.add('is-floating');
-  const edge=44,clampX=fixedMove?(fixedMove.left+fixedMove.right)/2:Math.max(edge,Math.min(innerWidth-edge,e.clientX)),clampY=fixedMove?(fixedMove.top+fixedMove.bottom)/2:Math.max(edge,Math.min(innerHeight-edge,e.clientY));joystick.style.left=`${clampX}px`;joystick.style.top=`${clampY}px`;joystick.style.bottom='auto';joystick.style.transform=fixedMove?'translate(-50%, -50%) scale('+fixedMove.s+')':'translate(-50%, -50%)';
+  const edge=44,clampX=Math.max(edge,Math.min(innerWidth-edge,e.clientX)),clampY=Math.max(edge,Math.min(innerHeight-edge,e.clientY));joystick.style.left=`${clampX}px`;joystick.style.top=`${clampY}px`;joystick.style.bottom='auto';joystick.style.transform='translate(-50%, -50%)';
   gameShell.setPointerCapture?.(e.pointerId);
   setJoystickFromPointer(e);
  });
