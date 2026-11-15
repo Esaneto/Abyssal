@@ -4528,9 +4528,9 @@ function drawHostileSpeciesEffect(enemy,t){
  }
  ctx.restore();
 }
-const specimenPortraits=new Map();
-function registerSpecimenPortrait(canvas,skinId){
- if(!canvas?.getContext)return;specimenPortraits.set(canvas,String(skinId||equippedSkin));scheduleSpecimenPortraits();
+const specimenPortraits=new Map(),profilePortraitAppearance=new WeakMap();
+function registerSpecimenPortrait(canvas,skinId,appearance=null,gender=null){
+ if(!canvas?.getContext)return;specimenPortraits.set(canvas,String(skinId||equippedSkin));if(canvas.id==='profileSpecimenCanvas')profilePortraitAppearance.set(canvas,{appearance,gender});scheduleSpecimenPortraits();
 }
 function hasVisibleSpecimenPortrait(){
  for(const canvas of [...specimenPortraits.keys()]){
@@ -4556,13 +4556,14 @@ function renderSpecimenPortraits(t){
   const dx=profile?w*.50:w*.42,dy=h*.60,bob=profile?Math.sin(t*.0018)*2:Math.sin(t*.0022)*3;
   const portraitRadius=profile?Math.min(27,w*.15,h*.35):27;
   const reduced=Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
-  DIVER_ART?.draw?.(c,dx,dy+(reduced?0:bob),portraitRadius,profile?0:-.10,profile?0:-.10,reduced?0:t,{gender:diverGender,moving:!reduced,viewYaw:profile?1:undefined,reducedMotion:reduced});
+  const portraitLook=profile?profilePortraitAppearance.get(canvas):null;
+  DIVER_ART?.draw?.(c,dx,dy+(reduced?0:bob),portraitRadius,profile?0:-.10,profile?0:-.10,reduced?0:t,{gender:portraitLook?.gender||diverGender,appearance:portraitLook?.appearance||undefined,moving:!reduced,viewYaw:profile?1:undefined,reducedMotion:reduced,gameplay:profile, motion:profile?{phase:reduced?0:t*.006,weight:reduced?0:1,swimSide:1}:undefined});
   const sx=w*.62,sy=h*.30+Math.cos(t*.002)*5;
   try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
  }
  if(visiblePortraits>0&&hasVisibleSpecimenPortrait())requestAnimationFrame(renderSpecimenPortraits);else registerSpecimenPortrait.running=false;
 }
-window.addEventListener('abyssal-profile-specimen-render',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,d.skinId);});
+window.addEventListener('abyssal-profile-specimen-render',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,d.skinId,d.appearance,d.gender);});
 window.addEventListener('abyssal-menu-specimen-canvas',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,equippedSkin);});
 const remoteDiverMotion=new Map();
 const remoteWeaponInfusions=new Map();
@@ -4843,8 +4844,8 @@ function draw(t){
   if(!anglerConcealed){drawSharkVisionCone(e,t);drawEnemyThreatAura(e,t);}ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):isOpenSeaRun()&&e.wildlifeMode?(.12+.88*clamp((Date.now()-(Number(e.spawnedAt)||0))/2400,0,1)):1;if(e.specimenSkinId){ /* Shop specimen artwork is also the wild fauna of Mar Aberto. */
    const specimenSkin=skinData.find(s=>s.id===e.specimenSkinId);
    if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
-   else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);
-  }else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed&&(!isOpenSeaRun()||!e.wildlifeMode||e.aiIndicator==='attack'))drawHostileSpeciesEffect(e,t);if(!anglerConcealed&&e.hostileBite){const bite=e.hostileBite,q=(performance.now()-bite.startedAt)/bite.duration;if(q>=1)e.hostileBite=null;else if(q>=0)drawSpecimenBite(e,bite.angle,{reach:Math.max(e.r,renderRadius*.65)},q);}
+   else drawCreature(e.x,e.y,renderRadius,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);
+  }else drawCreature(e.x,e.y,renderRadius,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed&&(!isOpenSeaRun()||!e.wildlifeMode||e.aiIndicator==='attack'))drawHostileSpeciesEffect(e,t);if(!anglerConcealed&&e.hostileBite){const bite=e.hostileBite,q=(performance.now()-bite.startedAt)/bite.duration;if(q>=1)e.hostileBite=null;else if(q>=0)drawSpecimenBite(e,bite.angle,{reach:Math.max(e.r,renderRadius*.65)},q);}
   if(!anglerConcealed&&!activeMapLayout&&e.wildlifeMode){
    const intent=e.aiIndicator;
    if(intent==='attack'){
