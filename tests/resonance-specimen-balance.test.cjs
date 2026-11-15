@@ -11,7 +11,7 @@ test('conditional damage is stronger than general damage within its niche',()=>{
  assert.equal(b.RATE,1.15);
 });
 test('pet upgrades are rank-capped and only use their own stat multipliers',()=>{
- assert.equal(b.petAttack(3),1.45);assert.equal(b.petLife(3),1.6);assert.equal(b.petSpeed(3),1.36);assert.equal(b.petCadence(3),1.45);
+ for(const [actual,expected] of [[b.petAttack(3),1.45],[b.petLife(3),1.6],[b.petSpeed(3),1.36],[b.petCadence(3),1.45]])assert.ok(Math.abs(actual-expected)<1e-9);
  assert.equal(b.petLife(100),1.6);assert.equal(b.petAttack(-1),1);
  assert.ok(Math.abs(b.petInterval(3)-703.448)<.001);
  assert.deepEqual([0,1,2,3].map(n=>b.fieldRadius(n)),[0,65,90,115]);
