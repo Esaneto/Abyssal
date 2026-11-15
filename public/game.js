@@ -1468,16 +1468,16 @@ function updateProgressionTrackUI() {
   // A arena PvP não possui ciclos de bosses nem progressão de expedição.
   if (!isClassicShooterRun()) { track.style.display = 'none'; return; }
   track.style.display = 'block';
-  var hpBonusPercent = Math.round(bossProgressionCycle * 20);
+  var healthPercent = Math.round((CREATURE_SCALE?.healthMultiplier?.(elapsed) ?? 1) * 100);
   var xpBonusPercent = Math.round(bossProgressionCycle * 2);
   var cycleBadge = $('trackCycleBadge');
   if (cycleBadge) {
     if (bossProgressionCycle >= PROGRESSION_MAX_CYCLES) {
       cycleBadge.classList.add('maxed');
-      cycleBadge.textContent = 'CICLO MÁXIMO ⚡ +100% HP · +10% XP';
+      cycleBadge.textContent = 'CICLO MÁXIMO · VIDA '+healthPercent+'% · +10% XP';
     } else {
       cycleBadge.classList.remove('maxed');
-      cycleBadge.textContent = 'CICLO ' + (bossProgressionCycle + 1) + ' · +' + hpBonusPercent + '% HP / +' + xpBonusPercent + '% XP';
+      cycleBadge.textContent = 'CICLO ' + (bossProgressionCycle + 1) + ' · VIDA ' + healthPercent + '% · +' + xpBonusPercent + '% XP';
     }
   }
   var fill = $('trackFill');
