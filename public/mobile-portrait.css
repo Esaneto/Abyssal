@@ -315,3 +315,7 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
 
 /* Mobile full HUD uses an important display rule; reduced mode must win in both orientations. */
 html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #hud:not([hidden]),html.abyssal-handheld.abyssal-handheld-landscape body.game-active.mobile-game-active.hud-collapsed #hud:not([hidden]){display:none!important}
+
+html.abyssal-handheld body.game-active.mobile-game-active #mobileMoveStick.dual-stick-visible{display:flex!important;position:fixed!important;left:var(--touch-left)!important;right:auto!important;top:auto!important;bottom:var(--touch-bottom)!important;width:var(--touch-stick-box)!important;height:var(--touch-stick-box)!important;max-width:none!important;max-height:none!important;z-index:40!important}
+html.abyssal-handheld body.game-active.mobile-game-active #mobileMoveStick .joystick-base{width:var(--touch-stick)!important;height:var(--touch-stick)!important}
+html.abyssal-handheld body.game-active.mobile-game-active #mobileMoveStick .joystick-knob{width:32px!important;height:32px!important}

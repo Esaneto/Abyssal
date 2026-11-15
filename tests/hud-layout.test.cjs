@@ -1,0 +1,6 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
+const {clean,bound,ITEMS}=require('../public/abyssal-hud-layout.js');
+test('HUD profiles are isolated, sanitized and restricted to supported controls',()=>{const p=clean({portrait:{skillPulseBtn:{x:2,y:-1,s:3},bad:{x:0,y:0,s:1}},landscape:{skillPulseBtn:{x:.2,y:.7,s:.8}}});assert.deepEqual(p.portrait,{skillPulseBtn:{x:1,y:0,s:1.65}});assert.deepEqual(p.landscape,{skillPulseBtn:{x:.2,y:.7,s:.8}});assert.ok(ITEMS.some(x=>x[0]==='mobileMoveStick'));assert.ok(ITEMS.some(x=>x[0]==='petHabitBar'));});
+test('HUD anchor clamps to visible screen and handles oversized items',()=>{assert.deepEqual(bound(0,900,48,48,390,844),{x:30,y:814});assert.deepEqual(bound(0,0,900,900,390,844),{x:195,y:422});});
+test('editor is included in the offline shell and fixed movement keeps original input semantics',()=>{const sw=fs.readFileSync('public/offline-sw.js','utf8'),html=fs.readFileSync('public/index.html','utf8'),game=fs.readFileSync('public/game.js','utf8');assert.match(sw,/abyssal-hud-layout\.js/);assert.match(html,/hudLayoutPauseBtn/);assert.match(html,/hudLayoutMenuBtn/);assert.match(game,/\[mobileMoveStick,false\],\[mobileAimStick,true\]/);assert.match(game,/hasFixedMove/);});

@@ -41,7 +41,7 @@ const GAME_FILES = [
   'age-slider.js',
   'age-slider.css',
   'mobile-portrait.js',
-  'mobile-portrait.css',
+  'mobile-portrait.css','abyssal-hud-layout.js','abyssal-hud-layout.css',
   'abyssal-ocean-cinema.svg',
   'ocean-entry.svg',
   'abyssal-tentacle-cursor.svg',
