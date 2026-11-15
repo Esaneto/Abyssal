@@ -59,11 +59,13 @@ test('Solo submarine is a powered world object with automatic researched weapons
  assert.match(cave,/Every rock plant remains faintly self-luminous/);
 });
 
-test('PvE Resonance is research-gated while chosen skills still start at level 1',()=>{
+test('PvE Resonance is research-gated and only the shot starts at level 1',()=>{
  const game=read('public/game.js');
  assert.match(game,/if\(window\.AbyssalSoloBase\?\.unlocked\)return window\.AbyssalSoloBase\.unlocked\(id\)/);
  assert.match(game,/RESONANCE_DEFAULTS=\{pve:\['photon','range','regen'\]/);
- assert.match(game,/skill\.apply\(\);upgradeLevels\[id\]=1/);
+ assert.doesNotMatch(game,/skill\.apply\(\);upgradeLevels\[id\]=1/);
+ assert.match(game,/upgradeLevels=\{power:0,rate:0,range:0,speed:0,magnet:0,regen:0/);
+ assert.match(game,/photon:selectedOpeningShot==='photon'\?1:0/);
 });
 
 test('cockpit research text documents proportional power and no shield surcharge',()=>{
