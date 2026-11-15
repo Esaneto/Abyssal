@@ -66,7 +66,7 @@ test('the command bridge paints structural geometry and moving sea fauna',()=>{
  const screen={hidden:false};const callbacks=new Map();
  const win={AbyssalDiverGender:'female',devicePixelRatio:1,addEventListener(){},AbyssalOnline:{getAccount:()=>null}};
  let next=0;
- const scope={document:{getElementById:id=>id==='submarineWorkshop'?screen:id==='abyssCockpitCanvas'?canvas:null},
+ const scope={document:{hidden:false,body:{classList:{contains:()=>false}},addEventListener(){},getElementById:id=>id==='submarineWorkshop'?screen:id==='abyssCockpitCanvas'?canvas:null},
   window:win,requestAnimationFrame:fn=>{callbacks.set(++next,fn);return next;},cancelAnimationFrame:n=>callbacks.delete(n)};
  vm.runInNewContext(source,scope,{filename:'abyssal-submarine-cockpit.js'});
  win.AbyssalSubmarineCockpit.open();
