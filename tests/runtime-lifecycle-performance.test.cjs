@@ -19,9 +19,12 @@ test('Mar Aberto suspends its animation loop while inactive or hidden',()=>{
 
 test('hidden specimen portraits do not keep a permanent requestAnimationFrame chain',()=>{
  const game=read('public/game.js');
- assert.match(game,/function hasVisibleSpecimenPortrait\(\)/);
- assert.match(game,/visiblePortraits>0&&hasVisibleSpecimenPortrait\(\)/);
- assert.match(game,/if\(!canvas\.getClientRects\(\)\.length\|\|!canvas\.offsetWidth\|\|!canvas\.offsetHeight\)continue/);
+ assert.match(game,/function visibleSpecimenPortraits\(\)/);
+ assert.match(game,/if\(!portraitFrame&&!document\.hidden&&visibleSpecimenPortraits\(\)\.length\)portraitFrame=requestAnimationFrame\(renderSpecimenPortraits\)/);
+ assert.match(game,/if\(visible\.length\)scheduleSpecimenPortraits\(\)/);
+ assert.match(game,/canvas\.closest\('\[hidden\]'\)\|\|!canvas\.getClientRects\(\)\.length\|\|!canvas\.offsetWidth\|\|!canvas\.offsetHeight/);
+ assert.match(game,/portraitScreenObserver\.observe\(element,\{attributes:true,attributeFilter:\['class','hidden'\]\}\)/);
+ assert.match(game,/profilePortraitMotion\.set\(canvas,motion\)/);
 });
 
 test('multiplayer heartbeat exists only for a visible active room',()=>{
