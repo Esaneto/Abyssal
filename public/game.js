@@ -712,13 +712,13 @@ function ensureSoloSubmarineButton(){
 }
 function updateSoloSubmarineInteraction(){
  const button=ensureSoloSubmarineButton(),repair=ensureSoloRepairButton();if(!button)return;
+ const parent=mobileViewport?$('petHabitBar'):$('gameShell');if(parent&&button.parentElement!==parent)parent.prepend(button);
  const job=soloSubmarine.repair,damaged=job?.section||soloRepairCandidate();repair.hidden=!soloSubmarineActive()||!damaged;if(damaged&&!repair.hidden){const label=repair.querySelector('small'),duration=submarineRepairSeconds(),name=job?(onlineMode?'REPARANDO · ':'CANCELAR · ')+Math.ceil(Math.max(0,duration-job.elapsed))+'s':damaged.name+' '+Math.ceil(damaged.hp)+'/'+SOLO_HULL_HP;if(label.textContent!==name)label.textContent=name;repair.setAttribute('aria-label',job?(onlineMode?'Reparo em andamento '+name:'Cancelar soldagem '+name):'Reparar '+name);}
  if(!soloSubmarineActive()||!player){button.hidden=true;return;}
  const near=Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM;
  button.hidden=!near;if(!near)return;
  const full=onlineMode?20+10*onlineSubmarineWeapons.length:(window.AbyssalSoloBase?.fullPowerCost?.()||20),seconds=Math.max(0,soloSubmarine.powerSeconds),minutes=seconds/60;
  const missing=Math.max(0,300-seconds),needed=missing<=.01?0:Math.max(1,Math.ceil(full*missing/300)),wallet=onlineMode?Math.max(0,Number(window.AbyssalOnline?.getAccount?.()?.energy)||0):Math.max(0,Number(energyWallet?.get().energy)||0),cost=wallet>0?Math.min(needed,wallet):needed;
- const parent=mobileViewport?$('petHabitBar'):$('gameShell');if(parent&&button.parentElement!==parent)parent.prepend(button);
  button.classList.add('compact-submarine-power');
  button.disabled=needed===0||wallet<=0;
  button.setAttribute('aria-label','Energizar submarino: '+cost+' energia');
@@ -1680,13 +1680,14 @@ function startGame(resumingDeploy=false){
  mobileFireHeld=false;pointer.down=false;autoFollowCursor=false;
  document.body.classList.add('game-active');
  document.body.dataset.hudMode=onlineMode?'online':'solo';
+ window.AbyssalHudLayout?.beginRun?.();
  document.body.classList.toggle('abyss-solo-run',isClassicCavernRun());
  const ranking=$('runEnergyRanking');if(ranking)ranking.hidden=!onlineMode;
  runResultPending=false;
  window.AbyssalTreasure?.reset();expeditionMode=isRiftRun();expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;soloSideEncounterTier=-1;soloEliteRewardTier=-1;tierDescentPending=false;onlineBossesDefeated=0;if(!onlineMode){activeMapLayout=null;W=isOpenSeaRun()?oceanWidth():defaultWidth();H=isOpenSeaRun()?oceanHeight():defaultHeight();if(requestedRunMode==='rift')ensureSoloMap();else runSeed=(Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;}else if(onlineRoomMode!=='rift'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;W=defaultWidth();H=defaultHeight();}
  
  elapsed=0;alertedBossIds.clear();gameplayNoticeQueue.length=0;gameplayNoticeActive=false;gameplayNoticeRecent.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeMotionSeq=0;lastAuthoritativeSpawnSeq=0;lastAuthoritativeContactSeq=0;lastAuthoritativeServerTime=0;lastAuthoritativeMotionServerTime=0;lastAuthoritativeSpawnServerTime=0;lastAuthoritativeContactServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
- setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
+ setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;ensureSoloRepairButton();const powerButton=ensureSoloSubmarineButton(),powerParent=mobileViewport?$('petHabitBar'):$('gameShell');if(powerParent&&powerButton.parentElement!==powerParent)powerParent.prepend(powerButton);initBossProgression();
  const petBar=document.getElementById('petHabitBar');if(petBar)petBar.hidden=onlineMode&&!isClassicCavernRun();setPetHabit(petHabit);
  if(!onlineMode&&requestedRunMode==='rift')publishSoloDepthState();
   riftBossMarks=[];riftSoloHazardCooldowns.clear();soloRiftCheckpointRoomId='start';

@@ -237,16 +237,30 @@ function resolvePositions(entries,w,h,safe={},avoidOverlap=true,device='portrait
  }
  return result;
 }
+// Reserve the space of the complete HUD, even for controls which are not
+// currently available. The skill rail grows from a fixed edge, not its center.
+function planPositions(entries,w,h,safe={},device='portrait'){
+ const prepared=entries.map(e=>{
+  if(e.id!=='skills'||!e.reserve||e.pos.hidden)return e;
+  const anchor=e.pos.y<=.5?1:-1,reference=e.reserve.reference,extent=Math.max(reference,e.reserve.height);
+  return {...e,anchor,reference,extent,box:{...e.box,h:extent},pos:{...e.pos,y:e.pos.y+anchor*(extent-reference)*e.pos.s/(2*h)}};
+ });
+ const positions=resolvePositions(prepared,w,h,safe,true,device),rail=prepared.find(e=>e.id==='skills'&&e.anchor),slots={};
+ if(rail&&positions.skills){const p=positions.skills;slots.skills={anchor:rail.anchor,reference:rail.reference};positions.skills={...p,y:p.y-rail.anchor*(rail.extent-rail.reference)*p.s/(2*h)};}
+ return {positions,slots};
+}
+function displayPosition(pos,slot,box,h){return slot?{...pos,y:pos.y+slot.anchor*(box.h-slot.reference)*pos.s/(2*h)}:pos;}
 function fit(pos,box,w,h,safe={}){const l=Math.max(6,safe.left||0),r=Math.max(6,safe.right||0),t=Math.max(6,safe.top||0),b=Math.max(6,safe.bottom||0),s=Math.min(pos.s,Math.max(.1,(w-l-r)/Math.max(1,box.w)),Math.max(.1,(h-t-b)/Math.max(1,box.h)));const hw=box.w*s/2,hh=box.h*s/2;return {x:clamp(pos.x*w,l+hw,Math.max(l+hw,w-r-hw)),y:clamp(pos.y*h,t+hh,Math.max(t+hh,h-b-hh)),s};}
 function safeInsets(doc){const html=doc.documentElement;if(!html.classList.contains('abyssal-handheld'))return {};let el=doc.getElementById('abyssalHudSafeAreaProbe');if(!el){el=doc.createElement('div');el.id='abyssalHudSafeAreaProbe';el.style.cssText='position:fixed;pointer-events:none;visibility:hidden;width:0;height:0;box-sizing:content-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);';doc.body.append(el);}const c=doc.defaultView.getComputedStyle(el);return {left:parseFloat(c.paddingLeft)||0,right:parseFloat(c.paddingRight)||0,top:parseFloat(c.paddingTop)||0,bottom:parseFloat(c.paddingBottom)||0};}
 function groupRect(els){if(!els.length)return null;const rects=els.map(el=>el.getBoundingClientRect()),l=Math.min(...rects.map(r=>r.left)),t=Math.min(...rects.map(r=>r.top)),r=Math.max(...rects.map(r=>r.right)),b=Math.max(...rects.map(r=>r.bottom));return {rects,l,t,r,b,w:r-l,h:b-t,cx:(l+r)/2,cy:(t+b)/2};}
+function skillReservation(el,box){const c=el.ownerDocument.defaultView.getComputedStyle(el),row=el.querySelector('.selected-skill-row'),r=row?.getBoundingClientRect(),reference=Math.max(1,(r?.height||32)+(parseFloat(c.paddingTop)||0)+(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderTopWidth)||0)+(parseFloat(c.borderBottomWidth)||0));return {reference,height:Math.max(reference,parseFloat(c.maxHeight)||box.h)};}
 function visibleGroup(doc,selectors){return selectors.flatMap(s=>[...doc.querySelectorAll(s)]).filter(el=>{const r=el.getBoundingClientRect(),cs=doc.defaultView.getComputedStyle(el);return r.width>0&&r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden';});}
 function placeGroup(els,g,pos,sr,safe=safeInsets(els[0].ownerDocument)){const f=fit(pos,g,sr.width,sr.height,safe);els.forEach((el,i)=>{const rc=g.rects[i],ex=(rc.left+rc.right)/2,ey=(rc.top+rc.bottom)/2;el.style.setProperty('translate',(sr.left+f.x+(ex-g.cx)*f.s-ex)+'px '+(sr.top+f.y+(ey-g.cy)*f.s-ey)+'px','important');el.style.setProperty('scale',String(f.s),'important');el.style.setProperty('transform-origin','center','important');el.toggleAttribute('data-hud-custom-opacity',typeof pos.o==='number');if(typeof pos.o==='number')el.style.setProperty('--hud-custom-opacity',String(pos.o));else el.style.removeProperty('--hud-custom-opacity');});return f;}
 function ownerKey(name){return String(name||'').trim().toLowerCase();}
 function changedProfiles(before,after){const result=[];for(const mode of MODES)for(const device of PROFILES)if(JSON.stringify(modeLayout(before,mode)[device])!==JSON.stringify(modeLayout(after,mode)[device]))result.push(mode+':'+device);return result;}
 function mergeProfiles(remote,local,changes){const out=normalize(remote),next=normalize(local);for(const key of (Array.isArray(changes)?changes.slice(0,6):[])){if(typeof key!=='string')continue;const [mode,device]=key.split(':');if(MODES.includes(mode)&&PROFILES.includes(device))modeLayout(out,mode)[device]=modeLayout(next,mode)[device];}return out;}
 function hasEdits(layout){return MODES.some(mode=>PROFILES.some(device=>Object.keys(modeLayout(layout,mode)[device]).length));}
-const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
+const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,planPositions,displayPosition,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
 const doc=root.document;if(!doc)return;
 function read(key){try{return JSON.parse(root.localStorage.getItem(key)||'null');}catch{return null;}}
 function write(key,v){try{root.localStorage.setItem(key,JSON.stringify(v));return true;}catch{return false;}}
@@ -256,10 +270,10 @@ const cachedIdentity=()=>{try{return root.localStorage.getItem('abyssalSessionTo
 let owner=cachedIdentity(),imported=null,scheduled=false;
 const publishing=new Set();
 function readScoped(name){const record=read(scoped(KEY,name));if(record)return {layout:normalize(record.layout),revision:Number(record.revision)||0};const marker=read(OWNER),legacy=read(KEY);return {layout:normalize((marker===null&&name===cachedIdentity()||marker===(name||GUEST))?legacy:null),revision:0};}
-let record=readScoped(owner),saved=record.layout,revision=record.revision;
+let record=readScoped(owner),saved=record.layout,revision=record.revision,runLayout=null,layoutPlan=null,hudObserver=null;
 function storeCurrent(){const ok=write(scoped(KEY,owner),{layout:saved,revision});write(OWNER,owner||GUEST);write(KEY,saved);return ok;}
 function pendingFor(name){const key=scoped(PENDING,name),v=read(key);if(v)return v;const old=read(PENDING);if(name&&ownerKey(old?.owner)===name&&old.layout){const next={layout:normalize(old.layout),changes:MODES.flatMap(mode=>PROFILES.map(device=>mode+':'+device))};write(key,next);try{root.localStorage.removeItem(PENDING);}catch{}return next;}return null;}
-function switchOwner(name){name=ownerKey(name);if(name===owner)return;storeCurrent();owner=name;record=readScoped(owner);saved=record.layout;revision=record.revision;storeCurrent();schedule();}
+function switchOwner(name){name=ownerKey(name);if(name===owner)return;storeCurrent();owner=name;record=readScoped(owner);saved=record.layout;revision=record.revision;runLayout=null;layoutPlan=null;storeCurrent();schedule();}
 storeCurrent();
 const applied=new Map(),scales=new Map(),userHidden=new Set(),observedSizes=new Set();
 const layoutSizeObserver=typeof root.ResizeObserver==='function'?new root.ResizeObserver(()=>schedule()):null;
@@ -267,20 +281,59 @@ function watchSizes(entries){if(!layoutSizeObserver)return;const next=new Set(en
 function profile(){return doc.documentElement.classList.contains('abyssal-handheld')||root.matchMedia('(pointer: coarse)').matches||root.innerWidth<=700?root.innerWidth>root.innerHeight?'landscape':'portrait':'desktop';}
 function gameMode(){return doc.body.dataset.hudMode==='online'?'online':'solo';}
 function mobileControls(){try{return root.localStorage.getItem('abyssalControlsMobile')==='dual-stick'?'dual-stick':'classic';}catch{return 'classic';}}
-function activeLayout(){return effectiveLayout(saved,gameMode(),profile());}
+function activeLayout(){return effectiveLayout(runLayout||saved,gameMode(),profile());}
+function beginRun(){runLayout=normalize(saved);layoutPlan=null;schedule();}
 function active(){return doc.body.classList.contains('game-active');}
 function clear(){for(const el of applied.keys()){el.style.removeProperty('translate');el.style.removeProperty('scale');el.style.removeProperty('transform-origin');el.removeAttribute('data-hud-custom-opacity');el.style.removeProperty('--hud-custom-opacity');}applied.clear();scales.clear();for(const el of userHidden)el.removeAttribute('data-hud-user-hidden');userHidden.clear();}
-function refresh(){scheduled=false;clear();const shell=doc.getElementById('gameShell'),layout=activeLayout();if(!shell||!active()){watchSizes([]);doc.body.classList.remove('custom-hud-active');return;}const has=Object.keys(layout).length>0;doc.body.classList.toggle('custom-hud-active',has);if(!has)return;const sr=shell.getBoundingClientRect();if(!sr.width||!sr.height)return;
- const device=profile(),mode=gameMode(),raw=modeLayout(saved,mode)[device],safe=safeInsets(doc),entries=[];
- for(const [id,,selectors] of eligibleItems(mode,device,mobileControls())){
-  let pos=layout[id];if(canRemove(id)&&pos?.hidden){for(const sel of selectors)for(const el of doc.querySelectorAll(sel)){el.setAttribute('data-hud-user-hidden','');userHidden.add(el);}continue;}
-  const els=visibleGroup(doc,selectors),g=groupRect(els);if(!g)continue;
-  if(!pos)pos={x:(g.cx-sr.left)/sr.width,y:(g.cy-sr.top)/sr.height,s:1};
-  entries.push({id,pos,box:g,els,custom:Boolean(raw[id])});
+// A plan is rebuilt only on a real viewport/mode/control/layout change.
+// Hidden contextual controls keep their slots. Measure the full DOM once,
+// synchronously, then restore every original visibility flag before painting.
+function measurePlan(items,layout,raw,sr,safe,device){
+ const changed=new Set(),collapsed=doc.body.classList.contains('hud-collapsed');
+ if(collapsed)doc.body.classList.remove('hud-collapsed');
+ const reveal=el=>{for(let p=el;p&&p!==doc.body;p=p.parentElement)if(p.hidden){changed.add(p);p.hidden=false;}};
+ for(const item of items)for(const selector of item[2])for(const el of doc.querySelectorAll(selector))reveal(el);
+ const entries=[];
+ try{
+  for(const item of items){
+   const [id,,selectors]=item,els=visibleGroup(doc,selectors),g=groupRect(els);
+   const dims=device==='desktop'?DESKTOP_BOXES[id]||[item[5],item[6]]:[item[5],item[6]];
+   const box=g||{w:dims[0],h:dims[1]};
+   const pos=layout[id]||(g?{x:(g.cx-sr.left)/sr.width,y:(g.cy-sr.top)/sr.height,s:1}:defaults(item,device));
+   entries.push({id,pos,box,custom:Boolean(raw[id]),...(id==='skills'&&g?{reserve:skillReservation(els[0],g)}:{})});
+  }
+ }finally{
+  for(const el of changed)el.hidden=true;
+  if(collapsed)doc.body.classList.add('hud-collapsed');
+  hudObserver?.takeRecords();
+ }
+ return planPositions(entries,sr.width,sr.height,safe,device);
+}
+function refresh(){
+ scheduled=false;
+ const shell=doc.getElementById('gameShell');
+ if(!shell||!active()){clear();watchSizes([]);layoutPlan=null;runLayout=null;doc.body.classList.remove('custom-hud-active');return;}
+ // The level-up modal hides HUD nodes by design. Do not replace their geometry
+ // with a partial/empty layout while it is open.
+ const upgrade=doc.getElementById('upgradeScreen');if(upgrade&&!upgrade.hidden)return;
+ if(!runLayout)runLayout=normalize(saved);
+ const device=profile(),mode=gameMode(),raw=modeLayout(runLayout,mode)[device],layout=effectiveLayout(runLayout,mode,device),safe=safeInsets(doc),controls=mobileControls();
+ const sr=shell.getBoundingClientRect();if(!sr.width||!sr.height)return;
+ const key=JSON.stringify([mode,device,controls,sr.width,sr.height,safe,raw]);
+ doc.body.classList.add('custom-hud-active');
+ clear();
+ const items=eligibleItems(mode,device,controls);
+ if(!layoutPlan||layoutPlan.key!==key)layoutPlan={key,...measurePlan(items,layout,raw,sr,safe,device)};
+ const entries=[];
+ for(const [id,,selectors] of items){
+  const pos=layoutPlan.positions[id];
+  if(canRemove(id)&&layout[id]?.hidden){for(const sel of selectors)for(const el of doc.querySelectorAll(sel)){el.setAttribute('data-hud-user-hidden','');userHidden.add(el);}continue;}
+  if(!pos)continue;const els=visibleGroup(doc,selectors),g=groupRect(els);if(!g)continue;
+  entries.push({id,els});
+  const f=placeGroup(els,g,displayPosition(pos,layoutPlan.slots[id],g,sr.height),sr,safe);
+  scales.set(id,f.s);for(const el of els)applied.set(el,true);
  }
  watchSizes(entries);
- const resolved=resolvePositions(entries,sr.width,sr.height,safe,true,device);
- for(const e of entries){const pos=resolved[e.id];if(!pos)continue;const f=placeGroup(e.els,e.box,pos,sr,safe);scales.set(e.id,f.s);for(const el of e.els)applied.set(el,true);}
 }
 function schedule(){if(scheduled)return;scheduled=true;root.requestAnimationFrame(refresh);}
 function publish(message,changes){
@@ -375,12 +428,12 @@ function createPage(){const editorOwner=owner,starting=normalize(saved);let copi
   const aim=d.getElementById('mobileAimStick');if(aim){aim.classList.toggle('dual-stick-visible',selectedProfile!=='desktop'&&mobileControls()==='dual-stick');aim.hidden=mobileControls()!=='dual-stick';}
   if(selectedMode==='solo')d.getElementById('quickComms')?.setAttribute('hidden','');
   for(const [id,icon,key,label] of [['skillPulseBtn','pulse','Q','Pulso de maré'],['skillDashBtn','dash','E','Propulsor'],['skinActiveBtn',previewSpecimenIcon(),'R','Habilidade do espécime']]){renderAbilityButton(d.getElementById(id),{icon,key,label,charge:key==='E'?100:null});}
-  const skillList=d.getElementById('selectedSkillsList');if(skillList&&!skillList.querySelector('.selected-skill-row')){const icon=root.AbyssalResearchTree?.iconFor?.('photon','☄');if(icon){const btn=d.createElement('button');btn.type='button';btn.className='selected-skill-row';btn.dataset.skillId='photon';btn.setAttribute('aria-label','Lança de Fótons, nível 1');const lv=d.createElement('strong');lv.textContent='1';btn.append(d.importNode(icon,true),lv);skillList.replaceChildren(btn);}}
-  let pending=0,ready=false;const done=()=>{if(ready||pending||gen!==generation)return;ready=true;root.requestAnimationFrame(()=>{if(gen!==generation)return;const sr=copy.getBoundingClientRect();if(!sr.width||!sr.height)return;for(const item of eligible()){const els=visibleGroup(d,item[2]),g=groupRect(els);if(g)metrics.set(item[0],{w:g.w,h:g.h,x:(g.cx-sr.left)/sr.width,y:(g.cy-sr.top)/sr.height,g,els,sr});}stage.dataset.measured='true';paint();});};
+  const skillList=d.getElementById('selectedSkillsList');if(skillList){skillList.replaceChildren();const icon=root.AbyssalResearchTree?.iconFor?.('photon','☄');if(icon){const btn=d.createElement('button');btn.type='button';btn.className='selected-skill-row';btn.dataset.skillId='photon';btn.setAttribute('aria-label','Lança de Fótons, nível 1');const lv=d.createElement('strong');lv.textContent='1';btn.append(d.importNode(icon,true),lv);skillList.replaceChildren(btn);}}
+  let pending=0,ready=false;const done=()=>{if(ready||pending||gen!==generation)return;ready=true;root.requestAnimationFrame(()=>{if(gen!==generation)return;const sr=copy.getBoundingClientRect();if(!sr.width||!sr.height)return;for(const item of eligible()){const els=visibleGroup(d,item[2]),g=groupRect(els);if(g)metrics.set(item[0],{w:g.w,h:g.h,x:(g.cx-sr.left)/sr.width,y:(g.cy-sr.top)/sr.height,g,els,sr,...(item[0]==='skills'?{reserve:skillReservation(els[0],g)}:{})});}stage.dataset.measured='true';paint();});};
   const css=Array.from(doc.querySelectorAll('link[rel="stylesheet"],style'));for(const node of css){const n=d.importNode(node,true);if(n.tagName==='LINK'){n.href=node.href;pending++;n.onload=n.onerror=()=>{pending--;done();};}d.head.append(n);}
   const fix=d.createElement('style');fix.textContent='html,body{overflow:hidden!important;margin:0!important} #app{padding:0!important} #gameShell{background:radial-gradient(ellipse at 50% 45%,#154653,#092632 52%,#030e17)!important}';d.head.append(fix);done();root.setTimeout(()=>{pending=0;done();},1800);
  }
- function paint(){const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const w=reference[0],h=reference[1],factor=Math.min(stage.clientWidth/w,stage.clientHeight/h),ox=(stage.clientWidth-w*factor)/2,oy=(stage.clientHeight-h*factor)/2;if(frame){const transform='translate('+ox+'px,'+oy+'px) scale('+factor+')';if(frame.style.transform!==transform)frame.style.transform=transform;}stage.dataset.scale=String(factor);const entries=eligible().map(item=>{const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]];return {id:item[0],pos:target(item),box:m||{w:dimensions[0],h:dimensions[1]},custom:Boolean(selectedLayout()[selectedProfile][item[0]])};});resolvedPreview=resolvePositions(entries,w,h,previewSafe,true,selectedProfile);for(const item of eligible()){const el=previewEls.get(item[0]);if(!el)continue;const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]],box=m||{w:dimensions[0],h:dimensions[1]},v=resolvedPreview[item[0]]||target(item),f=fit(v,box,w,h,previewSafe);el.style.left=ox+f.x*factor+'px';el.style.top=oy+f.y*factor+'px';el.style.width=box.w*f.s*factor+'px';el.style.height=box.h*f.s*factor+'px';el.style.fontSize=Math.max(8,12*factor*f.s)+'px';el.dataset.realWidth=String(box.w*f.s);el.dataset.realHeight=String(box.h*f.s);el.dataset.live=String(Boolean(m));el.hidden=Boolean(v.hidden);if(m){const sig=[v.x,v.y,v.s,v.o??1,Boolean(v.hidden)].join(':');if(m.signature!==sig){m.signature=sig;for(const node of m.els)node.toggleAttribute('data-hud-user-hidden',Boolean(v.hidden));if(!v.hidden)placeGroup(m.els,m.g,v,m.sr,previewSafe);}}const option=Array.from(itemSel.options).find(o=>o.value===item[0]);if(option)option.textContent=item[1]+(v.hidden?' (excluído)':'');el.setAttribute('aria-pressed',String(item[0]===selected));if(item[0]===selected)tools.dataset.side=f.y>h*.50?'top':'bottom';}updateSize();}
+ function paint(){const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const w=reference[0],h=reference[1],factor=Math.min(stage.clientWidth/w,stage.clientHeight/h),ox=(stage.clientWidth-w*factor)/2,oy=(stage.clientHeight-h*factor)/2;if(frame){const transform='translate('+ox+'px,'+oy+'px) scale('+factor+')';if(frame.style.transform!==transform)frame.style.transform=transform;}stage.dataset.scale=String(factor);const entries=eligible().map(item=>{const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]];return {id:item[0],pos:target(item),box:m||{w:dimensions[0],h:dimensions[1]},custom:Boolean(selectedLayout()[selectedProfile][item[0]]),reserve:m?.reserve};});const planned=planPositions(entries,w,h,previewSafe,selectedProfile);resolvedPreview=planned.positions;for(const item of eligible()){const el=previewEls.get(item[0]);if(!el)continue;const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]],box=m||{w:dimensions[0],h:dimensions[1]},v=resolvedPreview[item[0]]||target(item),display=displayPosition(v,planned.slots[item[0]],box,h),f=fit(display,box,w,h,previewSafe);el.style.left=ox+f.x*factor+'px';el.style.top=oy+f.y*factor+'px';el.style.width=box.w*f.s*factor+'px';el.style.height=box.h*f.s*factor+'px';el.style.fontSize=Math.max(8,12*factor*f.s)+'px';el.dataset.realWidth=String(box.w*f.s);el.dataset.realHeight=String(box.h*f.s);el.dataset.live=String(Boolean(m));el.hidden=Boolean(v.hidden);if(m){const sig=[v.x,v.y,v.s,v.o??1,Boolean(v.hidden)].join(':');if(m.signature!==sig){m.signature=sig;for(const node of m.els)node.toggleAttribute('data-hud-user-hidden',Boolean(v.hidden));if(!v.hidden)placeGroup(m.els,m.g,display,m.sr,previewSafe);}}const option=Array.from(itemSel.options).find(o=>o.value===item[0]);if(option)option.textContent=item[1]+(v.hidden?' (excluído)':'');el.setAttribute('aria-pressed',String(item[0]===selected));if(item[0]===selected)tools.dataset.side=f.y>h*.50?'top':'bottom';}updateSize();}
  function queuePaint(){if(paintQueued)return;paintQueued=true;root.requestAnimationFrame(()=>{paintQueued=false;if(page.isConnected)paint();});}
  function select(id){selected=id;itemSel.value=id;tools.hidden=false;settingsPanel.hidden=true;settings.setAttribute('aria-expanded','false');paint();}
  function rebuild(){const items=eligible();if(!items.some(i=>i[0]===selected))selected=items[0][0];itemSel.replaceChildren();stage.replaceChildren();previewEls.clear();for(const item of items){const o=create('option','',item[1]);o.value=item[0];itemSel.append(o);const labels={stats:'TEMPO · NV · BOSSES · DANO',health:'VITALIDADE',xp:'ENERGIA · EVOLUÇÃO',energy:'ENERGIA / BASE',progress:'CICLO · PROGRESSÃO',skills:'RESSONÂNCIA',pause:'Ⅱ',hide:'›',pulse:'Q · PULSO',dash:'E · PROPULSOR',petSkill:'R · PET',pet:'PASSIVO',repair:'🔧',power:'⚡ 20',fire:'DISPARO',comms:'💬',end:'ENCERRAR'};const b=create('button','hud-editor-piece',labels[item[0]]||item[1]);b.setAttribute('aria-label',item[1]);b.type='button';b.dataset.item=item[0];if(item[0]==='aim'){b.classList.add('hud-editor-reticle');b.textContent='';b.setAttribute('aria-label',item[1]);}let drag=null;b.addEventListener('pointerdown',e=>{e.preventDefault();select(item[0]);const br=b.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-br.left-br.width/2,dy:e.clientY-br.top-br.height/2};b.setPointerCapture?.(e.pointerId);});b.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const r=stage.getBoundingClientRect(),v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp((e.clientX-r.left-stage.clientLeft-drag.dx-(stage.clientWidth-reference[0]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1]))/2)/(reference[0]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1])),0,1),y:clamp((e.clientY-r.top-stage.clientTop-drag.dy-(stage.clientHeight-reference[1]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1]))/2)/(reference[1]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1])),0,1)};queuePaint();});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>{drag=null;});b.addEventListener('click',()=>select(item[0]));b.addEventListener('keydown',e=>{const dx=e.key==='ArrowLeft'?-.01:e.key==='ArrowRight'?.01:0,dy=e.key==='ArrowUp'?-.01:e.key==='ArrowDown'?.01:0;if(!dx&&!dy)return;e.preventDefault();const v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp(v.x+dx,0,1),y:clamp(v.y+dy,0,1)};paint();});previewEls.set(item[0],b);stage.append(b);}itemSel.value=selected;stage.dataset.profile=selectedProfile;stage.dataset.mode=selectedMode;root.requestAnimationFrame(()=>{if(page.isConnected)measurePreview();paint();});}
@@ -400,14 +453,14 @@ function createPage(){const editorOwner=owner,starting=normalize(saved);let copi
   // Freeze the measured preview for each edited orientation. Explicit restores remain empty.
   snapshotPreview();const next=normalize(draft),changes=copied?MODES.flatMap(m=>PROFILES.map(p=>m+':'+p)):changedProfiles(lastSaved,next);
   saved=mergeProfiles(saved,next,changes);if(!storeCurrent()){status.textContent='Não foi possível salvar neste dispositivo.';return;}
-  draft=normalize(saved);lastSaved=normalize(saved);copied=false;schedule();status.textContent='HUD salvo neste dispositivo.';
+  draft=normalize(saved);lastSaved=normalize(saved);copied=false;if(active()){runLayout=normalize(saved);layoutPlan=null;}schedule();status.textContent='HUD salvo neste dispositivo.';
   publish(v=>{status.title=v;status.textContent=v;},changes);
  };
  root.requestAnimationFrame(()=>{if(page.isConnected&&!page.open){if(typeof page.showModal==='function')page.showModal();else page.setAttribute('open','');}});rebuild();const observer=new ResizeObserver(paint);observer.observe(stage);const viewportChanged=()=>{const device=profile();if(selectedProfile===lastDevice&&device!==lastDevice){snapshotPreview();selectedProfile=device;sel.value=device;lastDevice=device;tools.hidden=true;rebuild();return;}lastDevice=device;const next=referenceSize();if(next[0]!==reference[0]||next[1]!==reference[1])measurePreview();};root.addEventListener('resize',viewportChanged);const life=new MutationObserver(()=>{if(page.hudEditorAnchor&&!page.hudEditorAnchor.isConnected)page.remove();if(!page.isConnected){generation++;observer.disconnect();root.removeEventListener('resize',viewportChanged);life.disconnect();}});root.requestAnimationFrame(()=>{if(page.isConnected)life.observe(doc.body,{childList:true,subtree:true});else observer.disconnect();});return page;
 }
 function copyFromProfile(layout,name){if(layout==null)return false;imported={layout:normalize(layout),name:String(name||'jogador')};const nav=root.AbyssalCockpitNavigation;if(nav?.routeCommand?.('hudEditor'))return true;nav?.open?.();if(nav?.routeCommand?.('hudEditor'))return true;imported=null;return false;}
-root.AbyssalHudLayout=Object.freeze({...core,createPage,copyFromProfile,renderAbilityButton,refresh:schedule,scaleFor:id=>scales.get(id)||1,get:()=>normalize(saved),getEffective:(mode,device)=>effectiveLayout(saved,mode,device)});
+root.AbyssalHudLayout=Object.freeze({...core,createPage,copyFromProfile,renderAbilityButton,beginRun,refresh:schedule,scaleFor:id=>scales.get(id)||1,get:()=>normalize(saved),getEffective:(mode,device)=>effectiveLayout(saved,mode,device)});
 const selectors=ITEMS.flatMap(i=>i[2]).join(',');
-function install(){const obs=new MutationObserver(records=>{if(!Object.keys(activeLayout()).length&&!applied.size)return;if(!active()&&!applied.size)return;for(const rec of records){if(rec.type==='attributes'){if(rec.oldValue===rec.target.getAttribute(rec.attributeName))continue;if(rec.target===doc.body||rec.target===doc.documentElement||rec.target.matches?.(selectors)||rec.target.id==='quickComms'||rec.target.id==='petHabitBar'||rec.target.id==='upgradeScreen') {schedule();return;}}else if([...rec.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(selectors)||n.querySelector?.(selectors)))){schedule();return;}}});obs.observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','data-hud-mode'],attributeOldValue:true});obs.observe(doc.documentElement,{attributes:true,attributeFilter:['class'],attributeOldValue:true});root.addEventListener('resize',schedule,{passive:true});root.addEventListener('orientationchange',schedule);root.addEventListener('abyssal-account-data',reconcileAccount);root.addEventListener('abyssal-account-signed-out',()=>switchOwner(''));root.addEventListener('abyssal-authenticated',()=>flushPending());root.addEventListener('storage',e=>{if(e.key===scoped(KEY,owner)){const next=readScoped(owner);if(next.revision>=revision){saved=next.layout;revision=next.revision;schedule();}}});schedule();}
+function install(){const obs=hudObserver=new MutationObserver(records=>{if(!Object.keys(activeLayout()).length&&!applied.size)return;if(!active()&&!applied.size)return;for(const rec of records){if(rec.type==='attributes'){if(rec.oldValue===rec.target.getAttribute(rec.attributeName))continue;if(rec.target===doc.body||rec.target===doc.documentElement||rec.target.matches?.(selectors)||rec.target.id==='quickComms'||rec.target.id==='petHabitBar'||rec.target.id==='upgradeScreen') {schedule();return;}}else if([...rec.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(selectors)||n.querySelector?.(selectors)))){schedule();return;}}});obs.observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','data-hud-mode'],attributeOldValue:true});obs.observe(doc.documentElement,{attributes:true,attributeFilter:['class'],attributeOldValue:true});root.addEventListener('resize',schedule,{passive:true});root.addEventListener('orientationchange',schedule);root.addEventListener('abyssal-account-data',reconcileAccount);root.addEventListener('abyssal-account-signed-out',()=>switchOwner(''));root.addEventListener('abyssal-authenticated',()=>flushPending());root.addEventListener('storage',e=>{if(e.key===scoped(KEY,owner)){const next=readScoped(owner);if(next.revision>=revision){saved=next.layout;revision=next.revision;schedule();}}});schedule();}
 if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(typeof globalThis!=='undefined'?globalThis:this);
