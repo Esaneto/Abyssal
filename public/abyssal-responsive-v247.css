@@ -70,3 +70,45 @@ html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expa
 html.abyssal-handheld #submarineWorkshop .abyss-wardrobe :is(.aw-mobile-tools,.aw-mobile-catalog)>select{height:44px!important;min-height:44px!important}
 html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage{grid-template-rows:minmax(0,1fr) 48px!important}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .abyss-wardrobe .aw-footer>button{min-height:44px!important}
+
+/* Compact command bridge: independent navigation, two dive cards, secondary actions. */
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-console-info:has(>.ds-dive-grid){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important;padding:0!important;margin:0!important;align-content:start!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-console-info:has(>.ds-dive-grid)>:is(p,.ds-dive-grid,.solo-research-navigation){grid-column:1/-1!important;min-width:0!important;margin:0!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-console-info:has(>.ds-dive-grid)>.abyss-wardrobe-entry{grid-column:auto!important;margin:0!important;min-height:32px!important;white-space:normal!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .solo-research-navigation{padding:3px 0!important;gap:3px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .solo-research-navigation .solo-research-heading{font-size:10px!important;margin:0 0 2px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .solo-research-navigation .solo-research-tabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:3px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .solo-research-navigation .solo-research-tabs button{min-height:30px!important;font-size:9px!important;padding:4px 2px!important;white-space:normal!important;min-width:0!important}
+html.abyssal-handheld:not(.abyssal-handheld-landscape) body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-console{inset:max(140px,24dvh) var(--mobile-safe-right) var(--mobile-safe-bottom) var(--mobile-safe-left)!important;width:auto!important;height:auto!important;max-height:none!important;transform:none!important}
+html.abyssal-handheld:not(.abyssal-handheld-landscape) body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-utilities{position:absolute!important;inset:calc(var(--mobile-safe-top) + 42px) var(--mobile-safe-right) auto var(--mobile-safe-left)!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;min-width:0!important;height:36px!important;z-index:5;pointer-events:auto!important}
+html.abyssal-handheld:not(.abyssal-handheld-landscape) body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-utilities>button{position:relative!important;inset:auto!important;transform:none!important;width:100%!important;height:36px!important;min-height:36px!important;max-height:36px!important;min-width:0!important;display:flex!important;flex-direction:row!important;justify-content:center!important;align-items:center!important;padding:3px!important;gap:3px!important;font:700 9px/1 system-ui!important}
+html.abyssal-handheld:not(.abyssal-handheld-landscape) body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-utilities>button svg{width:15px!important;height:15px!important;flex:0 0 15px!important}
+html.abyssal-handheld:not(.abyssal-handheld-landscape) body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-cockpit-utilities>button span{font-size:9px!important;white-space:nowrap!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-visor-heading{min-height:30px!important;height:30px!important;flex:0 0 30px!important;padding:2px 5px!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-visor-heading small{display:none!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop:not(.abyss-visor-expanded) .abyss-console-info:has(>.ds-dive-grid){grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .abyss-console-info:has(>.ds-dive-grid)>p{display:none!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .abyss-console-info:has(>.ds-dive-grid)>.ds-dive-grid{grid-column:1!important;grid-row:1/4!important;align-self:start!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .abyss-console-info:has(>.ds-dive-grid)>:is(.abyss-wardrobe-entry,.solo-research-navigation){grid-column:2!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .ds-dive-grid .ds-mode-kicker{display:none!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .ds-dive-grid .ds-mode-copy{font-size:10px!important;line-height:1.12!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .ds-dive-grid .ds-mode-cta{min-height:25px!important;padding:4px 2px!important}
+
+/* HUD editor: actual playfield preview plus a compact editor, not an oversized mock. */
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body:has(>.hud-editor){padding:4px!important;overflow-x:hidden!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .hud-editor{width:100%!important;max-width:none!important;min-width:0!important;gap:4px!important;padding:0!important;box-sizing:border-box!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud-editor-note{font-size:10px!important;line-height:1.2!important;margin:0!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .hud-editor .hud-editor-toolbar select{min-height:32px!important;height:32px!important;padding:3px 5px!important;font:650 11px/1.2 system-ui!important;min-width:0!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud-editor-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .hud-editor .hud-editor-actions button{min-height:36px!important;padding:3px!important;font-size:10px!important;white-space:normal!important;min-width:0!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud-editor-stage{width:min(100%,620px,calc(49dvh * var(--hud-preview-ratio,.5625)))!important;margin:0 auto!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud-editor-size{font-size:11px!important;gap:4px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud-editor-size input[type=range]{min-height:24px!important;height:24px!important;padding:0!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .hud-editor{display:grid!important;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)!important;grid-template-areas:"stage title" "stage toolbar" "stage hint" "stage tools" "stage actions" "stage status"!important;align-items:start!important;align-content:center!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .hud-editor> :nth-child(1){grid-area:title}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .hud-editor> :nth-child(2){grid-area:toolbar}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .hud-editor> .hud-editor-stage{grid-area:stage;align-self:center!important;width:min(100%,calc(75dvh * var(--hud-preview-ratio,2.16)))!important}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .hud-editor> :nth-child(4){grid-area:hint}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .hud-editor> :nth-child(5){grid-area:tools}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .hud-editor> :nth-child(6){grid-area:actions}
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop .hud-editor> :nth-child(7){grid-area:status}
