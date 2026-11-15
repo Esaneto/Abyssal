@@ -1,0 +1,22 @@
+name: Read published HUD preset
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  read-published-hud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read only GameMaster public HUD
+        run: |
+          node <<'JS'
+          const ws=new WebSocket('wss://abyssalgame.duckdns.org/socket.io/?EIO=4&transport=websocket');
+          const timeout=setTimeout(()=>{console.error('Public HUD connection timed out');process.exit(1)},20000);
+          ws.onmessage=e=>{const s=String(e.data);if(s.startsWith('0'))ws.send('40');else if(s==='2')ws.send('3');else if(s.startsWith('40'))ws.send('42'+JSON.stringify(['get-public-profile',{nickname:'GameMaster'}]));else if(s.startsWith('42')){const [event,result]=JSON.parse(s.slice(2));if(event==='public-profile-result'){if(!result.ok||!result.profile?.hudLayout)throw Error('Public HUD unavailable');const {portrait,landscape}=result.profile.hudLayout;console.log('GAMEMASTER_SOLO_HUD='+JSON.stringify({portrait,landscape}));clearTimeout(timeout);ws.close();}}};
+          ws.onerror=()=>{console.error('Public socket connection failed');process.exit(1)};
+          JS
