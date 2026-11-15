@@ -10,3 +10,5 @@
 - Every completion report must identify what was deleted, what obsolete-looking code was retained and why, and whether tests/build/deployment have actually passed. Do not claim measured performance gains without evidence.
 
 Follow the existing engineering guidance in .agent/rules/GEMINI.md and .agent/workflows/feature-development.md.
+
+- UI cleanup is not complete until the actual rendered UI passes browser visual regression checks: measure its geometry, interaction hit targets, and capture screenshots before assertions so failures are inspectable. A unit-test pass alone is insufficient. Do not remove or rewrite combined CSS selectors without checking the retained selector targets the real DOM.
