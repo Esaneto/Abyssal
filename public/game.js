@@ -1763,13 +1763,13 @@ const upgradeList=[
 {id:"petCadence",name:"Frenesi do Espécime",icon:"≋",desc:"Aumenta apenas a frequência dos ataques básicos do espécime em 15/30/45%. Intervalo de 1,02 s passa a 0,89/0,78/0,70 s. Não altera R.",apply:()=>{upgrades.petCadence=RES_BAL.rank((upgrades.petCadence||0)+1);}}
 ];
 const COMBO_SKILLS={
- gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Fusão de Pulso de Ruptura + Nova Gravitacional Nv. 3. Conserva o disparo em cone e acrescenta um campo gravitacional de dano periódico.'},
- arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Fusão de Tempestade Elétrica Nv. 3 + Ricochete Caótico Nv. 3. Correntes elétricas ricocheteiam por até 8 alvos próximos em cadeia.'},
- abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'Fusão de Lança do Abismo + Olho Profundo no nível 3. Os disparos deixam de respeitar o limite normal de alcance e seguem até atingir uma criatura ou obstáculo.'},
- vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Fusão de Membrana Viva + Pulso Intenso no nível 3. Converte 2% do dano causado em vida.'},
- photonCascade:{id:'photonCascade',name:'Cascata Prismática',icon:'✦',desc:'Fusão de Lança de Fótons Nv. 3 e Rajada Prismática Nv. 3. Adiciona 2 projéteis fotônicos ao leque sem mudar a identidade do disparo.'},
- tidalEcho:{id:'tidalEcho',name:'Maré Reverberante',icon:'⋔',desc:'Fusão de Eco de Maré Nv. 3 e Ricochete Caótico Nv. 3. Dispara uma terceira réplica central com ricochetes.'},
- hadalBeam:{id:'hadalBeam',name:'Feixe Hadal',icon:'☼',desc:'Fusão de Raio de Fótons Nv. 3 e Olho Profundo Nv. 3. Aumenta espessura em 35% e dano de pulso em 20%.'}
+ gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Substitui Nova e Pulso de Ruptura por um campo automático: 10 de dano base a cada 0,52 s aos inimigos no alcance de disparo, respeitando obstáculos.'},
+ arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Substitui Tempestade Elétrica e Ricochete por uma corrente automática. A cada 0,48 s, atinge até 8 inimigos próximos no alcance de disparo, com 16 de dano base por alvo.'},
+ abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'A Lança do Abismo ganha alcance de até 2000 unidades, mantendo a perfuração e o bloqueio por obstáculos. Substitui o bônus normal de Olho Profundo.'},
+ vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Substitui a regeneração de Membrana Viva por cura de 2% do dano causado. Conserva o bônus de dano de Pulso Intenso.'},
+ photonCascade:{id:'photonCascade',name:'Cascata Prismática',icon:'✦',desc:'Lança de Fótons ganha dois projéteis adicionais ao leque da Rajada Prismática. O dano individual é ajustado para compensar os disparos extras.'},
+ tidalEcho:{id:'tidalEcho',name:'Maré Reverberante',icon:'⋔',desc:'Eco de Maré ganha uma terceira réplica central, mantendo os ricochetes. O dano individual é ajustado para compensar o projétil extra.'},
+ hadalBeam:{id:'hadalBeam',name:'Feixe Hadal',icon:'☼',desc:'Raio de Fótons fica 35% mais espesso e causa 20% a mais de dano por pulso. Mantém o alcance ampliado de Olho Profundo.'}
 };
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
@@ -1793,11 +1793,13 @@ function renderSelectedSkills(){
  // Avoid replacing focused/clicked skill buttons on every simulation frame.
  if(signature===selectedSkillsRenderedSignature&&panel.dataset.skillsSignature===signature)return;
  selectedSkillsRenderedSignature=signature;panel.dataset.skillsSignature=signature;
- panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id)||COMBO_SKILLS[id];return skill?'<button type="button" class="selected-skill-row" data-skill-id="'+skill.id+'" aria-label="Ver descrição: '+skill.name+'"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></button>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
+ panel.replaceChildren();
+ for(const [id,rank] of selected){const skill=upgradeList.find(item=>item.id===id)||COMBO_SKILLS[id];if(!skill)continue;const btn=document.createElement('button');btn.type='button';btn.className='selected-skill-row';btn.dataset.skillId=id;btn.setAttribute('aria-label',skill.name+', nível '+rank);btn.append(window.AbyssalResearchTree.iconFor(id,skill.icon));const level=document.createElement('strong');level.textContent=String(rank);btn.append(level);panel.append(btn);}
+
  requestAnimationFrame(positionMobileRightStack);}
 function showSkillDescription(id,target){
  const skill=upgradeList.find(item=>item.id===String(id||''))||COMBO_SKILLS[String(id||'')],tooltip=$('skillDescriptionTooltip');if(!skill||!tooltip)return;
- tooltip.replaceChildren();const title=document.createElement('strong'),description=document.createElement('span');title.textContent=skill.name;description.textContent=skill.desc;tooltip.append(title,description);tooltip.hidden=false;
+ tooltip.replaceChildren();const title=document.createElement('strong'),description=document.createElement('span');title.textContent=skill.name;description.textContent=resonanceSkillDescriptions[id]||skill.desc;tooltip.append(title,description);tooltip.hidden=false;
  // Measure after rendering, then keep the entire description inside the viewport.
  tooltip.style.left='8px';tooltip.style.top='8px';
  const rect=target?.getBoundingClientRect?.(),box=tooltip.getBoundingClientRect(),margin=8,gap=6;
@@ -1820,8 +1822,6 @@ function positionMobileRightStack(){
 function hideSkillDescription(){const tooltip=$('skillDescriptionTooltip');if(tooltip)tooltip.hidden=true;}
 const selectedSkillPanel=$('selectedSkillsList');
 // Ranking position is owned by responsive CSS. Do not write inline top/right values here.
-selectedSkillPanel?.addEventListener('pointerover',event=>{if(event.pointerType==='mouse'){const row=event.target.closest('[data-skill-id]');if(row)showSkillDescription(row.dataset.skillId,row);}});
-selectedSkillPanel?.addEventListener('pointerout',event=>{if(event.pointerType==='mouse'&&!event.relatedTarget?.closest?.('[data-skill-id]'))hideSkillDescription();});
 selectedSkillPanel?.addEventListener('click',event=>{const row=event.target.closest('[data-skill-id]');if(row)showSkillDescription(row.dataset.skillId,row);});
 document.addEventListener('click',event=>{if(!event.target.closest?.('#selectedSkillsPanel'))hideSkillDescription();});
 function chooseUpgrade(u){
@@ -5805,26 +5805,31 @@ const RESONANCE_FUSION_RECIPES=Object.freeze([
  {id:'tidalEcho',name:'MARÉ REVERBERANTE',items:[['echoShot','Eco de Maré'],['ricochet','Ricochete Caótico']]},
  {id:'hadalBeam',name:'FEIXE HADAL',items:[['photonRay','Raio de Fótons'],['range','Olho Profundo']]}
 ]);
+let selectedFusionId=null;
 function renderResonanceFusionGuide(){
  const root=$('resonanceFusionGuide');if(!root)return;
  const selected=new Set(resonancePresets[resonanceEditingMode]||[]);
  root.replaceChildren();
- const title=document.createElement('h3');title.className='resonance-fusion-heading';
- title.textContent='✦ FUSÕES DE OURO · COMO DESPERTAR';root.append(title);
- const description=document.createElement('p');description.className='resonance-fusion-explainer';
- description.textContent='Selecione as duas habilidades exigidas e alcance o nível 3 em ambas durante o mergulho. O disparo único continua valendo.';root.append(description);
+ const title=document.createElement('h3');title.className='resonance-fusion-heading';title.textContent='FUSÕES DE OURO';root.append(title);
+ const description=document.createElement('p');description.className='resonance-fusion-explainer';description.textContent='Clique em uma fusão para consultar seus requisitos e efeitos.';root.append(description);
  const grid=document.createElement('div');grid.className='resonance-fusion-grid';root.append(grid);
- for(const recipe of RESONANCE_FUSION_RECIPES){
-  const entry=document.createElement('article');entry.className='resonance-fusion-recipe';
-  const ready=recipe.items.every(([id])=>selected.has(id));
-  entry.classList.toggle('ready',ready);
-  const name=document.createElement('strong');name.textContent=recipe.name;
-  const combo=document.createElement('p');combo.textContent=recipe.items.map(([,name])=>name+' NV. 3').join(' + ');
-  const status=document.createElement('small');
-  const missing=recipe.items.filter(([id])=>!selected.has(id)).map(([,name])=>name);
-  status.textContent=ready?'✓ CONFIGURAÇÃO PRONTA PARA EVOLUIR':'FALTA NA SELEÇÃO: '+missing.join(' + ');
-  entry.append(name,combo,status);grid.append(entry);
+ const detail=document.createElement('div');detail.className='resonance-fusion-detail';detail.hidden=true;root.append(detail);
+ const buttons=[];
+ function select(recipe){
+  selectedFusionId=recipe.id;for(const [id,b] of buttons)b.setAttribute('aria-pressed',String(id===recipe.id));
+  detail.hidden=false;detail.replaceChildren();
+  const name=document.createElement('strong');name.textContent=COMBO_SKILLS[recipe.id].name;
+  const combo=document.createElement('p');combo.textContent=recipe.items.map(([,n])=>n+' NV. 3').join(' + ');
+  const effect=document.createElement('p');effect.textContent=COMBO_SKILLS[recipe.id].desc;
+  const status=document.createElement('small'),missing=recipe.items.filter(([id])=>!selected.has(id)).map(([,n])=>n);
+  status.textContent=missing.length?'Falta na seleção: '+missing.join(' + '):'Configuração pronta para evoluir durante o mergulho.';
+  detail.append(name,combo,effect,status);
  }
+ for(const recipe of RESONANCE_FUSION_RECIPES){
+  const entry=document.createElement('button');entry.type='button';entry.className='resonance-fusion-recipe';entry.classList.toggle('ready',recipe.items.every(([id])=>selected.has(id)));entry.setAttribute('aria-label',recipe.name);entry.setAttribute('aria-pressed','false');entry.dataset.fusionId=recipe.id;
+  entry.append(window.AbyssalResearchTree.iconFor(recipe.id,COMBO_SKILLS[recipe.id].icon));entry.addEventListener('click',()=>select(recipe));grid.append(entry);buttons.push([recipe.id,entry]);
+ }
+ const prior=RESONANCE_FUSION_RECIPES.find(r=>r.id===selectedFusionId);if(prior)select(prior);
 }
 function updateResonanceCount(){const counts=resonanceCounts();const el=$('resonanceSelectionCount');if(el)el.textContent=counts.shots+' Disparos · '+counts.passive+' Passivas · '+counts.buffs+' Buffs · '+counts.total+'/10';renderResonanceFusionGuide();}
 $('resonanceBtn')?.addEventListener('click',()=>{if(window.AbyssalCockpitNavigation?.routeScreen?.('resonanceScreen'))return;resonanceEditingMode='pve';$('resonanceMessage').textContent='';renderResonanceChoices();$('resonanceScreen').hidden=false;});
