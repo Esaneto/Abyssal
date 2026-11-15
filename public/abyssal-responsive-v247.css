@@ -63,3 +63,10 @@ html.abyssal-handheld:not(.abyssal-handheld-landscape) body:not(.game-active) #s
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-visor-body{box-sizing:border-box;min-height:0!important;max-width:100%!important}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body:has(>.abyss-wardrobe){overflow:hidden!important}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .abyss-wardrobe .aw-footer>button{min-height:40px!important}
+
+/* Keep important touch targets accessible even with smaller visual icons. */
+html.abyssal-handheld #submarineWorkshop.abyss-visor-expanded .mobile-cockpit-back{flex:0 0 44px!important;width:44px!important;height:44px!important;min-height:44px!important;font-size:20px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-heading{min-height:44px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe :is(.aw-mobile-tools,.aw-mobile-catalog)>select{height:44px!important;min-height:44px!important}
+html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-stage{grid-template-rows:minmax(0,1fr) 48px!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .abyss-wardrobe .aw-footer>button{min-height:44px!important}
