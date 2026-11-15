@@ -87,7 +87,7 @@
     c.style.width=w+'px';c.style.height=h+'px';
     c.getContext('2d').setTransform(ratio,0,0,ratio,0,0);
    }
-   const renderDpr=Math.max(1,Math.min(mobileScene?1.5:2.5,window.devicePixelRatio||1));
+   const renderDpr=Math.max(1,Math.min(mobileScene?2.5:2.5,window.devicePixelRatio||1));
    canvas.width=Math.round(180*renderDpr);canvas.height=Math.round(130*renderDpr);
    ctx.setTransform(renderDpr,0,0,renderDpr,0,0);
    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';

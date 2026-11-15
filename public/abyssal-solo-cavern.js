@@ -324,7 +324,7 @@
   if(staticWorldArt?.w===w&&staticWorldArt?.h===h)return staticWorldArt;
   if(typeof document==='undefined')return null;
   if(staticWorldArt){staticWorldArt.canvas.width=1;staticWorldArt.canvas.height=1;staticWorldArt=null;}
-  const scale=Math.min(.55,2400/Math.max(w,h)),canvas=document.createElement('canvas');
+  const scale=Math.min(.75,3600/Math.max(w,h)),canvas=document.createElement('canvas');
   canvas.width=Math.max(1,Math.ceil(w*scale));canvas.height=Math.max(1,Math.ceil(h*scale));
   const off=canvas.getContext('2d',{alpha:false});if(!off)return null;
   off.setTransform(canvas.width/w,0,0,canvas.height/h,0,0);paintStatic(off,{left:0,top:0,width:w,height:h},w,h);
@@ -414,7 +414,7 @@
   // Render a separate darkness mask so destination-out never erases world pixels.
   if(typeof document==='undefined')return;
   const transform=c.getTransform?.(),displayScale=transform?Math.hypot(transform.a,transform.b):1;
-  const scale=mobile?Math.min(1,Math.max(.12,displayScale*.65),640/Math.max(w,h)):Math.min(1,1600/Math.max(w,h));
+  const scale=mobile?Math.min(1,Math.max(.12,displayScale*.85),960/Math.max(w,h)):Math.min(1,1600/Math.max(w,h));
   // Quantize the mask size to avoid reallocating the canvas on each eased zoom.
   const cw=Math.max(1,mobile?Math.ceil(w*scale/32)*32:Math.ceil(w*scale)),ch=Math.max(1,mobile?Math.ceil(h*scale/32)*32:Math.ceil(h*scale));
   if(!lightLayer){lightLayer=document.createElement('canvas');}

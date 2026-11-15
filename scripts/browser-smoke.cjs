@@ -457,9 +457,14 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     assertAudit('gameplay '+w+'x'+h,all);
     const perf=await evaluate('window.AbyssalPerformance.snapshot()');console.log('[mobile-render-budget] '+w+'x'+h+' '+JSON.stringify(perf));
     assert.equal(perf.graphics.automatic,true,'mobile adaptive graphics must be active');
-    assert.ok(perf.graphics.dpr<=1.5,'mobile framebuffer density exceeds safety cap');
-    assert.ok(perf.canvasPixels<=Math.ceil(w*h*2.25)+Math.max(w,h)*8,'mobile framebuffer exceeds pixel budget');
+    assert.ok(perf.graphics.dpr<=3,'mobile framebuffer density exceeds safety cap');
+    assert.ok(perf.canvasPixels<=3500000,'mobile framebuffer exceeds pixel budget');
     await screenshot('exact-mobile-gameplay-'+w+'x'+h);
+    await evaluate("document.getElementById('toggleHudBtn').click()");
+    const reduced=await auditControls(required,required,['#skillPulseBtn','#skillDashBtn','#skinActiveBtn','#mobileAimStick','#mobileFireBtn','#soloSubmarineRepairBtn','#soloSubmarinePowerBtn','#quickComms']);assertAudit('reduced HUD '+w+'x'+h,reduced);
+    assert.equal(await evaluate("getComputedStyle(document.getElementById('hud')).display"),'none','Reduced HUD must hide readouts');
+    await screenshot('exact-mobile-reduced-hud-'+w+'x'+h);
+    await evaluate("document.getElementById('toggleHudBtn').click()");
    }
    await evaluate("document.getElementById('mobilePauseBtn').click()");
    await sleep(200);

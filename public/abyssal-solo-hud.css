@@ -26,15 +26,11 @@ body.abyss-solo-run.game-active #petHabitBar button>span{font-size:12px!importan
 body.abyss-solo-run.game-active #petHabitBar button small{font-size:7px!important}
 body.abyss-solo-run.game-active .solo-energy-stock{display:block;color:#d3aaff;font-size:10px;margin-top:3px;letter-spacing:.05em}
 body:not(.abyss-solo-run) .solo-energy-stock{display:none!important}
-/* All in-match HUD is hidden. Keep only the small restore control and mandatory
-   pause/level-up screens, so the player can recover the HUD or select skills. */
-body.abyss-solo-run.game-active.hud-collapsed #gameShell>:not(#game):not(#toggleHudBtn):not(.screen),
-body.abyss-solo-run.game-active.hud-collapsed #gameShell>#hud,
-body.abyss-solo-run.game-active.hud-collapsed #app>.topbar,
-body.abyss-solo-run.game-active.hud-collapsed #endDiveBtn,
-body.abyss-solo-run.game-active.hud-collapsed #toast{
- visibility:hidden!important;opacity:0!important;pointer-events:none!important
-}
+/* Reduced HUD hides passive readouts, never the gameplay controls or modal screens. */
+body.game-active.hud-collapsed #hud,
+body.game-active.hud-collapsed #selectedSkillsPanel,
+body.game-active.hud-collapsed #runEnergyRanking,
+body.game-active.hud-collapsed #skillDescriptionTooltip{display:none!important}
 body.abyss-solo-run.game-active.hud-collapsed #toggleHudBtn{
  visibility:visible!important;display:grid!important;opacity:.6!important;pointer-events:auto!important;
  position:absolute!important;top:10px!important;right:10px!important;left:auto!important;bottom:auto!important;z-index:22000!important
