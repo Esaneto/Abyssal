@@ -15,6 +15,19 @@
  const COSTS=Object.freeze({shot:100,passive:80,buff:60,submarineShield:100});
  const POWER=Object.freeze({duration:300,light:20,weapon:10});
  const MAX_WEAPONS=SHOTS.length;
+ const RESONANCE_LIMIT=10;
+ const RESONANCE_DEFAULTS=Object.freeze({pve:Object.freeze(['photon','range','regen']),pvp:Object.freeze(['electric','shield','regen','shell','power','speed','magnet'])});
+ const SKILL_IDS=Object.freeze([...SHOTS,...PASSIVES,...BUFFS]);
+ function normalizePreset(value,mode='pve',available=()=>true){
+  const source=Array.isArray(value)?value:RESONANCE_DEFAULTS[mode]||RESONANCE_DEFAULTS.pve;
+  const ids=[...new Set(source.map(String))].filter(id=>SKILL_IDS.includes(id)&&available(id));
+  const shot=ids.find(id=>SHOTS.includes(id))||(mode==='pvp'?'electric':'photon');
+  return [shot,...ids.filter(id=>!SHOTS.includes(id)).slice(0,RESONANCE_LIMIT-1)];
+ }
+ function normalizePresets(value){
+  return {pve:normalizePreset(value?.pve,'pve'),pvp:normalizePreset(value?.pvp,'pvp')};
+ }
+
  function sanitize(raw){
   const unlocked=new Set(STARTERS);
   for(const id of raw?.unlocked||[])if(SHOTS.includes(id)||PASSIVES.includes(id)||BUFFS.includes(id))unlocked.add(id);
@@ -52,7 +65,7 @@
    const spend=Math.min(needed,wallet),paid=energy.debit(spend),secondsAdded=POWER.duration*(paid.spent/full);
    return {ok:paid.spent>0,cost:paid.spent,secondsAdded,remaining:Math.min(POWER.duration,Math.max(0,Number(secondsRemaining)||0)+secondsAdded),fullCost:full,energy:energy.get().energy};
   }
-  return Object.freeze({KEY,STARTERS,SHOTS,PASSIVES,BUFFS,COSTS,POWER,MAX_WEAPONS,get,category,cost,unlocked,research,unlockedShots,installedWeapons,installWeapon,uninstallWeapon,fullPowerCost,topUp,create});
+  return Object.freeze({KEY,STARTERS,SHOTS,PASSIVES,BUFFS,COSTS,POWER,MAX_WEAPONS,RESONANCE_LIMIT,RESONANCE_DEFAULTS,SKILL_IDS,normalizePreset,normalizePresets,get,category,cost,unlocked,research,unlockedShots,installedWeapons,installWeapon,uninstallWeapon,fullPowerCost,topUp,create});
  }
  return create();
 });
