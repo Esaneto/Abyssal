@@ -352,7 +352,7 @@ socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeou
  socket.on('hit-synergy-visual',data=>{window.dispatchEvent(new CustomEvent('abyssal-hit-synergy-visual',{detail:data||{}}));});
  socket.on('player-suction-pull',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-suction-pull',{detail:data||{}}));});
  socket.on('boss-ability-visual',data=>{window.dispatchEvent(new CustomEvent('abyssal-boss-ability-visual',{detail:data||{}}));});
- socket.on('specimen-motion',data=>{const now=performance.now(),serverTime=Number(data?.serverTime);if(!Number.isFinite(serverTime)||!Array.isArray(data?.rows))return;for(const row of data.rows){const [id,x,y,angle,alive]=row||[];if(!id||!Number.isFinite(x)||!Number.isFinite(y))continue;let state=specimenMotion.get(String(id));if(!state){state={x,y,motionSamples:[]};specimenMotion.set(String(id),state);}if(window.AbyssalEnemyNetcode?.pushMotionSample(state,{x,y,serverTime,receivedAt:now})){state.x=x;state.y=y;state.angle=angle;state.alive=alive;}}});
+ socket.on('specimen-motion',data=>{const now=performance.now(),serverTime=Number(data?.serverTime);if(!Number.isFinite(serverTime)||!Array.isArray(data?.rows))return;for(const row of data.rows){const [id,x,y,angle,alive,field]=row||[];if(!id||!Number.isFinite(x)||!Number.isFinite(y))continue;let state=specimenMotion.get(String(id));if(!state){state={x,y,motionSamples:[]};specimenMotion.set(String(id),state);}if(window.AbyssalEnemyNetcode?.pushMotionSample(state,{x,y,serverTime,receivedAt:now})){state.x=x;state.y=y;state.angle=angle;state.alive=alive;state.field=Number(field)||0;}}});
  socket.on('specimen-attack',data=>window.dispatchEvent(new CustomEvent('abyssal-specimen-attack',{detail:data||{}})));
  socket.on('specimen-state',data=>{const state=specimenMotion.get(String(data?.playerId||''));if(state){state.alive=data.alive!==false;if(data.reason==='respawn'||data.reason==='equipped')specimenMotion.delete(String(data.playerId));}window.dispatchEvent(new CustomEvent('abyssal-specimen-state',{detail:data||{}}));});
  socket.on('specimen-proficiency',data=>{
@@ -910,7 +910,7 @@ function applyPlayerMotion(rows){
  }
 }
 const specimenMotion=new Map();
-function getSpecimenMotion(id=localPlayerId){const s=specimenMotion.get(String(id));if(!s)return null;const p=window.AbyssalEnemyNetcode?.renderedPosition(s,performance.now())||s;return {x:p.x,y:p.y,angle:s.angle,alive:s.alive};}
+function getSpecimenMotion(id=localPlayerId){const s=specimenMotion.get(String(id));if(!s)return null;const p=window.AbyssalEnemyNetcode?.renderedPosition(s,performance.now())||s;return {x:p.x,y:p.y,angle:s.angle,alive:s.alive,field:s.field||0};}
 function getPlayers(){return [...players.values()].map(p=>{const peer=getInterpolatedPeer(p),s=getSpecimenMotion(p.id);return s?{...peer,specimenX:s.x,specimenY:s.y,specimenAlive:s.alive}:peer;});}
 function getPlayerById(id){const peer=players.get(String(id));if(!peer)return null;const p=getInterpolatedPeer(peer),s=getSpecimenMotion(id);return s?{...p,specimenX:s.x,specimenY:s.y,specimenAlive:s.alive}:p;}
 function sendSkinAbility(data,onResult){if(!socket?.connected||!authenticated||!currentRoom)return false;socket.timeout(3000).emit('skin-ability',data,(err,result)=>{if(!result?.ok)console.warn('[Abyssal] O servidor recusou o efeito visual da skin:',result?.reason||'sem confirmação');onResult?.(result||{ok:false,reason:err?'timeout':'no-ack'});});return true;}
