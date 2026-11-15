@@ -38,7 +38,7 @@
   const footer=element('div','aw-footer'),reset=element('button','aw-secondary','Restaurar padrão'),save=element('button','aw-primary','Salvar aparência');reset.type=save.type='button';footer.append(reset,buy,save);
   function chooseCategory(key){category=key;query='';search.value='';stopSwim();held=key==='weapon'?'abyssWeapon':'none';zoom=false;renderChoices();paint(performance.now());}
   function renderTabs(){tabs.replaceChildren();for(const g of groupsRow.children)g.setAttribute('aria-pressed',String(g.dataset.group===group));const active=groups.find(g=>g.id===group)||groups[0];collectionTitle.textContent=active.name;for(const key of active.slots){const b=element('button','',labels[key]);b.type='button';b.dataset.category=key;b.onclick=()=>chooseCategory(key);tabs.append(b);}tabs.hidden=tabs.children.length===1;}
-  for(const g of groups){const b=element('button','aw-group');b.type='button';b.dataset.group=g.id;b.append(categoryIcon(g.icon),element('span','',g.name));b.setAttribute('aria-label',g.name);b.onclick=()=>{if(busy)return;group=g.id;renderTabs();chooseCategory(g.slots[0]);panel.scrollTop=0;};groupsRow.append(b);}renderTabs();
+  for(const g of groups){const b=element('button','aw-group');b.type='button';b.dataset.group=g.id;b.append(categoryIcon(g.icon),element('span','',g.id==='gear'?'Equip.':g.name));b.setAttribute('aria-label',g.name);b.onclick=()=>{if(busy)return;group=g.id;renderTabs();chooseCategory(g.slots[0]);panel.scrollTop=0;};groupsRow.append(b);}renderTabs();
   function renderChoices(){
    const scroll={choices:choices.scrollTop,panel:panel.scrollTop,visor:page.closest('.abyss-visor-body')?.scrollTop||0};
    choices.dataset.category=category;mobileGender.value=gender;syncMobileView();updateSelected();

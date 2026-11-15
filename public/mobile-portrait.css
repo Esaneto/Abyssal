@@ -225,8 +225,6 @@ html.abyssal-handheld body.game-active.mobile-game-active #quickCommsWheel{grid-
 }
 
 /* The native select's chosen label must fit as well as its tap rectangle. */
-html.abyssal-handheld #submarineWorkshop .abyss-wardrobe .aw-mobile-catalog>select[hidden]{display:none!important}
-html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body .abyss-wardrobe :is(.aw-mobile-tools,.aw-mobile-catalog)>select{font:650 13px/1.2 system-ui!important}
 /* Keep the numerical cycle status, but leave the detailed decorative track
    to the full-size desktop HUD. This frees the upper playfield on phones. */
 html.abyssal-handheld body.game-active.mobile-game-active #hud .track-line-wrapper{display:none!important}
