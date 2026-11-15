@@ -50,7 +50,7 @@
   };
   // The hatch position matches the scaling used by drawSubmarine().
   const mobileQuery=window.matchMedia('(pointer: coarse)');
-  let mobileScene=false,subScale=1;
+  let mobileScene=false,subScale=1,lastCurrentsPaint=0;
   const hatch=()=>({x:w*.5,y:210*subScale});
   // Menu animation starts in the actual hatch. The playable dive has its own safe spawn.
   const arrivalEnd=()=>Math.min(h-38,226*subScale+(mobileScene?38:52));
@@ -62,7 +62,7 @@
     radius:(burst?1.3:0.8)+Math.random()*(burst?4:2),
     life:(burst?.55:.36)+Math.random()*(burst?.74:.30),max:burst?1.30:.7
    });
-   if(bubbles.length>145)bubbles.splice(0,bubbles.length-145);
+   const cap=mobileScene?64:145;if(bubbles.length>cap)bubbles.splice(0,bubbles.length-cap);
   };
   function resetToHatch(fromCabin=false){
    if(w<10||h<10)return;
@@ -78,16 +78,16 @@
   }
   function sizeScene(){
    const r=stage.getBoundingClientRect();if(r.width<80||r.height<100)return;
-   const oldW=w,oldH=h;w=r.width;h=r.height;mobileScene=mobileQuery.matches;stage.classList.toggle('abyss-mobile-zoom',mobileScene);subScale=window.AbyssalMenuScenery?.menuSubmarineScale(w,h,mobileScene)??Math.min(1.2,Math.max(.59,w/800));
+   const oldW=w,oldH=h;w=r.width;h=r.height;mobileScene=mobileQuery.matches||document.documentElement.classList.contains('abyssal-handheld');lastCurrentsPaint=0;stage.classList.toggle('abyss-mobile-zoom',mobileScene);subScale=window.AbyssalMenuScenery?.menuSubmarineScale(w,h,mobileScene)??Math.min(1.2,Math.max(.59,w/800));
    // Reserve enough room for the entire 130px diver canvas below the hatch.
    subScale=Math.min(subScale,Math.max(.1,(h-90)/226));
    for(const c of [routesCanvas,bubblesCanvas]){
-    const ratio=Math.max(1,Math.min(mobileScene?1.5:2.25,window.devicePixelRatio||1,Math.sqrt(3000000/(w*h))));
+    const ratio=Math.max(1,Math.min(mobileScene?1:2.25,window.devicePixelRatio||1,Math.sqrt(3000000/(w*h))));
     c.width=Math.round(w*ratio);c.height=Math.round(h*ratio);
     c.style.width=w+'px';c.style.height=h+'px';
     c.getContext('2d').setTransform(ratio,0,0,ratio,0,0);
    }
-   const renderDpr=Math.max(1,Math.min(2.5,window.devicePixelRatio||1));
+   const renderDpr=Math.max(1,Math.min(mobileScene?1.5:2.5,window.devicePixelRatio||1));
    canvas.width=Math.round(180*renderDpr);canvas.height=Math.round(130*renderDpr);
    ctx.setTransform(renderDpr,0,0,renderDpr,0,0);
    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
@@ -286,7 +286,7 @@
     const startX=s.wx-direction*w*.19,endX=s.wx+direction*w*.37;
     const span=endX-startX,band=Math.min(64,h*.105);
     currents.save();currents.lineCap='round';
-    for(let lane=-5;lane<=5;lane++){
+    for(let lane=-5;lane<=5;lane+=mobileScene?2:1){
      const offset=lane/5,centerY=s.wy+offset*band;
      const bend=Math.sin(now*.00032+lane*.75)*7;
      const a={x:startX,y:centerY-offset*9};
@@ -384,7 +384,7 @@
     diver.style.setProperty('--diver-x',px+'px');
     diver.style.setProperty('--diver-y',py+'px');
     diver.classList.toggle('swimming',Boolean(transition)||emergence<1||Math.hypot(vx,vy)>5);
-    if(!menu.classList.contains('expedition-hub'))renderCurrents(now);
+    if(!menu.classList.contains('expedition-hub')&&(!mobileScene||now-lastCurrentsPaint>=32)){renderCurrents(now);lastCurrentsPaint=now;}
     if(bubbleCtx){
      bubbleCtx.clearRect(0,0,w,h);
      for(let i=bubbles.length-1;i>=0;i--){

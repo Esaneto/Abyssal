@@ -6,10 +6,10 @@ let mobileViewport=document.documentElement.classList.contains('abyssal-handheld
 const cores=navigator.hardwareConcurrency||8;let lowPowerRendering=false,backgroundGradientCache=null,backgroundBloomCache=null,lastPaintAt=0;
 let hostileSpritePaintFrame=-1,hostileSpritePaintsThisFrame=0;
 const ADAPTIVE_QUALITY=[{name:'LEVE',dpr:.75},{name:'MÉDIO',dpr:1},{name:'ULTRA',dpr:Infinity}];
-function savedGraphicsLevel(){try{const v=localStorage.getItem('abyssalGraphicsQuality');return v==='0'?0:v==='1'?1:2;}catch(_){return 2;}}
-let adaptiveQualityLevel=savedGraphicsLevel(),adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;
+function savedGraphicsLevel(){try{const v=localStorage.getItem('abyssalGraphicsQuality');return v==='0'?0:v==='1'?1:v==='2'?2:mobileViewport?1:2;}catch(_){return mobileViewport?1:2;}}
+let adaptiveQualityLevel=savedGraphicsLevel(),adaptiveQualityCeiling=adaptiveQualityLevel,adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr,adaptiveFrameCost=0,adaptiveFrameCount=0;
 lowPowerRendering=adaptiveQualityLevel===0;
-function graphicsDpr(){const nativeDpr=Math.max(1,window.devicePixelRatio||1),desktop=window.matchMedia('(pointer:fine)').matches&&window.innerWidth>700;const cap=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;return Math.max(.5,Math.min(nativeDpr,desktop?Math.max(1,cap):cap,4096/viewW,4096/viewH,Math.sqrt(16777216/(viewW*viewH))));}
+function graphicsDpr(){const nativeDpr=Math.max(1,window.devicePixelRatio||1),cap=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;return Math.max(.5,Math.min(nativeDpr,mobileViewport?Math.min(1.5,cap):Math.max(1,cap),4096/viewW,4096/viewH,Math.sqrt(16777216/(viewW*viewH))));}
 const $ = id => document.getElementById(id);
 const screens = ['menuScreen','upgradeScreen','pauseScreen','gameOverScreen'];
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -495,12 +495,12 @@ const SEA_PROGRESSION=window.AbyssalSeaProgression;
 const SOLO_CLASSIC_CAP=50;
 const soloEnemyCap=()=>requestedRunMode==='rift'?MAX_ENEMIES:requestedRunMode==='classic'?SOLO_CLASSIC_CAP:(SEA_PROGRESSION?.MAX_SEA_ENEMIES||100);
 const soloCommonCap=()=>requestedRunMode==='rift'?MAX_COMMON_ENEMIES:requestedRunMode==='classic'?SOLO_CLASSIC_CAP-1:(SEA_PROGRESSION?.MAX_SEA_COMMON_ENEMIES||99);
-const particleBudget=()=>520, projectileBudget=()=>240, effectBudget=()=>240, orbBudget=()=>180;
+const particleBudget=()=>mobileViewport?(lowPowerRendering?160:280):520, projectileBudget=()=>240, effectBudget=()=>240, orbBudget=()=>180;
 const gameplayFrameBudget={faunaThink:0,particleSpawns:0,networkFlushes:0};
 function beginGameplayFrameBudget(){gameplayFrameBudget.faunaThink=0;gameplayFrameBudget.particleSpawns=0;gameplayFrameBudget.networkFlushes=0;}
 function faunaThinkBudget(){return Math.max(10,Math.min(30,8+Math.ceil(enemies.length*.16)));}
 function consumeFaunaThinkBudget(priority=false){const cap=faunaThinkBudget()+(priority?6:0);if(gameplayFrameBudget.faunaThink>=cap)return false;gameplayFrameBudget.faunaThink++;return true;}
-function frameParticleSpawnBudget(){return adaptiveQualityLevel===0?100:adaptiveQualityLevel===1?135:175;}
+function frameParticleSpawnBudget(){return mobileViewport?(lowPowerRendering?32:64):adaptiveQualityLevel===0?100:adaptiveQualityLevel===1?135:175;}
 function reserveParticleSpawns(requested){const available=Math.max(0,frameParticleSpawnBudget()-gameplayFrameBudget.particleSpawns),granted=Math.min(Math.max(0,requested|0),available);gameplayFrameBudget.particleSpawns+=granted;return granted;}
 const BOSS_KINDS=['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'];
 const BOSS_LABELS=Object.freeze({riftSmile:'PESADELO ROXO',boss:'POLVO-DE-ANÉIS-AZUIS COLOSSAL',leviathan:'PEIXE-REMO LEVIATÃ',maw:'ENGUIA-PELÍCANO COLOSSAL',angler:'PEIXE-PESCADOR ABISSAL',whiteSharkBoss:'TUBARÃO-BRANCO · O DEVORADOR PELÁGICO',kraken:'LULA-KRAKEN DAS FOSSAS',devourer:'LULA-COLOSSAL DO VAZIO'});
@@ -531,7 +531,7 @@ const MAX_SPRITE_PIXELS=12*1024*1024,MAX_SINGLE_SPRITE_PIXELS=4*1024*1024;
 function getCachedSprite(cache,key){const sprite=cache.get(key);if(sprite){cache.delete(key);cache.set(key,sprite);}return sprite;}
 function rememberCachedSprite(cache,key,sprite,maxEntries){cache.set(key,sprite);let pixels=0;for(const entry of cache.values())pixels+=entry.canvas.width*entry.canvas.height;while(cache.size>1&&(cache.size>maxEntries||pixels>MAX_SPRITE_PIXELS)){const oldest=cache.keys().next().value,entry=cache.get(oldest);pixels-=entry.canvas.width*entry.canvas.height;cache.delete(oldest);entry.canvas.width=1;entry.canvas.height=1;}}
 const previewCanvasSizes=new WeakMap();
-function preparePreviewCanvas(canvas){const c=canvas.getContext('2d');if(!c)return null;let size=previewCanvasSizes.get(canvas);if(!size){size={w:canvas.width,h:canvas.height};previewCanvasSizes.set(canvas,size);}const w=canvas.clientWidth||size.w,h=canvas.clientHeight||size.h,density=Math.max(1,window.devicePixelRatio||1),pw=Math.ceil(w*density),ph=Math.ceil(h*density);if(canvas.width!==pw||canvas.height!==ph){canvas.style.width=w+'px';canvas.style.height=h+'px';canvas.width=pw;canvas.height=ph;}c.setTransform(density,0,0,density,0,0);c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';return {c,w,h};}
+function preparePreviewCanvas(canvas){const c=canvas.getContext('2d');if(!c)return null;let size=previewCanvasSizes.get(canvas);if(!size){size={w:canvas.width,h:canvas.height};previewCanvasSizes.set(canvas,size);}const w=canvas.clientWidth||size.w,h=canvas.clientHeight||size.h,density=Math.max(1,Math.min(mobileViewport?1.5:Infinity,window.devicePixelRatio||1)),pw=Math.ceil(w*density),ph=Math.ceil(h*density);if(canvas.width!==pw||canvas.height!==ph){canvas.style.width=w+'px';canvas.style.height=h+'px';canvas.width=pw;canvas.height=ph;}c.setTransform(density,0,0,density,0,0);c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';return {c,w,h};}
 const aquaticMotionTracker=window.AbyssalSkinMotion?.createTracker?.({maxEntries:640})||null;
 const aquaticMotionSource={};
 const remoteCreatureAttackUntil=new Map();
@@ -3960,7 +3960,7 @@ function drawAbyssalCaveMap(t){
 }
 function drawBackground(t){
  if(drawAbyssalCaveMap(t))return;
- if(isClassicCavernRun()&&SOLO_CAVERN){SOLO_CAVERN.paint(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,W,H);return;}
+ if(isClassicCavernRun()&&SOLO_CAVERN){SOLO_CAVERN.paint(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,W,H,mobileViewport);return;}
  // Static gradients are created once per canvas size/zoom instead of allocating them every frame.
  if(!backgroundGradientCache){backgroundGradientCache=ctx.createRadialGradient(W*.5,H*.45,10,W*.5,H*.45,Math.max(W,H)*.82);backgroundGradientCache.addColorStop(0,'#0d2a39');backgroundGradientCache.addColorStop(.34,'#071a2b');backgroundGradientCache.addColorStop(.68,'#03111f');backgroundGradientCache.addColorStop(1,'#01040a');}
  if(!backgroundBloomCache){backgroundBloomCache=ctx.createRadialGradient(W*.79,H*.62,2,W*.79,H*.62,560);backgroundBloomCache.addColorStop(0,'rgba(145,25,70,.12)');backgroundBloomCache.addColorStop(.42,'rgba(91,29,95,.06)');backgroundBloomCache.addColorStop(1,'rgba(1,5,12,0)');}
@@ -4013,7 +4013,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   if(pixels*pixels>MAX_SINGLE_SPRITE_PIXELS||pixels>4096){drawCreature(x,y,r,angle,color,kind,t,false,hit,c,skinOverride,{...enemyState,__directVector:true,__visualMotion:visualMotion});return;}
   let sprite=getCachedSprite(hostileSpriteCache,key);
   if(!sprite){const surface=document.createElement('canvas');surface.width=pixels;surface.height=pixels;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};sprite.context.setTransform(density,0,0,density,0,0);rememberCachedSprite(hostileSpriteCache,key,sprite,48);}
-  const refreshInterval=BOSS_KINDS.includes(kind)?50:83;const stale=t-sprite.lastPaint>=refreshInterval;const firstPaint=!Number.isFinite(sprite.lastPaint)||sprite.lastPaint<0;if(stale&&(firstPaint||hostileSpritePaintsThisFrame<2)){sprite.context.clearRect(0,0,side,side);hostileSpriteState.__visualMotion={...visualMotion,phaseTime:t};hostileSpriteState.phase=t*.003;drawCreature(sprite.center,sprite.center,r,0,color,kind,animationTime,false,0,sprite.context,null,hostileSpriteState);sprite.lastPaint=t;hostileSpritePaintsThisFrame++;}
+  const refreshInterval=mobileViewport?(BOSS_KINDS.includes(kind)?83:125):(BOSS_KINDS.includes(kind)?50:83);const stale=t-sprite.lastPaint>=refreshInterval;const firstPaint=!Number.isFinite(sprite.lastPaint)||sprite.lastPaint<0;if(stale&&(firstPaint||hostileSpritePaintsThisFrame<2)){sprite.context.clearRect(0,0,side,side);hostileSpriteState.__visualMotion={...visualMotion,phaseTime:t};hostileSpriteState.phase=t*.003;drawCreature(sprite.center,sprite.center,r,0,color,kind,animationTime,false,0,sprite.context,null,hostileSpriteState);sprite.lastPaint=t;hostileSpritePaintsThisFrame++;}
   c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r,movingEnemyHeading);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center,side,side);if(kind==='angler'&&c.globalAlpha<.999){c.globalAlpha=1;const lx=.62*r,ly=-1.27*r,rr=.67*r,g=c.createRadialGradient(lx,ly,0,lx,ly,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff7b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowBlur=13;c.shadowColor='#ffdc70';c.beginPath();c.arc(lx,ly,rr,0,Math.PI*2);c.fill();}if(hit>0&&(kind!=='angler'||anglerVisibilityAlpha(Date.now())>.001)){c.globalAlpha=clamp(hit*2.6,0,.45)*(kind==='angler'?anglerVisibilityAlpha(Date.now()):1);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
  }
  t=animationTime;
@@ -4021,7 +4021,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  if(playerCreature&&id==='riftSmileRelic'&&RIFT_HARDCORE?.drawNightmareRelic){c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading);RIFT_HARDCORE.drawNightmareRelic(c,0,0,r,t);c.restore();return;}
  if(skin?.renderer==='marine'&&window.AbyssalMarineArt){window.AbyssalMarineArt.draw(c,x,y,r,angle,skin,animationTime,hit,visualMotion,liveSkinHeading!==null);return;}
  const boss=BOSS_KINDS.includes(kind);
- const glowScale=(playerCreature||boss)?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
+ const glowScale=((playerCreature||boss)?1:(r<13?.18:r<22?.38:.68))*(lowPowerRendering?.28:mobileViewport&&!preview?.55:1);
  const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
  c.save();c.translate(x,y);
  // All legacy skins get a restrained locomotion cycle without moving hitboxes:
@@ -4453,7 +4453,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  c.restore();
 }
 function drawArenaTerrain(t){
- if(isClassicCavernRun()&&SOLO_CAVERN){SOLO_CAVERN.drawRocks(ctx,arenaRocks,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t);return;}
+ if(isClassicCavernRun()&&SOLO_CAVERN){SOLO_CAVERN.drawRocks(ctx,arenaRocks,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,mobileViewport);return;}
  // Open sea now has one source of truth for geology and drawing. Rift/PvP keep their own terrain.
  if(usesNaturalOceanTerrain()){
   window.AbyssalOpenSeaRender?.draw?.(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,lowPowerRendering);
@@ -4598,7 +4598,7 @@ const riftSpecimenSpriteCache=new Map();
 let riftSpecimenSpriteFrame=-1,riftSpecimenSpritePaints=0;
 function drawRiftShopSpecimen(enemy,skin,time){
  if(riftSpecimenSpriteFrame!==time){riftSpecimenSpriteFrame=time;riftSpecimenSpritePaints=0;}
- const oceanFauna=isOpenSeaRun()&&Boolean(enemy.wildlifeMode);
+ const oceanFauna=isOpenSeaRun()&&Boolean(enemy.wildlifeMode),sharkHeight=OCEAN_SHARK_HEIGHTS[String(skin.id)]||0;
  const normalRadius=CREATURE_SCALE?.riftVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||Math.max(4,Number(enemy.r)||8);
  // Preserve shop skin identity and a species-specific 3 m maximum visual body envelope.
  const radius=normalRadius;
@@ -4614,7 +4614,7 @@ function drawRiftShopSpecimen(enemy,skin,time){
   sprite={canvas,c:canvas.getContext('2d'),side,lastPaint:-Infinity};sprite.c.setTransform(density,0,0,density,0,0);
   rememberCachedSprite(riftSpecimenSpriteCache,key,sprite,96);
  }
- const stale=time-sprite.lastPaint>=83;
+ const stale=time-sprite.lastPaint>=(mobileViewport?125:83);
  if(stale&&(sprite.lastPaint===-Infinity||riftSpecimenSpritePaints<3)){
   sprite.c.clearRect(0,0,sprite.side,sprite.side);
   drawCreature(sprite.side*.5,sprite.side*.5,bucket,0,skin.color,'player',time,true,0,sprite.c,skin,{__sprite:true,phase:Number(enemy.phase)||0});
@@ -4973,7 +4973,7 @@ function draw(t){
     ctx.shadowBlur=self.isDeveloper?14/worldZoom:0;ctx.shadowColor=self.isDeveloper?'#ff1744':'transparent';ctx.fillStyle=self.isDeveloper?'#ff304f':'#d8ffff';ctx.font=`${self.isDeveloper?900:700} ${14/worldZoom}px Manrope`;ctx.fillText(self.nickname||'Mergulhador',Math.round((player.x-cameraX)*worldZoom*dpr)/(worldZoom*dpr)+cameraX,Math.round(((player.y-cameraY)*worldZoom-18)*dpr)/(worldZoom*dpr)+cameraY);ctx.restore();
  }
  // Solo light masks the entire world, and raycasts against actual physical rock.
- if(isClassicCavernRun()&&player){SOLO_CAVERN?.lighting(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},player,window.AbyssalSoloProgress?.get().lamp||1,arenaRocks,t,[{x:soloSubmarine.x,y:soloSubmarine.y,active:soloSubmarinePowered()||soloSubmarine.spawnFx>0,radius:355/GAME_WORLD_ZOOM,strength:soloSubmarinePowered()?1:.78},{x:player.specimen?.x,y:player.specimen?.y,active:Boolean(player.specimen?.alive),radius:85/GAME_WORLD_ZOOM,color:currentSkinColor(),strength:.65},...remoteDiveLights]);}
+ if(isClassicCavernRun()&&player){SOLO_CAVERN?.lighting(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},player,window.AbyssalSoloProgress?.get().lamp||1,arenaRocks,t,[{x:soloSubmarine.x,y:soloSubmarine.y,active:soloSubmarinePowered()||soloSubmarine.spawnFx>0,radius:355/GAME_WORLD_ZOOM,strength:soloSubmarinePowered()?1:.78},{x:player.specimen?.x,y:player.specimen?.y,active:Boolean(player.specimen?.alive),radius:85/GAME_WORLD_ZOOM,color:currentSkinColor(),strength:.65},...remoteDiveLights],mobileViewport);}
  // Mar Aberto retains its independent helmet light.
  if(isOpenSeaRun()&&player&&gameState==='playing'){
   const levels=window.AbyssalExplorationBridge?.levels?.()||{};
@@ -5003,7 +5003,7 @@ function drawEnemyThreatAura(e,t){
  if(isOpenSeaRun()&&e.wildlifeMode&&e.aiIndicator!=='attack')return;
  const elite=e.eliteId?EXPEDITION_RULES?.eliteConfig?.(e.eliteId):null,accent=elite?.accent||e.color||'#ff668d';
  const pulse=1+Math.sin(t*.007+(Number(e.phase)||0))*.07,scale=e.eliteId?1.75:1.28;
- ctx.save();ctx.globalAlpha=e.eliteId?.24:.08;ctx.strokeStyle=accent;ctx.fillStyle=accent;ctx.shadowBlur=(e.eliteId?14:5)/worldZoom;ctx.shadowColor=accent;ctx.lineWidth=(e.eliteId?2.2:1)/worldZoom;ctx.beginPath();ctx.arc(e.x,e.y,e.r*scale*pulse,0,Math.PI*2);ctx.stroke();
+ ctx.save();ctx.globalAlpha=e.eliteId?.24:.08;ctx.strokeStyle=accent;ctx.fillStyle=accent;ctx.shadowBlur=mobileViewport?0:(e.eliteId?14:5)/worldZoom;ctx.shadowColor=accent;ctx.lineWidth=(e.eliteId?2.2:1)/worldZoom;ctx.beginPath();ctx.arc(e.x,e.y,e.r*scale*pulse,0,Math.PI*2);ctx.stroke();
  if(e.eliteId){ctx.globalAlpha=.12;ctx.beginPath();ctx.arc(e.x,e.y,e.r*1.28,0,Math.PI*2);ctx.fill();for(let i=0;i<6;i++){const a=t*.0006+i*Math.PI/3,rr=e.r*2.05;ctx.globalAlpha=.4;ctx.beginPath();ctx.arc(e.x+Math.cos(a)*rr,e.y+Math.sin(a)*rr,2.2/worldZoom,0,Math.PI*2);ctx.fill();}}
  ctx.restore();
 }
@@ -5042,8 +5042,21 @@ function applyAdaptiveQuality(level,reason='runtime'){
  backgroundGradientCache=null;backgroundBloomCache=null;
  window.dispatchEvent(new CustomEvent('abyssal-quality-change',{detail:{level:next,name:ADAPTIVE_QUALITY[next].name,reason,dpr}}));
 }
-function updateAdaptivePerformance(now){/* Explicit graphics selection is never overridden by FPS sampling. */}
-window.AbyssalAdaptivePerformance={snapshot:()=>({level:adaptiveQualityLevel,name:ADAPTIVE_QUALITY[adaptiveQualityLevel].name,dpr:Number(dpr.toFixed(2)),fps:gameFrameFps}),setLevel:level=>applyAdaptiveQuality(level,'manual-diagnostic'),setPreference:level=>{const n=Number(level);if(!Number.isInteger(n)||n<0||n>2)return;try{localStorage.setItem('abyssalGraphicsQuality',String(n));}catch(_){}applyAdaptiveQuality(n,'user-preference');}};
+function updateAdaptivePerformance(now){
+ if(!mobileViewport||!(gameState==='playing'||(onlineMode&&gameState==='upgrade'))){adaptiveQualityLastCheck=0;adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;adaptiveFrameCost=0;adaptiveFrameCount=0;return;}
+ // Use whole-window measured work and actual delivered FPS; never alter simulation or network cadence.
+ if(!adaptiveQualityLastCheck){adaptiveQualityLastCheck=now;return;}
+ adaptiveFrameCost+=gameLastUpdateMs+gameLastDrawMs;adaptiveFrameCount++;
+ if(now-adaptiveQualityLastCheck<2000)return;
+ const fps=adaptiveFrameCount*1000/Math.max(1,now-adaptiveQualityLastCheck),cost=adaptiveFrameCost/Math.max(1,adaptiveFrameCount);
+ adaptiveQualityLastCheck=now;adaptiveFrameCost=0;adaptiveFrameCount=0;
+ if(fps<45||cost>20){adaptiveQualityBadWindows++;adaptiveQualityGoodWindows=0;}
+ else if(fps>=56&&cost<12){adaptiveQualityGoodWindows++;adaptiveQualityBadWindows=0;}
+ else {adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;}
+ if(adaptiveQualityBadWindows>=2&&adaptiveQualityLevel>0){applyAdaptiveQuality(adaptiveQualityLevel-1,'mobile-load');adaptiveQualityBadWindows=0;}
+ else if(adaptiveQualityGoodWindows>=8&&adaptiveQualityLevel<adaptiveQualityCeiling){applyAdaptiveQuality(adaptiveQualityLevel+1,'mobile-recovery');adaptiveQualityGoodWindows=0;}
+}
+window.AbyssalAdaptivePerformance={snapshot:()=>({level:adaptiveQualityLevel,ceiling:adaptiveQualityCeiling,automatic:mobileViewport,name:ADAPTIVE_QUALITY[adaptiveQualityLevel].name,dpr:Number(dpr.toFixed(2)),fps:gameFrameFps}),setLevel:level=>applyAdaptiveQuality(level,'manual-diagnostic'),setPreference:level=>{const n=Number(level);if(!Number.isInteger(n)||n<0||n>2)return;adaptiveQualityCeiling=n;adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;try{localStorage.setItem('abyssalGraphicsQuality',String(n));}catch(_){}applyAdaptiveQuality(n,'user-preference');}};
 function flushGameplayNetworkFrame(dt){
  if(!onlineMode||!window.AbyssalOnline||!player)return;
  gameplayFrameBudget.networkFlushes++;flushOnlineDamageBatch();window.AbyssalOnline.sendPosition({x:player.x,y:player.y,angle:player.angle});sendWorldSnapshot(dt);
@@ -5053,7 +5066,7 @@ function getAbyssalPerformanceSnapshot(){
  const samples=[];for(let i=0;i<gameFrameSampleCount;i++)samples.push(gameFrameSamples[i]);samples.sort((a,b)=>a-b);
  const p95=samples.length?samples[Math.min(samples.length-1,Math.ceil(samples.length*.95)-1)]:0;
  const memory=performance.memory?.usedJSHeapSize;
- return {fps:gameFrameFps,lastUpdateMs:Number(gameLastUpdateMs.toFixed(2)),lastDrawMs:Number(gameLastDrawMs.toFixed(2)),frameP95Ms:Number(p95.toFixed(2)),maxFrameMs:Number(gameMaxFrameMs.toFixed(2)),longTaskCount:gameLongTaskCount,maxLongTaskMs:Number(gameMaxLongTaskMs.toFixed(2)),inpMs:Number(gameInpMs.toFixed(1)),entities:{enemies:enemies.length,orbs:orbs.length,projectiles:projectiles.length,particles:particles.length,effects:effects.length},frameBudget:{faunaThink:gameplayFrameBudget.faunaThink,faunaThinkCap:faunaThinkBudget(),particleSpawns:gameplayFrameBudget.particleSpawns,particleSpawnCap:frameParticleSpawnBudget(),networkFlushes:gameplayFrameBudget.networkFlushes},network:window.AbyssalOnline?.positionDiagnostics?.()||null,heapUsedMb:Number.isFinite(memory)?Number((memory/1048576).toFixed(1)):null};
+ return {fps:gameFrameFps,graphics:window.AbyssalAdaptivePerformance.snapshot(),canvasPixels:canvas.width*canvas.height,lastUpdateMs:Number(gameLastUpdateMs.toFixed(2)),lastDrawMs:Number(gameLastDrawMs.toFixed(2)),frameP95Ms:Number(p95.toFixed(2)),maxFrameMs:Number(gameMaxFrameMs.toFixed(2)),longTaskCount:gameLongTaskCount,maxLongTaskMs:Number(gameMaxLongTaskMs.toFixed(2)),inpMs:Number(gameInpMs.toFixed(1)),entities:{enemies:enemies.length,orbs:orbs.length,projectiles:projectiles.length,particles:particles.length,effects:effects.length},frameBudget:{faunaThink:gameplayFrameBudget.faunaThink,faunaThinkCap:faunaThinkBudget(),particleSpawns:gameplayFrameBudget.particleSpawns,particleSpawnCap:frameParticleSpawnBudget(),networkFlushes:gameplayFrameBudget.networkFlushes},network:window.AbyssalOnline?.positionDiagnostics?.()||null,heapUsedMb:Number.isFinite(memory)?Number((memory/1048576).toFixed(1)):null};
 }
 window.AbyssalPerformance={snapshot:getAbyssalPerformanceSnapshot};
 if(typeof PerformanceObserver!=='undefined'){
@@ -6103,7 +6116,7 @@ initNotifSystem();resize();
 const gameplayResizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(()=>{if(document.body.classList.contains('game-active'))resize();}):null;
 gameplayResizeObserver?.observe($('gameShell'));
 gameState='menu';scheduleGameLoop();
-SOLO_CAVERN?.prepareWorldArt?.(4800,3000,Math.max(1,Math.ceil(graphicsDpr()*desiredWorldZoom())),()=>gameState==='menu'&&!document.hidden);
+SOLO_CAVERN?.prepareWorldArt?.(4800,3000,Math.max(1,Math.ceil(graphicsDpr()*desiredWorldZoom())),()=>gameState==='menu'&&!document.hidden,mobileViewport);
 
 const endDiveButton=document.createElement('button');endDiveButton.id='endDiveBtn';endDiveButton.type='button';endDiveButton.textContent='ENCERRAR MERGULHO';endDiveButton.style.cssText='position:absolute;right:18px;top:72px;z-index:8;border:1px solid rgba(255,130,160,.55);border-radius:8px;padding:8px 10px;background:rgba(30,10,25,.78);color:#ffd6e0;font:600 10px Manrope,system-ui;letter-spacing:.08em;cursor:pointer;display:none';document.getElementById('gameShell').appendChild(endDiveButton);
 endDiveButton.addEventListener('click',()=>{if(['playing','paused','upgrade'].includes(gameState)){ $('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;endGame('voluntary');}});
