@@ -255,3 +255,12 @@ html.abyssal-handheld.abyssal-handheld-landscape #menuScreen.expedition-hub .hub
 html.abyssal-handheld.abyssal-handheld-landscape #menuScreen.expedition-hub .hub-nav .hub-destination small{font-size:9px!important}
 html.abyssal-handheld.abyssal-handheld-landscape #menuScreen.expedition-hub .hub-secondary{grid-column:1/-1!important;grid-row:3!important;gap:5px!important}
 html.abyssal-handheld.abyssal-handheld-landscape #menuScreen.expedition-hub .hub-secondary>button,html.abyssal-handheld.abyssal-handheld-landscape #menuScreen.expedition-hub .hub-secondary>details{flex:1 1 0!important}
+
+
+/* Keep the same encounter information in two compact rows on short landscape screens. */
+@media(orientation:landscape) and (max-height:450px){
+ html.abyssal-handheld body.game-active.mobile-game-active #bossProgressionTrack.boss-encounter:not([style*="display: none"]){display:grid!important;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:center;gap:3px 8px;padding:4px 6px!important}
+ html.abyssal-handheld body.game-active.mobile-game-active #bossProgressionTrack.boss-encounter .track-header{margin:0!important;min-width:0}
+ html.abyssal-handheld body.game-active.mobile-game-active #bossProgressionTrack.boss-encounter .track-encounter-label{margin:0!important;min-width:0}
+ html.abyssal-handheld body.game-active.mobile-game-active #bossProgressionTrack.boss-encounter .track-boss-nodes{margin:0!important}
+}
