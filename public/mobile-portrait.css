@@ -312,3 +312,6 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
 @media(orientation:portrait){
  html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){top:calc(var(--touch-top) + 153px)!important;width:clamp(106px,32vw,142px)!important;max-width:142px!important}
 }
+
+/* Mobile full HUD uses an important display rule; reduced mode must win in both orientations. */
+html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #hud:not([hidden]),html.abyssal-handheld.abyssal-handheld-landscape body.game-active.mobile-game-active.hud-collapsed #hud:not([hidden]){display:none!important}
