@@ -7,7 +7,8 @@ body.game-active #mobileAimStick .joystick-base{background:rgba(20,4,13,.36)!imp
 body.game-active #mobileAimStick .joystick-knob{background:transparent url('abyssal-red-reticle.svg') center/contain no-repeat!important;border:0!important;border-radius:0!important;box-shadow:none!important}
 body.game-active #mobileAimStick small{color:#ff8790!important}
 body.game-active.hud-collapsed #abyssalMiniMap,body.game-active.hud-collapsed #abyssDepthMeter{display:none!important}
-#copyProfileHudBtn{width:auto!important;min-width:82px!important;padding:5px 9px!important;font:750 10px/1.1 system-ui!important;white-space:nowrap;color:#99f6ed!important}
+#copyProfileHudBtn{width:auto!important;min-width:82px!important;padding:5px 9px!important;font:750 10px/1.1 system-ui!important;white-space:nowrap;color:#fff!important;border:1px solid rgba(121,243,240,.32)!important;background:rgba(7,30,44,.88)!important;box-shadow:none!important}
+#copyProfileHudBtn:hover:not(:disabled){background:rgba(34,84,103,.9)!important;border-color:#8dd9e5!important;color:#fff!important}
 
 /* Handheld portrait rules are more specific than the historical generic HUD. */
 html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #gameShell #hud:not([hidden]),html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){display:none!important}
@@ -75,3 +76,8 @@ body.game-active.custom-hud-active #gameShell [data-hud-custom-opacity],body.gam
 .hud-editor-fullscreen .hud-editor-size,.hud-editor-fullscreen .hud-editor-size output{font:600 11px/1.15 system-ui!important;letter-spacing:0!important;text-transform:none!important}
 .hud-editor-fullscreen .hud-editor-dock>p{font:500 11px/1.2 system-ui!important}
 html.abyssal-handheld body.game-active.mobile-game-active #gameShell #soloSubmarineRepairBtn:not([hidden]){font:750 8px/1.1 system-ui!important;letter-spacing:0!important;overflow-wrap:normal!important;word-break:normal!important}
+
+/* Level-up is a modal interaction; custom HUD items cannot intercept or cover choices. */
+html body.game-active #gameShell:has(> #upgradeScreen:not([hidden])) > #upgradeScreen{z-index:1000!important;isolation:isolate;pointer-events:auto!important}
+html body.game-active:has(#upgradeScreen:not([hidden])) :is(#hud,#gameplayOverlayRoot,#mobilePauseBtn,#toggleHudBtn,#mobileJoystick,#mobileAimStick,#mobileFireBtn,#quickComms,#roomBadge,#endDiveBtn,#bossAlert,#abyssalDangerAlert,#soloSubmarinePowerBtn,#soloSubmarineRepairBtn,#abyssMapInteractBtn,.topbar) ,
+html body.game-active:has(#upgradeScreen:not([hidden])) :is(#hud,#gameplayOverlayRoot,#mobilePauseBtn,#toggleHudBtn,#mobileJoystick,#mobileAimStick,#mobileFireBtn,#quickComms,#roomBadge,#endDiveBtn,#bossAlert,#abyssalDangerAlert,#soloSubmarinePowerBtn,#soloSubmarineRepairBtn,#abyssMapInteractBtn,.topbar) *{visibility:hidden!important;pointer-events:none!important}

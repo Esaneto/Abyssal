@@ -33,12 +33,165 @@ function normalizeMode(raw,mode){const out={};for(const profile of PROFILES){con
 // Keep existing Solo keys and migrate the previously shared layout to Online once.
 function normalize(raw){return {...normalizeMode(raw,'solo'),online:normalizeMode(raw?.online??raw,'online')};}
 function modeLayout(layout,mode){return mode==='online'?layout.online:layout;}
+// Public GameMaster Solo HUD snapshot, 2026-11-15. Bundled for offline starts;
+// it is a baseline, not a live dependency or an overwrite of player settings.
+const MOBILE_PRESET={
+ "portrait": {
+  "health": {
+   "x": 0.24212964375813803,
+   "y": 0.11094417652258506,
+   "s": 0.65
+  },
+  "xp": {
+   "x": 0.22638891885677973,
+   "y": 0.13420138622705752,
+   "s": 0.65
+  },
+  "energy": {
+   "x": 0.21898148457209268,
+   "y": 0.15848692334615266,
+   "s": 0.65
+  },
+  "progress": {
+   "x": 0.7171295285224915,
+   "y": 0.1230302040393536,
+   "s": 0.65
+  },
+  "skills": {
+   "x": 0.9422452449798584,
+   "y": 0.1924412617316613,
+   "s": 1
+  },
+  "pulse": {
+   "x": 0.9200231234232584,
+   "y": 0.6992292459300488,
+   "s": 1
+  },
+  "dash": {
+   "x": 0.7818287213643392,
+   "y": 0.7012684992972137,
+   "s": 1
+  },
+  "petSkill": {
+   "x": 0.9413193861643473,
+   "y": 0.6198057494411578,
+   "s": 1
+  },
+  "pet": {
+   "x": 0.13686344027519226,
+   "y": 0.9762684678755744,
+   "s": 1
+  },
+  "repair": {
+   "x": 0.9762732883294424,
+   "y": 0.46759796142578125,
+   "s": 1
+  },
+  "power": {
+   "x": 0.9478009541829427,
+   "y": 0.5431278647714957,
+   "s": 1
+  }
+ },
+ "landscape": {
+  "stats": {
+   "x": 0.7807625348751361,
+   "y": 0.013802083830038706,
+   "s": 0.65
+  },
+  "health": {
+   "x": 0.25240384615384615,
+   "y": 0.016652201612790424,
+   "s": 0.65
+  },
+  "xp": {
+   "x": 0.2521367623255803,
+   "y": 0.08554687475164731,
+   "s": 0.65
+  },
+  "energy": {
+   "x": 0.25213012328514683,
+   "y": 0.1389178385337194,
+   "s": 0.65
+  },
+  "progress": {
+   "x": 0.7811966767677894,
+   "y": 0.13485241681337357,
+   "s": 0.65
+  },
+  "pulse": {
+   "x": 0.9015958492572491,
+   "y": 0.761689821879069,
+   "s": 1
+  },
+  "dash": {
+   "x": 0.980181620671199,
+   "y": 0.7607494195302328,
+   "s": 1
+  },
+  "petSkill": {
+   "x": 0.9660790516779973,
+   "y": 0.8940682411193848,
+   "s": 1
+  },
+  "pet": {
+   "x": 0.05886752101091238,
+   "y": 0.9464698781569799,
+   "s": 1
+  },
+  "repair": {
+   "x": 0.01551816096672645,
+   "y": 0.7782408793767294,
+   "s": 1
+  },
+  "power": {
+   "x": 0.05654380183953505,
+   "y": 0.642578125,
+   "s": 1
+  }
+ }
+};
+function defaultLayout(mode,profile){
+ const source=MOBILE_PRESET[profile];if(!source)return {};
+ const layout=Object.fromEntries(Object.entries(source).map(([id,pos])=>[id,{...pos}]));
+ if(mode==='online')layout.comms=profile==='portrait'?{x:.15,y:.47,s:1}:{x:.15,y:.52,s:1};
+ return layout;
+}
+function effectiveLayout(layout,mode,profile){return {...defaultLayout(mode,profile),...modeLayout(layout,mode)[profile]};}
+// Preserve authored controls. Fit untouched baseline controls against the actual
+// rendered bounds, on narrow screens and rotations, without changing saved data.
+const PRESET_ORDER=['pause','hide','repair','power','petSkill','pulse','dash','pet','aim','fire','comms','stats','health','xp','energy','progress','skills'];
+function resolvePositions(entries,w,h,safe={},avoidOverlap=true){
+ const result={},occupied=[],gap=3;
+ const priority=e=>e.custom?-1:PRESET_ORDER.indexOf(e.id)<0?99:PRESET_ORDER.indexOf(e.id);
+ const ordered=[...entries].sort((a,b)=>priority(a)-priority(b));
+ for(const e of ordered){
+  if(e.pos.hidden)continue;
+  const target=fit(e.pos,e.box,w,h,safe),hw=e.box.w*target.s/2,hh=e.box.h*target.s/2;
+  const rect=(x,y)=>({l:x-hw,r:x+hw,t:y-hh,b:y+hh});
+  const intersects=(a,b)=>a.l<b.r+gap-.001&&a.r>b.l-gap+.001&&a.t<b.b+gap-.001&&a.b>b.t-gap+.001;
+  let best=target,bestRect=rect(target.x,target.y);
+  if(avoidOverlap&&!e.custom&&occupied.some(r=>intersects(bestRect,r))){
+   const xs=[target.x],ys=[target.y];
+   for(const r of occupied){xs.push(r.l-hw-gap,r.r+hw+gap);ys.push(r.t-hh-gap,r.b+hh+gap);}
+   let cost=Infinity;
+   for(const x of xs)for(const y of ys){
+    const p=fit({...e.pos,x:x/w,y:y/h},e.box,w,h,safe),r=rect(p.x,p.y);
+    if(occupied.some(o=>intersects(r,o)))continue;
+    const d=(p.x-target.x)**2+(p.y-target.y)**2;
+    if(d<cost){cost=d;best=p;bestRect=r;}
+   }
+  }
+  result[e.id]={...e.pos,x:best.x/w,y:best.y/h,s:best.s};occupied.push(bestRect);
+ }
+ return result;
+}
 function fit(pos,box,w,h,safe={}){const l=Math.max(6,safe.left||0),r=Math.max(6,safe.right||0),t=Math.max(6,safe.top||0),b=Math.max(6,safe.bottom||0),s=Math.min(pos.s,Math.max(.1,(w-l-r)/Math.max(1,box.w)),Math.max(.1,(h-t-b)/Math.max(1,box.h)));const hw=box.w*s/2,hh=box.h*s/2;return {x:clamp(pos.x*w,l+hw,Math.max(l+hw,w-r-hw)),y:clamp(pos.y*h,t+hh,Math.max(t+hh,h-b-hh)),s};}
 function safeInsets(doc){const html=doc.documentElement;if(!html.classList.contains('abyssal-handheld'))return {};let el=doc.getElementById('abyssalHudSafeAreaProbe');if(!el){el=doc.createElement('div');el.id='abyssalHudSafeAreaProbe';el.style.cssText='position:fixed;pointer-events:none;visibility:hidden;width:0;height:0;box-sizing:content-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);';doc.body.append(el);}const c=doc.defaultView.getComputedStyle(el);return {left:parseFloat(c.paddingLeft)||0,right:parseFloat(c.paddingRight)||0,top:parseFloat(c.paddingTop)||0,bottom:parseFloat(c.paddingBottom)||0};}
 function groupRect(els){if(!els.length)return null;const rects=els.map(el=>el.getBoundingClientRect()),l=Math.min(...rects.map(r=>r.left)),t=Math.min(...rects.map(r=>r.top)),r=Math.max(...rects.map(r=>r.right)),b=Math.max(...rects.map(r=>r.bottom));return {rects,l,t,r,b,w:r-l,h:b-t,cx:(l+r)/2,cy:(t+b)/2};}
 function visibleGroup(doc,selectors){return selectors.flatMap(s=>[...doc.querySelectorAll(s)]).filter(el=>{const r=el.getBoundingClientRect(),cs=doc.defaultView.getComputedStyle(el);return r.width>0&&r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden';});}
 function placeGroup(els,g,pos,sr,safe=safeInsets(els[0].ownerDocument)){const f=fit(pos,g,sr.width,sr.height,safe);els.forEach((el,i)=>{const rc=g.rects[i],ex=(rc.left+rc.right)/2,ey=(rc.top+rc.bottom)/2;el.style.setProperty('translate',(sr.left+f.x+(ex-g.cx)*f.s-ex)+'px '+(sr.top+f.y+(ey-g.cy)*f.s-ey)+'px','important');el.style.setProperty('scale',String(f.s),'important');el.style.setProperty('transform-origin','center','important');el.toggleAttribute('data-hud-custom-opacity',typeof pos.o==='number');if(typeof pos.o==='number')el.style.setProperty('--hud-custom-opacity',String(pos.o));else el.style.removeProperty('--hud-custom-opacity');});return f;}
-const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
+const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
 const doc=root.document;if(!doc)return;
 function read(key){try{return JSON.parse(root.localStorage.getItem(key)||'null');}catch{return null;}}
 function write(key,v){try{root.localStorage.setItem(key,JSON.stringify(v));return true;}catch{return false;}}
@@ -47,13 +200,19 @@ const applied=new Map(),scales=new Map(),userHidden=new Set();
 function profile(){return doc.documentElement.classList.contains('abyssal-handheld')||root.matchMedia('(pointer: coarse)').matches||root.innerWidth<=700?root.innerWidth>root.innerHeight?'landscape':'portrait':'desktop';}
 function gameMode(){return doc.body.dataset.hudMode==='online'?'online':'solo';}
 function mobileControls(){try{return root.localStorage.getItem('abyssalControlsMobile')==='dual-stick'?'dual-stick':'classic';}catch{return 'classic';}}
-function activeLayout(){return modeLayout(saved,gameMode())[profile()];}
+function activeLayout(){return effectiveLayout(saved,gameMode(),profile());}
 function active(){return doc.body.classList.contains('game-active');}
 function clear(){for(const el of applied.keys()){el.style.removeProperty('translate');el.style.removeProperty('scale');el.style.removeProperty('transform-origin');el.removeAttribute('data-hud-custom-opacity');el.style.removeProperty('--hud-custom-opacity');}applied.clear();scales.clear();for(const el of userHidden)el.removeAttribute('data-hud-user-hidden');userHidden.clear();}
 function refresh(){scheduled=false;clear();const shell=doc.getElementById('gameShell'),layout=activeLayout();if(!shell||!active()){doc.body.classList.remove('custom-hud-active');return;}const has=Object.keys(layout).length>0;doc.body.classList.toggle('custom-hud-active',has);if(!has)return;const sr=shell.getBoundingClientRect();if(!sr.width||!sr.height)return;
- for(const [id,,selectors] of eligibleItems(gameMode(),profile(),mobileControls())){const pos=layout[id];if(!pos)continue;if(canRemove(id)&&pos.hidden){for(const sel of selectors)for(const el of doc.querySelectorAll(sel)){el.setAttribute('data-hud-user-hidden','');userHidden.add(el);}continue;}
- const els=visibleGroup(doc,selectors),g=groupRect(els);if(!g)continue;const f=placeGroup(els,g,pos,sr);scales.set(id,f.s);for(const el of els)applied.set(el,true);
+ const device=profile(),mode=gameMode(),mobile=device!=='desktop',raw=modeLayout(saved,mode)[device],safe=safeInsets(doc),entries=[];
+ for(const [id,,selectors] of eligibleItems(mode,device,mobileControls())){
+  let pos=layout[id];if(canRemove(id)&&pos?.hidden){for(const sel of selectors)for(const el of doc.querySelectorAll(sel)){el.setAttribute('data-hud-user-hidden','');userHidden.add(el);}continue;}
+  if(!pos&&!mobile)continue;const els=visibleGroup(doc,selectors),g=groupRect(els);if(!g)continue;
+  if(!pos)pos={x:(g.cx-sr.left)/sr.width,y:(g.cy-sr.top)/sr.height,s:1};
+  entries.push({id,pos,box:g,els,custom:Boolean(raw[id])});
  }
+ const resolved=resolvePositions(entries,sr.width,sr.height,safe,mobile);
+ for(const e of entries){const pos=resolved[e.id];if(!pos)continue;const f=placeGroup(e.els,e.box,pos,sr,safe);scales.set(e.id,f.s);for(const el of e.els)applied.set(el,true);}
 }
 function schedule(){if(scheduled)return;scheduled=true;root.requestAnimationFrame(refresh);}
 function publish(message){const online=root.AbyssalOnline,account=online?.getAccount?.();if(!online?.isAuthenticated?.()||!account?.nickname){message?.('Salvo neste dispositivo. Entre na conta e salve para compartilhar no perfil.');return;}
@@ -89,13 +248,14 @@ function createPage(){let draft=normalize(imported?.layout||saved),selectedProfi
  const eligible=()=>eligibleItems(selectedMode,selectedProfile,mobileControls());
  const selectedLayout=()=>modeLayout(draft,selectedMode);
  const getItem=()=>ITEMS.find(i=>i[0]===selected);
- function current(item){const m=metrics.get(item[0]);return selectedLayout()[selectedProfile][item[0]]||(m?{x:m.x,y:m.y,s:1}:defaults(item,selectedProfile));}
+ function target(item){const m=metrics.get(item[0]);return selectedLayout()[selectedProfile][item[0]]||defaultLayout(selectedMode,selectedProfile)[item[0]]||(m?{x:m.x,y:m.y,s:1}:defaults(item,selectedProfile));}
+ function current(item){return selectedLayout()[selectedProfile][item[0]]||resolvedPreview[item[0]]||target(item);}
  function updateSize(){const item=getItem(),v=current(item);contextName.textContent=item[1];opacity.min=String(canRemove(item[0])?15:35);opacity.value=String(Math.round((v.o??1)*100));opacityAmount.textContent=opacity.value+'%';opacity.disabled=Boolean(v.hidden);size.max=String(scaleLimit(item[0])*100);size.disabled=Boolean(v.hidden);smaller.disabled=Boolean(v.hidden)||v.s<=.65;larger.disabled=Boolean(v.hidden)||v.s>=scaleLimit(item[0]);removeItem.disabled=!canRemove(item[0])||Boolean(v.hidden);size.value=String(Math.round(v.s*100));const m=metrics.get(selected),vfit=m&&fit(v,m,reference[0],reference[1],previewSafe);amount.textContent=size.value+'%'+(vfit?' · '+Math.round(m.w*vfit.s)+' × '+Math.round(m.h*vfit.s)+' px':'');}
- const previewEls=new Map();let frame=null,metrics=new Map(),reference=[360,640],generation=0,previewSafe={},paintQueued=false,lastDevice=profile();
+ const previewEls=new Map();let frame=null,metrics=new Map(),resolvedPreview={},reference=[360,640],generation=0,previewSafe={},paintQueued=false,lastDevice=profile();
  function referenceSize(){if(profile()===selectedProfile)return [Math.max(1,Math.round(root.innerWidth)),Math.max(1,Math.round(root.innerHeight))];return selectedProfile==='portrait'?[360,640]:selectedProfile==='landscape'?[844,390]:[1280,720];}
  function paintBackdrop(canvas,w,h){const c=canvas.getContext('2d');if(!c)return;const density=Math.min(root.devicePixelRatio||1,2,Math.sqrt(2000000/(w*h)));canvas.width=Math.round(w*density);canvas.height=Math.round(h*density);canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';const live=doc.getElementById('game');if(active()&&live?.width&&live?.height&&profile()===selectedProfile){c.drawImage(live,0,0,canvas.width,canvas.height);canvas.dataset.scene='live';return;}const cavern=root.AbyssalSoloCavern;if(!cavern)return;const zoom=Math.max(.36,Math.min(selectedProfile==='desktop'?1.2:.70,Math.min(w,h)/(2*(294/.78)*1.08))),ww=w/zoom,hh=h/zoom,rocks=cavern.buildRocks(4800,3000),water=cavern.nearestWater(rocks,4800,3000,2400,680,95)||{x:2400,y:330},px=water.x,py=water.y,view={left:Math.max(0,Math.min(4800-ww,px-ww/2)),top:Math.max(0,Math.min(3000-hh,py-hh/2)),width:ww,height:hh},diver={x:px,y:py,r:13/.78,bodyAngle:-.7,angle:-.7};c.setTransform(canvas.width/ww,0,0,canvas.height/hh,-view.left*canvas.width/ww,-view.top*canvas.height/hh);cavern.paint(c,view,1800,4800,3000,selectedProfile!=='desktop',true);cavern.drawRocks(c,rocks,view,1800,selectedProfile!=='desktop');root.AbyssalDiverArt?.draw?.(c,px,py,diver.r,-.7,-.7,1800,{gender:'male',gameplay:true,detail:true,appearance:root.AbyssalAvatarBase?.get(),heldItem:'abyssWeapon',helmetLamp:true});cavern.lighting(c,view,diver,root.AbyssalSoloProgress?.get?.().lamp||1,rocks,1800,[],selectedProfile!=='desktop');canvas.dataset.scene='cavern';}
  function measurePreview(){
-  const gen=++generation;metrics=new Map();reference=referenceSize();previewSafe=selectedProfile===profile()?safeInsets(doc):{};delete stage.dataset.measured;
+  const gen=++generation;metrics=new Map();resolvedPreview={};reference=referenceSize();previewSafe=selectedProfile===profile()?safeInsets(doc):{};delete stage.dataset.measured;
   frame?.remove();frame=create('iframe','hud-editor-live-preview');frame.title='Prévia visual dos controles';frame.tabIndex=-1;frame.setAttribute('aria-hidden','true');frame.style.width=reference[0]+'px';frame.style.height=reference[1]+'px';stage.prepend(frame);
   const d=frame.contentDocument,shell=doc.getElementById('gameShell');if(!d||!shell)return;
   d.open();d.write('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body></body></html>');d.close();
@@ -117,7 +277,7 @@ function createPage(){let draft=normalize(imported?.layout||saved),selectedProfi
   const css=Array.from(doc.querySelectorAll('link[rel="stylesheet"],style'));for(const node of css){const n=d.importNode(node,true);if(n.tagName==='LINK'){n.href=node.href;pending++;n.onload=n.onerror=()=>{pending--;done();};}d.head.append(n);}
   const fix=d.createElement('style');fix.textContent='html,body{overflow:hidden!important;margin:0!important} #app{padding:0!important} #gameShell{background:radial-gradient(ellipse at 50% 45%,#154653,#092632 52%,#030e17)!important}';d.head.append(fix);done();root.setTimeout(()=>{pending=0;done();},1800);
  }
- function paint(){const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const w=reference[0],h=reference[1],factor=Math.min(stage.clientWidth/w,stage.clientHeight/h),ox=(stage.clientWidth-w*factor)/2,oy=(stage.clientHeight-h*factor)/2;if(frame){const transform='translate('+ox+'px,'+oy+'px) scale('+factor+')';if(frame.style.transform!==transform)frame.style.transform=transform;}stage.dataset.scale=String(factor);for(const item of eligible()){const el=previewEls.get(item[0]);if(!el)continue;const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]],box=m||{w:dimensions[0],h:dimensions[1]},v=current(item),f=fit(v,box,w,h,previewSafe);el.style.left=ox+f.x*factor+'px';el.style.top=oy+f.y*factor+'px';el.style.width=box.w*f.s*factor+'px';el.style.height=box.h*f.s*factor+'px';el.style.fontSize=Math.max(8,12*factor*f.s)+'px';el.dataset.realWidth=String(box.w*f.s);el.dataset.realHeight=String(box.h*f.s);el.dataset.live=String(Boolean(m));el.hidden=Boolean(v.hidden);if(m){const sig=[v.x,v.y,v.s,v.o??1,Boolean(v.hidden)].join(':');if(m.signature!==sig){m.signature=sig;for(const node of m.els)node.toggleAttribute('data-hud-user-hidden',Boolean(v.hidden));if(!v.hidden)placeGroup(m.els,m.g,v,m.sr,previewSafe);}}const option=Array.from(itemSel.options).find(o=>o.value===item[0]);if(option)option.textContent=item[1]+(v.hidden?' (excluído)':'');el.setAttribute('aria-pressed',String(item[0]===selected));if(item[0]===selected)tools.dataset.side=f.y>h*.50?'top':'bottom';}updateSize();}
+ function paint(){const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const w=reference[0],h=reference[1],factor=Math.min(stage.clientWidth/w,stage.clientHeight/h),ox=(stage.clientWidth-w*factor)/2,oy=(stage.clientHeight-h*factor)/2;if(frame){const transform='translate('+ox+'px,'+oy+'px) scale('+factor+')';if(frame.style.transform!==transform)frame.style.transform=transform;}stage.dataset.scale=String(factor);const entries=eligible().map(item=>{const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]];return {id:item[0],pos:target(item),box:m||{w:dimensions[0],h:dimensions[1]},custom:Boolean(selectedLayout()[selectedProfile][item[0]])};});resolvedPreview=resolvePositions(entries,w,h,previewSafe,selectedProfile!=='desktop');for(const item of eligible()){const el=previewEls.get(item[0]);if(!el)continue;const m=metrics.get(item[0]),dimensions=selectedProfile==='desktop'?DESKTOP_BOXES[item[0]]||[item[5],item[6]]:[item[5],item[6]],box=m||{w:dimensions[0],h:dimensions[1]},v=resolvedPreview[item[0]]||target(item),f=fit(v,box,w,h,previewSafe);el.style.left=ox+f.x*factor+'px';el.style.top=oy+f.y*factor+'px';el.style.width=box.w*f.s*factor+'px';el.style.height=box.h*f.s*factor+'px';el.style.fontSize=Math.max(8,12*factor*f.s)+'px';el.dataset.realWidth=String(box.w*f.s);el.dataset.realHeight=String(box.h*f.s);el.dataset.live=String(Boolean(m));el.hidden=Boolean(v.hidden);if(m){const sig=[v.x,v.y,v.s,v.o??1,Boolean(v.hidden)].join(':');if(m.signature!==sig){m.signature=sig;for(const node of m.els)node.toggleAttribute('data-hud-user-hidden',Boolean(v.hidden));if(!v.hidden)placeGroup(m.els,m.g,v,m.sr,previewSafe);}}const option=Array.from(itemSel.options).find(o=>o.value===item[0]);if(option)option.textContent=item[1]+(v.hidden?' (excluído)':'');el.setAttribute('aria-pressed',String(item[0]===selected));if(item[0]===selected)tools.dataset.side=f.y>h*.50?'top':'bottom';}updateSize();}
  function queuePaint(){if(paintQueued)return;paintQueued=true;root.requestAnimationFrame(()=>{paintQueued=false;if(page.isConnected)paint();});}
  function select(id){selected=id;itemSel.value=id;tools.hidden=false;settingsPanel.hidden=true;settings.setAttribute('aria-expanded','false');paint();}
  function rebuild(){const items=eligible();if(!items.some(i=>i[0]===selected))selected=items[0][0];itemSel.replaceChildren();stage.replaceChildren();previewEls.clear();for(const item of items){const o=create('option','',item[1]);o.value=item[0];itemSel.append(o);const labels={stats:'TEMPO · NV · BOSSES · DANO',health:'VITALIDADE',xp:'ENERGIA · EVOLUÇÃO',energy:'ENERGIA / BASE',progress:'CICLO · PROGRESSÃO',skills:'RESSONÂNCIA',pause:'Ⅱ',hide:'›',pulse:'Q · PULSO',dash:'E · PROPULSOR',petSkill:'R · PET',pet:'PASSIVO',repair:'🔧',power:'⚡ 20',fire:'DISPARO',comms:'💬',end:'ENCERRAR'};const b=create('button','hud-editor-piece',labels[item[0]]||item[1]);b.setAttribute('aria-label',item[1]);b.type='button';b.dataset.item=item[0];if(item[0]==='aim'){b.classList.add('hud-editor-reticle');b.textContent='';b.setAttribute('aria-label',item[1]);}let drag=null;b.addEventListener('pointerdown',e=>{e.preventDefault();select(item[0]);const br=b.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-br.left-br.width/2,dy:e.clientY-br.top-br.height/2};b.setPointerCapture?.(e.pointerId);});b.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const r=stage.getBoundingClientRect(),v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp((e.clientX-r.left-stage.clientLeft-drag.dx-(stage.clientWidth-reference[0]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1]))/2)/(reference[0]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1])),0,1),y:clamp((e.clientY-r.top-stage.clientTop-drag.dy-(stage.clientHeight-reference[1]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1]))/2)/(reference[1]*Math.min(stage.clientWidth/reference[0],stage.clientHeight/reference[1])),0,1)};queuePaint();});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>{drag=null;});b.addEventListener('click',()=>select(item[0]));b.addEventListener('keydown',e=>{const dx=e.key==='ArrowLeft'?-.01:e.key==='ArrowRight'?.01:0,dy=e.key==='ArrowUp'?-.01:e.key==='ArrowDown'?.01:0;if(!dx&&!dy)return;e.preventDefault();const v=current(item);selectedLayout()[selectedProfile][item[0]]={...v,x:clamp(v.x+dx,0,1),y:clamp(v.y+dy,0,1)};paint();});previewEls.set(item[0],b);stage.append(b);}itemSel.value=selected;stage.dataset.profile=selectedProfile;stage.dataset.mode=selectedMode;root.requestAnimationFrame(()=>{if(page.isConnected)measurePreview();paint();});}
@@ -130,8 +290,8 @@ function createPage(){let draft=normalize(imported?.layout||saved),selectedProfi
  root.requestAnimationFrame(()=>{if(page.isConnected&&!page.open){if(typeof page.showModal==='function')page.showModal();else page.setAttribute('open','');}});rebuild();const observer=new ResizeObserver(paint);observer.observe(stage);const viewportChanged=()=>{const device=profile();if(selectedProfile===lastDevice&&device!==lastDevice){selectedProfile=device;sel.value=device;lastDevice=device;tools.hidden=true;rebuild();return;}lastDevice=device;const next=referenceSize();if(next[0]!==reference[0]||next[1]!==reference[1])measurePreview();};root.addEventListener('resize',viewportChanged);const life=new MutationObserver(()=>{if(page.hudEditorAnchor&&!page.hudEditorAnchor.isConnected)page.remove();if(!page.isConnected){generation++;observer.disconnect();root.removeEventListener('resize',viewportChanged);life.disconnect();}});root.requestAnimationFrame(()=>{if(page.isConnected)life.observe(doc.body,{childList:true,subtree:true});else observer.disconnect();});return page;
 }
 function copyFromProfile(layout,name){if(layout==null)return false;imported={layout:normalize(layout),name:String(name||'jogador')};const nav=root.AbyssalCockpitNavigation;if(nav?.routeCommand?.('hudEditor'))return true;nav?.open?.();if(nav?.routeCommand?.('hudEditor'))return true;imported=null;return false;}
-root.AbyssalHudLayout=Object.freeze({...core,createPage,copyFromProfile,renderAbilityButton,refresh:schedule,scaleFor:id=>scales.get(id)||1,get:()=>normalize(saved)});
+root.AbyssalHudLayout=Object.freeze({...core,createPage,copyFromProfile,renderAbilityButton,refresh:schedule,scaleFor:id=>scales.get(id)||1,get:()=>normalize(saved),getEffective:(mode,device)=>effectiveLayout(saved,mode,device)});
 const selectors=ITEMS.flatMap(i=>i[2]).join(',');
-function install(){const obs=new MutationObserver(records=>{if(!Object.keys(activeLayout()).length&&!applied.size)return;if(!active()&&!applied.size)return;for(const rec of records){if(rec.type==='attributes'){if(rec.oldValue===rec.target.getAttribute(rec.attributeName))continue;if(rec.target===doc.body||rec.target===doc.documentElement||rec.target.matches?.(selectors)||rec.target.id==='quickComms'||rec.target.id==='explorationOverlay'||rec.target.id==='abyssInventoryRoot'||rec.target.id==='abyssalSonarShell'||rec.target.id==='petHabitBar') {schedule();return;}}else if([...rec.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(selectors)||n.querySelector?.(selectors)))){schedule();return;}}});obs.observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','data-hud-mode'],attributeOldValue:true});obs.observe(doc.documentElement,{attributes:true,attributeFilter:['class'],attributeOldValue:true});root.addEventListener('resize',schedule,{passive:true});root.addEventListener('orientationchange',schedule);root.addEventListener('abyssal-account-data',flushPending);schedule();}
+function install(){const obs=new MutationObserver(records=>{if(!Object.keys(activeLayout()).length&&!applied.size)return;if(!active()&&!applied.size)return;for(const rec of records){if(rec.type==='attributes'){if(rec.oldValue===rec.target.getAttribute(rec.attributeName))continue;if(rec.target===doc.body||rec.target===doc.documentElement||rec.target.matches?.(selectors)||rec.target.id==='quickComms'||rec.target.id==='explorationOverlay'||rec.target.id==='abyssInventoryRoot'||rec.target.id==='abyssalSonarShell'||rec.target.id==='petHabitBar'||rec.target.id==='upgradeScreen') {schedule();return;}}else if([...rec.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(selectors)||n.querySelector?.(selectors)))){schedule();return;}}});obs.observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','data-hud-mode'],attributeOldValue:true});obs.observe(doc.documentElement,{attributes:true,attributeFilter:['class'],attributeOldValue:true});root.addEventListener('resize',schedule,{passive:true});root.addEventListener('orientationchange',schedule);root.addEventListener('abyssal-account-data',flushPending);schedule();}
 if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(typeof globalThis!=='undefined'?globalThis:this);

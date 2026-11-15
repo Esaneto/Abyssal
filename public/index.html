@@ -30,8 +30,8 @@
 <meta name="twitter:image:alt" content="Abyssal: Ecos das Profundezas. Mergulho Solo e Online cooperativo.">
 <meta name="google-adsense-account" content="ca-pub-2314281138409028">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.6.119">
-<link rel="stylesheet" href="cardume-comms.css?v=3">
+<link rel="stylesheet" href="style.css?v=3.6.120">
+<link rel="stylesheet" href="cardume-comms.css?v=3.6.120">
 <link rel="stylesheet" href="abyssal-inventory-ui.css?v=2026.11.10.7">
 <link rel="stylesheet" href="abyssal-rebuild.css?v=2">
 <link rel="manifest" href="manifest.webmanifest">
@@ -192,7 +192,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     <canvas id="game" aria-label="Área do jogo Abyssal"></canvas>
     
     <button id="mobilePauseBtn" class="mobile-pause-btn" type="button" aria-label="Pausar jogo" title="Pausar jogo">Ⅱ</button>
-    <div id="quickComms" hidden><button id="quickCommsToggle" type="button" aria-label="Comunicação rápida" aria-expanded="false" title="Comunicação rápida (V)">💬</button><div id="quickCommsWheel" hidden role="group" aria-label="Mensagens rápidas"></div><div id="quickCommsFeed" aria-live="polite"></div></div>
+    <div id="quickComms" hidden><button id="quickCommsToggle" type="button" aria-label="Comunicação rápida" aria-expanded="false" title="Comunicação rápida (V)"><span class="quick-comms-icon" aria-hidden="true">💬</span><span class="quick-comms-timer" aria-hidden="true" hidden></span></button><div id="quickCommsWheel" hidden role="group" aria-label="Mensagens rápidas"></div><div id="quickCommsFeed" aria-live="polite"></div></div>
     <div id="bossAlert" class="boss-alert" hidden role="alert" aria-live="assertive"><span id="bossAlertKicker" class="boss-alert-kicker">SINAL DE PRESSÃO · CONTATO DESCONHECIDO</span><strong id="bossAlertTitle">UMA PRESENÇA COLOSSAL</strong><p id="bossAlertText">Algo se move onde a luz não alcança.</p></div>
     <!-- Alerta abissal de boss/progressão (vermelho, ameaçador, fade suave) -->
     <div id="abyssalDangerAlert" role="alert" aria-live="assertive" aria-atomic="true">
@@ -287,10 +287,10 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     </div>
 
     <section id="controlsScreen" class="screen modal-screen" hidden><div class="modal-card compact-card controls-card" role="dialog" aria-modal="true" aria-labelledby="controlsTitle"><div class="eyebrow"><span class="pulse-dot"></span> PERSONALIZE SUA EXPEDIÇÃO</div><h2 id="controlsTitle">CONTROLES</h2><p>Escolha um único tipo de controle por plataforma. A preferência fica salva neste dispositivo.</p><h3>PC</h3><button type="button" class="secondary-btn control-choice" data-control-pc="classic" aria-pressed="false">Controle atual — clicar/segurar para mover</button><button type="button" class="secondary-btn control-choice" data-control-pc="wasd-aim" aria-pressed="false">WASD + mouse para mirar · clique para disparar, segure para repetir</button><h3>Mobile</h3><button type="button" class="secondary-btn control-choice" data-control-mobile="classic" aria-pressed="false">Controles atuais — toque e arraste</button><button type="button" class="secondary-btn control-choice" data-control-mobile="dual-stick" aria-pressed="false">Joystick para mirar + botão de munição para disparar</button><button id="controlsCloseBtn" class="primary-btn" type="button">SALVAR E VOLTAR</button></div></section>
-    <section id="upgradeScreen" class="screen modal-screen" hidden>
+    <section id="upgradeScreen" class="screen modal-screen" role="dialog" aria-modal="true" aria-labelledby="upgradeHeading" hidden>
       <div class="modal-card">
         <div class="eyebrow"><span class="pulse-dot"></span> EVOLUÇÃO DESBLOQUEADA</div>
-        <h2>ESCOLHA SUA<br><em>RESSONÂNCIA</em></h2>
+        <h2 id="upgradeHeading">ESCOLHA SUA<br><em>RESSONÂNCIA</em></h2>
         <p>O abismo lhe oferece uma nova adaptação.</p>
         <div id="upgradeTimer" class="upgrade-timer" role="timer" aria-live="polite" aria-atomic="true">
           <div class="upgrade-timer-copy"><strong id="upgradeTimerText">ESCOLHA EM 10s</strong><span>SEM ESCOLHA, UMA HABILIDADE ALEATÓRIA SERÁ APLICADA</span></div>
@@ -690,7 +690,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <link rel="stylesheet" href="avatar-wardrobe.css?v=3.6.117.rail5">
 <link rel="stylesheet" href="abyssal-release-polish.css?v=3">
 <link rel="stylesheet" href="mobile-portrait.css?v=3.6.118">
-<link rel="stylesheet" href="abyssal-hud-editor.css?v=3.6.118">
+<link rel="stylesheet" href="abyssal-hud-editor.css?v=3.6.120">
 <link rel="stylesheet" href="abyssal-responsive-v247.css?v=3.6.118">
 <script src="server-config.js?v=1"></script>
 <script>
@@ -721,7 +721,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.119"></script>
+<script src="client-build.js?v=3.6.120"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=3.6.108"></script>
 <script src="age-slider.js?v=1"></script>
@@ -777,10 +777,10 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
  <script src="abyssal-feature-gates.js?v=3.6.113"></script>
  <script src="abyssal-sample-audio.js?v=2026.11.14.death-v2"></script>
  <script src="abyssal-research-tree.js?v=3.6.118"></script>
-<script src="abyssal-hud-editor.js?v=3.6.118"></script>
- <script src="game.js?v=3.6.119"></script>
+<script src="abyssal-hud-editor.js?v=3.6.120"></script>
+ <script src="game.js?v=3.6.120"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=3.6.110"></script>
+<script src="online.js?v=3.6.120"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.14.playable-v220"></script>
 <script src="abyssal-rebuild.js?v=2026.11.13.playable-v216"></script>

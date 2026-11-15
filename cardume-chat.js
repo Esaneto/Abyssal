@@ -2,6 +2,7 @@
 const crypto=require('node:crypto');
 const {screenChatMessage,obfuscationView}=require('./chat-safety');
 const RULES_VERSION='2026-11-14-cardume-v1';
+const QUICK_COOLDOWN_MS=10000;
 const QUICK=Object.freeze({ok:'👍',danger:'⚠️',help:'🆘',energy:'🔋',repair:'🔧',attack:'🎯',oxygen:'🫧',retreat:'↩️',follow:'💡',thanks:'🤝',good:'❤️',creature:'🐋'});
 function blocked(users,a,b){return a!==b&&Boolean(users[a]?.blockedUsers?.includes(b)||users[b]?.blockedUsers?.includes(a));}
 function membership(users,cardumes,key){const u=users[key],c=u&&cardumes[u.cardumeId];return c&&Array.isArray(c.members)&&c.members.includes(key)?c:null;}
@@ -21,10 +22,11 @@ function penalty(u,reason,now=Date.now()){
  const duration=['threat','grooming_or_off_platform_contact'].includes(reason)?86400000:[0,300000,1800000,86400000][Math.min(3,prior)];
  if(duration)u.chatMutedUntil=Math.max(Number(u.chatMutedUntil)||0,now+duration);return duration;
 }
-function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,enabled}){
+function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,enabled,now=Date.now}){
  let schemaPool=null,schemaPromise=null;
  const rates=new Map(),pending=new Set(),lastText=new Map();
- function rate(key,kind,ms){const now=Date.now(),id=key+':'+kind,last=rates.get(id)||0;if(now-last<ms)return false;rates.set(id,now);return true;}
+ function retryAfter(key,kind,ms){const last=rates.get(key+':'+kind);return last===undefined?0:Math.max(0,ms-(now()-last));}
+ function rate(key,kind,ms){if(retryAfter(key,kind,ms))return false;rates.set(key+':'+kind,now());return true;}
  const rateTimer=setInterval(()=>{const cutoff=Date.now()-600000;for(const [key,at] of rates)if(at<cutoff)rates.delete(key);for(const [key,v] of lastText)if(v.at<cutoff)lastText.delete(key);},600000);rateTimer.unref?.();
  async function db(){
   const pool=getPool();if(!pool)throw Error('chat storage unavailable');
@@ -61,12 +63,14 @@ function createCardumeChat({io,getUsers,getCardumes,getPool,saveUsers,getRoom,en
   });
   socket.on('online-quick-emoji',(payload,cb)=>{
    const k=key(),u=getUsers()[k],room=getRoom(socket),id=payload?.id;
-   if(!enabled()||!u||u.chatBanned||Number(u.chatMutedUntil)>Date.now()||!room||!socket.data.joined||!room.players.has(socket.id)||room.players.get(socket.id)?.alive===false||typeof id!=='string'||!Object.hasOwn(QUICK,id)||!rate(k,'emoji',2500))return ack(cb,{ok:false});
-   for(const client of(io.sockets?.sockets?.values?.()||[])){const recipient=client.data.userKey;if(recipient&&getRoom(client)===room&&room.players.has(client.id)&&!blocked(getUsers(),k,recipient))client.emit('online-quick-emoji',{id,playerId:socket.id,nickname:u.nickname});}ack(cb,{ok:true});
+   if(!enabled()||!u||u.chatBanned||Number(u.chatMutedUntil)>Date.now()||!room||!socket.data.joined||!room.players.has(socket.id)||room.players.get(socket.id)?.alive===false||typeof id!=='string'||!Object.hasOwn(QUICK,id))return ack(cb,{ok:false});
+   const retryAfterMs=retryAfter(k,'emoji',QUICK_COOLDOWN_MS);if(retryAfterMs)return ack(cb,{ok:false,retryAfterMs});
+   rate(k,'emoji',QUICK_COOLDOWN_MS);
+   for(const client of(io.sockets?.sockets?.values?.()||[])){const recipient=client.data.userKey;if(recipient&&getRoom(client)===room&&room.players.has(client.id)&&!blocked(getUsers(),k,recipient))client.emit('online-quick-emoji',{id,playerId:socket.id,nickname:u.nickname});}ack(cb,{ok:true,retryAfterMs:QUICK_COOLDOWN_MS});
   });
  }
  async function removeMessage(id){const pool=await db(),r=await pool.query('DELETE FROM abyssal_cardume_messages WHERE id=$1 RETURNING cardume_id',[id]),c=r.rows[0]&&getCardumes()[r.rows[0].cardume_id];if(c)for(const client of(io.sockets?.sockets?.values?.()||[]))if(allowed(client.data.userKey,c))client.emit('cardume-chat-removed',{id,cardumeId:c.id});}
  async function deleteAccount(key){if(!getPool())return;const pool=await db();await pool.query('DELETE FROM abyssal_cardume_messages WHERE sender_key=$1',[key]);lastText.delete(key);}
  return {attach,getChatMessage,removeMessage,deleteAccount};
 }
-module.exports={createCardumeChat,screen,penalty,membership,blocked,QUICK,RULES_VERSION};
+module.exports={createCardumeChat,screen,penalty,membership,blocked,QUICK,QUICK_COOLDOWN_MS,RULES_VERSION};
