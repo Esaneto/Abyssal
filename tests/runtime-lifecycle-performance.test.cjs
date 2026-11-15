@@ -80,7 +80,7 @@ test('gameplay loop fully suspends while the browser tab is hidden',()=>{
  assert.match(game,/function scheduleGameLoop\(delay=0\)/);
  assert.match(game,/if\(document\.hidden\|\|gameLoopFrame\|\|gameLoopTimer\)return/);
  assert.match(game,/function stopGameLoop\(\)[\s\S]*?cancelAnimationFrame\(gameLoopFrame\)[\s\S]*?clearTimeout\(gameLoopTimer\)/);
- assert.match(game,/document\.addEventListener\('visibilitychange',[\s\S]*?if\(document\.hidden\)\{syncPropulsorAudio\(performance\.now\(\),false\);stopGameLoop\(\);return;\}[\s\S]*?scheduleGameLoop\(\)/);
+ assert.match(game,/document\.addEventListener\('visibilitychange',[\s\S]*?if\(document\.hidden\)\{syncPropulsorAudio\(performance\.now\(\),false\);stopGameLoop\(\);resetAdaptivePerformance\(\);return;\}[\s\S]*?scheduleGameLoop\(\)/);
  assert.doesNotMatch(game,/gameState==='menu'&&!onlineMode\)\{last=t;setTimeout\(\(\)=>requestAnimationFrame\(loop\),125\)/);
 });
 
