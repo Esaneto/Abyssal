@@ -40,6 +40,7 @@ test('mobile static art is allocated once, mask stays bounded, ray geometry unch
   const rocks=cave.buildRocks(4800,3000),player={x:2400,y:330,r:17,bodyAngle:0};
   cave.lighting(ctx,view,player,1,rocks,100,[],true);
   assert.equal(allocations.length,2);assert.ok(Math.max(allocations[1].width,allocations[1].height)<=640);
+  cave.paint(ctx,view,300,4800,3000,true,true);const sharpCount=allocations.length;assert.equal(sharpCount,3);cave.paint(ctx,{...view,left:view.left+8},400,4800,3000,true,true);assert.equal(allocations.length,sharpCount);assert.ok(allocations[2].width*allocations[2].height<=4000000);
   for(let i=0;i<32;i++){const a=i*Math.PI/16;assert.equal(cave.rayDistance(rocks,player.x,player.y,Math.cos(a),Math.sin(a),570),cave.rayDistance(rocks,player.x,player.y,Math.cos(a),Math.sin(a),570,true));}
  }finally{if(oldDocument===undefined)delete global.document;else global.document=oldDocument;}
 });

@@ -33,3 +33,6 @@ body.game-active.custom-hud-active #gameplayOverlayRoot #petHabitBar{pointer-eve
 body.game-active.custom-hud-active #petHabitBar :is(button,select){pointer-events:auto!important}
 body.game-active.custom-hud-active #activeAbilities{pointer-events:none!important}
 body.game-active.custom-hud-active #activeAbilities button{pointer-events:auto!important}
+
+html.abyssal-handheld body.game-active.mobile-game-active.custom-hud-active #hud:not([hidden]),html.abyssal-handheld body.game-active.mobile-game-active.custom-hud-active #hud .bars,html.abyssal-handheld body.game-active.mobile-game-active.custom-hud-active #gameplayOverlayRoot{overflow:visible!important}
+body.game-active.custom-hud-active .topbar{overflow:visible!important}

@@ -3961,7 +3961,7 @@ function drawAbyssalCaveMap(t){
 }
 function drawBackground(t){
  if(drawAbyssalCaveMap(t))return;
- if(isClassicCavernRun()&&SOLO_CAVERN){SOLO_CAVERN.paint(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,W,H,mobileViewport);return;}
+ if(isClassicCavernRun()&&SOLO_CAVERN){SOLO_CAVERN.paint(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,W,H,mobileViewport,adaptiveQualityCeiling===2);return;}
  // Static gradients are created once per canvas size/zoom instead of allocating them every frame.
  if(!backgroundGradientCache){backgroundGradientCache=ctx.createRadialGradient(W*.5,H*.45,10,W*.5,H*.45,Math.max(W,H)*.82);backgroundGradientCache.addColorStop(0,'#0d2a39');backgroundGradientCache.addColorStop(.34,'#071a2b');backgroundGradientCache.addColorStop(.68,'#03111f');backgroundGradientCache.addColorStop(1,'#01040a');}
  if(!backgroundBloomCache){backgroundBloomCache=ctx.createRadialGradient(W*.79,H*.62,2,W*.79,H*.62,560);backgroundBloomCache.addColorStop(0,'rgba(145,25,70,.12)');backgroundBloomCache.addColorStop(.42,'rgba(91,29,95,.06)');backgroundBloomCache.addColorStop(1,'rgba(1,5,12,0)');}
@@ -6117,7 +6117,7 @@ initNotifSystem();resize();
 const gameplayResizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(()=>{if(document.body.classList.contains('game-active'))resize();}):null;
 gameplayResizeObserver?.observe($('gameShell'));
 gameState='menu';scheduleGameLoop();
-SOLO_CAVERN?.prepareWorldArt?.(4800,3000,Math.max(1,Math.ceil(graphicsDpr()*desiredWorldZoom())),()=>gameState==='menu'&&!document.hidden,mobileViewport);
+SOLO_CAVERN?.prepareWorldArt?.(4800,3000,Math.max(1,Math.ceil(graphicsDpr()*desiredWorldZoom())),()=>gameState==='menu'&&!document.hidden,mobileViewport&&adaptiveQualityCeiling<2);
 
 const endDiveButton=document.createElement('button');endDiveButton.id='endDiveBtn';endDiveButton.type='button';endDiveButton.textContent='ENCERRAR MERGULHO';endDiveButton.style.cssText='position:absolute;right:18px;top:72px;z-index:8;border:1px solid rgba(255,130,160,.55);border-radius:8px;padding:8px 10px;background:rgba(30,10,25,.78);color:#ffd6e0;font:600 10px Manrope,system-ui;letter-spacing:.08em;cursor:pointer;display:none';document.getElementById('gameShell').appendChild(endDiveButton);
 endDiveButton.addEventListener('click',()=>{if(['playing','paused','upgrade'].includes(gameState)){ $('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;endGame('voluntary');}});
