@@ -516,7 +516,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const dt = Math.max(0, Math.min(0.1, (now - previousTick) / 1000));
   world.lastTick = now;
   world.elapsed += dt;
-  for(const enemy of world.enemies)CreatureScale.applyHealthRamp(enemy,world.elapsed);
+  let healthRampChanged=false;
+  for (const enemy of world.enemies) if(CreatureScale.applyHealthRamp(enemy, world.elapsed)){healthRampChanged=true;if(BOSS_KINDS.includes(enemy.kind))world.lastBossMaxHp=enemy.maxHp;}
   world.tickCount++;
   let eventEnded = null;
   if (world.activeEventId && Number(world.eventEndsAt) > 0 && world.elapsed >= Number(world.eventEndsAt)) {
@@ -1100,7 +1101,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   world.reliableSnapshotTimer = (Number(world.reliableSnapshotTimer) || 0) - dt;
   world.playerSnapshotTimer -= dt;
   const sendSnapshot = world.snapshotTimer <= 0;
-  const sendReliableSnapshot = world.reliableSnapshotTimer <= 0;
+  const sendReliableSnapshot = healthRampChanged || world.reliableSnapshotTimer <= 0;
   const sendPlayers = world.playerSnapshotTimer <= 0;
   // Preserve fractional tick remainder, avoiding alternate 10/20 Hz bursts on 49 ms ticks.
   if (sendSnapshot) world.snapshotTimer = Math.max(0, world.snapshotTimer + 0.05);
