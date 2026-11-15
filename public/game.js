@@ -3240,7 +3240,7 @@ function update(dt){
  updateSpecimenRuntime(dt);
  tickSoloSpecimenOrbs();
  updateSkinTrailRuntime();
- if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){for(const enemy of enemies)CREATURE_SCALE?.applyHealthRamp?.(enemy,elapsed);updateSoloRiftHardcore(dt);}publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(isClassicShooterRun())updateBossProgressionStep(dt);}else if(onlineRoomMode==='coop'){if(!progressionPausedForBoss)progressionDistance=Math.min(100,progressionDistance+dt*3.8);updateProgressionTrackUI();}
+ if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){for(const enemy of enemies)if(CREATURE_SCALE?.applyHealthRamp?.(enemy,elapsed)&&BOSS_KINDS.includes(enemy.kind))lastBossMaxHp=enemy.maxHp;updateSoloRiftHardcore(dt);}publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(isClassicShooterRun())updateBossProgressionStep(dt);}else if(onlineRoomMode==='coop'){if(!progressionPausedForBoss)progressionDistance=Math.min(100,progressionDistance+dt*3.8);updateProgressionTrackUI();}
 
   // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano reduzido)
   let areaGridReady=false;
@@ -4002,7 +4002,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  }
  // Cache elaborate hostile drawings off-screen and refresh them infrequently; a horde can share one sprite.
  if(renderContext===ctx&&!playerCreature&&!enemyState?.__directVector){
-  const spread=kind==='kraken'?2.8:kind==='boss'?2.75:kind==='maw'?3.65:kind==='leviathan'?3.45:kind==='lurker'?2.55:BOSS_KINDS.includes(kind)?2.15:1.85;
+  const spread=kind==='kraken'?5.1:kind==='boss'?2.75:kind==='maw'?3.65:kind==='leviathan'?3.45:kind==='lurker'?2.55:BOSS_KINDS.includes(kind)?2.15:1.85;
   // One anatomical surface per species/size/color. Per-creature motion stays on
   // the cheap outer transform; phase variants multiplied the cache and caused
   // canvas creation/eviction loops in crowded online rooms.
@@ -4836,7 +4836,7 @@ function draw(t){
   ctx.restore();
  }
 
- for(const e of enemies){if(!onlineMode&&e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(!onlineMode&&Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderRadius=activeMapLayout?(CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r,e.specimenSkinId)||CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r,e.specimenSkinId)||e.r):(CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r,e.specimenSkinId)||e.r);const renderPad=Math.max(e.r,renderRadius)*1.42*(e.kind==='kraken'?2.8:e.kind==='boss'?2.75:e.kind==='devourer'?2.55:e.kind==='leviathan'?3.45:e.kind==='maw'?3.65:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;const anglerConcealed=e.kind==='angler'&&anglerVisibilityAlpha(Date.now())<=.001;if((e.discoverySkinId||e.specimenSkinId)&&!anglerConcealed&&player&&onlineRoomMode!=='pvp'&&Math.hypot(e.x-player.x,e.y-player.y)<440/GAME_WORLD_ZOOM
+ for(const e of enemies){if(!onlineMode&&e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(!onlineMode&&Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderRadius=activeMapLayout?(CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r,e.specimenSkinId)||CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r,e.specimenSkinId)||e.r):(CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r,e.specimenSkinId)||e.r);const renderPad=Math.max(e.r,renderRadius)*1.42*(e.kind==='kraken'?5.1:e.kind==='boss'?2.75:e.kind==='devourer'?2.55:e.kind==='leviathan'?3.45:e.kind==='maw'?3.65:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;const anglerConcealed=e.kind==='angler'&&anglerVisibilityAlpha(Date.now())<=.001;if((e.discoverySkinId||e.specimenSkinId)&&!anglerConcealed&&player&&onlineRoomMode!=='pvp'&&Math.hypot(e.x-player.x,e.y-player.y)<440/GAME_WORLD_ZOOM
    &&(!activeMapLayout||!ABYSSAL_MAP?.segmentWalkable||ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,e.x,e.y,3/GAME_WORLD_ZOOM))){
    if(!isClassicCavernRun()||!SOLO_CAVERN?.segmentBlocked(arenaRocks,player.x,player.y,e.x,e.y,3/GAME_WORLD_ZOOM))registerSpecimenDiscovery(e.discoverySkinId||e.specimenSkinId);
   }
