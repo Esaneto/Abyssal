@@ -43,7 +43,7 @@ test('the Abyssario reveals a gradual journal with authoritative biological stat
 });
 test('multiplayer uses authoritative biological vitals and speed',()=>{
  const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
- assert.match(server,/specimenMaxHp:SpecimenSystem\.effectiveStats\(equippedSkinId,specimenPoints\)\.hp/);
- assert.match(server,/SpecimenSystem\.effectiveStats\(peer\.skinId,peer\.specimenPoints\)\.speed/);
- assert.match(server,/p\.specimenMaxHp=SpecimenSystem\.effectiveStats\(p\.skinId,p\.specimenPoints\)\.hp/);
+ assert.match(server,/specimenMaxHp:Math\.round\(SpecimenSystem\.effectiveStats\(equippedSkinId,specimenPoints\)\.hp\*ResBalance\.petLife\(resumeBuild\.petLife\)\)/);
+ assert.match(server,/SpecimenSystem\.effectiveStats\(peer\.skinId,peer\.specimenPoints\)\.speed\*ResBalance\.petSpeed\(peer\.petSpeed\)/);
+ assert.match(server,/p\.specimenMaxHp=Math\.round\(SpecimenSystem\.effectiveStats\(p\.skinId,p\.specimenPoints\)\.hp\*ResBalance\.petLife\(p\.petLife\)\)/);
 });
