@@ -23,7 +23,7 @@
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
  let activeLabSection='survival',activeConsoleSection='laboratory',soloConsolePage='home';
- const researchTreeSelection={diver:'lamp:1',submarine:'submarineShield'};
+ const researchTreeSelection={diver:null,submarine:null};
  let combatResearchPending=false,combatResearchMessage='';
  // Move the original live screens, not copies: purchases, filters, canvases,
  // ownership and catalog discovery retain their existing IDs and listeners.
