@@ -31,11 +31,11 @@ test('Smart endangered fauna flee and invisible wildlife follows patrol',()=>{
  assert.equal(wildlife.decide(e,[p],{now:100,family:'octopus'}).mode,'patrol');
 });
 
-test('Fossas visual scale never makes fauna invisible and does not change collision cores',()=>{
- assert.ok(scale.riftVisualRadius('drifter',8,'scalyfoot')>=17);
+test('Fossas and classic fauna share the same meter scale and proportional hitbox',()=>{
+ assert.equal(scale.monsterMeters('drifter','scalyfoot'),.5);
  assert.ok(scale.riftVisualRadius('drifter',8,'leviathan')>scale.riftVisualRadius('drifter',8,'scalyfoot'));
- assert.ok(scale.riftVisualRadius('kraken',80)>scale.monsterVisualRadius('kraken',80));
- assert.equal(scale.creatureCollisionRadius(10,'scalyfoot'),scale.creatureCollisionRadius(10,'scalyfoot'));
+ assert.equal(scale.riftVisualRadius('kraken',80),scale.monsterVisualRadius('kraken',80));
+ assert.ok(scale.creatureCollisionRadius(10,'scalyfoot')<scale.creatureCollisionRadius(10,'leviathan'));
 });
 
 test('Rift map provides obstacle-aware navigation for patrol and flight',()=>{
