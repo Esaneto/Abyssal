@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-15-responsive-v249';
+const VERSION = '2026-11-15-resonance-v250';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -8,7 +8,7 @@ const GAME_FILES = [
   'manifest.webmanifest',
   'favicon.svg',
   'abyssal-icon.svg',
-  'style.css','abyssal-ocean-design.css','abyssal-deep-systems.css','abyssal-research-tree.js',
+  'style.css','abyssal-ocean-design.css','abyssal-deep-systems.css','abyssal-research-tree.js','abyssal-resonance-balance.js',
   'abyssal-rebuild.css','abyssal-release-polish.css','abyssal-menu-tour.js',
   'abyssal-menu-v2.css',
   'abyssal-menu-navigation.css',

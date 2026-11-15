@@ -7,7 +7,7 @@ const ITEMS=[
  ['xp','Experiência',['#hud .xp-label','#hud .xp-bar'],.50,.12,236,18,'both'],
  ['energy','Energia / base',['#hud .solo-energy-stock'],.50,.158,236,25,'both'],
  ['progress','Progressão de chefes',['#bossProgressionTrack'],.50,.202,236,64,'both'],
- ['skills','Habilidades adquiridas',['#selectedSkillsPanel'],.825,.31,115,77,'both'],
+ ['skills','Habilidades adquiridas',['#selectedSkillsPanel'],.91,.31,60,112,'both'],
  ['pause','Pausar',['#mobilePauseBtn','#pauseBtn'],.92,.047,48,48,'both'],
  ['hide','Ocultar HUD',['#toggleHudBtn'],.08,.047,48,48,'both'],
  ['pulse','Q · Pulso',['#skillPulseBtn'],.36,.95,48,50,'both'],
@@ -61,7 +61,7 @@ function publish(message){const online=root.AbyssalOnline,account=online?.getAcc
 function flushPending(){const pending=read(PENDING),online=root.AbyssalOnline;if(!pending||publishing||!online?.isAuthenticated?.()||!online?.isConnected?.()||online.getAccount?.()?.nickname!==pending.owner)return;publishing=true;online.saveCosmetics({hudLayout:normalize(pending.layout)},res=>{publishing=false;if(res?.ok&&JSON.stringify(read(PENDING))===JSON.stringify(pending)){try{root.localStorage.removeItem(PENDING);}catch{}}});}
 const create=(tag,cls,text)=>{const e=doc.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e;};
 const DESKTOP_DEFAULTS={stats:[.14,.395],health:[.14,.135],xp:[.14,.18],energy:[.14,.225],progress:[.14,.305],skills:[.915,.185],pause:[.97,.045],hide:[.815,.13],pulse:[.405,.90],dash:[.48,.90],petSkill:[.565,.90],pet:[.042,.70],repair:[.045,.59],power:[.50,.955],end:[.925,.115],comms:[.93,.55]};
-const DESKTOP_BOXES={stats:[330,40],health:[330,28],xp:[330,24],energy:[330,34],progress:[330,64],skills:[190,65],pulse:[110,38],dash:[118,38],petSkill:[108,38],pet:[80,112],power:[48,48],repair:[80,42],end:[156,32]};
+const DESKTOP_BOXES={stats:[330,40],health:[330,28],xp:[330,24],energy:[330,34],progress:[330,64],skills:[64,112],pulse:[110,38],dash:[118,38],petSkill:[108,38],pet:[80,112],power:[48,48],repair:[80,42],end:[156,32]};
 const LANDSCAPE_DEFAULTS={stats:[.23,.06],health:[.23,.13],xp:[.23,.19],energy:[.23,.25],progress:[.23,.31],skills:[.90,.28],pulse:[.39,.92],dash:[.50,.92],petSkill:[.61,.92],pet:[.12,.67],repair:[.08,.50],power:[.17,.50]};
 function defaults(item,profile){const pos=(profile==='desktop'?DESKTOP_DEFAULTS:profile==='landscape'?LANDSCAPE_DEFAULTS:{})[item[0]];return {x:pos?.[0]??item[3],y:pos?.[1]??item[4],s:1};}
 function createPage(){let draft=normalize(imported?.layout||saved),selectedProfile=profile(),selectedMode=active()?gameMode():'solo',selected='aim',source=imported?.name||'';imported=null;

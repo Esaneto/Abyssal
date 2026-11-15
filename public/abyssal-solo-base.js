@@ -11,7 +11,7 @@
  const STARTERS=Object.freeze(['photon','range','regen']);
  const SHOTS=Object.freeze(['electric','pierce','photon','photonRay','nova','echoShot']);
  const PASSIVES=Object.freeze(['burst','ricochet','spread']);
- const BUFFS=Object.freeze(['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure']);
+ const BUFFS=Object.freeze(['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure','magneticField','petAttack','petLife','petSpeed','petCadence']);
  const COSTS=Object.freeze({shot:100,passive:80,buff:60,submarineShield:100});
  const POWER=Object.freeze({duration:300,light:20,weapon:10});
  const MAX_WEAPONS=SHOTS.length;
