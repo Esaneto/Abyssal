@@ -1878,7 +1878,7 @@ function offerUpgrade(){
   b.innerHTML=`<span class="upgrade-icon">${u.icon}</span><strong>${u.name} · Nv. ${current+1}/3</strong>${['range','regen'].includes(u.id)?'<span class="abyss-recommended">Recomendado</span>':''}<p>${u.desc}</p><small class="upgrade-progress">${'◆'.repeat(current)}${'◇'.repeat(3-current)} · ${current===0?'Desbloqueio':`Melhoria ${current} → ${current+1}`}</small>`;
   b.addEventListener('click',()=>chooseUpgrade(u));fragment.appendChild(b);
  });
- wrap.appendChild(fragment);if(!$('pauseScreen').hidden){closeDiveSettings();$('pauseBtn').hidden=false;}$('upgradeScreen').hidden=false;playWorldSound('level-up',player,850,.75);
+ wrap.appendChild(fragment);mobileFireHeld=false;$('mobileFireBtn')?.classList.remove('is-firing');const movingStick=$('mobileJoystick');if(movingStick){movingStick.hidden=true;movingStick.classList.remove('is-floating');}joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};const aimKnob=$('mobileAimStick')?.querySelector('.joystick-knob');if(aimKnob)aimKnob.style.transform='translate(0, 0)';if(!$('pauseScreen').hidden){closeDiveSettings();$('pauseBtn').hidden=false;}$('upgradeScreen').hidden=false;playWorldSound('level-up',player,850,.75);
  upgradeDeadlineAt=performance.now()+25000;updateUpgradeCountdown();
  upgradeCountdownInterval=setInterval(()=>{
   if(gameState!=='upgrade'){clearUpgradeCountdown();return}
@@ -3761,6 +3761,7 @@ function renderRunEndPresentation(){
  }
 }
 function endGame(reason='death'){
+ $('upgradeScreen').hidden=true;
  if(gameState==='over'||gameState==='menu')return;
  window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();
  if(reason==='death'&&!expeditionExtracted)playPlayerDeathCry(player,true);
