@@ -30,11 +30,15 @@
  });
  // Gameplay lengths, in metres. The source adult specimen table remains biological.
  const DIVER_METERS=1.8;
- // 100 model units from crown to soles, scaled by the actual gameplay diver rig.
- const DIVER_WORLD_LENGTH=100*(13/.78)*.60/14;
+ // Head to heel (excluding fins): about 108 model units in the swimming rig.
+ const DIVER_WORLD_LENGTH=108*(13/.78)*.60/14;
+ // Small fauna must remain distinguishable against the dark cavern. The 0.5 m
+ // design minimum is respected; gameplay enlarges smaller species to 0.8 m.
+ // The same world length drives drawing AND collision, never a screen-only boost.
+ const MIN_HOSTILE_METERS=.8;
  const PIXELS_PER_METER=DIVER_WORLD_LENGTH/DIVER_METERS;
  const BOSS_METERS=Object.freeze({boss:5.2,angler:4,maw:6.5,leviathan:8,whiteSharkBoss:8,kraken:8,devourer:8,riftSmile:8});
- const MONSTER_METERS=Object.freeze({drifter:.5,stinger:.5,brute:.5,lurker:.8,whiteShark:4.8,...BOSS_METERS});
+ const MONSTER_METERS=Object.freeze({drifter:.9,stinger:.85,brute:1.25,lurker:1.6,whiteShark:4.8,...BOSS_METERS});
  const ART_SPAN=Object.freeze({drifter:2,stinger:3.02,brute:2.45,lurker:3.4,whiteShark:3.1,whiteSharkBoss:3.1,boss:5.5,angler:3.1,maw:4.5,leviathan:5.2,kraken:9.6,devourer:3.3,riftSmile:4.6});
  // Collision uses the visible central body; elongated tails/fins remain non-solid.
  const BODY_CORE=Object.freeze({drifter:.8,stinger:.65,brute:.95,lurker:.7,whiteShark:.84,whiteSharkBoss:.84,boss:1,angler:1,maw:1,leviathan:.8,kraken:.76,devourer:1.3,riftSmile:1});
@@ -44,7 +48,7 @@
  const skinFamily=id=>curated?.byId?.[id]?.family||null;
  const skinSpan=id=>SKIN_SPAN[id]||FAMILY_SPAN[skinFamily(id)]||3.2;
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
- function monsterMeters(kind,skinId=null){if(skinId)return Math.max(.5,sizeOf(skinId)||MONSTER_METERS[kind]||1.8);return MONSTER_METERS[kind]||1.8;}
+ function monsterMeters(kind,skinId=null){if(kind&&BOSS_METERS[kind])return BOSS_METERS[kind];if(skinId)return Math.max(MIN_HOSTILE_METERS,sizeOf(skinId)||MONSTER_METERS[kind]||1.8);return MONSTER_METERS[kind]||1.8;}
  function companionMeters(id){return clamp(sizeOf(id)||1.8,.5,3);}
  function visualRadius(id,base=11){return companionMeters(id)*PIXELS_PER_METER/skinSpan(id);}
  function monsterVisualRadius(kind,base=10,skinId=null){return monsterMeters(kind,skinId)*PIXELS_PER_METER/(skinId?skinSpan(skinId):ART_SPAN[kind]||3.2);}
@@ -68,6 +72,6 @@
   if(Number.isFinite(enemy.damageRevision))enemy.damageRevision++;
   return true;
  }
- return Object.freeze({ADULT_METERS,MONSTER_METERS,BOSS_METERS,DIVER_METERS,DIVER_WORLD_LENGTH,PIXELS_PER_METER,ART_SPAN,CLASSIC_HP,sizeOf,monsterMeters,companionMeters,visualRadius,monsterVisualRadius,riftVisualRadius,creatureCollisionRadius,companionCollisionRadius,healthStep,healthMultiplier,scaledHealth,applyHealthRamp});
+ return Object.freeze({ADULT_METERS,MONSTER_METERS,BOSS_METERS,DIVER_METERS,DIVER_WORLD_LENGTH,PIXELS_PER_METER,MIN_HOSTILE_METERS,ART_SPAN,CLASSIC_HP,sizeOf,monsterMeters,companionMeters,visualRadius,monsterVisualRadius,riftVisualRadius,creatureCollisionRadius,companionCollisionRadius,healthStep,healthMultiplier,scaledHealth,applyHealthRamp});
 
 });
