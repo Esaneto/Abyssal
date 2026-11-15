@@ -577,6 +577,10 @@ async function main(){
    console.log('[browser-smoke] '+label+' layout '+JSON.stringify(layout));
    assert.equal(status,'playing',label+' did not start gameplay, canvas='+canvas+', error='+error);
    assert.ok(!error,label+' triggered a runtime error: '+error);
+   if(label==='solo-mobile-landscape'){
+    assert.ok(layout.mobilePauseBtn?.display!=='none'&&layout.mobilePauseBtn?.w>=40&&layout.mobilePauseBtn?.h>=40,label+' pause must be visible with usable touch target');
+    assert.ok(layout.hud?.h>0&&layout.hud.h<height*.48,label+' HUD must leave the majority of landscape height available for gameplay: '+JSON.stringify(layout.hud));
+   }
    const depth=Number(page.match(/data-smoke-depth="([^"]*)"/)?.[1]);
    if(stage==='sea'){
     assert.equal(Number(page.match(/data-smoke-world-height="([^"]*)"/)?.[1]),21000,label+' must actually run the deep Mar Aberto world');
