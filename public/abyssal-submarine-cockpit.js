@@ -30,8 +30,8 @@
    note(page,'Ajuste música e efeitos. As preferências também são usadas durante o mergulho.');
   }else if(name==='filter'){
    const quality=window.AbyssalAdaptivePerformance;
-   page.append(field('Qualidade gráfica',[['0','Leve'],['1','Médio'],['2','Ultra']],String(quality?.snapshot().level??2),value=>quality?.setPreference(Number(value))));
-   note(page,'Leve: menos partículas, brilhos e resolução. Médio: resolução normal e efeitos moderados. Ultra: resolução nativa e efeitos completos. A escolha é salva neste dispositivo e não altera a jogabilidade.');
+   page.append(field('Qualidade gráfica',[['auto','Automática (recomendada)'],['0','Leve'],['1','Médio'],['2','Ultra']],String(quality?.snapshot().preference??'auto'),value=>quality?.setPreference(value)));
+   note(page,'Automática adapta resolução e efeitos durante o mergulho. Leve, Médio e Ultra são níveis fixos. O HUD permanece nítido e a simulação não muda. A escolha é salva neste dispositivo.');
   }else if(name==='fullscreen'){
    const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';const refresh=()=>{button.textContent=(window.AbyssalFullscreen?.isActive?.()??Boolean(document.fullscreenElement||document.webkitFullscreenElement))?'SAIR DA TELA CHEIA':'ATIVAR TELA CHEIA';};refresh();
    button.addEventListener('click',()=>{document.getElementById('fullscreenBtn')?.click();setTimeout(refresh,300);});page.append(button);note(page,'No APK Android, deslize a partir da borda para mostrar temporariamente os controles do sistema. No navegador, a disponibilidade depende do dispositivo.');
