@@ -36,3 +36,9 @@ body.game-active.custom-hud-active #activeAbilities button{pointer-events:auto!i
 
 html.abyssal-handheld body.game-active.mobile-game-active.custom-hud-active #hud:not([hidden]),html.abyssal-handheld body.game-active.mobile-game-active.custom-hud-active #hud .bars,html.abyssal-handheld body.game-active.mobile-game-active.custom-hud-active #gameplayOverlayRoot{overflow:visible!important}
 body.game-active.custom-hud-active .topbar{overflow:visible!important}
+
+/* Installed Android (sideload and Google Play): no redundant browser actions. */
+html.abyssal-installed-android body #mobileDownloadTopBtn,html.abyssal-installed-android body #fullscreenBtn,html.abyssal-installed-android body #downloadBtn,html.abyssal-installed-android body #hubFullscreenBtn,html.abyssal-installed-android body #submarineWorkshop .cockpit-command:is([data-cockpit-proxy="mobileDownloadTopBtn"],[data-cockpit-proxy="fullscreenBtn"]){display:none!important;visibility:hidden!important;pointer-events:none!important}
+html.abyssal-installed-android body #submarineWorkshop .abyss-cockpit-top-actions{left:50%!important;transform:translateX(-50%)!important;justify-content:center!important;gap:4px!important;width:56%!important}
+html.abyssal-installed-android body #submarineWorkshop .abyss-cockpit-top-actions .cockpit-command{flex:1 1 0!important;min-width:0!important}
+html.abyssal-installed-android body .top-actions{justify-content:center!important;gap:6px!important}

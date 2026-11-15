@@ -19,7 +19,7 @@
  const KEY='abyssalAvatarAppearanceV1',OWNED_KEY='abyssalOwnedAvatarCosmeticsV1';
  const PAID_SLOTS=Object.freeze(['hair','outfit','mask','weapon','fins']);
  const FREE=new Set(['hair:classic','hair:short','hair:shaved','outfit:navy','mask:standard','weapon:standard','fins:standard']);
- const ENERGY=new Set(['hair:long','hair:whiteCurls','fins:amber']);
+ const ENERGY=new Set(['hair:long','hair:whiteCurls','fins:amber','fins:medusa']);
  function product(slot,id){if(!Object.hasOwn(slots,slot)||!slots[slot].some(i=>i.id===id))return null;const key='avatar:'+slot+':'+id,tag=slot+':'+id;const currency=!PAID_SLOTS.includes(slot)||FREE.has(tag)?'free':ENERGY.has(tag)?'energy':'brl';return {key,slot,id,name:slots[slot].find(i=>i.id===id).name,currency,price:currency==='energy'?2999:currency==='brl'?199:0};}
  const products=Object.freeze(PAID_SLOTS.flatMap(slot=>slots[slot].map(i=>Object.freeze(product(slot,i.id)))));
  function byProduct(key){return products.find(p=>p.key===key)||null;}
