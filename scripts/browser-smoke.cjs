@@ -457,12 +457,25 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     assertAudit('gameplay '+w+'x'+h,all);
     const perf=await evaluate('window.AbyssalPerformance.snapshot()');console.log('[mobile-render-budget] '+w+'x'+h+' '+JSON.stringify(perf));
     assert.equal(perf.graphics.automatic,true,'mobile adaptive graphics must be active');
-    assert.ok(perf.graphics.dpr<=1.5,'mobile framebuffer density exceeds safety cap');
-    assert.ok(perf.canvasPixels<=Math.ceil(w*h*2.25)+Math.max(w,h)*8,'mobile framebuffer exceeds pixel budget');
+    assert.ok(perf.graphics.dpr<=3,'mobile framebuffer density exceeds safety cap');
+    assert.ok(perf.canvasPixels<=3500000,'mobile framebuffer exceeds pixel budget');
     await screenshot('exact-mobile-gameplay-'+w+'x'+h);
+    await evaluate("document.getElementById('toggleHudBtn').click()");
+    const reduced=await auditControls(required,required,['#skillPulseBtn','#skillDashBtn','#skinActiveBtn','#mobileAimStick','#mobileFireBtn','#soloSubmarineRepairBtn','#soloSubmarinePowerBtn','#quickComms']);assertAudit('reduced HUD '+w+'x'+h,reduced);
+    assert.equal(await evaluate("getComputedStyle(document.getElementById('hud')).display"),'none','Reduced HUD must hide readouts');
+    await screenshot('exact-mobile-reduced-hud-'+w+'x'+h);
+    await evaluate("document.getElementById('toggleHudBtn').click()");
    }
    await evaluate("document.getElementById('mobilePauseBtn').click()");
    await sleep(200);
+   await evaluate("document.getElementById('hudLayoutPauseBtn').click()");
+   assert.equal(await evaluate("document.getElementById('abyssalHudEditor').hidden"),false,'HUD editor must open from pause');
+   await evaluate("(()=>{const root=document.getElementById('abyssalHudEditor');root.querySelector('[data-hud-item=skillPulseBtn]').click();const range=root.querySelector('[data-hud-size]');range.value='125';range.dispatchEvent(new Event('input'));root.querySelector('[data-hud-save]').click();})()");
+   assert.equal(await evaluate("window.AbyssalHudLayout.snapshot().landscape.skillPulseBtn.s"),1.25,'HUD scale must persist for landscape');
+   assert.equal(await evaluate("JSON.parse(localStorage.getItem('abyssalHudLayoutV1')).landscape.skillPulseBtn.s"),1.25,'HUD layout must survive a reload');
+   await evaluate("document.getElementById('hudLayoutPauseBtn').click()");
+   await evaluate("document.querySelector('[data-hud-reset]').click();document.querySelector('[data-hud-save]').click()");
+   assert.equal(await evaluate("Object.keys(window.AbyssalHudLayout.snapshot().landscape).length"),0,'HUD reset must restore defaults');
    assert.equal(await evaluate("document.getElementById('pauseScreen').hidden"),false,'Mobile pause must remain accessible');
    assert.equal(await evaluate("document.getElementById('quitBtn').getBoundingClientRect().height>=40"),true,'Quit action must remain in pause menu');
    return;

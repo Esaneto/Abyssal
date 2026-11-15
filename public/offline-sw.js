@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-15-mobile-render-v243';
+const VERSION = '2026-11-15-sharp-hud-v244';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -41,7 +41,7 @@ const GAME_FILES = [
   'age-slider.js',
   'age-slider.css',
   'mobile-portrait.js',
-  'mobile-portrait.css',
+  'mobile-portrait.css','abyssal-hud-layout.js','abyssal-hud-layout.css',
   'abyssal-ocean-cinema.svg',
   'ocean-entry.svg',
   'abyssal-tentacle-cursor.svg',

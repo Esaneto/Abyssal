@@ -30,7 +30,7 @@
 <meta name="twitter:image:alt" content="Abyssal: Ecos das Profundezas. Mergulho Solo e Online cooperativo.">
 <meta name="google-adsense-account" content="ca-pub-2314281138409028">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.6.100-mobile-rotation">
+<link rel="stylesheet" href="style.css?v=3.6.102-hud-sharp">
 <link rel="stylesheet" href="cardume-comms.css?v=3">
 <link rel="stylesheet" href="abyssal-inventory-ui.css?v=2026.11.10.7">
 <link rel="stylesheet" href="abyssal-rebuild.css?v=2">
@@ -76,7 +76,7 @@
 <link rel="stylesheet" href="abyssal-exploration-hud.css?v=2026.11.10.66">
 <link rel="stylesheet" href="abyssal-cinematic-refresh.css?v=2026.11.11.1">
 <link rel="stylesheet" href="abyssal-solo-focus.css?v=2026.11.13.online-parity">
-<link rel="stylesheet" href="abyssal-solo-hud.css?v=2026.11.12.9">
+<link rel="stylesheet" href="abyssal-solo-hud.css?v=3.6.102">
 <link rel="stylesheet" href="abyssal-pet-habits.css?v=2026.11.11.1">
 <style>
 #gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }
@@ -213,7 +213,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     <div id="mobileAimStick" class="mobile-dual-stick aim-stick" aria-label="Joystick fixo de mira"><div class="joystick-base"><span class="joystick-knob"></span></div><small>MIRAR</small></div>
     <button id="mobileFireBtn" class="abyss-mobile-fire" type="button" aria-label="Disparar munição" title="Disparar" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="18" y="7" width="12" height="27" rx="3" fill="#f7e4c6"/><path d="M18 14 V9 Q24 -1 30 9 V14 Z" fill="#c3b194"/><rect x="18" y="29" width="12" height="8" rx="1" fill="#a57940"/><rect x="18" y="36" width="12" height="4" rx="1" fill="#e7c075"/></svg></button>
 
-    <button id="toggleHudBtn" class="hud-toggle-btn" type="button" hidden aria-label="Ocultar habilidades e ranking" title="Ocultar habilidades e ranking">›</button>
+    <button id="toggleHudBtn" class="hud-toggle-btn" type="button" hidden aria-label="Ocultar indicadores" title="Ocultar indicadores">›</button>
 
     <section id="menuScreen" class="screen ocean-menu-v2 submarine-menu expedition-hub" style="visibility:hidden" aria-label="Central de expedições do Abyssal">
       <div class="abyss-ocean-background" aria-hidden="true"><div class="abyss-ocean-light"></div><div class="abyss-ocean-particles"></div><div class="abyss-ocean-floor"></div></div>
@@ -301,7 +301,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </div>
 
-    <section id="controlsScreen" class="screen modal-screen" hidden><div class="modal-card compact-card controls-card" role="dialog" aria-modal="true" aria-labelledby="controlsTitle"><div class="eyebrow"><span class="pulse-dot"></span> PERSONALIZE SUA EXPEDIÇÃO</div><h2 id="controlsTitle">CONTROLES</h2><p>Escolha um único tipo de controle por plataforma. A preferência fica salva neste dispositivo.</p><h3>PC</h3><button type="button" class="secondary-btn control-choice" data-control-pc="classic" aria-pressed="false">Controle atual — clicar/segurar para mover</button><button type="button" class="secondary-btn control-choice" data-control-pc="wasd-aim" aria-pressed="false">WASD + mouse para mirar · clique para disparar, segure para repetir</button><h3>Mobile</h3><button type="button" class="secondary-btn control-choice" data-control-mobile="classic" aria-pressed="false">Controles atuais — toque e arraste</button><button type="button" class="secondary-btn control-choice" data-control-mobile="dual-stick" aria-pressed="false">Joystick para mirar + botão de munição para disparar</button><button id="controlsCloseBtn" class="primary-btn" type="button">SALVAR E VOLTAR</button></div></section>
+    <section id="controlsScreen" class="screen modal-screen" hidden><div class="modal-card compact-card controls-card" role="dialog" aria-modal="true" aria-labelledby="controlsTitle"><div class="eyebrow"><span class="pulse-dot"></span> PERSONALIZE SUA EXPEDIÇÃO</div><h2 id="controlsTitle">CONTROLES</h2><p>Escolha um único tipo de controle por plataforma. A preferência fica salva neste dispositivo.</p><h3>PC</h3><button type="button" class="secondary-btn control-choice" data-control-pc="classic" aria-pressed="false">Controle atual — clicar/segurar para mover</button><button type="button" class="secondary-btn control-choice" data-control-pc="wasd-aim" aria-pressed="false">WASD + mouse para mirar · clique para disparar, segure para repetir</button><h3>Mobile</h3><button type="button" class="secondary-btn control-choice" data-control-mobile="classic" aria-pressed="false">Controles atuais — toque e arraste</button><button type="button" class="secondary-btn control-choice" data-control-mobile="dual-stick" aria-pressed="false">Joystick para mirar + botão de munição para disparar</button><button id="hudLayoutMenuBtn" class="secondary-btn" type="button">PERSONALIZAR INTERFACE</button><button id="controlsCloseBtn" class="primary-btn" type="button">SALVAR E VOLTAR</button></div></section>
     <section id="upgradeScreen" class="screen modal-screen" hidden>
       <div class="modal-card">
         <div class="eyebrow"><span class="pulse-dot"></span> EVOLUÇÃO DESBLOQUEADA</div>
@@ -326,6 +326,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
           <label for="diveMusicVolume"><span>MÚSICA</span><output id="diveMusicValue" for="diveMusicVolume">45%</output></label>
           <input id="diveMusicVolume" type="range" min="0" max="100" step="1" value="45" aria-label="Volume da música">
         </fieldset>
+        <button id="hudLayoutPauseBtn" class="secondary-btn" type="button">PERSONALIZAR INTERFACE</button>
         <button id="resumeBtn" class="primary-btn">CONTINUAR <span>↗</span></button>
         <button id="quitBtn" class="secondary-btn">ENCERRAR MERGULHO</button>
       </div>
@@ -703,7 +704,8 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 </div>
 <link rel="stylesheet" href="avatar-wardrobe.css?v=12">
 <link rel="stylesheet" href="abyssal-release-polish.css?v=3">
-<link rel="stylesheet" href="mobile-portrait.css?v=3.6.100">
+<link rel="stylesheet" href="mobile-portrait.css?v=3.6.102">
+<link rel="stylesheet" href="abyssal-hud-layout.css?v=3.6.102">
 <script src="server-config.js?v=1"></script>
 <script>
 (function(){
@@ -730,9 +732,10 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.101"></script>
+<script src="client-build.js?v=3.6.102"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=3.6.100"></script>
+<script src="abyssal-hud-layout.js?v=3.6.102"></script>
 <script src="age-slider.js?v=1"></script>
 <script src="developer-tools.js?v=3"></script>
 <script src="offline-ui.js?v=2026.11.13.deploy-resume"></script>
@@ -776,19 +779,19 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-diver-rig.js?v=18"></script>
 <script src="abyssal-realistic-body.js?v=20"></script>
 <script src="diver-art.js?v=2026.11.14.directional-v240"></script>
-<script src="avatar-wardrobe.js?v=3.6.100"></script>
+<script src="avatar-wardrobe.js?v=3.6.102"></script>
 <script src="diver-hitbox.js?v=2026.11.13.playable-v216"></script>
 <script src="gravity-cone.js?v=2026.11.8.1"></script>
 <script src="specimen-evasion.js?v=2026.11.12.2"></script>
 <script src="abyssal-pet-tactics.js?v=2026.11.14.spacing2"></script>
-<script src="abyssal-solo-cavern.js?v=3.6.101"></script>
+<script src="abyssal-solo-cavern.js?v=3.6.102"></script>
 <script src="abyssal-solo-progress.js?v=2026.11.12.8"></script>
 <script src="abyssal-solo-base.js?v=2026.11.12.18"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.13.online-test"></script>
  <script src="abyssal-sample-audio.js?v=2026.11.14.death-v2"></script>
  <script src="abyssal-research-tree.js?v=2"></script>
- <script src="game.js?v=3.6.101"></script>
+ <script src="game.js?v=3.6.102"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=2026.11.14.profile-v239"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
@@ -844,7 +847,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
 
 <script src="ocean-menu-scenery.js?v=2026.11.12.18"></script>
-<script src="abyssal-menu-ocean.js?v=3.6.101"></script>
+<script src="abyssal-menu-ocean.js?v=3.6.102"></script>
 <script src="abyssal-submarine-cockpit.js?v=2026.11.14.playable-v226"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>

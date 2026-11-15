@@ -7,9 +7,9 @@ const game=fs.readFileSync('public/game.js','utf8');
 const cave=require('../public/abyssal-solo-cavern.js');
 test('mobile DPR is bounded independently of desktop and world coordinates',()=>{
  const source=game.slice(game.indexOf('function graphicsDpr()'),game.indexOf('const $ ='));
- const ctx={window:{devicePixelRatio:3},ADAPTIVE_QUALITY:[{dpr:.75},{dpr:1},{dpr:Infinity}],adaptiveQualityLevel:2,mobileViewport:true,viewW:390,viewH:844};
+ const ctx={window:{devicePixelRatio:3},ADAPTIVE_QUALITY:[{dpr:1.25},{dpr:1.75},{dpr:Infinity}],adaptiveQualityLevel:2,adaptiveQualityCeiling:2,mobileViewport:true,viewW:390,viewH:844};
  vm.createContext(ctx);vm.runInContext(source,ctx);
- assert.equal(ctx.graphicsDpr(),1.5);ctx.adaptiveQualityLevel=1;assert.equal(ctx.graphicsDpr(),1);ctx.adaptiveQualityLevel=0;assert.equal(ctx.graphicsDpr(),.75);
+ assert.equal(ctx.graphicsDpr(),3);ctx.adaptiveQualityLevel=1;assert.equal(ctx.graphicsDpr(),3);ctx.adaptiveQualityCeiling=1;assert.equal(ctx.graphicsDpr(),1.75);ctx.adaptiveQualityLevel=0;ctx.adaptiveQualityCeiling=0;assert.equal(ctx.graphicsDpr(),1.25);ctx.viewW=1000;ctx.viewH=1200;ctx.adaptiveQualityCeiling=2;assert.ok(ctx.graphicsDpr()*ctx.graphicsDpr()*1200000<=3500000.01);ctx.viewW=390;ctx.viewH=844;
  ctx.mobileViewport=false;ctx.adaptiveQualityLevel=2;assert.equal(ctx.graphicsDpr(),3);
 });
 test('mobile graphics falls after sustained overload and recovers slowly up to preference',()=>{
@@ -39,7 +39,8 @@ test('mobile static art is allocated once, mask stays bounded, ray geometry unch
   assert.equal(count,1);cave.paint(ctx,view,200,4800,3000,true);assert.equal(allocations.length,count);
   const rocks=cave.buildRocks(4800,3000),player={x:2400,y:330,r:17,bodyAngle:0};
   cave.lighting(ctx,view,player,1,rocks,100,[],true);
-  assert.equal(allocations.length,2);assert.ok(Math.max(allocations[1].width,allocations[1].height)<=640);
+  assert.equal(allocations.length,2);assert.ok(Math.max(allocations[1].width,allocations[1].height)<=960);
   for(let i=0;i<32;i++){const a=i*Math.PI/16;assert.equal(cave.rayDistance(rocks,player.x,player.y,Math.cos(a),Math.sin(a),570),cave.rayDistance(rocks,player.x,player.y,Math.cos(a),Math.sin(a),570,true));}
  }finally{if(oldDocument===undefined)delete global.document;else global.document=oldDocument;}
 });
+test('reduced HUD hides only passive information and keeps action containers',()=>{const css=fs.readFileSync('public/style.css','utf8'),solo=fs.readFileSync('public/abyssal-solo-hud.css','utf8');assert.match(css,/hud-collapsed #hud/);assert.doesNotMatch(css,/hud-collapsed #activeAbilities/);assert.doesNotMatch(solo,/hud-collapsed #gameShell>:not/);assert.doesNotMatch(solo,/hud-collapsed #endDiveBtn/);assert.match(game,/aria-pressed',String\(hudCollapsed\)/);});
