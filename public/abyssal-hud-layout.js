@@ -19,7 +19,7 @@ function mount(win){
  let overlay=null,stage=null,range=null,label=null,status=null,orientationSelect=null,draft=null,editingOrientation=null,selected=null,drag=null,frame=0,applied=new Map();
  const visible=el=>el&&!el.hidden&&el.getClientRects().length&&win.getComputedStyle(el).visibility!=='hidden'&&win.getComputedStyle(el).display!=='none';
  const rect=el=>el.getBoundingClientRect();
- function anchor(el){return el.id==='quickComms'?by('quickCommsToggle')||el:el;}
+ function anchor(el){return el?.id==='quickComms'?by('quickCommsToggle')||el:el;}
  function clear(){for(const [el,old] of applied){for(const [prop,val,priority] of old){if(val)el.style.setProperty(prop,val,priority);else el.style.removeProperty(prop);}delete el.dataset.hudScale;}applied.clear();}
  function hasFixedMove(){return Boolean(profiles[orientation()].mobileMoveStick);}
  function apply(){
@@ -45,7 +45,7 @@ function mount(win){
  }
  function schedule(){if(!frame)frame=win.requestAnimationFrame(apply);}
  function dimensions(){const landscape=editingOrientation==='landscape';return landscape?{w:844,h:390}:{w:390,h:844};}
- function defaultValue(item){const [id,,x,y]=item;if(editingOrientation===orientation()&&doc.body.classList.contains('game-active')){const el=anchor(by(id)||{});if(visible(el)){const r=rect(el),scale=Number(by(id)?.dataset.hudScale)||1;return {x:clamp((r.left+r.width/2)/win.innerWidth,0,1),y:clamp((r.top+r.height/2)/win.innerHeight,0,1),s:scale};}}if(editingOrientation==='landscape'){const map={hud:[.5,.13],toggleHudBtn:[.05,.09],mobilePauseBtn:[.95,.09],selectedSkillsPanel:[.90,.30],runEnergyRanking:[.10,.30],mobileMoveStick:[.10,.80],mobileAimStick:[.90,.80],mobileFireBtn:[.90,.53],skillPulseBtn:[.39,.90],skillDashBtn:[.50,.90],skinActiveBtn:[.61,.90],petHabitBar:[.13,.50],quickComms:[.50,.66]};return {x:map[id][0],y:map[id][1],s:1};}return {x,y,s:1};}
+ function defaultValue(item){const [id,,x,y]=item;if(editingOrientation===orientation()&&doc.body.classList.contains('game-active')){const el=anchor(by(id));if(visible(el)){const r=rect(el),scale=Number(by(id)?.dataset.hudScale)||1;return {x:clamp((r.left+r.width/2)/win.innerWidth,0,1),y:clamp((r.top+r.height/2)/win.innerHeight,0,1),s:scale};}}if(editingOrientation==='landscape'){const map={hud:[.5,.13],toggleHudBtn:[.05,.09],mobilePauseBtn:[.95,.09],selectedSkillsPanel:[.90,.30],runEnergyRanking:[.10,.30],mobileMoveStick:[.10,.80],mobileAimStick:[.90,.80],mobileFireBtn:[.90,.53],skillPulseBtn:[.39,.90],skillDashBtn:[.50,.90],skinActiveBtn:[.61,.90],petHabitBar:[.13,.50],quickComms:[.50,.66]};return {x:map[id][0],y:map[id][1],s:1};}return {x,y,s:1};}
  let defaults={};
  function get(id){return draft[editingOrientation][id]||defaults[id];}
  function previewSize(item){const [, , , ,w,h]=item;const d=dimensions();return editingOrientation==='landscape'?{w:Math.min(.45,w*390/d.w),h:Math.min(.55,h*844/d.h)}:{w,h};}
