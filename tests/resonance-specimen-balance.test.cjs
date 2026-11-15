@@ -41,3 +41,22 @@ test('new research unlocks preserve the existing Energização ID',()=>{
  assert.match(game,/RES_BAL\.petAttack\(upgrades\.petAttack\)/);
  assert.match(game,/RES_BAL\.petSpeed\(upgrades\.petSpeed\)/);
 });
+
+test('ten-slot resonance presets preserve the new specimen skills across server normalization',()=>{
+ const base=require('../public/abyssal-solo-base.js');
+ const all=['photon','range','regen','magnet','magneticField','petAttack','petLife','petSpeed','petCadence','power'];
+ const normalized=base.normalizePresets({pve:all,pvp:all});
+ assert.deepEqual(normalized.pve,all);assert.deepEqual(normalized.pvp,all);
+ assert.deepEqual(base.normalizePresets(normalized),normalized);
+ assert.equal(base.normalizePreset([...all,'rate']).length,10);
+ assert.deepEqual(base.normalizePreset(['electric',...all]),['electric',...all.slice(1)]);
+ assert.deepEqual(base.normalizePreset(['photon',...all,'unknown','arcChain']),all);
+ const without=base.normalizePreset([...all], 'pve',id=>id!=='power');
+ assert.equal(without.length,9);
+ assert.equal(base.normalizePreset([...without,'rate']).length,10);
+ assert.deepEqual(base.normalizePreset(all.slice(1)),all);
+ const server=fs.readFileSync('server.js','utf8'),game=fs.readFileSync('public/game.js','utf8');
+ assert.match(server,/u\.resonancePresets=SoloBase\.normalizePresets\(payload\.resonancePresets\)/);
+ assert.match(game,/window\.AbyssalSoloBase\.normalizePresets\(value\)/);
+ assert.match(game,/let next=selectableResonancePreset\(\)\.filter/);
+});
