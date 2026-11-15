@@ -73,6 +73,14 @@
  root.hidden=true;
  // Avoid a perpetual 60fps raster job; the sonar only needs an update as the
  // diver changes sector, while animation continues at the game's own rate.
- window.setInterval(()=>update(performance.now()),230);
- window.AbyssalSonarMiniMap=Object.freeze({setFolded:fold,render});
+ let timer=0;
+ function syncSonar(){
+  const active=!document.hidden&&window.AbyssalGameHooks?.explorationPosition?.()?.mode==='open-sea';
+  if(active&&!timer){update(performance.now());timer=window.setInterval(()=>update(performance.now()),230);}
+  else if(!active){if(timer)window.clearInterval(timer);timer=0;visible=false;root.hidden=true;fold(false);}
+ }
+ const modeObserver=new MutationObserver(syncSonar);modeObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
+ for(const event of ['abyssal-start-open-sea','abyssal-start-rift-solo','abyssal-room-joined','abyssal-room-left','abyssal-menu-return'])window.addEventListener(event,()=>queueMicrotask(syncSonar));
+ document.addEventListener('visibilitychange',syncSonar);syncSonar();
+ window.AbyssalSonarMiniMap=Object.freeze({setFolded:fold,render,isRunning:()=>Boolean(timer)});
 })();
