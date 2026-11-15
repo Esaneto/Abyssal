@@ -420,7 +420,7 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
   await command('Page.enable');
   await command('Runtime.enable');
   console.log('[live-browser] navigating to actual game');
-  if(mode==='mobile-wardrobe'||mode==='mobile-gameplay'||mode==='mobile-hub'){
+  if(mode==='mobile-wardrobe'||mode==='mobile-gameplay'||mode==='mobile-hub'||mode==='mobile-profile'){
    if(mode==='mobile-gameplay'||mode==='mobile-wardrobe')await command('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('abyssalControlsMobile','dual-stick')}catch(e){}"});
    await command('Emulation.setUserAgentOverride',{userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/128.0.0.0 Mobile Safari/537.36'});
    await command('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
@@ -438,6 +438,38 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    return {count:result.length,missing,collisions,blocked,controls:result,diagnostics:missing.length?{w:innerWidth,h:innerHeight,html:document.documentElement.className,body:document.body.className,raw}:undefined};
   }finally{for(const [e,hidden,cls] of saved){e.hidden=hidden;e.className=cls;}}})()`);
   const assertAudit=(name,a)=>{console.log('[mobile-control-audit] '+name+' '+JSON.stringify(a));assert.deepEqual(a.missing,[],name+' clipped or missing controls');assert.deepEqual(a.collisions,[],name+' overlapping controls');assert.deepEqual(a.blocked,[],name+' blocked controls');};
+  if(mode==='desktop-profile'||mode==='mobile-profile'){
+   await command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+   const mobile=mode==='mobile-profile';
+   const open=async()=>{await evaluate("window.AbyssalOnline.openProfile()");await sleep(500);};
+   const fixture=()=>evaluate(`(()=>{window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:{nickname:'MergulhadorDasProfundezas',equippedTitle:'abyss-stalker',unlockedTitles:['abyss-stalker'],equippedSkin:'default',diverGender:'male'}}));document.getElementById('publicProfileActions').hidden=false;return document.getElementById('profileNickname').textContent;})()`);
+   const geometry=()=>evaluate(`(()=>{const e=id=>document.getElementById(id),r=n=>n.getBoundingClientRect().toJSON(),p=e('profileScreen'),hero=p.querySelector('.profile-hero'),identity=p.querySelector('.profile-identity'),name=e('profileNickname'),title=e('profileEquippedLabel'),actions=e('publicProfileActions'),panel=p.querySelector('.profile-specimen-panel'),canvas=e('profileSpecimenCanvas');return {hidden:p.hidden,embedded:p.classList.contains('abyss-cockpit-embedded'),hero:r(hero),identity:r(identity),name:r(name),title:r(title),actions:r(actions),panel:r(panel),canvas:r(canvas),panelScroll:panel.scrollWidth,panelWidth:panel.clientWidth,writing:getComputedStyle(name).writingMode,nameText:name.textContent,titleText:title.textContent,line:parseFloat(getComputedStyle(name).lineHeight),errors:document.body.dataset.smokeError};})()`);
+   // Compare the lower-left diver pixels, excluding the separately animated specimen.
+   const frame=()=>evaluate(`(()=>{const c=document.getElementById('profileSpecimenCanvas'),x=Math.floor(c.width*.05),y=Math.floor(c.height*.43),w=Math.floor(c.width*.44),h=Math.floor(c.height*.54),a=c.getContext('2d').getImageData(x,y,w,h).data;let hash=2166136261,bright=0;for(let i=0;i<a.length;i+=4){hash=Math.imul(hash^a[i]^a[i+1]*257^a[i+2]*65537,16777619);if(a[i]+a[i+1]+a[i+2]>140&&a[i+3]>40)bright++;}return {hash,bright,w,h};})()`);
+   for(const [w,h] of (mobile?[[390,844],[320,568],[844,390]]:[[1280,720],[900,600]])){
+    await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:mobile?2:1,mobile,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});
+    await open();await fixture();await evaluate("document.querySelector('#profileScreen .profile-hero').scrollIntoView({block:'start'})");await sleep(350);
+    const a=await geometry();await screenshot(mode+'-header-'+w+'x'+h);
+    assert.ok(!a.hidden&&a.identity.width>=100&&a.name.width>=100&&a.name.height<=a.line*4+2&&a.writing==='horizontal-tb'&&a.title.height<100&&a.name.top>=0&&a.title.bottom<=h&&a.actions.top>=a.identity.bottom-1&&a.panelScroll<=a.panelWidth+2&&a.nameText==='MergulhadorDasProfundezas'&&a.titleText.includes('Perseguidor de Leviatãs'),'Profile text/grid regression: '+JSON.stringify(a));
+    await evaluate("document.getElementById('profileSpecimenCanvas').scrollIntoView({block:'center'})");await sleep(200);
+    const first=await frame();await screenshot(mode+'-swim-a-'+w+'x'+h);await sleep(300);const second=await frame();await screenshot(mode+'-swim-b-'+w+'x'+h);
+    console.log('[profile-swim] '+JSON.stringify({w,h,a,first,second}));
+    assert.ok(first.bright>20&&second.bright>20&&first.hash!==second.hash,'Diver must visibly animate, not only the specimen: '+JSON.stringify({first,second}));
+    await evaluate("document.getElementById('profileCloseBtn').click()");await sleep(150);
+   }
+   if(!mobile){
+    await evaluate("window.AbyssalCockpitNavigation.open()");await sleep(400);await open();await fixture();await sleep(300);
+    const a=await geometry();await screenshot('desktop-profile-cockpit');assert.ok(a.embedded&&a.identity.width>=100&&a.panelScroll<=a.panelWidth+2,'Embedded profile geometry: '+JSON.stringify(a));
+    const first=await frame();await sleep(300);const second=await frame();assert.notEqual(first.hash,second.hash,'Embedded desktop profile must resume swimming');
+    // Windows/browser reduced-motion must tone down, not freeze, the requested swimming pose.
+    await command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+    await evaluate("document.getElementById('profileSpecimenCanvas').scrollIntoView({block:'center'})");await sleep(300);
+    const gentleA=await frame();await screenshot('desktop-profile-reduced-swim-a');await sleep(450);const gentleB=await frame();await screenshot('desktop-profile-reduced-swim-b');
+    assert.ok(gentleA.bright>20&&gentleB.bright>20&&gentleA.hash!==gentleB.hash,'Reduced motion must retain a subtle diver fin kick: '+JSON.stringify({gentleA,gentleB}));
+    console.log('[profile-reduced-swim] '+JSON.stringify({gentleA,gentleB}));
+   }
+   return;
+  }
   if(mode==='mobile-hub'){
    for(const [w,h] of [[360,640],[844,390],[360,640],[320,568]]){await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:2,mobile:true,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});await sleep(600);
     const m=await evaluate(`(()=>{const menu=document.getElementById('menuScreen'),hub=menu.querySelector('.hub-shell'),stage=document.getElementById('menuOceanStage'),r=menu.getBoundingClientRect(),s=stage.getBoundingClientRect(),u=hub.getBoundingClientRect(),launch=document.getElementById('divePortalBtn').getBoundingClientRect();return {w:innerWidth,h:innerHeight,hidden:menu.hidden,menu:r.toJSON(),stage:s.toJSON(),hub:u.toJSON(),launch:launch.toJSON(),scrollWidth:hub.scrollWidth,clientWidth:hub.clientWidth,landscape:document.documentElement.classList.contains('abyssal-handheld-landscape'),canvas:document.getElementById('menuOceanScenery').width};})()`);console.log('[mobile-hub-rotation] '+JSON.stringify(m));assert.ok(!m.hidden&&m.landscape===(w>h)&&Math.abs(m.menu.width-w)<2&&Math.abs(m.menu.height-h)<2&&Math.abs(m.menu.left)<2&&Math.abs(m.menu.top)<2&&m.scrollWidth<=m.clientWidth+2&&m.launch.width>100&&m.launch.left>=0&&m.launch.right<=w+1&&m.canvas>0,'Initial hub clipped after rotation: '+JSON.stringify(m));await screenshot('mobile-hub-'+w+'x'+h);
@@ -646,6 +678,8 @@ async function main(){
    assert.ok(fs.statSync(png).size>7000,'Journal screenshot missing');
   }
   if(process.argv.includes('--journal-only'))return;
+  await realGameplaySmoke(browser,url+'?stage=hub','desktop-profile');
+  await realGameplaySmoke(browser,url+'?stage=hub','mobile-profile');
   await realGameplaySmoke(browser,url+'?stage=hub','mobile-hub');
   await realGameplaySmoke(browser,url+'?stage=cockpit&view=wardrobe','mobile-wardrobe');
   await realGameplaySmoke(browser,url,'mobile-gameplay');

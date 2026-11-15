@@ -532,7 +532,7 @@ const MAX_SPRITE_PIXELS=12*1024*1024,MAX_SINGLE_SPRITE_PIXELS=4*1024*1024;
 function getCachedSprite(cache,key){const sprite=cache.get(key);if(sprite){cache.delete(key);cache.set(key,sprite);}return sprite;}
 function rememberCachedSprite(cache,key,sprite,maxEntries){cache.set(key,sprite);let pixels=0;for(const entry of cache.values())pixels+=entry.canvas.width*entry.canvas.height;while(cache.size>1&&(cache.size>maxEntries||pixels>MAX_SPRITE_PIXELS)){const oldest=cache.keys().next().value,entry=cache.get(oldest);pixels-=entry.canvas.width*entry.canvas.height;cache.delete(oldest);entry.canvas.width=1;entry.canvas.height=1;}}
 const previewCanvasSizes=new WeakMap();
-function preparePreviewCanvas(canvas){const c=canvas.getContext('2d');if(!c)return null;let size=previewCanvasSizes.get(canvas);if(!size){size={w:canvas.width,h:canvas.height};previewCanvasSizes.set(canvas,size);}const w=canvas.clientWidth||size.w,h=canvas.clientHeight||size.h,density=Math.max(1,Math.min(mobileViewport?2.5:Infinity,window.devicePixelRatio||1)),pw=Math.ceil(w*density),ph=Math.ceil(h*density);if(canvas.width!==pw||canvas.height!==ph){canvas.style.width=w+'px';canvas.style.height=h+'px';canvas.width=pw;canvas.height=ph;}c.setTransform(density,0,0,density,0,0);c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';return {c,w,h};}
+function preparePreviewCanvas(canvas,fluid=false){const c=canvas.getContext('2d');if(!c)return null;let size=previewCanvasSizes.get(canvas);if(!size){size={w:canvas.width,h:canvas.height};previewCanvasSizes.set(canvas,size);}const w=canvas.clientWidth||size.w,h=canvas.clientHeight||size.h,density=Math.max(1,Math.min(mobileViewport?2.5:Infinity,window.devicePixelRatio||1)),pw=Math.ceil(w*density),ph=Math.ceil(h*density);if(canvas.width!==pw||canvas.height!==ph){if(!fluid){canvas.style.width=w+'px';canvas.style.height=h+'px';}canvas.width=pw;canvas.height=ph;}c.setTransform(density,0,0,density,0,0);c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';return {c,w,h};}
 const aquaticMotionTracker=window.AbyssalSkinMotion?.createTracker?.({maxEntries:640})||null;
 const aquaticMotionSource={};
 const remoteCreatureAttackUntil=new Map();
@@ -4507,41 +4507,71 @@ function drawHostileSpeciesEffect(enemy,t){
  }
  ctx.restore();
 }
-const specimenPortraits=new Map(),profilePortraitAppearance=new WeakMap();
+const specimenPortraits=new Map(),profilePortraitAppearance=new WeakMap(),profilePortraitMotion=new WeakMap();
+const portraitReducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+let portraitFrame=0;
 const portraitVisibilityObserver=typeof ResizeObserver==='function'?new ResizeObserver(()=>scheduleSpecimenPortraits()):null;
 function registerSpecimenPortrait(canvas,skinId,appearance=null,gender=null){
- if(!canvas?.getContext)return;if(!specimenPortraits.has(canvas))portraitVisibilityObserver?.observe(canvas);specimenPortraits.set(canvas,String(skinId||equippedSkin));if(canvas.id==='profileSpecimenCanvas')profilePortraitAppearance.set(canvas,{appearance,gender});scheduleSpecimenPortraits();
-}
-function hasVisibleSpecimenPortrait(){
- for(const canvas of [...specimenPortraits.keys()]){
-  if(!canvas?.isConnected){specimenPortraits.delete(canvas);portraitVisibilityObserver?.unobserve(canvas);continue;}
-  if(canvas.getClientRects().length&&canvas.offsetWidth&&canvas.offsetHeight)return true;
+ if(!canvas?.getContext)return;
+ if(!specimenPortraits.has(canvas))portraitVisibilityObserver?.observe(canvas);
+ specimenPortraits.set(canvas,String(skinId||equippedSkin));
+ if(canvas.id==='profileSpecimenCanvas'){
+  profilePortraitAppearance.set(canvas,{appearance,gender});
+  canvas.style.removeProperty('width');canvas.style.removeProperty('height');
  }
- return false;
+ scheduleSpecimenPortraits();
 }
-function scheduleSpecimenPortraits(){if(!registerSpecimenPortrait.running&&specimenPortraits.size&&!document.hidden&&!document.body.classList.contains('game-active')&&hasVisibleSpecimenPortrait()){registerSpecimenPortrait.running=true;requestAnimationFrame(renderSpecimenPortraits);}}
-new MutationObserver(scheduleSpecimenPortraits).observe(document.body,{attributes:true,attributeFilter:['class']});
-document.addEventListener('visibilitychange',scheduleSpecimenPortraits);
-function renderSpecimenPortraits(t){
- if(document.hidden||document.body.classList.contains('game-active')){registerSpecimenPortrait.running=false;return;}
- let visiblePortraits=0;
- for(const [canvas,skinId] of [...specimenPortraits]){
+function portraitVisible(canvas){
+ if(!canvas.isConnected||canvas.closest('[hidden]')||!canvas.getClientRects().length||!canvas.offsetWidth||!canvas.offsetHeight)return false;
+ if(getComputedStyle(canvas).visibility==='hidden')return false;
+ return canvas.id==='profileSpecimenCanvas'||!document.body.classList.contains('game-active');
+}
+function visibleSpecimenPortraits(){
+ const visible=[];
+ for(const [canvas,skinId] of specimenPortraits){
   if(!canvas.isConnected){specimenPortraits.delete(canvas);portraitVisibilityObserver?.unobserve(canvas);continue;}
-  if(!canvas.getClientRects().length||!canvas.offsetWidth||!canvas.offsetHeight)continue;
-  visiblePortraits++;
-  const surface=preparePreviewCanvas(canvas);if(!surface)continue;const {c,w,h}=surface,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
-  const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!canvas.closest?.('#shopScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
-  // Restore the natural diagonal swimming portrait used before the upright pose.
-  const profile=canvas.id==='profileSpecimenCanvas';
-  const dx=profile?w*.50:w*.42,dy=h*.60,bob=profile?Math.sin(t*.0018)*2:Math.sin(t*.0022)*3;
-  const portraitRadius=profile?Math.min(27,w*.15,h*.35):27;
-  const reduced=Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
-  const portraitLook=profile?profilePortraitAppearance.get(canvas):null;
-  DIVER_ART?.draw?.(c,dx,dy+(reduced?0:bob),portraitRadius,profile?0:-.10,profile?0:-.10,reduced?0:t,{gender:portraitLook?.gender||diverGender,appearance:portraitLook?.appearance||undefined,moving:!reduced,viewYaw:profile?1:undefined,reducedMotion:reduced,gameplay:profile, motion:profile?{phase:reduced?0:t*.006,weight:reduced?0:1,swimSide:1}:undefined});
-  const sx=w*.62,sy=h*.30+Math.cos(t*.002)*5;
-  try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
+  if(portraitVisible(canvas))visible.push([canvas,skinId]);
  }
- if(visiblePortraits>0&&hasVisibleSpecimenPortrait())requestAnimationFrame(renderSpecimenPortraits);else registerSpecimenPortrait.running=false;
+ return visible;
+}
+function scheduleSpecimenPortraits(){
+ if(!portraitFrame&&!document.hidden&&visibleSpecimenPortraits().length)portraitFrame=requestAnimationFrame(renderSpecimenPortraits);
+}
+const portraitScreenObserver=new MutationObserver(scheduleSpecimenPortraits);
+for(const element of [document.body,$('profileScreen'),$('submarineWorkshop')].filter(Boolean))portraitScreenObserver.observe(element,{attributes:true,attributeFilter:['class','hidden']});
+document.addEventListener('visibilitychange',scheduleSpecimenPortraits);
+portraitReducedMotion?.addEventListener?.('change',scheduleSpecimenPortraits);
+function renderSpecimenPortraits(t){
+ portraitFrame=0;
+ if(document.hidden)return;
+ const visible=visibleSpecimenPortraits();
+ for(const [canvas,skinId] of visible){
+  const profile=canvas.id==='profileSpecimenCanvas',surface=preparePreviewCanvas(canvas,profile);
+  if(!surface)continue;
+  const {c,w,h}=surface,skin=skinData.find(s=>s.id===skinId)||skinData[0];
+  c.clearRect(0,0,w,h);
+  const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');
+  if(!canvas.closest?.('#shopScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
+  const reduced=Boolean(portraitReducedMotion?.matches),portraitLook=profile?profilePortraitAppearance.get(canvas):null;
+  let motion=null;
+  if(profile){
+   // Persist swimming and hair physics across frames, including reopens.
+   motion=profilePortraitMotion.get(canvas)||{phase:0,weight:1,swimSide:1,last:t,breath:0};
+   const dt=Math.min(.05,Math.max(0,(t-motion.last)/1000));motion.last=t;
+   // Reduced motion keeps a quiet in-place fin kick instead of freezing the avatar.
+   motion.phase+=dt*(reduced?2.2:6.4);
+   motion.weight=reduced?.28:1;motion.roll=reduced?0:Math.sin(motion.phase)*.22;motion.breath=reduced?0:(motion.breath+dt*.25)%1;
+   motion.hairFlow=0;profilePortraitMotion.set(canvas,motion);
+  }
+  const bob=reduced?0:Math.sin(profile?motion.phase*.5:t*.0022)*3;
+  const dx=profile?w*.50:w*.42,dy=h*.60;
+  const portraitRadius=profile?Math.min(27,w*.14,h*.35):27;
+  DIVER_ART?.draw?.(c,dx,dy+bob,portraitRadius,profile?0:-.10,profile?0:-.10,reduced?0:t,{gender:portraitLook?.gender||diverGender,appearance:portraitLook?.appearance||undefined,moving:profile||!reduced,viewYaw:profile?1:undefined,reducedMotion:reduced,gameplay:profile,motion:motion||undefined});
+  const sx=w*.62,sy=h*.30+(reduced?0:Math.cos(t*.002)*5);
+  try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',reduced?0:t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
+ }
+ // One animation loop, only while the live portrait is visible.
+ if(visible.length)scheduleSpecimenPortraits();
 }
 window.addEventListener('abyssal-profile-specimen-render',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,d.skinId,d.appearance,d.gender);});
 window.addEventListener('abyssal-menu-specimen-canvas',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,equippedSkin);});
