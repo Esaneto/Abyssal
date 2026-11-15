@@ -99,3 +99,38 @@ html.abyssal-handheld.abyssal-mobile-editing #submarineWorkshop .abyss-wardrobe{
  html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #endDiveBtn{font-size:9px!important;min-height:40px!important;max-width:35vw!important}
  html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active .modal-screen:not([hidden])>.modal-card{max-height:calc(100dvh - 12px)!important;overflow:auto!important;min-width:0!important}
 }
+
+/* A landscape phone must use the handheld HUD even when Chromium reports a
+   fine pointer (external mouse, stylus or headless test). Keep the playfield
+   open and the pause/toggle targets outside the central stats. */
+@media(orientation:landscape){
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud:not([hidden]){
+  position:fixed!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  top:var(--mobile-safe-top)!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;
+  width:min(46vw,340px)!important;max-width:min(46vw,340px)!important;min-width:0!important;
+  height:auto!important;max-height:45dvh!important;overflow:hidden!important;padding:0!important;gap:3px!important;
+  background:transparent!important;box-shadow:none!important;pointer-events:none!important;
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .hud-top{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important;margin:0!important;order:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .hud-stat{min-width:0!important;padding:3px 2px!important;border-radius:4px!important;background:#061722b8!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .hud-stat small{font-size:7px!important;line-height:1!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .hud-stat strong{font-size:12px!important;line-height:1.1!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .bars{order:1!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .bar-label{font-size:7px!important;line-height:1.1!important;margin:2px 0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .bar{height:4px!important;margin:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .solo-energy-stock{font-size:7px!important;line-height:1.2!important;margin:2px 4px 0 0!important;display:inline-block!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .boss-progression-track{padding:2px 3px!important;margin:2px 0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .track-header{font-size:7px!important;line-height:1.1!important;gap:3px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud :is(.track-title,.track-cycle-badge){font-size:7px!important;line-height:1.1!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #hud .mobile-tip{display:none!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #gameShell>#mobilePauseBtn:not([hidden]),html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #gameShell>#toggleHudBtn:not([hidden]){
+  position:fixed!important;display:grid!important;place-items:center!important;top:var(--mobile-safe-top)!important;
+  width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;
+  padding:0!important;z-index:46!important;touch-action:manipulation!important;transform:none!important
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #gameShell>#mobilePauseBtn:not([hidden]){left:auto!important;right:var(--mobile-safe-right)!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #gameShell>#toggleHudBtn:not([hidden]){left:var(--mobile-safe-left)!important;right:auto!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #selectedSkillsPanel{top:calc(var(--mobile-safe-top) + 53px)!important;right:var(--mobile-safe-right)!important;left:auto!important;max-height:27dvh!important;width:clamp(106px,20vw,150px)!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #runEnergyRanking{top:calc(var(--mobile-safe-top) + 53px)!important;left:var(--mobile-safe-left)!important;right:auto!important;max-height:27dvh!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body.mobile-game-active #mobileAimStick.dual-stick-visible:not([hidden]){display:flex!important;position:fixed!important;right:var(--mobile-safe-right)!important;bottom:var(--mobile-safe-bottom)!important}
+}
