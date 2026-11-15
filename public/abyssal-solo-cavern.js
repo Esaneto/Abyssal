@@ -330,11 +330,21 @@
   off.setTransform(canvas.width/w,0,0,canvas.height/h,0,0);paintStatic(off,{left:0,top:0,width:w,height:h},w,h);
   return staticWorldArt={canvas,w,h};
  }
- function paint(c,view,t,w=4800,h=3000,mobile=false){
+ let sharpWorldArt=null;
+ // A padded, bounded viewport cache retains the selected native-pixel detail without rasterizing the entire ocean each frame.
+ function getSharpWorldArt(c,view,w,h){
+  if(typeof document==='undefined')return null;
+  const tr=c.getTransform?.(),density=Math.min(2.5,Math.max(1,tr?Math.hypot(tr.a,tr.b):1)),pad=Math.max(72,Math.min(view.width,view.height)*.16);
+  const a=sharpWorldArt;if(a&&a.w===w&&a.h===h&&Math.abs(a.density-density)<.12&&view.left>=a.left&&view.top>=a.top&&view.left+view.width<=a.left+a.width&&view.top+view.height<=a.top+a.height)return a;
+  const left=view.left-pad,top=view.top-pad,width=view.width+2*pad,height=view.height+2*pad,scale=Math.min(density,4096/width,4096/height,Math.sqrt(4000000/(width*height)));
+  const canvas=a?.canvas||document.createElement('canvas');canvas.width=Math.max(1,Math.floor(width*scale));canvas.height=Math.max(1,Math.floor(height*scale));const off=canvas.getContext('2d',{alpha:false});if(!off)return null;off.setTransform(canvas.width/width,0,0,canvas.height/height,-left*canvas.width/width,-top*canvas.height/height);paintStatic(off,{left,top,width,height},w,h);return sharpWorldArt={canvas,w,h,density,left,top,width,height};
+ }
+ function paint(c,view,t,w=4800,h=3000,mobile=false,sharp=false){
   if(!worldCache||worldCache.w!==w||worldCache.h!==h)worldCache=worldArt(w,h);
   const {left,top,width,height}=view,right=left+width,bottom=top+height;
-  const art=mobile?getStaticWorldArt(w,h):null;
-  if(art&&left>=0&&top>=0&&right<=w&&bottom<=h){const sx=art.canvas.width/w,sy=art.canvas.height/h;c.drawImage(art.canvas,left*sx,top*sy,width*sx,height*sy,left,top,width,height);}
+  const crisp=mobile&&sharp?getSharpWorldArt(c,view,w,h):null,art=mobile&&!sharp?getStaticWorldArt(w,h):null;
+  if(crisp){const sx=crisp.canvas.width/crisp.width,sy=crisp.canvas.height/crisp.height;c.drawImage(crisp.canvas,(left-crisp.left)*sx,(top-crisp.top)*sy,width*sx,height*sy,left,top,width,height);}
+  else if(art&&left>=0&&top>=0&&right<=w&&bottom<=h){const sx=art.canvas.width/w,sy=art.canvas.height/h;c.drawImage(art.canvas,left*sx,top*sy,width*sx,height*sy,left,top,width,height);}
   else paintStatic(c,view,w,h);
   c.save();
   // Thin silt, light-shaft noise and distant attached vegetation.

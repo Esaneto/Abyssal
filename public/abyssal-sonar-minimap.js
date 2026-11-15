@@ -8,7 +8,7 @@
  const root=document.createElement('aside');
  root.id='abyssalSonarShell';
  root.setAttribute('aria-label','Minimapa do Mar Aberto');
- root.innerHTML='<div id="abyssalMiniMap" role="group" aria-label="Sonar de terreno e colisões"><div class="abyss-sonar-head"><span>SONAR / TERRENO</span><span class="abyss-sonar-status">● ATIVO</span></div><canvas width="240" height="152" aria-label="Água em azul e obstáculos sólidos em roxo, com posição do mergulhador no centro"></canvas><div class="abyss-sonar-footer"><span>ÁGUA</span><span>ROCHAS SÓLIDAS</span><span id="abyssalSonarCoords">0, 0</span></div></div><button id="abyssalHudToggle" type="button" aria-label="Ocultar interface de exploração" aria-expanded="true" title="Mostrar ou ocultar toda a interface">⌃</button>';
+ root.innerHTML='<div id="abyssalMiniMap" role="group" aria-label="Sonar de terreno e colisões"><div class="abyss-sonar-head"><span>SONAR / TERRENO</span><span class="abyss-sonar-status">● ATIVO</span></div><canvas width="240" height="152" aria-label="Água em azul e obstáculos sólidos em roxo, com posição do mergulhador no centro"></canvas><div class="abyss-sonar-footer"><span>ÁGUA</span><span>ROCHAS SÓLIDAS</span><span id="abyssalSonarCoords">0, 0</span></div></div><button id="abyssalHudToggle" type="button" aria-label="Ocultar interface de exploração" aria-expanded="true" title="Mostrar ou ocultar informações de exploração">⌃</button>';
  shell.appendChild(root);
  const canvas=root.querySelector('canvas'),ctx=canvas.getContext('2d',{alpha:false});
  const button=root.querySelector('#abyssalHudToggle'),coords=root.querySelector('#abyssalSonarCoords');
@@ -21,7 +21,7 @@
   document.body.classList.toggle('abyss-hud-folded',folded&&visible);
   button.textContent=folded?'⌄':'⌃';
   button.setAttribute('aria-expanded',String(!folded));
-  button.setAttribute('aria-label',folded?'Mostrar interface de exploração':'Ocultar interface de exploração');
+  button.setAttribute('aria-label',folded?'Mostrar informações de exploração':'Ocultar informações de exploração');
   button.title=folded?'Mostrar interface':'Ocultar interface';
  }
  button.addEventListener('click',()=>fold(!folded));

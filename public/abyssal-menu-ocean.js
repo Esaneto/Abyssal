@@ -82,12 +82,12 @@
    // Reserve enough room for the entire 130px diver canvas below the hatch.
    subScale=Math.min(subScale,Math.max(.1,(h-90)/226));
    for(const c of [routesCanvas,bubblesCanvas]){
-    const ratio=Math.max(1,Math.min(mobileScene?1:2.25,window.devicePixelRatio||1,Math.sqrt(3000000/(w*h))));
+    const ratio=Math.max(1,Math.min(mobileScene?1.75:2.25,window.devicePixelRatio||1,Math.sqrt(3000000/(w*h))));
     c.width=Math.round(w*ratio);c.height=Math.round(h*ratio);
     c.style.width=w+'px';c.style.height=h+'px';
     c.getContext('2d').setTransform(ratio,0,0,ratio,0,0);
    }
-   const renderDpr=Math.max(1,Math.min(mobileScene?1.5:2.5,window.devicePixelRatio||1));
+   const renderDpr=Math.max(1,Math.min(mobileScene?2.5:2.5,window.devicePixelRatio||1));
    canvas.width=Math.round(180*renderDpr);canvas.height=Math.round(130*renderDpr);
    ctx.setTransform(renderDpr,0,0,renderDpr,0,0);
    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';

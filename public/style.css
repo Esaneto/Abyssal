@@ -1376,9 +1376,10 @@ body.game-active #roomBadge:hover,
 body.game-active #activeAbilities .active-ability:hover{
   opacity:1!important;
 }
+body.hud-collapsed #hud,
 body.hud-collapsed #selectedSkillsPanel,
 body.hud-collapsed #runEnergyRanking,
-body.hud-collapsed #activeAbilities,
+body.hud-collapsed #quickCommsFeed,
 body.hud-collapsed #skillDescriptionTooltip,
 body.hud-collapsed #mobileTip{
   display:none!important;
@@ -4330,7 +4331,10 @@ body.game-active .hud,body.game-active #selectedSkillsPanel,body.game-active #ru
 body.game-active #activeAbilities,body.game-active #toggleHudBtn,body.game-active .mobile-pause-btn,
 body.game-active #roomBadge,body.game-active .boss-alert,body.game-active #abyssalDangerAlert,
 body.game-active .mobile-joystick,body.game-active .mobile-dual-stick{z-index:4!important}
-body.game-active.hud-collapsed .topbar{opacity:0!important;transform:translateY(-16px)!important;pointer-events:none!important}
+body.game-active.hud-collapsed .topbar{background:transparent!important;border:0!important;box-shadow:none!important;pointer-events:none!important}
+body.game-active.hud-collapsed .topbar .brand,body.game-active.hud-collapsed .topbar .top-actions>:not(#pauseBtn){display:none!important}
+body.game-active.hud-collapsed:not(.mobile-game-active) .topbar{opacity:1!important;transform:none!important;justify-content:flex-start!important;width:auto!important;right:auto!important}
+body.game-active.hud-collapsed:not(.mobile-game-active) #pauseBtn:not([hidden]){pointer-events:auto!important;visibility:visible!important}
 body.game-active.hud-collapsed #toggleHudBtn{opacity:1!important;pointer-events:auto!important;transform:none!important}
 
 @media (max-width:700px),(pointer:coarse){

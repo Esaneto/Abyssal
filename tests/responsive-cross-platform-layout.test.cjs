@@ -116,7 +116,7 @@ test('gameplay notification queue deduplicates semantic relay duplicates',()=>{
 
 test('mobile canvas uses adaptive high-DPI rendering instead of forced DPR 1',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
- assert.match(game,/Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1\.2:\(mobileViewport\?2:1\.8\)\)/);
+ assert.match(game,/MOBILE_DPR_CAPS=\[1\.25,1\.75,2\.5\]/);
  assert.match(game,/adaptiveDprScale/);
 });
 test('PvP movement stream prioritizes low latency without reliable packet backlog',()=>{
@@ -194,7 +194,7 @@ test('new menu uses isolated portal layout and retains mobile volume popup',()=>
 test('gameplay uses the full viewport with collapsible chrome and platform-specific abyss vignette', () => {
   const css = read('public/style.css');
   assert.match(css, /body\.game-active #gameShell\{[\s\S]*position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important/);
-  assert.match(css, /body\.game-active\.hud-collapsed \.topbar\{opacity:0!important/);
+  assert.match(css, /body\.game-active\.hud-collapsed \.topbar\{background:transparent!important/);
   assert.match(css, /body\.game-active #gameShell::after/);
   assert.match(css, /@media \(max-width:700px\),\(pointer:coarse\)[\s\S]*body\.game-active #gameShell::after[\s\S]*linear-gradient\(180deg/);
 });

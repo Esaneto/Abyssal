@@ -438,6 +438,9 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     await evaluate("(()=>{const g=document.querySelector('.aw-mobile-group');g.value='gear';g.dispatchEvent(new Event('change'));const c=document.querySelector('.aw-mobile-category');c.value='fins';c.dispatchEvent(new Event('change'));if(document.querySelector('.aw-choices').dataset.category!=='fins')throw Error('Mobile category selection failed');g.value='suits';g.dispatchEvent(new Event('change'));return true})()");
 
    }
+   assert.equal(await evaluate(`(()=>{const nav=window.AbyssalCockpitNavigation;if(!nav.routeCommand('hudEditor'))return false;const page=document.querySelector('.hud-editor');if(!page)return false;const s=page.querySelector('input[type=range]');s.value='125';s.dispatchEvent(new Event('input'));page.querySelector('.hud-editor-actions .primary-btn').click();const a=JSON.parse(localStorage.getItem('abyssalHudLayoutV1'));return a.portrait.aim.s===1.25&&Object.keys(a.landscape).length===0;})()`),true,'HUD editor must persist mobile scale separately');
+   await sleep(250);await screenshot('mobile-hud-editor');
+   assert.equal(await evaluate(`(()=>{const page=document.querySelector('.hud-editor');page.querySelector('.hud-editor-actions button:nth-child(2)').click();page.querySelector('.hud-editor-actions .primary-btn').click();return Object.keys(window.AbyssalHudLayout.get().portrait).length===0;})()`),true,'HUD restore must restore default layout');
    return;
   }
   if(mode==='mobile-gameplay'){
@@ -457,10 +460,14 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     assertAudit('gameplay '+w+'x'+h,all);
     const perf=await evaluate('window.AbyssalPerformance.snapshot()');console.log('[mobile-render-budget] '+w+'x'+h+' '+JSON.stringify(perf));
     assert.equal(perf.graphics.automatic,true,'mobile adaptive graphics must be active');
-    assert.ok(perf.graphics.dpr<=1.5,'mobile framebuffer density exceeds safety cap');
-    assert.ok(perf.canvasPixels<=Math.ceil(w*h*2.25)+Math.max(w,h)*8,'mobile framebuffer exceeds pixel budget');
+    assert.ok(perf.graphics.dpr<=2.5,'mobile framebuffer density exceeds safety cap');
+    assert.ok(perf.canvasPixels<=Math.min(4000000,Math.ceil(w*h*6.25)+Math.max(w,h)*8),'mobile framebuffer exceeds pixel budget');
     await screenshot('exact-mobile-gameplay-'+w+'x'+h);
    }
+   await evaluate(`(()=>{const page=window.AbyssalHudLayout.createPage();document.body.append(page);const selects=page.querySelectorAll('select');selects[0].value='landscape';selects[0].dispatchEvent(new Event('change'));selects[1].value='aim';selects[1].dispatchEvent(new Event('change'));const s=page.querySelector('input[type=range]');s.value='120';s.dispatchEvent(new Event('input'));page.querySelector('.hud-editor-actions .primary-btn').click();page.remove();return true;})()`);
+   await sleep(250);
+   assert.equal(await evaluate(`(()=>{const e=document.getElementById('mobileAimStick');return Math.abs(Number(getComputedStyle(e).scale)-1.2)<.01&&getComputedStyle(e.querySelector('.joystick-knob')).backgroundImage.includes('abyssal-red-reticle.svg');})()`),true,'Saved aim scale and red cursor must apply to real mobile control');
+   assert.equal(await evaluate(`(()=>{const b=document.getElementById('toggleHudBtn');b.click();const h=document.getElementById('hud'),a=document.getElementById('activeAbilities'),p=document.getElementById('mobilePauseBtn');const ok=getComputedStyle(h).display==='none'&&getComputedStyle(a).display!=='none'&&getComputedStyle(p).visibility!=='hidden';b.click();return ok;})()`),true,'Mobile immersion must preserve actions');
    await evaluate("document.getElementById('mobilePauseBtn').click()");
    await sleep(200);
    assert.equal(await evaluate("document.getElementById('pauseScreen').hidden"),false,'Mobile pause must remain accessible');
@@ -485,8 +492,8 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    assert.ok(solo?.elapsed>1,'Shooter Solo did not advance its real-time simulation');
    assert.ok(!solo?.errors,'Shooter Solo runtime error: '+solo.errors);
    await screenshot('live-solo-start');
-   const hud=await evaluate('(()=>{const r=document.getElementById("runEnergyRanking"),h=document.getElementById("hud"),b=document.getElementById("toggleHudBtn"),pet=document.querySelector("#petHabitBar .pet-habit-actions"),bar=document.getElementById("petHabitBar"),skills=document.getElementById("activeAbilities"),active=document.getElementById("skinActiveBtn");const br=bar.getBoundingClientRect(),sr=skills.getBoundingClientRect();const before={ranking:getComputedStyle(r).display,opacity:getComputedStyle(h).opacity,pet:getComputedStyle(pet).flexDirection,petAbove:br.bottom<=sr.top+2,rLabel:active.textContent};b.click();before.hidden=getComputedStyle(h).visibility;before.restore=getComputedStyle(b).visibility;b.click();return before;})()');
-   assert.equal(hud.ranking,'none');assert.equal(hud.opacity,'0.6');assert.equal(hud.pet,'column');assert.equal(hud.hidden,'hidden');assert.equal(hud.restore,'visible');assert.equal(hud.petAbove,true,'Specimen behavior must sit above ability buttons');assert.ok(!/SONAR/.test(hud.rLabel),'Solo R must show the equipped specimen ability, not Sonar: '+hud.rLabel);
+   const hud=await evaluate('(()=>{const r=document.getElementById("runEnergyRanking"),h=document.getElementById("hud"),b=document.getElementById("toggleHudBtn"),pet=document.querySelector("#petHabitBar .pet-habit-actions"),bar=document.getElementById("petHabitBar"),skills=document.getElementById("activeAbilities"),active=document.getElementById("skinActiveBtn");const br=bar.getBoundingClientRect(),sr=skills.getBoundingClientRect();const before={ranking:getComputedStyle(r).display,opacity:getComputedStyle(h).opacity,pet:getComputedStyle(pet).flexDirection,petAbove:br.bottom<=sr.top+2,rLabel:active.textContent};b.click();before.hidden=getComputedStyle(h).display;before.restore=getComputedStyle(b).visibility;before.actions=getComputedStyle(skills).display!=="none"&&getComputedStyle(skills).visibility!=="hidden";before.petVisible=getComputedStyle(bar).display!=="none"&&getComputedStyle(bar).visibility!=="hidden";before.endVisible=getComputedStyle(document.getElementById("endDiveBtn")).visibility!=="hidden";b.click();return before;})()');
+   assert.equal(hud.ranking,'none');assert.equal(hud.opacity,'0.6');assert.equal(hud.pet,'column');assert.equal(hud.hidden,'none');assert.equal(hud.restore,'visible');assert.equal(hud.actions,true);assert.equal(hud.petVisible,true);assert.equal(hud.endVisible,true);assert.equal(hud.petAbove,true,'Specimen behavior must sit above ability buttons');assert.ok(!/SONAR/.test(hud.rLabel),'Solo R must show the equipped specimen ability, not Sonar: '+hud.rLabel);
    // The movement is sent through Chromium's keyboard input, not by
    // teleporting the player or modifying in-game state.
    const key={key:'d',code:'KeyD',windowsVirtualKeyCode:68,nativeVirtualKeyCode:68};
