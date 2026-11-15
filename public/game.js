@@ -4594,7 +4594,7 @@ const riftSpecimenSpriteCache=new Map();
 let riftSpecimenSpriteFrame=-1,riftSpecimenSpritePaints=0;
 function drawRiftShopSpecimen(enemy,skin,time){
  if(riftSpecimenSpriteFrame!==time){riftSpecimenSpriteFrame=time;riftSpecimenSpritePaints=0;}
- const oceanFauna=isOpenSeaRun()&&Boolean(enemy.wildlifeMode),sharkHeight=OCEAN_SHARK_HEIGHTS[skin.id]||0;
+ const oceanFauna=isOpenSeaRun()&&Boolean(enemy.wildlifeMode);
  const normalRadius=CREATURE_SCALE?.riftVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||Math.max(4,Number(enemy.r)||8);
  // Preserve shop skin identity and a species-specific 3 m maximum visual body envelope.
  const radius=normalRadius;
@@ -5868,7 +5868,7 @@ function renderCatalog(){
  const journalSkins=[...skinData].sort((a,b)=>{const state=skin=>ownedSkins.includes(skin.id)?0:(specimenShopAvailable(skin)?1:2),sa=state(a),sb=state(b);if(sa!==sb)return sa-sb;return String(a.name).localeCompare(String(b.name),'pt-BR');});
  const specimenCards=journalSkins.map((skin,index)=>{
   const known=specimenShopAvailable(skin);
-  const b=SPECIMEN_SYSTEM.effectiveStats(skin.id,specimenPoints(skin.id));
+  const b=SPECIMEN_SYSTEM.biologicalStats(skin.id);
   const family=SPECIMEN_SYSTEM.FAMILY_LABELS[b.family]||b.family;
   const oceanHabitat=OPEN_SEA_ECOLOGY?.speciesHabitat?.(skin.id);
   const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
@@ -5887,7 +5887,7 @@ function renderCatalog(){
  const found=journalSkins.filter(s=>specimenShopAvailable(s)).length,foundMonsters=entries.filter(([kind])=>codex.monsters.includes(kind)).length;
  const commonCards=common.map((entry,index)=>renderMonster(entry,index)).join('');
  const bossCards=bosses.map((entry,index)=>renderMonster(entry,common.length+journalSkins.length+index)).join('');
- grid.innerHTML='<div class="journal-progress">REGISTROS IDENTIFICADOS · '+(found+foundMonsters)+' / '+(skinData.length+entries.length)+'</div>'
+ grid.innerHTML='<div class="journal-progress">VIDA INTEGRAL · Durante o mergulho, inimigos começam com 20% da vida registrada e ganham 10 pontos percentuais a cada 2 minutos, até 100%.<br>REGISTROS IDENTIFICADOS · '+(found+foundMonsters)+' / '+(skinData.length+entries.length)+'</div>'
   +'<div class="codex-tools"><label for="codexSearch">BUSCAR REGISTRO</label><input id="codexSearch" type="search" placeholder="Nome, habitat ou habilidade"><label for="codexFilter">ESTADO</label><select id="codexFilter"><option value="known">Identificados</option><option value="all">Todos</option><option value="locked">Não identificados</option></select></div><div id="codexResultCount" role="status" class="codex-result-count"></div>'
   +'<section class="codex-group"><h3 class="codex-heading">01 · FAUNA ABISSAL</h3><div class="codex-grid journal-specimen-grid">'+commonCards+'</div></section>'
   +'<section class="codex-group"><h3 class="codex-heading">02 · ESPÉCIMES</h3><div class="codex-grid journal-specimen-grid">'+specimenCards+'</div></section>'
