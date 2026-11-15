@@ -832,7 +832,7 @@ function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.ro
 function channelFor(room){return `abyss-room:${room.id}`;}
 function specimenPositionFor(player){
  const x=Number(player?.x)||0,y=(Number(player?.y)||0)-34/WORLD_ZOOM;
- return {x:Number.isFinite(player?.specimenX)?player.specimenX:x,y:Number.isFinite(player?.specimenY)?player.specimenY:y,r:11/WORLD_ZOOM};
+ return {x:Number.isFinite(player?.specimenX)?player.specimenX:x,y:Number.isFinite(player?.specimenY)?player.specimenY:y,r:CreatureScale.companionCollisionRadius(player?.skinId)};
 }
 function specimenStatsFor(player){return SpecimenSystem.stats(Number(player?.specimenPoints)||0);}
 function applySpecimenImpact(room,player,rawAmount,source,now,cooldownMs=850){
@@ -1486,7 +1486,7 @@ function tickRoom(room, now) {
    if(progress>=1){peer.specimenDash=null;emitSpecimenState(room,peer,'dash-landed');}
    continue;
   }
-  const radius=11/WORLD_ZOOM;
+  const radius=CreatureScale.companionCollisionRadius(peer.skinId);
   if(specimenClassicRocks&&ClassicCavern.isBlocked(specimenClassicRocks,peer.specimenX,peer.specimenY,radius+1/WORLD_ZOOM)){const safe=ClassicCavern.nearestWater(specimenClassicRocks,roomWorldWidth(room),roomWorldHeight(room),peer.specimenX,peer.specimenY,radius+1/WORLD_ZOOM);if(safe){peer.specimenX=safe.x;peer.specimenY=safe.y;}}
   const pos={x:peer.specimenX,y:peer.specimenY};
   const acquisitionRange=294/WORLD_ZOOM*clamp(Number(peer.rangeStrength)||1,1,2.5)*SkinAbilities.targetRangeMultiplier(peer.skinId,peer.specimenPoints,true);
@@ -2996,7 +2996,7 @@ io.on('connection', socket => {
    const currentRoom=socketRoom(socket),activePlayer=currentRoom?.players.get(socket.id);
    if(activePlayer){activePlayer.diverGender=u.diverGender;io.to(channelFor(currentRoom)).emit('world-players',[...currentRoom.players.values()].map(({userKey,runStats,...p})=>p));}
   }
-  if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova','echoShot','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'];const shotSkills=new Set(['electric','pierce','photon','photonRay','nova','echoShot']);const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];let hasShot=false;presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].filter(id=>{if(!shotSkills.has(id))return true;if(hasShot)return false;hasShot=true;return true;}).slice(0,7);if(!presets[mode].some(id=>shotSkills.has(id))){if(presets[mode].length>=7)presets[mode].pop();presets[mode].unshift('electric');}}u.resonancePresets=presets;}
+  if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova','echoShot','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'];const shotSkills=new Set(['electric','pierce','photon','photonRay','nova','echoShot']);const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];let hasShot=false;presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].filter(id=>{if(!shotSkills.has(id))return true;if(hasShot)return false;hasShot=true;return true;}).slice(0,10);if(!presets[mode].some(id=>shotSkills.has(id))){if(presets[mode].length>=10)presets[mode].pop();presets[mode].unshift(mode==='pve'?'photon':'electric');}}u.resonancePresets=presets;}
   if (u.ownedSkins.includes(payload.equippedSkin)){
    u.equippedSkin = payload.equippedSkin;
    const room=socketRoom(socket),p=room?.players.get(socket.id);
