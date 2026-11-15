@@ -43,8 +43,13 @@
 5. Nunca declare que um deploy está Live sem consultar o estado do deploy. Se não puder executar localmente, declare claramente a limitação.
 6. Use branch de feature e PR; não altere `main` diretamente.
 
+## Limpeza obrigatória a cada atualização
+- Ao substituir uma implementação, apague a antiga no mesmo change, não apenas esconda a interface ou desative uma rota.
+- Revise referências de HTML, CSS, JS, eventos, timers, assets, dependências, precache offline, scripts de build e testes. Remova apenas o que comprovadamente não é usado; mantenha migrações de dados, contratos de rede e código compartilhado necessário aos modos ativos.
+- Atualize caches e teste regressões; verifique que elementos retirados não voltam ao pacote de produção. Informe o que foi removido e o que precisou permanecer, com motivo.
+
 ## Definition of Done
-- Código implementado e revisão de diff concluída.
+- Código implementado, revisão de diff concluída e limpeza das implementações substituídas realizada.
 - Testes relevantes passam; falhas preexistentes são identificadas separadamente.
 - UI responsiva e controles acessíveis.
 - Solo/online não divergem indevidamente.
