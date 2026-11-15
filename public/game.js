@@ -4928,6 +4928,7 @@ function draw(t){
        drawCreature(sx,sy,CREATURE_SCALE?.visualRadius?.(peer.skinId,10/GAME_WORLD_ZOOM)||10/GAME_WORLD_ZOOM,specimenHeading,peerSkin?.color||peer.color||'#b8a4ff','peer',t,true,0,ctx,peerSkin,{visualId:'peer-specimen:'+peerVisualId,visualAttackUntil:remoteCreatureAttackUntil.get(peerVisualId)||0,moveSpeed:followSpeed});
        if(Math.hypot(sx-px,sy-py)<32/GAME_WORLD_ZOOM+(CREATURE_SCALE?.visualRadius?.(peer.skinId,10/GAME_WORLD_ZOOM)||10/GAME_WORLD_ZOOM)*1.7)
          drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,Number.isFinite(peer.angle)?peer.angle:heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance,motion);
+       const remoteField=window.AbyssalOnline?.getSpecimenMotion?.(peerVisualId)?.field||0;if(remoteField>0){ctx.save();ctx.globalAlpha=.14;ctx.strokeStyle='#b68aff';ctx.lineWidth=1/worldZoom;ctx.setLineDash([4/worldZoom,7/worldZoom]);ctx.beginPath();ctx.arc(sx,sy,RES_BAL.fieldRadius(remoteField,GAME_WORLD_ZOOM),0,Math.PI*2);ctx.stroke();ctx.restore();}
        if(remoteDash)drawSpecimenDashArc(sx,sy,10/GAME_WORLD_ZOOM,remoteDash.angle,t,clamp((performance.now()-remoteDash.startedAt)/remoteDash.durationMs,0,1));
       }
       const quickEmoji=window.AbyssalOnline?.getQuickEmoji?.(peerVisualId);if(quickEmoji){ctx.save();ctx.font=String(25/worldZoom)+'px sans-serif';ctx.textAlign='center';ctx.fillText(quickEmoji,px,py-52/worldZoom);ctx.restore();}
