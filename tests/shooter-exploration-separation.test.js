@@ -29,7 +29,7 @@ test('only classic modes advance the periodic boss progression track',()=>{
  const game=source('public/game.js'),world=source('world-simulation.js');
  assert.match(game,/gameState !== 'playing'\|\|!isClassicShooterRun\(\)/);
  assert.match(game,/if\(isClassicShooterRun\(\)\)updateBossProgressionStep\(dt\)/);
- assert.match(game,/if \(!isClassicShooterRun\(\)\) \{ track\.style\.display = 'none'/);
+ assert.match(game,/const visible=isClassicCavernRun\(\)&&bossCycleBosses\.length>0/);assert.match(game,/track\.style\.display=visible\?'block':'none'/);
  assert.match(world,/if \(world\.mode==='classic' && world\.elapsed >= world\.nextBossAt/);
  assert.match(world,/if \(world\.mode==='open-sea'\) spawnedEnemies\.push\(\.\.\.updateOceanStreaming/);
 });
@@ -98,4 +98,17 @@ test('T follows mouse with manual control 2 and never toggles auto-fire',()=>{
  assert.match(game,/if\(mouseAimMode\)updateMouseAimFromCursor\(\)/);
  assert.match(game,/autoFollowCursor=!autoFollowCursor/);
  assert.match(game,/autoFollowCursor=false;\s*document\.body\.classList\.add\('game-active'\)/);
+});
+
+test('boss encounter HUD represents current interval and confirms active boss separately',()=>{
+ const vm=require('node:vm'),game=source('public/game.js');
+ const fn=game.slice(game.indexOf('function updateProgressionTrackUI()'),game.indexOf('function updateBossProgressionStep'));
+ const elements=new Map(),make=()=>({style:{},dataset:{},textContent:'',children:[],classList:{toggle(){}},setAttribute(k,v){this[k]=v;},replaceChildren(){this.children=[];},append(child){this.children.push(child);}});
+ const $=id=>{if(!elements.has(id))elements.set(id,make());return elements.get(id);};
+ const ctx={$,document:{createElement:make},isClassicCavernRun:()=>true,bossCycleBosses:['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer'],bossCycleIndex:2,bossProgressionCycle:0,activeBossEntity:null,progressionPausedForBoss:false,progressionDistance:50,bossVictoryPending:false,getBossDisplayName:k=>k,clamp:(n,a,b)=>Math.max(a,Math.min(b,n))};
+ vm.createContext(ctx);vm.runInContext(fn,ctx);ctx.updateProgressionTrackUI();
+ assert.equal($('trackFill').style.width,'50%');assert.equal($('trackBossTime').textContent,'14s');assert.equal($('trackCycleBadge').textContent,'CICLO 1 · 2/7');assert.equal($('trackBossNodes').children.length,7);
+ ctx.progressionPausedForBoss=true;ctx.activeBossEntity={kind:'maw'};ctx.updateProgressionTrackUI();assert.equal($('trackBossTime').textContent,'ATIVO');assert.equal($('trackFill').style.width,'100%');
+ ctx.progressionPausedForBoss=false;ctx.bossCycleIndex=3;ctx.progressionDistance=0;ctx.updateProgressionTrackUI();assert.equal($('trackBossTime').textContent,'27s');assert.equal($('trackFill').style.width,'0%');
+ ctx.isClassicCavernRun=()=>false;ctx.updateProgressionTrackUI();assert.equal($('bossProgressionTrack').style.display,'none');
 });

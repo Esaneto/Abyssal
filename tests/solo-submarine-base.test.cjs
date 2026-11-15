@@ -51,7 +51,7 @@ test('Solo game mounts a powered submarine with automatic researched guns and sh
  assert.match(game,/fireSoloSubmarineWeapon/);
  assert.match(game,/submarineShield/);
  assert.match(game,/SOLO_SUB_RANGE=650\/GAME_WORLD_ZOOM/);
- assert.match(game,/ENERGIZAR SUBMARINO/);
+ assert.match(game,/Energizar submarino/);assert.match(game,/fullPowerCost\?\.\(\)/);assert.match(game,/sub-power-cost/);
 });
 
 test('cavern plants emit green light and submarine contributes a separate world light',()=>{

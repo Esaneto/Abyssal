@@ -23,7 +23,7 @@
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
  let activeLabSection='survival',activeConsoleSection='laboratory',soloConsolePage='home';
- const researchTreeSelection={diver:'lamp:1',submarine:'submarineShield'};
+ const researchTreeSelection={diver:null,submarine:null};
  let combatResearchPending=false,combatResearchMessage='';
  // Move the original live screens, not copies: purchases, filters, canvases,
  // ownership and catalog discovery retain their existing IDs and listeners.
@@ -268,7 +268,7 @@
     const signedIn=Boolean(account?.nickname||localStorage.getItem('abyssalSessionToken'));
     const combatLevels=research.migrateLegacy(signedIn?account?.researchLevels||{}:localLevels,signedIn?account?.metaUpgrades||{}:cachedMeta()).levels;
     const combatInfo=[
-     {id:'pulse',name:'Q · Pulso de Maré',icon:'✺',description:'Causa dano em área ao redor do mergulhador. Dano base: 28; recarga: 14 segundos. Ativação automática no atalho Q após pesquisar.'},
+     {id:'pulse',name:'Q · Pulso de Maré',icon:'✺',description:'Causa dano em área ao redor do mergulhador. Dano base: 28; recarga: 14 segundos. Ative com Q no PC ou pelo botão no celular, após pesquisar. O dano acompanha Pulso Intenso e o alcance acompanha Olho Profundo.'},
      {id:'dash',name:'E · Propulsor Abissal',icon:'➤',description:'E alterna entre arma e turbina. Nado 2,35× por até 10 s de bateria. A bateria recarrega em 40 s ao parar ou guardar. Sem invulnerabilidade ou recarga de habilidade.'}
     ];
     const studyCombat=id=>{
@@ -301,7 +301,7 @@
     const installed=base?.installedWeapons?.()||[],max=base?.MAX_WEAPONS||6,shield=Boolean(base?.get?.().submarineShield),shieldCost=base?.cost?.('submarineShield')||100;
     branches.push({name:'Defesa',items:[{id:'submarineShield',name:'Escudo do submarino',icon:'⬡',owned:shield,state:shield?'Pesquisado':'Disponível',description:'Absorve o primeiro dano à base energizada, uma vez por mergulho. Não aumenta o consumo de energia.',costText:shield?'Pesquisa concluída':shieldCost+' energia',actions:shield?[]:[{label:'Pesquisar · '+shieldCost+' energia',disabled:state.energy<shieldCost,run:()=>purchase('submarineShield',()=>base?.research('submarineShield'))}]}]});
     const labels={electric:'Tempestade Elétrica',pierce:'Lança do Abismo',photon:'Lança de Fótons',photonRay:'Raio de Fótons',nova:'Nova Gravitacional',echoShot:'Eco de Maré'},icons={electric:'ϟ',pierce:'➵',photon:'☄',photonRay:'⌁',nova:'⊛',echoShot:'⋔'};
-    const descriptions={electric:'Disparo elétrico em cadeia.',pierce:'Projétil perfurante.',photon:'Disparo fotônico rápido; torre inicial.',photonRay:'Feixe contínuo de fótons.',nova:'Pulso gravitacional de área.',echoShot:'Dois projéteis paralelos de maré.'};
+    const descriptions={electric:'Disparo elétrico em cadeia.',pierce:'Projétil perfurante.',photon:'Disparo fotônico rápido; torre inicial.',photonRay:'Feixe contínuo de fótons.',nova:'Pulso gravitacional direcional em cone.',echoShot:'Dois projéteis paralelos de maré.'};
     branches.push({name:'Armamento · '+installed.length+'/'+max+' torres instaladas',items:(base?.SHOTS||[]).map(id=>{const key='weapon:'+id,owned=base.unlocked(key),mounted=installed.includes(id),cost=base.cost(key);return {id:key,name:labels[id]||id,icon:icons[id],owned,active:mounted,state:mounted?'Instalada':owned?'Pesquisada':'Disponível',description:descriptions[id]+' Cada torre instalada acrescenta 10 energia ao ciclo de 5 minutos.',costText:owned?'Instalação gratuita':cost+' energia',actions:[owned?{label:mounted?'Desinstalar':'Instalar',disabled:!mounted&&installed.length>=max,secondary:mounted,run:()=>purchase(key,()=>mounted?base.uninstallWeapon(id):base.installWeapon(id))}:{label:'Pesquisar · '+cost+' energia',disabled:state.energy<cost,run:()=>purchase(key,()=>base.research(key))}]};})});
     const summary=document.createElement('p');summary.className='solo-research-copy';summary.textContent='Base: '+(base?.fullPowerCost?.()||20)+' energia / 5 minutos · '+installed.length+' de '+max+' torres. A luz custa 20 energia por ciclo.';utility.append(summary);
    }
