@@ -7,7 +7,6 @@ const geo=require('../public/abyssal-ocean-geography.js');
 const eco=require('../public/abyssal-open-sea-ecology.js');
 const stream=require('../public/abyssal-ocean-stream.js');
 const fields=require('../public/abyssal-resource-fields.js');
-const renderer=require('../public/abyssal-open-sea-render.js');
 
 test('three visual biomes resolve deterministically from world coordinate and depth',()=>{
  assert.equal(geo.visualBiomeAt(1200,700).id,'coastal');
@@ -60,17 +59,4 @@ test('canyon pillars provide solid but passable midwater passages',()=>{
  }
  assert.ok(free/total>.57,'most of the ocean remains passable');
 });
-test('camera-limited biome renderers and UI remain available across the same ocean',()=>{
- const canvas=new Proxy({}, {get(_,key){
-  if(key==='createLinearGradient'||key==='createRadialGradient')return ()=>({addColorStop(){}});
-  return ()=>{};
- },set(){return true;}});
- for(const view of [
-  {left:350,top:200,width:1200,height:800},
-  {left:8400,top:2400,width:1200,height:1000},
-  {left:18000,top:7300,width:1400,height:900},
-  {left:19500,top:18300,width:900,height:800}
- ])assert.doesNotThrow(()=>renderer.draw(canvas,view,1700,false));
- const ui=fs.readFileSync(path.join(__dirname,'../public/abyssal-exploration-runtime.js'),'utf8');
- assert.match(ui,/explorationBiome/);
-});
+

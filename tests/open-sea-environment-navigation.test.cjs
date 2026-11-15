@@ -6,8 +6,6 @@ const path=require('node:path');
 const geo=require('../public/abyssal-ocean-geography.js');
 const stream=require('../public/abyssal-ocean-stream.js');
 const resources=require('../public/abyssal-resource-fields.js');
-const renderer=require('../public/abyssal-open-sea-render.js');
-const lamp=require('../public/abyssal-open-sea-lighting.js');
 const respawn=require('../public/abyssal-ocean-respawn.js');
 
 test('a coastal swimming corridor remains open with diver clearance',()=>{
@@ -52,23 +50,12 @@ test('minerals stream only near the player',()=>{
  assert.ok(rocks.every(n=>Math.hypot(n.x-2600,n.y-890)<=1600));
 });
 
-test('sunlight fades by real depth, flashlight upgrades broaden illumination',()=>{
+test('geography sunlight fades by real depth',()=>{
  assert.ok(geo.lightAt(geo.HEIGHT*900/2200)<.0005);
  assert.equal(geo.metersAt(geo.HEIGHT),2200);
- assert.ok(lamp.parameters(1400,3).range>lamp.parameters(1400,0).range);
- assert.ok(lamp.parameters(1400,3).halfAngle>lamp.parameters(1400,0).halfAngle);
 });
 
-test('Open Sea renderers operate with canvas primitives across depths',()=>{
- const ctx=new Proxy({},{get(obj,key){
-  if(key in obj)return obj[key];
-  if(key==='createLinearGradient'||key==='createRadialGradient')return ()=>({addColorStop(){}});
-  return ()=>{};
- },set(obj,key,value){obj[key]=value;return true;}});
- assert.doesNotThrow(()=>renderer.draw(ctx,{left:200,top:-100,width:1100,height:900},2000,false));
- assert.doesNotThrow(()=>renderer.draw(ctx,{left:6000,top:11000,width:1200,height:900},2000,true));
- assert.doesNotThrow(()=>lamp.draw(ctx,{left:200,top:400,width:900,height:650},{x:500,y:1100,bodyAngle:.3,weaponAngle:.5,r:17},2,500,false));
-});
+
 
 test('muzzle, hatch, and offshore installation states remain integrated',()=>{
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');

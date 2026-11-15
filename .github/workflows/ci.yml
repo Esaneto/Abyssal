@@ -49,7 +49,6 @@ jobs:
           node --check public/abyssal-ocean-geography.js
           node --check public/abyssal-ocean-stream.js
           node --check public/abyssal-open-sea-ecology.js
-          node --check public/abyssal-open-sea-render.js
           node --check public/abyssal-exploration-config.js
           node --check public/abyssal-inventory-ui.js
           node --check public/abyssal-resource-fields.js

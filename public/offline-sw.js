@@ -64,8 +64,6 @@ const GAME_FILES = [
   'abyssal-ocean-stream.js',
   'abyssal-cinematic-art.js',
   'abyssal-basalt-material.webp',
-  'abyssal-open-sea-render.js',
-  'abyssal-open-sea-lighting.js',
   'abyssal-exploration-config.js',
   'abyssal-offshore-system.js',
   'abyssal-extraction-ui.js',

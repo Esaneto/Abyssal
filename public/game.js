@@ -4428,7 +4428,6 @@ function drawArenaTerrain(t){
  if(isClassicCavernRun()&&SOLO_CAVERN){SOLO_CAVERN.drawRocks(ctx,arenaRocks,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,mobileViewport);return;}
  // Open sea now has one source of truth for geology and drawing. Rift/PvP keep their own terrain.
  if(usesNaturalOceanTerrain()){
-  window.AbyssalOpenSeaRender?.draw?.(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,lowPowerRendering);
   window.AbyssalExplorationWorldRender?.(ctx,t,{left:cameraX,top:cameraY,right:cameraX+viewW/worldZoom,bottom:cameraY+viewH/worldZoom});
   return;
  }
@@ -4947,13 +4946,6 @@ function draw(t){
  }
  // Solo light masks the entire world, and raycasts against actual physical rock.
  if(isClassicCavernRun()&&player){SOLO_CAVERN?.lighting(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},player,window.AbyssalSoloProgress?.get().lamp||1,arenaRocks,t,[{x:soloSubmarine.x,y:soloSubmarine.y,active:soloSubmarinePowered()||soloSubmarine.spawnFx>0,radius:355/GAME_WORLD_ZOOM,strength:soloSubmarinePowered()?1:.78},{x:player.specimen?.x,y:player.specimen?.y,active:Boolean(player.specimen?.alive),radius:85/GAME_WORLD_ZOOM,color:currentSkinColor(),strength:.65},...remoteDiveLights],mobileViewport&&adaptiveQualityLevel<2);}
- // Mar Aberto retains its independent helmet light.
- if(isOpenSeaRun()&&player&&gameState==='playing'){
-  const levels=window.AbyssalExplorationBridge?.levels?.()||{};
-  window.AbyssalOpenSeaLighting?.draw?.(ctx,
-   {left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},
-   player,Number(levels.helmetLamp)||0,t,lowPowerRendering);
- }
  // corner scanner details (not part of the Solo scene)
  if(onlineMode||!isClassicShooterRun()){
  ctx.save();ctx.strokeStyle='rgba(123,215,223,.23)';ctx.lineWidth=1;const s=14;[[12,12,1,1],[W-12,12,-1,1],[12,H-12,1,-1],[W-12,H-12,-1,-1]].forEach(([x,y,a,b])=>{ctx.beginPath();ctx.moveTo(x,y+s*b);ctx.lineTo(x,y);ctx.lineTo(x+s*a,y);ctx.stroke()});ctx.restore();}
