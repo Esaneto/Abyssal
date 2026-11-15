@@ -80,6 +80,9 @@
  const visorScrollByPage=new Map();
  function renderWorkshop(){
   if(!workshopGrid)return;
+  // Account updates must not destroy live editors, drafts or catalog scroll positions.
+  if(activeConsoleSection==='wardrobe'&&workshopGrid.querySelector('.abyss-wardrobe'))return;
+  if(activeConsoleSection==='hudEditor'&&workshopGrid.querySelector('.hud-editor-fullscreen[open]'))return;
   const previous=workshopGrid.querySelector('.abyss-visor-body');
   if(previous?.dataset.pageKey)visorScrollByPage.set(previous.dataset.pageKey,previous.scrollTop);
   renderWorkshopContent();

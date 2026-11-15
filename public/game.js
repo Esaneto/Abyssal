@@ -709,7 +709,7 @@ function soloSubmarineTopUp(){
 }
 function ensureSoloSubmarineButton(){
  let button=document.getElementById('soloSubmarinePowerBtn');if(button)return button;
- button=document.createElement('button');button.id='soloSubmarinePowerBtn';button.type='button';button.className='abyss-map-interact compact-submarine-power';button.hidden=true;
+ button=document.createElement('button');button.id='soloSubmarinePowerBtn';button.type='button';button.className='compact-submarine-power';button.hidden=true;
  button.addEventListener('click',soloSubmarineTopUp);document.getElementById('gameShell')?.append(button);return button;
 }
 function updateSoloSubmarineInteraction(){
