@@ -388,6 +388,13 @@ public class MainActivity extends BridgeActivity {
     Window window = getWindow();
     window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     WindowCompat.setDecorFitsSystemWindows(window, false);
+    if (android.os.Build.VERSION.SDK_INT >= 28) {
+      WindowManager.LayoutParams attrs = window.getAttributes();
+      attrs.layoutInDisplayCutoutMode = android.os.Build.VERSION.SDK_INT >= 30
+        ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+      window.setAttributes(attrs);
+    }
     View content = findViewById(android.R.id.content);
     content.setBackgroundColor(Color.rgb(6, 21, 34));
     ViewCompat.setOnApplyWindowInsetsListener(content, (view, insets) -> {
@@ -402,6 +409,17 @@ public class MainActivity extends BridgeActivity {
         safe = Insets.max(safe, normal);
       }
       Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+      // Recent WebView releases expose safe area insets to CSS. Older ones
+      // retain native padding so interactive controls cannot sit under a notch.
+      boolean cssInsets = false;
+      if (android.os.Build.VERSION.SDK_INT >= 26) {
+        android.content.pm.PackageInfo webview = android.webkit.WebView.getCurrentWebViewPackage();
+        try { cssInsets = webview != null && Integer.parseInt(webview.versionName.split("[.]")[0]) >= 144; } catch (Exception ignored) {}
+      }
+      if (immersive && !keyboardVisible && cssInsets) {
+        view.setPadding(0, 0, 0, 0);
+        return insets;
+      }
       view.setPadding(safe.left, safe.top, safe.right, Math.max(safe.bottom, ime.bottom));
       return WindowInsetsCompat.CONSUMED;
     });

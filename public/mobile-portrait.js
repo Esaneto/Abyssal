@@ -46,6 +46,10 @@
    }else html.style.removeProperty('--abyssal-edit-height');
    html.classList.remove('abyssal-mobile-landscape');
    html.classList.toggle('abyssal-handheld-landscape',landscape);
+   const width=Math.max(1,Math.round(root.innerWidth)),height=Math.max(1,Math.round(active?Math.min(root.innerHeight,root.visualViewport?.height||root.innerHeight):root.innerHeight));
+   html.style.setProperty('--abyssal-viewport-w',width+'px');html.style.setProperty('--abyssal-viewport-h',height+'px');
+   if(!active&&(root.scrollX||root.scrollY))root.scrollTo?.(0,0);
+   root.AbyssalHudLayout?.refresh?.();
    root.AbyssalMobileOrientation={handheld:true,portrait:!landscape,blocked:false,lock:releaseOrientationLock};
  }
  function init(){handheld=detectHandheld();apply();releaseOrientationLock();}
@@ -55,7 +59,7 @@
  root.screen?.orientation?.addEventListener?.('change',apply);
  document.addEventListener('focusin',apply);
  document.addEventListener('focusout',()=>setTimeout(apply,0));
- root.addEventListener('orientationchange',()=>setTimeout(()=>{apply();releaseOrientationLock();},80),{passive:true});
+ root.addEventListener('orientationchange',()=>{apply();for(const delay of [80,250,500])setTimeout(apply,delay);releaseOrientationLock();},{passive:true});
  document.addEventListener('fullscreenchange',()=>releaseOrientationLock());
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){apply();releaseOrientationLock();}});
 })(window);
