@@ -270,6 +270,21 @@ const injected=`<script>
        if(icons.length!==7||icons.some(n=>!n.querySelector('svg')||n.textContent.trim())||!details.hidden)throw Error('Fusion icon-only menu or initial hidden detail missing');
        icons[0].click();icons[1].dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'}));if(details.hidden||icons[0].getAttribute('aria-pressed')!=='true'||!details.textContent.includes('0,52'))throw Error('Fusion selection or effect text missing');icons[1].click();if(icons[1].getAttribute('aria-pressed')!=='true'||!details.textContent.includes('8 inimigos'))throw Error('Fusion detail did not follow explicit click');
        for(const id of ['magnet','magneticField','petAttack','petLife','petSpeed','petCadence'])if(!box.querySelector('[data-research-id="'+id+'"] svg'))throw Error('Missing specimen resonance icon '+id);
+       const realBase=window.AbyssalSoloBase,firstNine=['photon','range','regen','magnet','petAttack','petLife','petSpeed','petCadence','power'];
+       window.AbyssalSoloBase=realBase.create({getItem:()=>JSON.stringify({unlocked:[...firstNine,'magneticField','rate','electric']}),setItem:()=>{}});
+       try{
+        window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:{resonancePresets:{pve:[...firstNine,'ward'],pvp:[]}}}));
+        const count=()=>document.getElementById('resonanceSelectionCount').textContent;
+        const pick=id=>{const node=box.querySelector('#resonanceSkillChoices [data-research-id="'+id+'"]');if(!node)throw Error('Missing slot '+id);node.click();box.querySelector('#resonanceSkillChoices .abyss-tree-action').click();};
+        if(!count().endsWith('9/10'))throw Error('Unavailable research must not consume a visible slot: '+count());
+        pick('magneticField');if(!count().endsWith('10/10'))throw Error('Tenth researched skill must fit: '+count());
+        const saved=()=>JSON.parse(localStorage.getItem('abyssalResonancePresets')).pve;
+        if(saved().length!==10||!saved().includes('magneticField')||saved().includes('ward'))throw Error('Tenth slot was not persisted');
+        pick('rate');if(!count().endsWith('10/10')||saved().includes('rate'))throw Error('Eleventh skill must be rejected');
+        pick('electric');if(!count().endsWith('10/10')||!saved().includes('electric')||saved().includes('photon'))throw Error('Shot replacement must preserve ten slots');
+        document.getElementById('saveResonanceBtn').click();if(realBase.normalizePresets({pve:saved()}).pve.length!==10)throw Error('Server roundtrip must preserve all ten slots');
+       }finally{window.AbyssalSoloBase=realBase;}
+
       }else if(view==='upgrades'){
        const btn=[...box.querySelectorAll('.solo-research-tabs button')].find(b=>b.textContent==='SUBMARINO');if(!btn)throw Error('Submarine research access missing');btn.click();
        if(!box.querySelector('.abyss-tree-map [data-research-id="submarineShield"]'))throw Error('Submarine research missing');
