@@ -49,7 +49,8 @@ test('Fossas unlock only volcano, poison plant, suction vortex and final tentacl
 test('Rajada Prismática remains a passive alongside the selected primary shot',()=>{
  const game=read('public/game.js');
  assert.match(game,/passive:\['burst','ricochet','spread'\]/);
- assert.match(game,/for\(const id of runResonanceIds\)[\s\S]*?skill\.apply\(\);upgradeLevels\[id\]=1/);
+ assert.doesNotMatch(game,/for\(const id of runResonanceIds\)[\s\S]*?skill\.apply\(\);upgradeLevels\[id\]=1/);
+ assert.match(game,/spread:0/);
  assert.match(game,/resonanceEditedInSession=true;saveResonancePresets\(\)/);
 });
 test('PvP authoritative movement reconciles moving bullets instead of precomputing hits',()=>{
