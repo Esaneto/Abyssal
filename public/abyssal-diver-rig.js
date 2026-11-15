@@ -12,6 +12,12 @@
   const a=finite(heading),x=Math.cos(a),y=Math.sin(a),p=Math.abs(x),blend=p*p*(3-2*p),side=x<0?-1:1;
   return {yaw:blend,profile:blend,facing:side,width:(1-.32*blend)*side,shear:.045*blend*(1-blend)*side,headTilt:-.72*blend,rear:Math.max(0,y)**2,front:Math.max(0,-y)**2,directional:true};
  }
+ // Gameplay stays in one swimming profile at every heading. Vertical travel
+ // keeps the last horizontal side; no frontal/dorsal model is introduced.
+ function swimView(heading=0,lastSide=null){
+  const x=Math.cos(finite(heading)),side=Math.abs(x)<.18?(lastSide===-1?-1:1):(x<0?-1:1);
+  return {...viewFor(1,side<0?Math.PI:0),rear:0,front:0,directional:false,swimmingProfile:true};
+ }
  const headPoint=(p,view)=>{const a=view?.headTilt||0,x=p[0]-22,y=p[1];return [22+x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)];};
  const GAMEPLAY_YAW=1;
  const project=(p,view)=>view?[p[0],p[1]*view.width+p[0]*view.shear]:[...p];
@@ -32,7 +38,8 @@
   // Settle exactly at the requested pose; no endless residual blend at rest.
   const nextView=prevView+viewDelta*(1-Math.exp(-dt*16)),remaining=Math.atan2(Math.sin(heading-nextView),Math.cos(heading-nextView));
   const viewHeading=Math.abs(remaining)<.012?heading:nextView;
-  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,viewHeading,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath};
+  const swimSide=swimView(heading,old.swimSide).facing;
+  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,viewHeading,swimSide,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath};
  }
  function leg(side,phase,weight=1,powered=false,motion=null,view=null){
   const a=clamp(finite(weight),0,1)*(powered?.23:1);
@@ -137,5 +144,5 @@
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
   const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.directional){const mix=view.profile,sideView=idleArm(side,phase,weight,motion,{...view,directional:false,profile:1},mode),frontView=idleArm(side*view.facing,phase,weight,motion,{...view,directional:false,profile:0},mode);return Object.fromEntries(['shoulder','elbow','hand'].map(k=>[k,frontView[k].map((v,i)=>v+(sideView[k][i]-v)*mix)]));}if(view?.profile>.5){const tucked=mode==='tool';return {shoulder:project([13,side*13],view),elbow:project([tucked?-5:0,side<0?2:19+brake*2],view),hand:project([tucked?-26:18-brake*3,side<0?8:16+sway*.35+brake*2],view)};}return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
- return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
+ return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,swimView,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });
