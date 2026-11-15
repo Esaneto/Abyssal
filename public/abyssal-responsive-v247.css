@@ -154,8 +154,8 @@ html.abyssal-handheld body.game-active.mobile-game-active #petHabitBar #soloSubm
 html.abyssal-handheld body.game-active.mobile-game-active #mobileFireBtn:not([hidden]){width:60px!important;height:60px!important;min-width:60px!important;min-height:60px!important}
 html.abyssal-handheld body.game-active.mobile-game-active .dive-graphics-settings select{width:100%;min-height:44px;font-size:16px}
 @media(orientation:portrait){
- html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #activeAbilities.active-abilities{left:var(--touch-left)!important;right:var(--touch-right)!important;bottom:calc(var(--touch-bottom) + var(--touch-stick-box) + 76px)!important;justify-content:center!important;max-width:none!important}
- html.abyssal-handheld body.game-active.mobile-game-active #quickComms:not([hidden]){bottom:calc(var(--touch-bottom) + var(--touch-stick-box) + 136px)!important}
+ html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #activeAbilities.active-abilities{left:var(--touch-left)!important;right:var(--touch-right)!important;bottom:calc(var(--touch-bottom) + max(184px,var(--touch-stick-box) + 76px))!important;justify-content:center!important;max-width:none!important}
+ html.abyssal-handheld body.game-active.mobile-game-active #quickComms:not([hidden]){bottom:calc(var(--touch-bottom) + max(244px,var(--touch-stick-box) + 136px))!important}
  html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud-editor-stage{width:min(100%,calc(78dvh * var(--hud-preview-ratio,.5625)))!important;max-width:none!important}
 }
 @media(orientation:landscape){
@@ -173,7 +173,7 @@ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud-editor-size input[type=range]{min-height:36px!important;height:36px!important}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-research-tree{gap:8px!important;min-width:0!important}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-intro{display:none!important}
-html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-detail{position:static!important;grid-row:3!important;gap:6px!important;padding:10px!important;max-height:none!important}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-detail{position:sticky!important;top:0!important;grid-row:3!important;gap:6px!important;padding:10px!important;max-height:40dvh!important;overflow:auto!important;z-index:4}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-map{grid-row:4!important;gap:8px!important}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-branch{padding:8px!important}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-nodes{gap:8px!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
@@ -185,3 +185,14 @@ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-acti
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-description-toggle summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:#a7f0e7;font-size:13px}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-description-toggle summary:before{content:'＋';margin-right:6px}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-description-toggle[open] summary:before{content:'−'}
+
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .hud-editor .hud-editor-stage{touch-action:pan-y!important}
+@media(orientation:landscape) and (max-height:450px){
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .ds-dive-grid .ds-dive-card{padding:6px!important;gap:4px!important}
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .ds-dive-grid .ds-mode-title{font-size:14px!important}
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .ds-dive-grid .ds-mode-copy{font-size:11px!important}
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-research-tree{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)!important;align-items:start}
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-label{grid-column:1/-1!important}
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-map{grid-column:1!important;grid-row:2!important}
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-tree-detail{grid-column:2!important;grid-row:2!important;max-height:65dvh!important}
+}
