@@ -34,7 +34,7 @@
  const DIVER_WORLD_LENGTH=100*(13/.78)*.60/14;
  const PIXELS_PER_METER=DIVER_WORLD_LENGTH/DIVER_METERS;
  const BOSS_METERS=Object.freeze({boss:5.2,angler:4,maw:6.5,leviathan:8,whiteSharkBoss:8,kraken:8,devourer:8,riftSmile:8});
- const MONSTER_METERS=Object.freeze({drifter:.7,stinger:.5,brute:1.9,lurker:2.6,whiteShark:4.8,...BOSS_METERS});
+ const MONSTER_METERS=Object.freeze({drifter:.5,stinger:.5,brute:.5,lurker:.8,whiteShark:4.8,...BOSS_METERS});
  const ART_SPAN=Object.freeze({drifter:2,stinger:3.02,brute:2.45,lurker:3.4,whiteShark:3.1,whiteSharkBoss:3.1,boss:5.5,angler:3.1,maw:4.5,leviathan:5.2,kraken:6.8,devourer:3.3,riftSmile:4.0});
  // Collision uses the visible central body; elongated tails/fins remain non-solid.
  const BODY_CORE=Object.freeze({drifter:.8,stinger:.65,brute:.95,lurker:.7,whiteShark:.84,whiteSharkBoss:.84,boss:1,angler:1,maw:1,leviathan:.8,kraken:.76,devourer:1.3,riftSmile:1});
@@ -51,7 +51,7 @@
  function riftVisualRadius(kind,base=10,skinId=null){return monsterVisualRadius(kind,base,skinId);}
  function creatureCollisionRadius(base=10,skinId=null,kind=null){
   if(!kind&&!skinId)return Math.max(2,Number(base)||10);
-  return monsterVisualRadius(kind,base,skinId)*(skinId?.length? .82 : (BODY_CORE[kind]||.82));
+  return monsterVisualRadius(kind,base,skinId)*(skinId ? .82 : (BODY_CORE[kind]||.82));
  }
  function companionCollisionRadius(id){return visualRadius(id)*.82;}
  // The classic Abyssary displays these full, unscaled HP values.
