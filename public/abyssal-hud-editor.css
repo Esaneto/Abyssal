@@ -25,3 +25,11 @@ body.game-active.hud-collapsed #abyssalMiniMap,body.game-active.hud-collapsed #a
 #submarineWorkshop .hud-editor-size input{grid-column:1/-1;width:100%;accent-color:#79e7e4}
 #submarineWorkshop .hud-editor-actions button{flex:1 1 120px;padding:7px;border:1px solid #477c89;border-radius:5px;background:#163747;color:#d9faff;font:700 12px system-ui}
 #submarineWorkshop .hud-editor-actions .primary-btn{background:#75e0d7;color:#072029}
+
+/* Handheld portrait rules are more specific than the historical generic HUD. */
+html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #gameShell #hud:not([hidden]),html.abyssal-handheld body.game-active.mobile-game-active.hud-collapsed #gameplayOverlayRoot :is(#selectedSkillsPanel,#runEnergyRanking){display:none!important}
+body.game-active.hud-collapsed #explorationOverlay .exploration-instruments,body.game-active.abyss-hud-folded #explorationOverlay .exploration-instruments,body.game-active.abyss-hud-folded #abyssalMiniMap,body.game-active.abyss-hud-folded #hud{display:none!important}
+body.game-active.custom-hud-active #gameplayOverlayRoot #petHabitBar{pointer-events:none!important}
+body.game-active.custom-hud-active #petHabitBar :is(button,select){pointer-events:auto!important}
+body.game-active.custom-hud-active #activeAbilities{pointer-events:none!important}
+body.game-active.custom-hud-active #activeAbilities button{pointer-events:auto!important}

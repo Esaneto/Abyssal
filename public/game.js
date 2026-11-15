@@ -5135,7 +5135,7 @@ if(gameShell&&joystick){
   e.preventDefault();
   joystickVector={x:0,y:0,active:false,pointerId:e.pointerId};
   joystick.hidden=false;joystick.classList.add('is-floating');
-  const edge=44,clampX=fixedMove?(fixedMove.left+fixedMove.right)/2:Math.max(edge,Math.min(innerWidth-edge,e.clientX)),clampY=fixedMove?(fixedMove.top+fixedMove.bottom)/2:Math.max(edge,Math.min(innerHeight-edge,e.clientY));joystick.style.left=`${clampX}px`;joystick.style.top=`${clampY}px`;joystick.style.bottom='auto';joystick.style.transform='translate(-50%, -50%)';
+  const edge=44,clampX=fixedMove?(fixedMove.left+fixedMove.right)/2:Math.max(edge,Math.min(innerWidth-edge,e.clientX)),clampY=fixedMove?(fixedMove.top+fixedMove.bottom)/2:Math.max(edge,Math.min(innerHeight-edge,e.clientY));joystick.style.left=`${clampX}px`;joystick.style.top=`${clampY}px`;joystick.style.bottom='auto';joystick.style.transform=fixedMove?'translate(-50%, -50%) scale('+fixedMove.s+')':'translate(-50%, -50%)';
   gameShell.setPointerCapture?.(e.pointerId);
   setJoystickFromPointer(e);
  });

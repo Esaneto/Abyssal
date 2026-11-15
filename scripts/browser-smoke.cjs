@@ -438,6 +438,9 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     await evaluate("(()=>{const g=document.querySelector('.aw-mobile-group');g.value='gear';g.dispatchEvent(new Event('change'));const c=document.querySelector('.aw-mobile-category');c.value='fins';c.dispatchEvent(new Event('change'));if(document.querySelector('.aw-choices').dataset.category!=='fins')throw Error('Mobile category selection failed');g.value='suits';g.dispatchEvent(new Event('change'));return true})()");
 
    }
+   assert.equal(await evaluate(`(()=>{const nav=window.AbyssalCockpitNavigation;if(!nav.routeCommand('hudEditor'))return false;const page=document.querySelector('.hud-editor');if(!page)return false;const s=page.querySelector('input[type=range]');s.value='125';s.dispatchEvent(new Event('input'));page.querySelector('.hud-editor-actions .primary-btn').click();const a=JSON.parse(localStorage.getItem('abyssalHudLayoutV1'));return a.portrait.aim.s===1.25&&Object.keys(a.landscape).length===0;})()`),true,'HUD editor must persist mobile scale separately');
+   await sleep(250);await screenshot('mobile-hud-editor');
+   assert.equal(await evaluate(`(()=>{const page=document.querySelector('.hud-editor');page.querySelector('.hud-editor-actions button:nth-child(2)').click();page.querySelector('.hud-editor-actions .primary-btn').click();return Object.keys(window.AbyssalHudLayout.get().portrait).length===0;})()`),true,'HUD restore must restore default layout');
    return;
   }
   if(mode==='mobile-gameplay'){
@@ -461,6 +464,10 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
     assert.ok(perf.canvasPixels<=Math.min(4000000,Math.ceil(w*h*6.25)+Math.max(w,h)*8),'mobile framebuffer exceeds pixel budget');
     await screenshot('exact-mobile-gameplay-'+w+'x'+h);
    }
+   await evaluate(`(()=>{const page=window.AbyssalHudLayout.createPage();document.body.append(page);const selects=page.querySelectorAll('select');selects[0].value='landscape';selects[0].dispatchEvent(new Event('change'));selects[1].value='aim';selects[1].dispatchEvent(new Event('change'));const s=page.querySelector('input[type=range]');s.value='120';s.dispatchEvent(new Event('input'));page.querySelector('.hud-editor-actions .primary-btn').click();page.remove();return true;})()`);
+   await sleep(250);
+   assert.equal(await evaluate(`(()=>{const e=document.getElementById('mobileAimStick');return Math.abs(Number(getComputedStyle(e).scale)-1.2)<.01&&getComputedStyle(e.querySelector('.joystick-knob')).backgroundImage.includes('abyssal-red-reticle.svg');})()`),true,'Saved aim scale and red cursor must apply to real mobile control');
+   assert.equal(await evaluate(`(()=>{const b=document.getElementById('toggleHudBtn');b.click();const h=document.getElementById('hud'),a=document.getElementById('activeAbilities'),p=document.getElementById('mobilePauseBtn');const ok=getComputedStyle(h).display==='none'&&getComputedStyle(a).display!=='none'&&getComputedStyle(p).visibility!=='hidden';b.click();return ok;})()`),true,'Mobile immersion must preserve actions');
    await evaluate("document.getElementById('mobilePauseBtn').click()");
    await sleep(200);
    assert.equal(await evaluate("document.getElementById('pauseScreen').hidden"),false,'Mobile pause must remain accessible');
