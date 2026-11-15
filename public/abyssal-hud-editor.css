@@ -71,3 +71,12 @@ dialog.hud-editor-fullscreen::backdrop{background:#03101c}
 .hud-editor-fullscreen.hud-editor-inspect .hud-editor-dock{top:auto;bottom:max(8px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:auto}
 .hud-editor-fullscreen.hud-editor-inspect .hud-editor-dock-row button:not(:nth-child(3)),.hud-editor-fullscreen.hud-editor-inspect .hud-editor-dock>p{display:none!important}
 body.game-active.custom-hud-active #gameShell [data-hud-custom-opacity],body.game-active.custom-hud-active .topbar [data-hud-custom-opacity]{opacity:var(--hud-custom-opacity,1)!important}
+
+/* Keep contextual controls readable and away from the selected target. */
+.hud-editor-fullscreen .hud-editor-dock{width:min(88vw,340px)}
+.hud-editor-fullscreen .hud-editor-dock-row button{white-space:nowrap!important;letter-spacing:0!important;font:700 10px/1.15 system-ui!important;padding:4px!important}
+.hud-editor-fullscreen .hud-editor-size,.hud-editor-fullscreen .hud-editor-size output{font:600 11px/1.15 system-ui!important;letter-spacing:0!important;text-transform:none!important}
+.hud-editor-fullscreen .hud-editor-dock>p{font:500 11px/1.2 system-ui!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell #gameplayOverlayRoot #activeAbilities .active-ability:not([hidden]){font:750 9px/1.12 system-ui!important;letter-spacing:0!important;white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important;text-align:center!important;padding:2px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell #gameplayOverlayRoot #activeAbilities #skillDashBtn:not([hidden]){font-size:8px!important}
+html.abyssal-handheld body.game-active.mobile-game-active #gameShell #soloSubmarineRepairBtn:not([hidden]){font:750 8px/1.1 system-ui!important;letter-spacing:0!important;overflow-wrap:normal!important;word-break:normal!important}
