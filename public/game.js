@@ -7,10 +7,10 @@ const cores=navigator.hardwareConcurrency||8;let lowPowerRendering=false,backgro
 let hostileSpritePaintFrame=-1,hostileSpritePaintsThisFrame=0;
 const ADAPTIVE_QUALITY=[{name:'LEVE',dpr:.75},{name:'MÉDIO',dpr:1},{name:'ULTRA',dpr:Infinity}];
 const MOBILE_DPR_CAPS=[1.25,1.75,2.5];
-function savedGraphicsPreference(){try{const v=localStorage.getItem('abyssalGraphicsQuality');return ['0','1','2','auto'].includes(v)?v:mobileViewport?'auto':'2';}catch(_){return mobileViewport?'auto':'2';}}
+function savedGraphicsPreference(){try{const v=localStorage.getItem('abyssalGraphicsQuality');return ['0','1','2','auto'].includes(v)?v:'auto';}catch(_){return 'auto';}}
 let graphicsPreference=savedGraphicsPreference(),adaptiveQualityLevel=graphicsPreference==='auto'?1:Number(graphicsPreference),adaptiveQualityCeiling=graphicsPreference==='auto'?2:adaptiveQualityLevel,adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr,adaptiveFrameCost=0,adaptiveFrameCount=0;
 lowPowerRendering=adaptiveQualityLevel===0;
-function graphicsDpr(){const nativeDpr=Math.max(1,window.devicePixelRatio||1),cap=mobileViewport?MOBILE_DPR_CAPS[adaptiveQualityLevel]:Math.max(1,ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr),pixelBudget=mobileViewport?4000000:16777216;return Math.max(.5,Math.min(nativeDpr,cap,4096/viewW,4096/viewH,Math.sqrt(pixelBudget/(viewW*viewH))));}
+function graphicsDpr(){const nativeDpr=Math.max(1,window.devicePixelRatio||1),cap=mobileViewport?MOBILE_DPR_CAPS[adaptiveQualityLevel]:[1,1.5,Infinity][adaptiveQualityLevel],pixelBudget=mobileViewport?4000000:16777216;return Math.max(.5,Math.min(nativeDpr,cap,4096/viewW,4096/viewH,Math.sqrt(pixelBudget/(viewW*viewH))));}
 const $ = id => document.getElementById(id);
 const screens = ['menuScreen','upgradeScreen','pauseScreen','gameOverScreen'];
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -5044,8 +5044,9 @@ function applyAdaptiveQuality(level,reason='runtime'){
  backgroundGradientCache=null;backgroundBloomCache=null;
  window.dispatchEvent(new CustomEvent('abyssal-quality-change',{detail:{level:next,name:ADAPTIVE_QUALITY[next].name,reason,dpr}}));
 }
+function resetAdaptivePerformance(){adaptiveQualityLastCheck=0;adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;adaptiveFrameCost=0;adaptiveFrameCount=0;}
 function updateAdaptivePerformance(now){
- if(graphicsPreference!=='auto'||document.hidden||abyssalTutorialActive||!(gameState==='playing'||(onlineMode&&gameState==='upgrade'))){adaptiveQualityLastCheck=0;adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;adaptiveFrameCost=0;adaptiveFrameCount=0;return;}
+ if(graphicsPreference!=='auto'||document.hidden||abyssalTutorialActive||!(gameState==='playing'||(onlineMode&&gameState==='upgrade'))){resetAdaptivePerformance();return;}
  // Use whole-window measured work and actual delivered FPS; never alter simulation or network cadence.
  if(!adaptiveQualityLastCheck){adaptiveQualityLastCheck=now;return;}
  adaptiveFrameCost+=gameLastUpdateMs+gameLastDrawMs;adaptiveFrameCount++;
@@ -5061,7 +5062,7 @@ function updateAdaptivePerformance(now){
 function setGraphicsPreference(value){
  const preference=String(value);if(!['auto','0','1','2'].includes(preference))return;
  graphicsPreference=preference;adaptiveQualityCeiling=preference==='auto'?2:Number(preference);
- adaptiveQualityLastCheck=0;adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;adaptiveFrameCost=0;adaptiveFrameCount=0;
+ resetAdaptivePerformance();
  try{localStorage.setItem('abyssalGraphicsQuality',preference);}catch(_){}
  applyAdaptiveQuality(preference==='auto'?adaptiveQualityLevel:Number(preference),'user-preference');
  syncDiveGraphics();
@@ -5131,7 +5132,7 @@ function loop(t){
  scheduleGameLoop();
 }
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden){adaptiveQualityLastCheck=0;adaptiveQualityBadWindows=0;adaptiveQualityGoodWindows=0;adaptiveFrameCost=0;adaptiveFrameCount=0;syncPropulsorAudio(performance.now(),false);stopGameLoop();return;}
+ if(document.hidden){syncPropulsorAudio(performance.now(),false);stopGameLoop();resetAdaptivePerformance();return;}
  last=performance.now();scheduleGameLoop();
 });
 function coords(e){const r=canvas.getBoundingClientRect();return{x:cameraX+(e.clientX-r.left)/worldZoom,y:cameraY+(e.clientY-r.top)/worldZoom}}
