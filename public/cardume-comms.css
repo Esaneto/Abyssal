@@ -13,6 +13,8 @@
 #cardumeChatRules{font-size:.76rem;color:#b5d6e2}#cardumeChatRules a{color:#7be8ff}
 #cardumeModerationList{max-height:260px;overflow:auto;display:grid;gap:6px}
 #quickComms{position:absolute;z-index:31;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);display:grid;justify-items:center;gap:5px;pointer-events:none}
+/* The open emoji picker is interactive above the HUD, below level-up dialogs. */
+html body.game-active #gameShell #quickComms:has(#quickCommsWheel:not([hidden])){z-index:100!important}
 #quickCommsToggle,#quickCommsWheel button{pointer-events:auto;touch-action:manipulation;background:#071e2d;color:#c7faff;border:1px solid #40a9c2;border-radius:50%;width:44px;height:44px;cursor:pointer;box-shadow:0 0 10px #15788a88;font-size:20px}
 #quickCommsToggle:disabled{opacity:.72;cursor:wait;box-shadow:none}
 #quickCommsToggle .quick-comms-timer{font:800 13px/1 system-ui,sans-serif;color:#fff;white-space:nowrap}
