@@ -342,6 +342,32 @@ public class AbyssalFullscreenPlugin extends Plugin {
 }
 `);
 
+fs.writeFileSync(path.join(javaDir,'AbyssalCommunityPlugin.java'),`package com.esaneto.abyssal;
+
+import android.content.Intent;
+import android.net.Uri;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+@CapacitorPlugin(name = "AbyssalCommunity")
+public class AbyssalCommunityPlugin extends Plugin {
+  @PluginMethod public void openDiscord(PluginCall call) {
+    getActivity().runOnUiThread(() -> {
+      try {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://discord.gg/BMz8Xgc9mE"));
+        intent.addCategory(Intent.CATEGORY_BROWSABLE);
+        getActivity().startActivity(intent);
+        call.resolve();
+      } catch (Exception ignored) {
+        call.reject("Discord unavailable");
+      }
+    });
+  }
+}
+`);
+
 const java=path.join(javaDir,'MainActivity.java');
 if(fs.existsSync(java)){
  const src=`package com.esaneto.abyssal;
@@ -383,6 +409,7 @@ public class MainActivity extends BridgeActivity {
     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
     registerPlugin(AbyssalUpdaterPlugin.class);
     registerPlugin(AbyssalFullscreenPlugin.class);
+    registerPlugin(AbyssalCommunityPlugin.class);
     super.onCreate(savedInstanceState);
     immersive = getPreferences(MODE_PRIVATE).getBoolean("abyssalImmersive", true);
     Window window = getWindow();

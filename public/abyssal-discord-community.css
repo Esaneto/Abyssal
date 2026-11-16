@@ -1,0 +1,20 @@
+/* Optional community link, kept separate from gameplay and purchases. */
+#menuScreen .hub-discord-btn{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:34px;padding:5px 9px;margin:0 0 5px;border:1px solid rgba(140,190,207,.26);border-radius:9px;background:rgba(7,24,35,.78);color:#a8c5d2;font:600 11px/1.2 system-ui,sans-serif;letter-spacing:.02em;cursor:pointer;pointer-events:auto!important;position:relative;z-index:36;box-sizing:border-box;max-width:100%}
+#menuScreen .hub-discord-btn[hidden]{display:none!important}
+#menuScreen .hub-discord-btn:hover,#menuScreen .hub-discord-btn:focus-visible{color:#b9fff4;border-color:#60cbd5;outline:2px solid #60cbd5;outline-offset:2px}
+#menuScreen .hub-discord-btn svg{width:16px;height:16px;flex-shrink:0}
+.abyss-discord-dialog{box-sizing:border-box;width:min(420px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:22px;border:1px solid #32576a;border-radius:16px;background:#071823;color:#d5f6ff;box-shadow:0 16px 60px #000a;font:400 14px/1.5 system-ui,sans-serif}
+.abyss-discord-dialog:not([open]){display:none!important}
+.abyss-discord-dialog::backdrop{background:rgba(0,8,15,.8)}
+.abyss-discord-heading{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.abyss-discord-heading svg{width:32px;height:32px;flex:none;color:#91e5ee}
+.abyss-discord-heading span{font-size:10px;color:#83b6c5;letter-spacing:.14em}
+.abyss-discord-heading h2{font-size:19px;line-height:1.25;margin:0;color:#d5f6ff}
+.abyss-discord-dialog p{margin:0 0 12px;color:#b8d5df}
+.abyss-discord-dialog .abyss-discord-notice{font-size:12px;color:#9bb7c5}
+#discordCommunityStatus:empty{display:none}
+.abyss-discord-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.abyss-discord-actions button{flex:1 1 120px;min-height:44px;border:1px solid #365f70;border-radius:9px;background:#112d3d;color:#e7faff;font:600 13px system-ui,sans-serif;cursor:pointer}
+#discordCommunityConfirm{background:#207e8b;border-color:#50b9c3}
+.abyss-discord-actions button:focus-visible{outline:2px solid #a0f8ff;outline-offset:2px}
+@media(max-width:480px){#menuScreen .hub-discord-btn{min-height:32px;padding:5px 8px;margin-bottom:3px;font-size:10px}.abyss-discord-dialog{padding:16px}}
