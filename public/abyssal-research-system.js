@@ -70,8 +70,9 @@
   return {levels:next,transferred};
  }
  function unlocked(id,levels={},legacy={}){
-  const definition=DEFINITIONS[id];if(!definition)return false;
-  return Boolean(definition.starter)||toCount(levels[id])>0||Boolean(sanitizeLegacyActives(legacy)[id]);
+  if(!Object.hasOwn(DEFINITIONS,id))return false;
+  const definition=DEFINITIONS[id];
+  return Boolean(definition.starter)||toCount(levels[id])>0||(Object.hasOwn(COMBAT_ENERGY,id)&&Boolean(sanitizeLegacyActives(legacy)[id]));
  }
  function equipActives(selected=[],levels={},legacy={}){
   const valid=[];
