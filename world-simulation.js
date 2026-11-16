@@ -777,7 +777,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         if (creature === enemy || !terrainClear(enemy.x,enemy.y,creature.x,creature.y)) continue;
         const pull = EnemyAI.suctionPullDelta(creature, enemy, dt);
         if (pull.dx || pull.dy) {
-          const moved=riftMode?AbyssalMap.resolveMove(mapLayout,creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,(Number(creature.r)||10)/WORLD_ZOOM*.7)):{x:clamp(creature.x+pull.dx,0,(world.width||WORLD_WIDTH)),y:clamp(creature.y+pull.dy,0,(world.height||WORLD_HEIGHT))};
+          const moved=riftMode?AbyssalMap.resolveMove(mapLayout,creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,(Number(creature.r)||10)/WORLD_ZOOM*.7)):world.mode==='classic'?SoloCavern.resolve(classicCavernRocks(world),creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,(Number(creature.r)||10)/WORLD_ZOOM*.7),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT):{x:clamp(creature.x+pull.dx,0,(world.width||WORLD_WIDTH)),y:clamp(creature.y+pull.dy,0,(world.height||WORLD_HEIGHT))};
           const actualDx=moved.x-creature.x,actualDy=moved.y-creature.y;
           creature.x=moved.x;creature.y=moved.y;
           creature.vx=actualDx/Math.max(dt,0.001);creature.vy=actualDy/Math.max(dt,0.001);
@@ -787,7 +787,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         if(!terrainClear(enemy.x,enemy.y,player.x,player.y))continue;
         const pull = EnemyAI.suctionPullDelta(player, enemy, dt);
         if (!pull.dx && !pull.dy) continue;
-        const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(player.x),Number(player.y),Number(player.x)+pull.dx,Number(player.y)+pull.dy,Math.max(10,Number(player.r)||13/WORLD_ZOOM)):{x:clamp(Number(player.x)+pull.dx,0,(world.width||WORLD_WIDTH)),y:clamp(Number(player.y)+pull.dy,0,(world.height||WORLD_HEIGHT))};
+        const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(player.x),Number(player.y),Number(player.x)+pull.dx,Number(player.y)+pull.dy,Math.max(10,Number(player.r)||13/WORLD_ZOOM)):world.mode==='classic'?SoloCavern.resolve(classicCavernRocks(world),Number(player.x),Number(player.y),Number(player.x)+pull.dx,Number(player.y)+pull.dy,Math.max(10,Number(player.r)||13/WORLD_ZOOM),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT):{x:clamp(Number(player.x)+pull.dx,0,(world.width||WORLD_WIDTH)),y:clamp(Number(player.y)+pull.dy,0,(world.height||WORLD_HEIGHT))};
         const actualDx=moved.x-Number(player.x),actualDy=moved.y-Number(player.y);
         player.x=moved.x;player.y=moved.y;
         playerSuctionPulls.push({ playerId: player.id, dx: actualDx, dy: actualDy, bossId: enemy.id, strength: pull.strength });
@@ -800,7 +800,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if (enemy.kbVx || enemy.kbVy) {
       const dx=(Number(enemy.kbVx)||0)*dt,dy=(Number(enemy.kbVy)||0)*dt,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/12)),pad=Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.72);
       for(let i=0;i<steps;i++){const x=Number(enemy.x),y=Number(enemy.y),nx=clamp(x+dx/steps,0,world.width||WORLD_WIDTH),ny=clamp(y+dy/steps,0,world.height||WORLD_HEIGHT);
-       const moved=riftMode?AbyssalMap.resolveMove(mapLayout,x,y,nx,ny,pad):world.mode==='open-sea'?OceanGeography.resolveMove(x,y,nx,ny,pad):{x:nx,y:ny,blocked:false};
+       const moved=riftMode?AbyssalMap.resolveMove(mapLayout,x,y,nx,ny,pad):world.mode==='open-sea'?OceanGeography.resolveMove(x,y,nx,ny,pad):world.mode==='classic'?SoloCavern.resolve(classicCavernRocks(world),x,y,nx,ny,pad,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT):{x:nx,y:ny,blocked:false};
        enemy.x=moved.x;enemy.y=moved.y;if(moved.blocked){enemy.kbVx*=.25;enemy.kbVy*=.25;break;}
       }
       const decay = Math.exp(-dt * 6.5);
@@ -876,7 +876,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         movement.target = actualTarget?.submarine?actualTarget:(EnemyAI.isChargeAttack(enemy)?(movement.target||actualTarget):actualTarget);
         if(world.mode==='classic'){
           const beforeX=seaBeforeX,beforeY=seaBeforeY,pad=Math.max(5,(Number(enemy.r)||10)/WORLD_ZOOM*.62),rocks=classicCavernRocks(world);
-          const resolved=SoloCavern.resolve(rocks,beforeX,beforeY,enemy.x,enemy.y,pad);
+          const resolved=SoloCavern.resolve(rocks,beforeX,beforeY,enemy.x,enemy.y,pad,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);
           enemy.x=resolved.x;enemy.y=resolved.y;
           if(resolved.blocked&&actualTarget){
             enemy.vx=(enemy.x-beforeX)/Math.max(dt,.001);enemy.vy=(enemy.y-beforeY)/Math.max(dt,.001);
