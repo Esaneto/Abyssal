@@ -172,11 +172,6 @@ html.abyssal-handheld body.game-active.mobile-game-active #mobileAimStick.dual-s
 }
 html.abyssal-handheld body.game-active.mobile-game-active #mobileAimStick .joystick-base{width:var(--touch-stick)!important;height:var(--touch-stick)!important}
 html.abyssal-handheld body.game-active.mobile-game-active #mobileAimStick .joystick-knob{width:32px!important;height:32px!important}
-html.abyssal-handheld body.game-active.mobile-game-active #mobileFireBtn:not([hidden]){
- position:fixed!important;display:grid!important;place-items:center!important;right:var(--touch-right)!important;left:auto!important;top:auto!important;
- bottom:calc(var(--touch-bottom) + var(--touch-stick-box) + 8px)!important;width:56px!important;height:56px!important;min-width:56px!important;min-height:56px!important;padding:7px!important;z-index:45!important;
-}
-html.abyssal-handheld body.game-active.mobile-game-active #mobileFireBtn svg{width:32px!important;height:32px!important}
 html.abyssal-handheld body.game-active.mobile-game-active #mobileJoystick.is-floating:not([hidden]){width:88px!important;height:88px!important;max-width:88px!important;max-height:88px!important;z-index:40!important;pointer-events:none!important}
 html.abyssal-handheld body.game-active.mobile-game-active #mobileJoystick.is-floating .joystick-base{width:76px!important;height:76px!important}
 html.abyssal-handheld body.game-active.mobile-game-active #gameplayOverlayRoot #petHabitBar:not([hidden]){

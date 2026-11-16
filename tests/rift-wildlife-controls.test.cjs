@@ -49,13 +49,13 @@ test('Fossas population prewarms in capped batches both clients',()=>{
  assert.match(server,/SpecimenSystem\.biologicalStats\(specimenSkinId\)\.hp/);
  assert.match(game,/SPECIMEN_SYSTEM\?\.biologicalStats\?\.\(specimenSkinId\)/);
 });
-test('manual firing: aim mode never autofires and mobile has ammunition trigger',()=>{
+test('manual firing: aim mode never autofires and mobile uses the reticle as trigger',()=>{
  const game=src('public/game.js'),html=src('public/index.html'),style=src('public/style.css');
  assert.match(game,/if\(isRiftRun\(\)\|\|isOpenSeaRun\(\)\)\{controlSettings\.pc='wasd-aim';controlSettings\.mobile='dual-stick';\}/);
  assert.match(game,/fireTimer<=0&&\(!isManualFiringMode\(\)\|\|manualFireDown\(\)\)/);
- assert.match(game,/mobileFireBtn\.addEventListener\('pointerdown'/);
- assert.match(html,/id="mobileFireBtn"/);
- assert.match(style,/\.abyss-mobile-fire/);
+ assert.match(game,/stick\.addEventListener\('pointerdown'/);assert.match(game,/mobileFireHeld=true;mobileFireTap=true/);
+ assert.doesNotMatch(html,/id="mobileFireBtn"/);assert.match(html,/aria-label="Mirar e disparar"/);
+ assert.doesNotMatch(style,/\.abyss-mobile-fire/);
 });
 test('shark and boss speeds are set for physical movement',()=>{
  assert.equal(EnemyAI.statsForKind('whiteShark').speed,300);
