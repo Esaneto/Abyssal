@@ -488,7 +488,7 @@ function setGameLanguage(language){gameLanguage=['en','es'].includes(language)?l
 // Keep the last server-synchronized ownership cache while session restoration is pending. The authoritative account-data event replaces it after authentication.
 function saveCosmetics(){localStorage.setItem('abyssalDiverGender',diverGender);localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));saveSpecimenProficiencyLocal();if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades,diverGender,conqueror:ownedSkins.includes('greensnake')});}
 function currentSkinColor(){return (skinData.find(s=>s.id===equippedSkin)||skinData[0]).color;}
-let mobileFireHeld=false;
+let mobileFireHeld=false,mobileFireTap=false,mobileFireFrame=false;
 let pointer={x:0,y:0,down:false,active:false},keys={},joystickVector={x:0,y:0,active:false,pointerId:null},aimJoystickVector={x:0,y:0,active:false,pointerId:null};
 const controlSettings={pc:localStorage.getItem('abyssalControlsPc')||'classic',mobile:localStorage.getItem('abyssalControlsMobile')||'classic'};
 let controlAimAngle=0;
@@ -838,7 +838,7 @@ function getArenaVortexGlow(vortex){
  return gradient;
 }
 const isMobileDevice=()=>mobileViewport;
-function setMobileGameActive(active){mobileViewport=document.documentElement.classList.contains('abyssal-handheld')||window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick){stick.hidden=true;stick.classList.remove('is-floating');stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};mobileFireHeld=false;$('mobileFireBtn')?.classList.remove('is-firing');$('mobileAimStick')?.classList.toggle('dual-stick-visible',enabled&&controlSettings.mobile==='dual-stick');if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
+function setMobileGameActive(active){mobileViewport=document.documentElement.classList.contains('abyssal-handheld')||window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick){stick.hidden=true;stick.classList.remove('is-floating');stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}joystickVector={x:0,y:0,active:false,pointerId:null};resetMobileAim();syncMobileAimControl(enabled);if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
 let hudCollapsed=false;
 function setHudCollapsed(collapsed){hudCollapsed=Boolean(collapsed);document.body.classList.toggle('hud-collapsed',hudCollapsed);const button=$('toggleHudBtn');if(button){button.textContent=hudCollapsed?'‹':'›';button.setAttribute('aria-label',hudCollapsed?'Mostrar informações':'Ocultar informações');button.title=hudCollapsed?'Mostrar informações':'Ocultar informações';button.setAttribute('aria-pressed',String(hudCollapsed));}}
 $('toggleHudBtn')?.addEventListener('click',()=>setHudCollapsed(!hudCollapsed));
@@ -1678,7 +1678,7 @@ function startGame(resumingDeploy=false){
  if(isRiftRun()||isOpenSeaRun()){controlSettings.pc='wasd-aim';controlSettings.mobile='dual-stick';}
  else {controlSettings.pc=localStorage.getItem('abyssalControlsPc')||'classic';controlSettings.mobile=localStorage.getItem('abyssalControlsMobile')||'classic';}
  // Control 1 belongs to the classic shooter. Exploration and Fossas force Control 2.
- mobileFireHeld=false;pointer.down=false;autoFollowCursor=false;
+ resetMobileAim();pointer.down=false;autoFollowCursor=false;
  document.body.classList.add('game-active');
  document.body.dataset.hudMode=onlineMode?'online':'solo';
  if(!resumingDeploy)window.AbyssalHudLayout?.beginRun?.();
@@ -1727,7 +1727,7 @@ if(isOpenSeaRun()){
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  const cockpit=document.getElementById('submarineWorkshop');if(cockpit&&!cockpit.hidden){cockpit.hidden=true;window.AbyssalSubmarineCockpit?.close?.();}
- gameState='playing';worldZoom=desiredWorldZoom();updateCamera();syncMobileFireButton();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='block';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
+ gameState='playing';worldZoom=desiredWorldZoom();updateCamera();syncMobileAimControl();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='block';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
  updateHud();last=performance.now();playWorldSound('ui-open',player,850,.9);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else if(isOpenSeaRun())updateSoloOceanChunks(true);else {for(let i=0;i<3;i++)spawnEnemy(true,'common');}}if(onlineMode&&!resumingDeploy){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,magneticField:upgrades.magneticField,petAttack:upgrades.petAttack,petLife:upgrades.petLife,petSpeed:upgrades.petSpeed,petCadence:upgrades.petCadence,closePressureLevel:upgrades.closePressure,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand,submarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||['photon']});window.AbyssalOnline?.requestPlayerState?.();}else if(!onlineMode&&window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
  window.AbyssalTutorials?.enter(isOpenSeaRun()?'open-sea':onlineMode?onlineRoomMode:(requestedRunMode==='rift'?'rift-solo':'solo'));
  if(diveEntryTiming)diveEntryTiming.setupMs=performance.now()-diveEntryTiming.started;
@@ -1880,7 +1880,7 @@ function offerUpgrade(){
   b.innerHTML=`<span class="upgrade-icon">${u.icon}</span><strong>${u.name} · Nv. ${current+1}/3</strong>${['range','regen'].includes(u.id)?'<span class="abyss-recommended">Recomendado</span>':''}<p>${u.desc}</p><small class="upgrade-progress">${'◆'.repeat(current)}${'◇'.repeat(3-current)} · ${current===0?'Desbloqueio':`Melhoria ${current} → ${current+1}`}</small>`;
   b.addEventListener('click',()=>chooseUpgrade(u));fragment.appendChild(b);
  });
- wrap.appendChild(fragment);mobileFireHeld=false;$('mobileFireBtn')?.classList.remove('is-firing');const movingStick=$('mobileJoystick');if(movingStick){movingStick.hidden=true;movingStick.classList.remove('is-floating');}joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};const aimKnob=$('mobileAimStick')?.querySelector('.joystick-knob');if(aimKnob)aimKnob.style.transform='translate(0, 0)';if(!$('pauseScreen').hidden){closeDiveSettings();$('pauseBtn').hidden=false;}$('upgradeScreen').hidden=false;playWorldSound('level-up',player,850,.75);
+ wrap.appendChild(fragment);resetMobileAim();const movingStick=$('mobileJoystick');if(movingStick){movingStick.hidden=true;movingStick.classList.remove('is-floating');}joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};const aimKnob=$('mobileAimStick')?.querySelector('.joystick-knob');if(aimKnob)aimKnob.style.transform='translate(0, 0)';if(!$('pauseScreen').hidden){closeDiveSettings();$('pauseBtn').hidden=false;}$('upgradeScreen').hidden=false;playWorldSound('level-up',player,850,.75);
  upgradeDeadlineAt=performance.now()+25000;updateUpgradeCountdown();
  upgradeCountdownInterval=setInterval(()=>{
   if(gameState!=='upgrade'){clearUpgradeCountdown();return}
@@ -2703,8 +2703,10 @@ function refreshPhotonBeam(key,value,x1,y1,x2,y2,width){let beam=effects.find(fx
 function getShotDamageAtLevel(level,shotId=null){const rank=Math.max(1,Math.min(3,Math.trunc(Number(level)||1)));return shotBalanceValue(shotId,'damage',rank,[0,12,15,18][rank]);}
 function isPcMouseAimMode(){return !isMobileDevice()&&(!isClassicShooterRun()||controlSettings.pc==='wasd-aim');}
 function isManualFiringMode(){return !isClassicShooterRun()||isPcMouseAimMode()||(isMobileDevice()&&controlSettings.mobile==='dual-stick');}
-function manualFireDown(){return isMobileDevice()?mobileFireHeld:pointer.down;}
-function syncMobileFireButton(){const btn=$('mobileFireBtn');if(btn)btn.hidden=!(gameState==='playing'&&isMobileDevice()&&isManualFiringMode());}
+function mobileAimInputAllowed(){return gameState==='playing'&&isMobileDevice()&&controlSettings.mobile==='dual-stick'&&$('pauseScreen').hidden&&$('upgradeScreen').hidden&&$('controlsScreen').hidden&&!document.hidden;}
+function manualFireDown(){return isMobileDevice()?mobileAimInputAllowed()&&(mobileFireHeld||mobileFireFrame):pointer.down;}
+function resetMobileAim(){mobileFireHeld=false;mobileFireTap=false;mobileFireFrame=false;aimJoystickVector={x:0,y:0,active:false,pointerId:null};const stick=$('mobileAimStick');stick?.classList.remove('is-firing');const knob=stick?.querySelector('.joystick-knob');if(knob)knob.style.transform='translate(0, 0)';}
+function syncMobileAimControl(enabled=gameState==='playing'&&isMobileDevice()){const stick=$('mobileAimStick');if(!stick)return;const visible=Boolean(enabled&&controlSettings.mobile==='dual-stick');stick.hidden=!visible;stick.classList.toggle('dual-stick-visible',visible);if(!visible)resetMobileAim();}
 function updateMouseAimFromCursor(){if(isMobileDevice()||!player||!Number.isFinite(pointer.clientX)||!Number.isFinite(pointer.clientY))return false;const rect=canvas.getBoundingClientRect();pointer.x=cameraX+(pointer.clientX-rect.left)/worldZoom;pointer.y=cameraY+(pointer.clientY-rect.top)/worldZoom;if(Math.hypot(pointer.x-player.x,pointer.y-player.y)>1)controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);return true;}
 function weaponAngleDelta(from,to){return Math.atan2(Math.sin(to-from),Math.cos(to-from));}
 function smoothWeaponAngle(from,to,dt,rate=24){const delta=weaponAngleDelta(from,to);return Math.abs(delta)<.012?to:from+delta*(1-Math.exp(-Math.max(0,dt)*rate));}
@@ -3149,6 +3151,8 @@ let diverBubbleClock=0;
 function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
+ // Buffer a tap that begins and ends between animation frames, without bypassing weapon cadence.
+ mobileFireFrame=mobileFireTap;mobileFireTap=false;
  updateMapInteraction();
  updateSoloSubmarine(dt);
  updateSoloSubmarineInteraction();
@@ -3798,7 +3802,7 @@ function closeDiveSettings(){ $('pauseScreen').hidden=true; }
 function pauseGame(){
  if(gameState!=='playing')return;
  if(!$('pauseScreen').hidden){resumeGame();return;}
- pointer.down=false;mobileFireHeld=false;
+ pointer.down=false;resetMobileAim();
  for(const key of Object.keys(keys))keys[key]=false;
  if(!onlineMode){gameState='paused';window.AbyssalAudio?.stopEffects();}
  $('diveSettingsKicker').textContent=onlineMode?'MERGULHO COOPERATIVO':'SINAL SUSPENSO';
@@ -5161,45 +5165,44 @@ if(gameShell&&joystick){
  gameShell.addEventListener('pointermove',e=>{if(joystickVector.pointerId===e.pointerId)setJoystickFromPointer(e)});
  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>gameShell.addEventListener(ev,releaseMobileJoystick));
 }
-// Dual sticks fixos com captura de toque independente.
+// The fixed reticle is the single aim-and-fire control. Movement owns a separate pointer.
 const mobileAimStick=$('mobileAimStick');
-function updateFixedStick(e,stick,knob,isAim){if(!stick||!knob)return;const base=stick.querySelector('.joystick-base');if(!base)return;const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(1,r.width*.34);let dx=e.clientX-cx,dy=e.clientY-cy;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}const vector={x:dx/max,y:dy/max,active:Math.hypot(dx/max,dy/max)>.13,pointerId:e.pointerId};if(isAim)aimJoystickVector=vector;else joystickVector=vector;const visualScale=window.AbyssalHudLayout?.scaleFor('aim')||1;knob.style.transform=`translate(${dx/visualScale}px, ${dy/visualScale}px)`;}
-function resetFixedStick(knob,isAim){if(isAim)aimJoystickVector={x:0,y:0,active:false,pointerId:null};else joystickVector={x:0,y:0,active:false,pointerId:null};if(knob)knob.style.transform='translate(0, 0)';}
-function configureControlButtons(){const opens=[$('controlsBtn'),$('mobileControlsTopBtn')].filter(Boolean),screen=$('controlsScreen'),close=$('controlsCloseBtn');const pc=[...document.querySelectorAll('[data-control-pc]')],mobile=[...document.querySelectorAll('[data-control-mobile]')];const refresh=()=>{const restricted=['playing','paused','upgrade'].includes(gameState)&&!isClassicShooterRun();pc.forEach(b=>{b.hidden=restricted&&b.dataset.controlPc==='classic';b.disabled=restricted&&b.dataset.controlPc==='classic';const a=b.dataset.controlPc===controlSettings.pc;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});mobile.forEach(b=>{b.hidden=restricted&&b.dataset.controlMobile==='classic';b.disabled=restricted&&b.dataset.controlMobile==='classic';const a=b.dataset.controlMobile===controlSettings.mobile;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});};opens.forEach(open=>open.addEventListener('click',()=>{refresh();if(screen)screen.hidden=false;}));close?.addEventListener('click',()=>{if(screen)screen.hidden=true;});screen?.addEventListener('click',e=>{if(e.target===screen)screen.hidden=true;});pc.forEach(b=>b.addEventListener('click',()=>{if(['playing','paused','upgrade'].includes(gameState)&&!isClassicShooterRun()&&b.dataset.controlPc==='classic')return;controlSettings.pc=b.dataset.controlPc;localStorage.setItem('abyssalControlsPc',controlSettings.pc);autoFollowCursor=false;pointer.down=false;syncMobileFireButton();refresh();}));mobile.forEach(b=>b.addEventListener('click',()=>{if(['playing','paused','upgrade'].includes(gameState)&&!isClassicShooterRun()&&b.dataset.controlMobile==='classic')return;controlSettings.mobile=b.dataset.controlMobile;localStorage.setItem('abyssalControlsMobile',controlSettings.mobile);joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};mobileFireHeld=false;syncMobileFireButton();const mobilePlaying=gameState==='playing'&&isMobileDevice();mobileAimStick?.classList.toggle('dual-stick-visible',mobilePlaying&&controlSettings.mobile==='dual-stick');const old=$('mobileJoystick');if(old){old.hidden=true;old.classList.remove('is-floating');}refresh();}));}
+function updateMobileAim(e,stick){
+ const base=stick.querySelector('.joystick-base'),knob=stick.querySelector('.joystick-knob');if(!base||!knob)return;
+ const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(1,r.width*.34);let dx=e.clientX-cx,dy=e.clientY-cy;const len=Math.hypot(dx,dy);
+ if(len>max){dx=dx/len*max;dy=dy/len*max;}
+ aimJoystickVector={x:dx/max,y:dy/max,active:Math.hypot(dx/max,dy/max)>.13,pointerId:e.pointerId};
+ if(aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);if(player){player.angle=controlAimAngle;player.weaponAngle=controlAimAngle;}}
+ const visualScale=window.AbyssalHudLayout?.scaleFor('aim')||1;knob.style.transform=`translate(${dx/visualScale}px, ${dy/visualScale}px)`;
+}
+function configureControlButtons(){const opens=[$('controlsBtn'),$('mobileControlsTopBtn')].filter(Boolean),screen=$('controlsScreen'),close=$('controlsCloseBtn');const pc=[...document.querySelectorAll('[data-control-pc]')],mobile=[...document.querySelectorAll('[data-control-mobile]')];const refresh=()=>{const restricted=['playing','paused','upgrade'].includes(gameState)&&!isClassicShooterRun();pc.forEach(b=>{b.hidden=restricted&&b.dataset.controlPc==='classic';b.disabled=restricted&&b.dataset.controlPc==='classic';const a=b.dataset.controlPc===controlSettings.pc;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});mobile.forEach(b=>{b.hidden=restricted&&b.dataset.controlMobile==='classic';b.disabled=restricted&&b.dataset.controlMobile==='classic';const a=b.dataset.controlMobile===controlSettings.mobile;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});};opens.forEach(open=>open.addEventListener('click',()=>{refresh();if(screen)screen.hidden=false;}));close?.addEventListener('click',()=>{if(screen)screen.hidden=true;});screen?.addEventListener('click',e=>{if(e.target===screen)screen.hidden=true;});pc.forEach(b=>b.addEventListener('click',()=>{if(['playing','paused','upgrade'].includes(gameState)&&!isClassicShooterRun()&&b.dataset.controlPc==='classic')return;controlSettings.pc=b.dataset.controlPc;localStorage.setItem('abyssalControlsPc',controlSettings.pc);autoFollowCursor=false;pointer.down=false;syncMobileAimControl();refresh();}));mobile.forEach(b=>b.addEventListener('click',()=>{if(['playing','paused','upgrade'].includes(gameState)&&!isClassicShooterRun()&&b.dataset.controlMobile==='classic')return;controlSettings.mobile=b.dataset.controlMobile;localStorage.setItem('abyssalControlsMobile',controlSettings.mobile);joystickVector={x:0,y:0,active:false,pointerId:null};resetMobileAim();syncMobileAimControl();const old=$('mobileJoystick');if(old){old.hidden=true;old.classList.remove('is-floating');}refresh();}));}
+
 function setupDualStickEvents(){
- const activeSticks=new Map();
- [[mobileAimStick,true]].forEach(([stick,isAim])=>{
-  if(!stick)return;
-  const knob=stick.querySelector('.joystick-knob');
-  stick.addEventListener('pointerdown',e=>{
-   if(gameState!=='playing'||!isMobileDevice())return;
-   e.preventDefault();
-   const current=isAim?aimJoystickVector:joystickVector;
-   if(current.pointerId!==null)return;
-   activeSticks.set(e.pointerId,{stick,knob,isAim});
-   try{stick.setPointerCapture?.(e.pointerId)}catch(_){}
-   updateFixedStick(e,stick,knob,isAim);
-  });
+ const stick=mobileAimStick;if(!stick)return;
+ stick.addEventListener('pointerdown',e=>{
+  if(!mobileAimInputAllowed()||aimJoystickVector.pointerId!==null||e.button>0)return;
+  e.preventDefault();e.stopPropagation();
+  updateMobileAim(e,stick);mobileFireHeld=true;mobileFireTap=true;stick.classList.add('is-firing');
+  try{stick.setPointerCapture?.(e.pointerId)}catch(_){}
  });
  window.addEventListener('pointermove',e=>{
-  const active=activeSticks.get(e.pointerId);
-  if(active)updateFixedStick(e,active.stick,active.knob,active.isAim);
+  if(aimJoystickVector.pointerId!==e.pointerId)return;
+  if(!mobileAimInputAllowed()){resetMobileAim();return;}
+  updateMobileAim(e,stick);
  },{passive:false});
  const release=e=>{
-  const active=activeSticks.get(e.pointerId);
-  if(!active)return;
-  resetFixedStick(active.knob,active.isAim);
-  activeSticks.delete(e.pointerId);
+  if(aimJoystickVector.pointerId!==e.pointerId)return;
+  const tap=e.type==='pointerup'&&mobileFireTap;
+  resetMobileAim();mobileFireTap=tap;
  };
  window.addEventListener('pointerup',release);
  window.addEventListener('pointercancel',release);
-}
-const mobileFireBtn=$('mobileFireBtn');
-if(mobileFireBtn){
- const release=()=>{mobileFireHeld=false;mobileFireBtn.classList.remove('is-firing');};
- mobileFireBtn.addEventListener('pointerdown',e=>{if(gameState!=='playing'||controlSettings.mobile!=='dual-stick')return;e.preventDefault();e.stopPropagation();mobileFireHeld=true;mobileFireBtn.classList.add('is-firing');try{mobileFireBtn.setPointerCapture(e.pointerId)}catch(_){}});
- ['pointerup','pointercancel','lostpointercapture'].forEach(name=>mobileFireBtn.addEventListener(name,release));
- window.addEventListener('blur',release);
+ stick.addEventListener('lostpointercapture',release);
+ // Keyboard/assistive activation can produce a click without pointer events.
+ stick.addEventListener('click',e=>{if(e.detail===0&&mobileAimInputAllowed()&&!mobileFireHeld)mobileFireTap=true;});
+ stick.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat&&mobileAimInputAllowed()){e.preventDefault();mobileFireTap=true;}});
+ window.addEventListener('blur',resetMobileAim);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)resetMobileAim();});
 }
 configureControlButtons();setupDualStickEvents();
 function isTextEntryTarget(target){return Boolean(target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]'));}
@@ -5252,7 +5255,7 @@ function settleDiveReport(onComplete){
  const calculation=diveEnergyCalculation(),earned=calculation.earned;
  energyWallet?.credit(earned,'offline-reward');saveCosmetics();if(!$('shopScreen')?.hidden)renderShop();finish({ok:true,...diveEnergyCalculation()});
 }
-function returnToMainMenu(){syncPropulsorAudio(performance.now(),false);window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.showExterior?.();document.body.classList.add('abyss-hatch-navigation');window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));}
+function returnToMainMenu(){syncPropulsorAudio(performance.now(),false);window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();resetMobileAim();runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.showExterior?.();document.body.classList.add('abyss-hatch-navigation');window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));}
 $('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
 // Separate route identifier for Mar Aberto. Existing classic/online handlers stay intact.
 window.addEventListener('abyssal-start-open-sea',()=>{});
