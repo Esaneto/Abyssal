@@ -23,7 +23,7 @@ const ITEMS=[
 ];
 const MODES=['solo','online'];
 // Optional readouts and nonessential controls can be removed per mode/device.
-const OPTIONAL=new Set(['stats','health','xp','energy','progress','skills','pet','comms']);
+const OPTIONAL=new Set(['stats','health','xp','energy','progress','skills','comms']);
 function canRemove(id){return OPTIONAL.has(id);}
 function scaleLimit(id){return id==='power'?1:1.6;}
 function eligibleItems(mode,profile,controls='dual-stick'){return ITEMS.filter(i=>(i[0]!=='comms'||mode==='online')&&(i[7]==='both'||(profile==='desktop'?i[7]==='desktop':i[7]==='mobile'))&&(controls==='dual-stick'||!['aim','fire'].includes(i[0])));}
@@ -255,12 +255,13 @@ function safeInsets(doc){const html=doc.documentElement;if(!html.classList.conta
 function groupRect(els){if(!els.length)return null;const rects=els.map(el=>el.getBoundingClientRect()),l=Math.min(...rects.map(r=>r.left)),t=Math.min(...rects.map(r=>r.top)),r=Math.max(...rects.map(r=>r.right)),b=Math.max(...rects.map(r=>r.bottom));return {rects,l,t,r,b,w:r-l,h:b-t,cx:(l+r)/2,cy:(t+b)/2};}
 function skillReservation(el,box){const c=el.ownerDocument.defaultView.getComputedStyle(el),row=el.querySelector('.selected-skill-row'),r=row?.getBoundingClientRect(),reference=Math.max(1,(r?.height||32)+(parseFloat(c.paddingTop)||0)+(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderTopWidth)||0)+(parseFloat(c.borderBottomWidth)||0));return {reference,height:Math.max(reference,parseFloat(c.maxHeight)||box.h)};}
 function visibleGroup(doc,selectors){return selectors.flatMap(s=>[...doc.querySelectorAll(s)]).filter(el=>{const r=el.getBoundingClientRect(),cs=doc.defaultView.getComputedStyle(el);return r.width>0&&r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden';});}
-function placeGroup(els,g,pos,sr,safe=safeInsets(els[0].ownerDocument)){const f=fit(pos,g,sr.width,sr.height,safe);els.forEach((el,i)=>{const rc=g.rects[i],ex=(rc.left+rc.right)/2,ey=(rc.top+rc.bottom)/2;el.style.setProperty('translate',(sr.left+f.x+(ex-g.cx)*f.s-ex)+'px '+(sr.top+f.y+(ey-g.cy)*f.s-ey)+'px','important');el.style.setProperty('scale',String(f.s),'important');el.style.setProperty('transform-origin','center','important');el.toggleAttribute('data-hud-custom-opacity',typeof pos.o==='number');if(typeof pos.o==='number')el.style.setProperty('--hud-custom-opacity',String(pos.o));else el.style.removeProperty('--hud-custom-opacity');});return f;}
+function fixedPlacement(pos,w,h){return {x:pos.x*w,y:pos.y*h,s:pos.s};}
+ function placeGroup(els,g,pos,sr,safe=safeInsets(els[0].ownerDocument)){const f=fixedPlacement(pos,sr.width,sr.height);els.forEach((el,i)=>{const rc=g.rects[i],ex=(rc.left+rc.right)/2,ey=(rc.top+rc.bottom)/2;el.style.setProperty('translate',(sr.left+f.x+(ex-g.cx)*f.s-ex)+'px '+(sr.top+f.y+(ey-g.cy)*f.s-ey)+'px','important');el.style.setProperty('scale',String(f.s),'important');el.style.setProperty('transform-origin','center','important');el.toggleAttribute('data-hud-custom-opacity',typeof pos.o==='number');if(typeof pos.o==='number')el.style.setProperty('--hud-custom-opacity',String(pos.o));else el.style.removeProperty('--hud-custom-opacity');});return f;}
 function ownerKey(name){return String(name||'').trim().toLowerCase();}
 function changedProfiles(before,after){const result=[];for(const mode of MODES)for(const device of PROFILES)if(JSON.stringify(modeLayout(before,mode)[device])!==JSON.stringify(modeLayout(after,mode)[device]))result.push(mode+':'+device);return result;}
 function mergeProfiles(remote,local,changes){const out=normalize(remote),next=normalize(local);for(const key of (Array.isArray(changes)?changes.slice(0,6):[])){if(typeof key!=='string')continue;const [mode,device]=key.split(':');if(MODES.includes(mode)&&PROFILES.includes(device))modeLayout(out,mode)[device]=modeLayout(next,mode)[device];}return out;}
 function hasEdits(layout){return MODES.some(mode=>PROFILES.some(device=>Object.keys(modeLayout(layout,mode)[device]).length));}
-const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,planPositions,displayPosition,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
+const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,planPositions,displayPosition,fixedPlacement,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
 const doc=root.document;if(!doc)return;
 function read(key){try{return JSON.parse(root.localStorage.getItem(key)||'null');}catch{return null;}}
 function write(key,v){try{root.localStorage.setItem(key,JSON.stringify(v));return true;}catch{return false;}}
@@ -273,7 +274,7 @@ function readScoped(name){const record=read(scoped(KEY,name));if(record)return {
 let record=readScoped(owner),saved=record.layout,revision=record.revision,runLayout=null,layoutPlan=null,hudObserver=null;
 function storeCurrent(){const ok=write(scoped(KEY,owner),{layout:saved,revision});write(OWNER,owner||GUEST);write(KEY,saved);return ok;}
 function pendingFor(name){const key=scoped(PENDING,name),v=read(key);if(v)return v;const old=read(PENDING);if(name&&ownerKey(old?.owner)===name&&old.layout){const next={layout:normalize(old.layout),changes:MODES.flatMap(mode=>PROFILES.map(device=>mode+':'+device))};write(key,next);try{root.localStorage.removeItem(PENDING);}catch{}return next;}return null;}
-function switchOwner(name){name=ownerKey(name);if(name===owner)return;storeCurrent();owner=name;record=readScoped(owner);saved=record.layout;revision=record.revision;runLayout=null;layoutPlan=null;storeCurrent();schedule();}
+function switchOwner(name){name=ownerKey(name);if(name===owner)return;storeCurrent();owner=name;record=readScoped(owner);saved=record.layout;revision=record.revision;if(!doc.body.classList?.contains('game-active')){runLayout=null;layoutPlan=null;}storeCurrent();schedule();}
 storeCurrent();
 const applied=new Map(),scales=new Map(),userHidden=new Set(),observedSizes=new Set();
 const layoutSizeObserver=typeof root.ResizeObserver==='function'?new root.ResizeObserver(()=>schedule()):null;
@@ -319,7 +320,7 @@ function refresh(){
  if(!runLayout)runLayout=normalize(saved);
  const device=profile(),mode=gameMode(),raw=modeLayout(runLayout,mode)[device],layout=effectiveLayout(runLayout,mode,device),safe=safeInsets(doc),controls=mobileControls();
  const sr=shell.getBoundingClientRect();if(!sr.width||!sr.height)return;
- const key=JSON.stringify([mode,device,controls,sr.width,sr.height,safe,raw]);
+ const key=JSON.stringify([mode,device,controls,Math.round(sr.width),Math.round(sr.height),safe,raw]);
  doc.body.classList.add('custom-hud-active');
  clear();
  const items=eligibleItems(mode,device,controls);

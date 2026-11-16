@@ -78,12 +78,25 @@
    if(Math.abs(p[0])<=r.rx*1.06+padding&&Math.abs(p[1])<=r.ry*1.06+padding&&contains(r.vertices,p[0],p[1],padding))return true;
   }return false;
  }
- function resolve(rocks,fromX,fromY,toX,toY,padding=0){
+ // World bounds are separate from rock geometry. Callers in the released modes
+ // pass dimensions explicitly, including on recovery and knockback paths.
+ function boundedPoint(w,h,x,y,padding=0){
+  const px=Math.max(0,Math.min(Number(padding)||0,w/2)),py=Math.max(0,Math.min(Number(padding)||0,h/2));
+  return {x:clamp(Number.isFinite(x)?x:w/2,px,w-px),y:clamp(Number.isFinite(y)?y:h/2,py,h-py)};
+ }
+ function resolve(rocks,fromX,fromY,toX,toY,padding=0,w=null,h=null){
+  const bounded=Number.isFinite(w)&&w>0&&Number.isFinite(h)&&h>0;
+  let edgeBlocked=false;
+  if(bounded){
+   const start=boundedPoint(w,h,fromX,fromY,padding),end=boundedPoint(w,h,toX,toY,padding);
+   edgeBlocked=start.x!==fromX||start.y!==fromY||end.x!==toX||end.y!==toY;
+   fromX=start.x;fromY=start.y;toX=end.x;toY=end.y;
+  }
   const d=Math.hypot(toX-fromX,toY-fromY),steps=clamp(Math.ceil(d/Math.max(3,padding*.6)),1,1000);
   const dx=(toX-fromX)/steps,dy=(toY-fromY)/steps;
-  let x=fromX,y=fromY,blocked=false;
+  let x=fromX,y=fromY,blocked=edgeBlocked;
   // Recover entities already overlapping a solid (e.g. a launch or knockback).
-  if(isBlocked(rocks,x,y,padding)){const originX=x,originY=y;let found=false;for(let radius=Math.max(4,padding*.5);radius<=640&&!found;radius+=Math.max(4,padding*.5)){for(let i=0;i<32;i++){const a=i*TAU/32,xx=originX+Math.cos(a)*radius,yy=originY+Math.sin(a)*radius;if(!isBlocked(rocks,xx,yy,padding)){x=xx;y=yy;found=true;break;}}}if(!found)return {x,y,blocked:true};return {x,y,blocked:true};}
+  if(isBlocked(rocks,x,y,padding)){const originX=x,originY=y;let found=false;for(let radius=Math.max(4,padding*.5);radius<=640&&!found;radius+=Math.max(4,padding*.5)){for(let i=0;i<32;i++){const a=i*TAU/32,xx=originX+Math.cos(a)*radius,yy=originY+Math.sin(a)*radius;if((!bounded||(xx>=padding&&yy>=padding&&xx<=w-padding&&yy<=h-padding))&&!isBlocked(rocks,xx,yy,padding)){x=xx;y=yy;found=true;break;}}}if(!found)return {x,y,blocked:true};return {x,y,blocked:true};}
   // Integrate from the last accepted point, never skip through a solid rock.
   for(let i=0;i<steps;i++){
    const tx=x+dx,ty=y+dy;
@@ -180,6 +193,7 @@
   g.flows.set(goal,d);if(g.flows.size>8)g.flows.delete(g.flows.keys().next().value);return d;
  }
  function navigationTarget(rocks,w,h,fromX,fromY,toX,toY,padding=0){
+  const end=boundedPoint(w,h,toX,toY,padding);toX=end.x;toY=end.y;
   if(!segmentBlocked(rocks,fromX,fromY,toX,toY,padding))return {x:toX,y:toY,direct:true,blocked:false};
   const g=gridFor(rocks,w,h,padding),start=nearestNode(g,rocks,fromX,fromY);
   if(start<0)return {x:fromX,y:fromY,blocked:true,direct:false};
@@ -232,11 +246,12 @@
   return best;
  }
  function pursuitTarget(rocks,w,h,actor,goal,padding,now=0){
+  goal=boundedPoint(w,h,goal.x,goal.y,padding);
   const x=actor.x,y=actor.y,previous=actor.caveRoute,close=Math.hypot(goal.x-x,goal.y-y),direct=!segmentBlocked(rocks,x,y,goal.x,goal.y,padding);
   if(direct){actor.caveRoute=null;return {x:goal.x,y:goal.y,direct:true,blocked:false};}
   // Hold a waypoint long enough to actually round a corner; don't pick a new
   // tangent on every collision or when the diver moves a few pixels.
-  if(previous&&now<previous.until&&Math.hypot(previous.x-x,previous.y-y)>Math.max(5,padding*.25)&&Math.hypot(previous.targetX-goal.x,previous.targetY-goal.y)<CELL*1.4&&!segmentBlocked(rocks,x,y,previous.x,previous.y,padding))return previous;
+  if(previous&&previous.x>=padding&&previous.y>=padding&&previous.x<=w-padding&&previous.y<=h-padding&&now<previous.until&&Math.hypot(previous.x-x,previous.y-y)>Math.max(5,padding*.25)&&Math.hypot(previous.targetX-goal.x,previous.targetY-goal.y)<CELL*1.4&&!segmentBlocked(rocks,x,y,previous.x,previous.y,padding))return previous;
   const nav=navigationTarget(rocks,w,h,x,y,goal.x,goal.y,padding);let next=nav;
   if(nav.blocked||Math.hypot(nav.x-x,nav.y-y)<Math.max(4,padding*.2)){
    // A valid attack position can be adjacent to the player's wall. Hold here
@@ -479,5 +494,5 @@
   }
   c.restore();
  }
- return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,orbWaterPoint,orbNeedsRelocation,orbReachable,submarineSpawn,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting,prepareWorldArt});
+ return Object.freeze({buildRocks,submarineHull,isBlocked,boundedPoint,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,orbWaterPoint,orbNeedsRelocation,orbReachable,submarineSpawn,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting,prepareWorldArt});
 });

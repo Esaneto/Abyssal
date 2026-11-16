@@ -87,3 +87,6 @@ html body.game-active:has(#upgradeScreen:not([hidden])) :is(.topbar,#abyssalTuto
 /* The HUD engine owns the anchor geometry; CSS transitions must never animate
    old native top/left/transform values during a layout refresh. */
 body.game-active.custom-hud-active :is(#hud,#hud .hud-top,#hud .bar-label,#hud .bar,#hud .solo-energy-stock,#bossProgressionTrack,#selectedSkillsPanel,#pauseBtn,#mobilePauseBtn,#toggleHudBtn,#skillPulseBtn,#skillDashBtn,#skinActiveBtn,#petHabitBar .pet-habit-actions,#soloSubmarineRepairBtn,#soloSubmarinePowerBtn,#mobileFireBtn,#mobileAimStick,#quickComms,#endDiveBtn){transition-property:color,background-color,border-color,box-shadow,opacity!important}
+
+/* Stable live HUD: prevent label/timer content from changing the reserved control width. */
+body.game-active.custom-hud-active #petHabitBar .pet-habit-actions{flex-shrink:0;white-space:nowrap}

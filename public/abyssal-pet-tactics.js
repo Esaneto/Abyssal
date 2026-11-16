@@ -85,7 +85,8 @@
   const directAngle=d>1e-6?Math.atan2(dy,dx):Number(pet.facingAngle)||0;
   const travelAngle=Number.isFinite(approachAngle)?approachAngle:directAngle;
   const er=attackTargetRadius(enemy);
-  const stop=er+profile.reach+profile.slack*.35;
+  // Body contact is an ellipse, not a bite with extra slack. Stay inside its actual reach.
+  const stop=er+profile.reach+(profile.body?-Math.max(1,profile.slack*.5):profile.slack*.35);
   return {x:enemy.x-Math.cos(travelAngle)*stop,y:enemy.y-Math.sin(travelAngle)*stop,angle:directAngle,approachAngle:travelAngle,stop,distance:d};
  }
  function attackContact(pet,enemy,p,angle,phase,krakenTouch){
