@@ -61,8 +61,7 @@ const RESONANCE_DEFAULTS={pve:['photon','range','regen'],pvp:['electric','shield
 // Exploration studies gate PvE resonance equipment. PvP retains an unrestricted
 // legacy loadout and never requires oxygen/resources/research progression.
 let explorationResearchLevels={};
-let explorationLegacyMeta={};
-try{explorationResearchLevels=JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}')||{};explorationLegacyMeta=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}')||{};}catch(_){}
+try{explorationResearchLevels=JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}')||{};}catch(_){}
 function resonanceAvailable(id,mode='pve'){
  if(mode==='pvp')return true;
  if(window.AbyssalSoloBase?.unlocked)return window.AbyssalSoloBase.unlocked(id);
@@ -72,7 +71,6 @@ window.addEventListener('abyssal-solo-research-change',()=>{if(document.getEleme
 window.addEventListener('abyssal-account-data',event=>{
  const data=event.detail||{};
  if(data.researchLevels&&typeof data.researchLevels==='object')explorationResearchLevels=data.researchLevels;
- if(data.metaUpgrades&&typeof data.metaUpgrades==='object')explorationLegacyMeta=data.metaUpgrades;
  if(document.getElementById('resonanceScreen')&&!document.getElementById('resonanceScreen').hidden)renderResonanceChoices();
 });
 window.addEventListener('storage',event=>{
@@ -97,7 +95,7 @@ let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Numbe
 let bossProgressionCycle=0,bossCycleStreak=0,bossCycleBosses=[],bossCycleIndex=0,progressionDistance=0,progressionPausedForBoss=false,activeBossEntity=null,bossVictoryPending=false;
 let pendingProgressionBossWarningKind=null,pendingProgressionBossWarningAt=0;
 let runResultPending=false;
-let snapshotClock=0,upgradeAutoTimer=null,upgradeCountdownInterval=null,upgradeDeadlineAt=0,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeMotionSeq=0,lastAuthoritativeSpawnSeq=0,lastAuthoritativeContactSeq=0,lastAuthoritativeServerTime=0,lastAuthoritativeMotionServerTime=0,lastAuthoritativeSpawnServerTime=0,lastAuthoritativeContactServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
+let snapshotClock=0,upgradeAutoTimer=null,upgradeCountdownInterval=null,upgradeDeadlineAt=0,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=window.AbyssalResearchSystem.sanitizeLegacyActives((()=>{try{return JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}')}catch{return {}}})()),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeMotionSeq=0,lastAuthoritativeSpawnSeq=0,lastAuthoritativeContactSeq=0,lastAuthoritativeServerTime=0,lastAuthoritativeMotionServerTime=0,lastAuthoritativeSpawnServerTime=0,lastAuthoritativeContactServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
 let cachedAbyssalCodex=null,cachedCodexMonsterIds=null,codexSavePending=false;
 function getAbyssalCodex(){
  if(!cachedAbyssalCodex){
@@ -486,7 +484,7 @@ let shopCurrency='brl';
 let shopRates={brl:1};
 function setGameLanguage(language){gameLanguage=['en','es'].includes(language)?language:'pt';localStorage.setItem('abyssalLanguage',gameLanguage);shopCurrency='brl';const languageSelect=$('languageSelect');if(languageSelect)languageSelect.value=gameLanguage;const cockpitLanguage=$('cockpitLanguageSelect');if(cockpitLanguage)cockpitLanguage.value=gameLanguage;const currencySelect=$('shopCurrency');if(currencySelect)currencySelect.value='brl';if(!$('shopScreen')?.hidden)renderShop();window.dispatchEvent(new CustomEvent('abyssal-language-change',{detail:{language:gameLanguage,currency:'brl'}}));}
 // Keep the last server-synchronized ownership cache while session restoration is pending. The authoritative account-data event replaces it after authentication.
-function saveCosmetics(){localStorage.setItem('abyssalDiverGender',diverGender);localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));saveSpecimenProficiencyLocal();if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades,diverGender,conqueror:ownedSkins.includes('greensnake')});}
+function saveCosmetics(){localStorage.setItem('abyssalDiverGender',diverGender);localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));saveSpecimenProficiencyLocal();if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,diverGender,conqueror:ownedSkins.includes('greensnake')});}
 function currentSkinColor(){return (skinData.find(s=>s.id===equippedSkin)||skinData[0]).color;}
 let mobileFireHeld=false,mobileFireTap=false,mobileFireFrame=false;
 let pointer={x:0,y:0,down:false,active:false},keys={},joystickVector={x:0,y:0,active:false,pointerId:null},aimJoystickVector={x:0,y:0,active:false,pointerId:null};
@@ -1687,7 +1685,7 @@ function startGame(resumingDeploy=false){
  runResultPending=false;
  window.AbyssalTreasure?.reset();expeditionMode=isRiftRun();expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;soloSideEncounterTier=-1;soloEliteRewardTier=-1;tierDescentPending=false;onlineBossesDefeated=0;if(!onlineMode){activeMapLayout=null;W=isOpenSeaRun()?oceanWidth():defaultWidth();H=isOpenSeaRun()?oceanHeight():defaultHeight();if(requestedRunMode==='rift')ensureSoloMap();else runSeed=(Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;}else if(onlineRoomMode!=='rift'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;W=defaultWidth();H=defaultHeight();}
  
- elapsed=0;alertedBossIds.clear();gameplayNoticeQueue.length=0;gameplayNoticeActive=false;gameplayNoticeRecent.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeMotionSeq=0;lastAuthoritativeSpawnSeq=0;lastAuthoritativeContactSeq=0;lastAuthoritativeServerTime=0;lastAuthoritativeMotionServerTime=0;lastAuthoritativeSpawnServerTime=0;lastAuthoritativeContactServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
+ elapsed=0;alertedBossIds.clear();gameplayNoticeQueue.length=0;gameplayNoticeActive=false;gameplayNoticeRecent.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeMotionSeq=0;lastAuthoritativeSpawnSeq=0;lastAuthoritativeContactSeq=0;lastAuthoritativeServerTime=0;lastAuthoritativeMotionServerTime=0;lastAuthoritativeSpawnServerTime=0;lastAuthoritativeContactServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;ensureSoloRepairButton();const powerButton=ensureSoloSubmarineButton(),powerParent=mobileViewport?$('petHabitBar'):$('gameShell');if(powerParent&&powerButton.parentElement!==powerParent)powerParent.prepend(powerButton);initBossProgression();
  const petBar=document.getElementById('petHabitBar');if(petBar)petBar.hidden=onlineMode&&!isClassicCavernRun();setPetHabit(petHabit);
  if(!onlineMode&&requestedRunMode==='rift')publishSoloDepthState();
@@ -1705,7 +1703,7 @@ if(isOpenSeaRun()){
  // Open Sea starts with a plain photon shot. Classic shooter keeps its own loadout.
  const selectedOpeningShot=isOpenSeaRun()?'photon':(runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'photon');
  runShotId=selectedOpeningShot;
- upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,magneticField:0,petAttack:0,petLife:0,petSpeed:0,petCadence:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
+ upgrades={power:1,rate:1,range:1,speed:1,magnet:1,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,magneticField:0,petAttack:0,petLife:0,petSpeed:0,petCadence:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,magneticField:0,petAttack:0,petLife:0,petSpeed:0,petCadence:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  // Keep five-minute wildlife death timers when the player returns to the menu.
  soloOceanRespawnCleanupAt=0;soloOceanLastUpdate=0;
@@ -1719,13 +1717,6 @@ if(isOpenSeaRun()){
  player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:Math.PI/2,bodyAngle:Math.PI/2,weaponAngle:Math.PI/2,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,propulsorEnergy:100,propulsorEquipped:false,propulsorMoving:false,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:CREATURE_SCALE?.companionCollisionRadius?.(equippedSkin)||11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,maxHp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
  // Equipped resonance skills are a pool of level-up choices, not starting buffs.
  // Only the selected shot begins at level 1; permanent research remains separate.
- // Persistent/passive abilities have a distinct cue when their effects enter a run.
- const activePassiveSounds=[];
- if(Number(metaUpgrades.bulkhead)>0)activePassiveSounds.push('bulkhead');
- if(Number(metaUpgrades.focuser)>0)activePassiveSounds.push('focuser');
- if(Number(metaUpgrades.current)>0)activePassiveSounds.push('current');
- if(upgrades.shield>0)activePassiveSounds.push('startShield');
- activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  const cockpit=document.getElementById('submarineWorkshop');if(cockpit&&!cockpit.hidden){cockpit.hidden=true;window.AbyssalSubmarineCockpit?.close?.();}
  gameState='playing';worldZoom=desiredWorldZoom();updateCamera();syncMobileAimControl();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='block';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
  updateHud();last=performance.now();playWorldSound('ui-open',player,850,.9);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else if(isOpenSeaRun())updateSoloOceanChunks(true);else {for(let i=0;i<3;i++)spawnEnemy(true,'common');}}if(onlineMode&&!resumingDeploy){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,magneticField:upgrades.magneticField,petAttack:upgrades.petAttack,petLife:upgrades.petLife,petSpeed:upgrades.petSpeed,petCadence:upgrades.petCadence,closePressureLevel:upgrades.closePressure,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand,submarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||['photon']});window.AbyssalOnline?.requestPlayerState?.();}else if(!onlineMode&&window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
@@ -3662,43 +3653,16 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  if(particles.length>particleBudget()){const excess=particles.length-particleBudget();for(let i=0;i<excess;i++){if(particlePool.length<700)particlePool.push(particles[i]);}particles.splice(0,excess);}if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());if(effects.length>effectBudget()){let excess=effects.length-effectBudget();for(let i=0;i<effects.length&&excess>0;){const fx=effects[i];if(fx.type==='photon-ray'||fx.type==='gravity-cone'){i++;continue;}effects[i]=effects[effects.length-1];effects.pop();recycleEffect(fx);excess--;}}
  updateHud(false);
 }
-const metaShopItems=[
- {id:'bulkhead',name:'Costelas de Basalto',type:'passive',price:1800,max:3,icon:'⬡',desc:'+8 de vida máxima por nível.'},
- {id:'focuser',name:'Lente de Fótons',type:'passive',price:2200,max:3,icon:'✧',desc:'+8% de dano inicial por nível.'},
- {id:'current',name:'Aletas de Corrente',type:'passive',price:1600,max:3,icon:'➤',desc:'+5% de movimento por nível.'},
- {id:'startShield',name:'Casulo de Pressão',type:'passive',price:3200,max:1,icon:'◉',desc:'Comece cada mergulho com 1 carga de escudo.'},
- {id:'pulse',name:'Pulso de Maré',type:'active',price:400,max:1,icon:'✺',desc:'Ative Q ou o botão para causar dano em área. Recarga: 14 s.'},
- {id:'dash',name:'Propulsor Abissal',type:'active',price:400,max:1,icon:'➤',desc:'E equipa ou guarda a turbina. Nado 2,35× enquanto houver bateria. A arma fica guardada; a bateria se recupera lentamente ao parar.'}
-];
-const combatResearchUnlocked=id=>Boolean(window.AbyssalResearchSystem?.unlocked?.(id,explorationResearchLevels,metaUpgrades)||Number(metaUpgrades?.[id])>0);
-let equippedActiveSkillsCache=null;
+// Q/E are permanent research unlocks, not starting resonance bonuses.
+const combatResearchUnlocked=id=>['pulse','dash'].includes(id)&&Boolean(window.AbyssalResearchSystem?.unlocked?.(id,explorationResearchLevels,metaUpgrades));
 function loadEquippedActiveSkills(){
- // Q and E are fixed research slots, automatically equipped when studied.
  return ['pulse','dash'].filter(id=>combatResearchUnlocked(id));
-}
-window.addEventListener('storage',event=>{if(event.key==='abyssalEquippedActiveSkills'){equippedActiveSkillsCache=null;updateAbilityButtons(true);}});
-function toggleEquippedActiveSkill(id){
- if(!['pulse','dash'].includes(id)||!(Number(metaUpgrades[id])>0))return;
- let equipped=[...loadEquippedActiveSkills()];
- if(equipped.includes(id))equipped=equipped.filter(x=>x!==id);
- else{if(equipped.length>=2){showToast('VOCÊ JÁ EQUIPOU 2 HABILIDADES ATIVAS');return;}equipped.push(id);}
- equippedActiveSkillsCache=equipped;
- localStorage.setItem('abyssalEquippedActiveSkills',JSON.stringify(equipped));renderShop();updateAbilityButtons(true);showToast(equipped.includes(id)?'HABILIDADE EQUIPADA':'HABILIDADE DESEQUIPADA');
-}
-function buyMetaUpgrade(id){showToast('HABILIDADES AGORA SÃO ESTUDADAS NO SUBMARINO');return;
- const item=metaShopItems.find(x=>x.id===id);if(!item)return;
- const current=Number(metaUpgrades[id])||0;if(current>=item.max){showToast('MELHORIA JÁ NO NÍVEL MÁXIMO');return;}
- if(window.AbyssalOnline?.isAuthenticated()){
-  window.AbyssalOnline.purchaseMeta(id);return;
- }
- if((energyWallet?.get().energy||0)<item.price){showToast('ENERGIA INSUFICIENTE');return;}
- energyWallet?.debit(item.price);metaUpgrades[id]=current+1;saveCosmetics();renderShop();showToast(`${item.name.toUpperCase()} DESBLOQUEADO`);playSkillSound(id,'learn');playWorldSound('ui-purchase');
 }
 function activateAbility(id){
  if(soloSubmarine.repair)cancelSoloHullRepair();
  if(!player||gameState!=='playing')return;
  if(id==='pulse'){
-  if(!(combatResearchUnlocked('pulse'))){showToast('ESTUDE PULSO DE MARÉ NO SUBMARINO');return;}if(!loadEquippedActiveSkills().includes('pulse')){showToast('EQUIPE PULSO DE MARÉ NA LOJA');return;}
+  if(!(combatResearchUnlocked('pulse'))){showToast('ESTUDE PULSO DE MARÉ NO SUBMARINO');return;}
   if(player.pulseCooldown>0)return;
   player.pulseCooldown=14;const pulseCastId=(Number(player.pulseCastId)||0)+1;player.pulseCastId=pulseCastId;const pulseCaster=player;const radius=245*upgrades.range/GAME_WORLD_ZOOM;
   // Online damage is server-authoritative so Q cannot silently fail or disagree between clients.
@@ -5318,8 +5282,8 @@ window.AbyssalGameHooks={
  applyResearchUnlock:(id,level)=>{
   const def=window.AbyssalExplorationConfig?.RESEARCH?.[id];if(!def)return false;
   explorationResearchLevels[id]=Math.max(Number(explorationResearchLevels[id])||0,Number(level)||0);
-  if(def.legacyMeta){
-   metaUpgrades[id]=Math.max(Number(metaUpgrades[id])||0,Number(level)||0);
+  if(id==='pulse'||id==='dash'){
+   metaUpgrades=window.AbyssalResearchSystem.sanitizeLegacyActives({...metaUpgrades,[id]:Math.max(Number(metaUpgrades[id])||0,Number(level)||0)});
    localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));
   }
   updateAbilityButtons(true);return true;
@@ -5672,7 +5636,6 @@ const btn=card.querySelector('button');if(!equipped&&known)btn.addEventListener(
   banner.innerHTML=`<svg class="boss-bundle-art" viewBox="0 0 112 76" aria-hidden="true" focusable="false"><defs><linearGradient id="bossBannerInk" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e4baf9"/><stop offset="1" stop-color="#8e63bc"/></linearGradient></defs><g fill="url(#bossBannerInk)" stroke="#dfbaff" stroke-width=".6"><path d="M8 35Q2 25 14 20Q25 17 30 26L37 21 34 31 38 38 27 35Q19 45 9 38Z"/><path d="M14 20Q17 8 28 10L24 20" opacity=".8"/><path d="M47 23Q47 8 57 6Q68 9 69 23L65 30 49 30Z"/><path d="M49 26Q40 37 44 49L48 44 54 31M54 28Q50 42 55 50L58 43 59 30M62 29Q64 44 72 47L69 40 67 28" fill="none" stroke="#bc8ee7" stroke-width="3" stroke-linecap="round"/><path d="M78 27Q84 16 95 19Q106 23 105 34L97 39 84 36 76 42 79 33Z"/><path d="M94 20Q89 10 100 9" fill="none" stroke="#dcadff" stroke-width="1.6"/><circle cx="101" cy="9" r="2.5"/><path d="M13 59Q16 45 29 47Q40 48 39 56Q36 64 25 58L14 68 5 68Z"/><path d="M49 57Q47 44 57 43Q67 43 68 57L62 62 51 62Z"/><path d="M52 60Q44 67 48 72M57 61L57 73M63 60Q71 67 67 72" fill="none" stroke="#bc8ee7" stroke-width="2.6" stroke-linecap="round"/><path d="M79 64Q74 55 83 49Q92 46 102 55L108 50 105 63 95 65 84 61Z"/></g><g fill="#20152e"><circle cx="22" cy="28" r="1.8"/><circle cx="54" cy="21" r="1.8"/><circle cx="63" cy="21" r="1.8"/><circle cx="94" cy="28" r="1.8"/><circle cx="29" cy="53" r="1.8"/><circle cx="54" cy="54" r="1.4"/><circle cx="63" cy="54" r="1.4"/><circle cx="91" cy="56" r="1.8"/></g></svg><div class="boss-banner-copy"><strong>${title}</strong><small>${subtitle}</small><button type="button" ${remaining===0?'disabled':''}>${remaining===0?(english?'COLLECTION COMPLETE':gameLanguage==='es'?'COLECCIÓN COMPLETA':'COLEÇÃO COMPLETA'):(english?'BUY · ':gameLanguage==='es'?'COMPRAR · ':'ADQUIRIR · ')+bundlePrice}</button></div>`;
   banner.querySelector('button').addEventListener('click',()=>{if(remaining)openSkinPurchaseConfirm('boss_bundle','Coleção · Relíquias do Abismo',bundlePrice,true);});
  }
- const metaGrid=$('metaUpgradeGrid');if(metaGrid){metaGrid.textContent='Habilidades Q/E e passivas agora são estudadas no laboratório do submarino. Melhorias adquiridas anteriormente permanecem no perfil.';[].forEach(item=>{const levelNow=Number(metaUpgrades[item.id])||0,ownedMax=levelNow>=item.max,activeEquipped=loadEquippedActiveSkills().includes(item.id);const activeOwned=item.type==='active'&&levelNow>0;const card=document.createElement('article');card.className='meta-card'+(ownedMax?' meta-max':'');const buttonLabel=activeOwned?(activeEquipped?'DESEQUIPAR':'EQUIPAR'):ownedMax?'NÍVEL MÁXIMO':`ADQUIRIR · ${item.price.toLocaleString('pt-BR')} ◈`;card.innerHTML=`<div class="meta-card-icon">${item.icon}</div><div class="meta-card-copy"><div class="meta-kicker">${item.type==='active'?'HABILIDADE ATIVA':'MELHORIA PASSIVA'} · NV. ${levelNow}/${item.max}</div><strong>${item.name}</strong><p>${item.desc}</p></div><button ${ownedMax&&!activeOwned?'disabled':''}>${buttonLabel}</button>`;const button=card.querySelector('button');if(activeOwned){button.addEventListener('click',()=>toggleEquippedActiveSkill(item.id));}else if(!ownedMax){button.addEventListener('click',()=>buyMetaUpgrade(item.id));}metaGrid.appendChild(card);});}
  updateAbilityButtons();drawWheel();startShopMotion();if(shopScroll)shopScroll.scrollTop=savedScroll;
 }
 function openSpecimenShop({refresh=true}={}){ $('shopScreen').hidden=false;if(refresh&&window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.refreshAccount?.();renderShop(); }
@@ -6097,7 +6060,7 @@ window.addEventListener('abyssal-account-data',e=>{
   ownedSkins=[...new Set(serverSkins)];
   equippedSkin=a.equippedSkin||localStorage.getItem('abyssalSkin')||'default';
   if(!ownedSkins.includes(equippedSkin))equippedSkin='default';
-  metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:{};
+  metaUpgrades=window.AbyssalResearchSystem.sanitizeLegacyActives(a.metaUpgrades);
   if(a.diverGender==='female'||a.diverGender==='male')setDiverGender(a.diverGender,false);
   window.AbyssalAvatarBase?.syncAccount(a);
   const serverProficiency=a.specimenProficiency&&typeof a.specimenProficiency==='object'?a.specimenProficiency:{};specimenProficiency=pendingAdaptationMap(adaptationAccountKey(),serverProficiency);saveSpecimenProficiencyLocal();

@@ -11,6 +11,8 @@
  const DEFINITIONS=config.RESEARCH;
  const COMBAT_ENERGY=Object.freeze({pulse:400,dash:400});
  const toCount=v=>Number.isFinite(Number(v))?Math.max(0,Math.floor(Number(v))):0;
+ // Only Q/E survived the retired shop as real research. Never grant the four old starting passives.
+ function sanitizeLegacyActives(raw={}){const result={};for(const id of Object.keys(COMBAT_ENERGY))if(toCount(raw?.[id])>0)result[id]=1;return result;}
  function sanitizeLevels(raw={}){
   const result=Object.create(null);
   for(const [id,def] of Object.entries(DEFINITIONS))result[id]=def.starter?Math.max(1,Math.min(def.max,toCount(raw?.[id]))):Math.min(def.max,toCount(raw?.[id]));
@@ -58,23 +60,19 @@
   if(energy<cost)return {ok:false,reason:'energy',cost};
   return {ok:true,levels:{...next,[id]:1},level:1,cost,energy:energy-cost};
  }
- // Owners retain benefits already purchased with coins even when shop sales
- // are retired. Migration never spends resources or degrades owned levels.
+ // Preserve the two legitimate purchased Q/E unlocks without charging twice.
+ // Retired permanent combat buffs are not research, even if present in old saves.
  function migrateLegacy(levels={},legacy={}){
   const next=sanitizeLevels(levels),transferred=[];
-  // Honor previously owned meta-upgrades without granting new purchases
-  // or charging research materials a second time.
-  for(const [id,definition] of Object.entries(DEFINITIONS)){
-   if(!definition.legacyMeta)continue;
-   const owned=Math.min(definition.max,toCount(legacy?.[definition.legacyMeta]));
+  for(const [id,owned] of Object.entries(sanitizeLegacyActives(legacy))){
    if(owned>next[id]){next[id]=owned;transferred.push(id);}
   }
   return {levels:next,transferred};
  }
  function unlocked(id,levels={},legacy={}){
-  const definition=DEFINITIONS[id];if(!definition)return false;
-  return Boolean(definition.starter)||toCount(levels[id])>0||
-   Boolean(definition.legacyMeta&&toCount(legacy?.[definition.legacyMeta])>0);
+  if(!Object.hasOwn(DEFINITIONS,id))return false;
+  const definition=DEFINITIONS[id];
+  return Boolean(definition.starter)||toCount(levels[id])>0||(Object.hasOwn(COMBAT_ENERGY,id)&&Boolean(sanitizeLegacyActives(legacy)[id]));
  }
  function equipActives(selected=[],levels={},legacy={}){
   const valid=[];
@@ -86,5 +84,5 @@
   }
   return valid;
  }
- return Object.freeze({VERSION:1,DEFINITIONS,COMBAT_ENERGY,studyCombatEnergy,sanitizeLevels,sanitizeInventory,costFor,offshoreCostFor,study,migrateLegacy,unlocked,equipActives});
+ return Object.freeze({VERSION:1,DEFINITIONS,COMBAT_ENERGY,studyCombatEnergy,sanitizeLevels,sanitizeInventory,costFor,offshoreCostFor,study,sanitizeLegacyActives,migrateLegacy,unlocked,equipActives});
 });

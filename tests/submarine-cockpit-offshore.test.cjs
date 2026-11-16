@@ -129,7 +129,10 @@ test('lab can only open after return-to-hatch animation',()=>{
  assert.match(menu,/s\.kind==='lab'\)\{diver\.style\.opacity='0';return;/);
  assert.match(html,/id="abyssCockpitCanvas"/);
  assert.match(html,/id="submarineWorkshopBtn"/);
- assert.match(html,/LABORATÓRIO/);
+ const runtime=fs.readFileSync(path.join(__dirname,'../public/abyssal-exploration-runtime.js'),'utf8');
+ assert.match(runtime,/LABORATÓRIO ABISSAL/);
+ assert.match(runtime,/activeConsoleSection!=='laboratory'/);
+ assert.doesNotMatch(html,/metaUpgradeGrid/);
 });
 
 test('offshore production funds real research with atomic stock deductions',()=>{

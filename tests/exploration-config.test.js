@@ -26,7 +26,7 @@ test('research registry records Q/E, passives and resource prerequisites',()=>{
  const {RESEARCH}=rules;
  assert.equal(RESEARCH.pulse.slot,'Q');
  assert.equal(RESEARCH.dash.slot,'E');
- assert.equal(RESEARCH.bulkhead.group,'passive');
+ assert.equal(RESEARCH.bulkhead,undefined);assert.equal(RESEARCH.vitality.group,'passive');
  assert.equal(RESEARCH.oxygenTank.group,'equipment');
  assert.equal(rules.canResearch('pulse',{sonar:0},{deepCrystal:10,bioSample:10}).reason,'prerequisite');
  assert.equal(rules.canResearch('pulse',{sonar:1},{deepCrystal:0,bioSample:10}).reason,'resources');

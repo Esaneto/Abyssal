@@ -24,12 +24,12 @@ test('higher research levels require more materials',()=>{
  assert.equal(research.study('oxygenTank',{oxygenTank:5},{seaMineral:100}).reason,'max-level');
 });
 
-test('old paid abilities remain usable after the research migration',()=>{
+test('old paid Q/E remain usable but retired permanent buffs never migrate',()=>{
  const legacy={pulse:1,dash:1,bulkhead:2};
  const moved=research.migrateLegacy({},legacy);
  assert.equal(moved.levels.pulse,1);
  assert.equal(moved.levels.dash,1);
- assert.equal(moved.levels.bulkhead,2);
+ assert.equal(moved.levels.bulkhead,undefined);assert.deepEqual(research.sanitizeLegacyActives(legacy),{pulse:1,dash:1});assert.equal(research.unlocked('bulkhead',{},legacy),false);
  assert.equal(research.equipActives(['pulse','dash','unknown'],moved.levels,legacy).length,2);
  assert.equal(research.unlocked('pulse',{},legacy),true);
  assert.deepEqual(legacy,{pulse:1,dash:1,bulkhead:2});
