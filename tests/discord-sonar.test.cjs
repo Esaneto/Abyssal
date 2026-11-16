@@ -1,0 +1,11 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {plan,sync}=require('../discord/sonar-sync.cjs');
+const {icon}=require('../discord/sonar-icons.cjs');
+const cfg=require('../discord/sonar-config.json');
+function fixture(){let id=1;return cfg.categories.flatMap(g=>{const parent=String(id++);return [{id:parent,type:4,name:g.old},...g.channels.map(c=>({id:String(id++),parent_id:parent,type:0,name:c.old}))];});}
+test('all existing channels renamed in place; no duplicate or foreign channel',()=>{const f=fixture();f.push({id:'999',type:0,parent_id:'999',name:'boas-vindas'});const p=plan(f);assert.equal(p.actions.length,29);assert.equal(p.missing.length,0);assert(!p.actions.some(x=>x.id==='999'));for(const a of p.actions)f.find(c=>c.id===a.id).name=a.name;assert.equal(plan(f).actions.length,0);});
+test('ambiguous channels refused',()=>{const f=fixture();f.push({...f[1],id:'duplicate'});assert.throws(()=>plan(f),/Ambiguous/);});
+test('all original emoji PNGs valid size and distinct',()=>{const images=cfg.emojis.map(icon);for(const b of images){assert.equal(b.readUInt32BE(16),128);assert.equal(b.readUInt32BE(20),128);assert(b.length<256*1024);assert.equal(b.subarray(1,4).toString(),'PNG');}assert.equal(new Set(images.map(b=>b.toString('base64'))).size,cfg.emojis.length);});
+test('preview is read only and apply only patches names and creates missing emojis',async()=>{const f=fixture(),calls=[];const req=async(m,p,b)=>{calls.push([m,p,b]);if(p==='/users/@me')return{id:cfg.botId,bot:true};if(p.endsWith('/channels'))return f;if(p.endsWith('/emojis')&&m==='GET')return[{name:'sonar'}];if(p==='/guilds/'+cfg.guildId)return{id:cfg.guildId,name:'Abyssal'};return {};};await sync(req,{log:()=>{}});assert(calls.every(c=>c[0]==='GET'));calls.length=0;const r=await sync(req,{apply:true,log:()=>{}});assert.equal(r.additions.length,11);assert.equal(r.failures.length,0);assert.equal(calls.filter(c=>c[0]==='PATCH').length,29);assert(calls.filter(c=>c[0]==='PATCH').every(c=>Object.keys(c[2]).join()==='name'));assert(!calls.some(c=>c[0]==='DELETE'));});
+test('wrong bot rejected before any server operation',async()=>{let n=0;await assert.rejects(sync(async()=>{n++;return{id:'wrong',bot:true};},{apply:true}),/Unexpected bot/);assert.equal(n,1);});

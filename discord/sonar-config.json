@@ -1,0 +1,146 @@
+{
+  "guildId": "1571872096169238688",
+  "botId": "1571872606406054008",
+  "categories": [
+    {
+      "old": "01 · CENTRAL DE COMANDO",
+      "name": "📡 · CENTRAL DE COMANDO",
+      "channels": [
+        {
+          "old": "boas-vindas",
+          "name": "🫧｜boas-vindas"
+        },
+        {
+          "old": "regras-da-base",
+          "name": "📜｜regras-da-base"
+        },
+        {
+          "old": "comunicados",
+          "name": "📢｜comunicados"
+        },
+        {
+          "old": "atualizações",
+          "name": "📡｜atualizações"
+        },
+        {
+          "old": "como-jogar",
+          "name": "🎮｜como-jogar"
+        }
+      ]
+    },
+    {
+      "old": "02 · COMUNIDADE ABISSAL",
+      "name": "🌊 · COMUNIDADE ABISSAL",
+      "channels": [
+        {
+          "old": "conversa-geral",
+          "name": "💬｜conversa-geral"
+        },
+        {
+          "old": "prints-e-clipes",
+          "name": "📸｜prints-e-clipes"
+        },
+        {
+          "old": "estratégias-e-builds",
+          "name": "🧠｜estratégias-e-builds"
+        },
+        {
+          "old": "sugestões",
+          "name": "💡｜sugestões"
+        },
+        {
+          "old": "reportar-bugs",
+          "name": "🐛｜reportar-bugs"
+        }
+      ]
+    },
+    {
+      "old": "03 · OPERAÇÕES DE MERGULHO",
+      "name": "🤿 · OPERAÇÕES DE MERGULHO",
+      "channels": [
+        {
+          "old": "procurar-equipe",
+          "name": "🤝｜procurar-equipe"
+        },
+        {
+          "old": "recrutamento-cardumes",
+          "name": "🐟｜recrutamento-cardumes"
+        },
+        {
+          "old": "Cabine do Submarino",
+          "name": "🚢｜Cabine do Submarino"
+        },
+        {
+          "old": "Mergulho Cooperativo I",
+          "name": "🦈｜Mergulho Cooperativo I"
+        },
+        {
+          "old": "Mergulho Cooperativo II",
+          "name": "🦈｜Mergulho Cooperativo II"
+        },
+        {
+          "old": "Mergulho Cooperativo III",
+          "name": "🦈｜Mergulho Cooperativo III"
+        },
+        {
+          "old": "Expedição Colossal",
+          "name": "🐙｜Expedição Colossal"
+        }
+      ]
+    },
+    {
+      "old": "04 · ESTAÇÃO SONORA",
+      "name": "🎶 · ESTAÇÃO SONORA",
+      "channels": [
+        {
+          "old": "comandos-de-música",
+          "name": "🎵｜comandos-de-música"
+        },
+        {
+          "old": "Rádio Abissal",
+          "name": "📻｜Rádio Abissal"
+        },
+        {
+          "old": "Frequência Chill",
+          "name": "🌊｜Frequência Chill"
+        }
+      ]
+    },
+    {
+      "old": "05 · ACESSO RESTRITO",
+      "name": "🔒 · ACESSO RESTRITO",
+      "channels": [
+        {
+          "old": "central-gamemaster",
+          "name": "🔱｜central-gamemaster"
+        },
+        {
+          "old": "desenvolvimento",
+          "name": "🛠｜desenvolvimento"
+        },
+        {
+          "old": "moderação",
+          "name": "🛡｜moderação"
+        },
+        {
+          "old": "registros-da-equipe",
+          "name": "🗂｜registros-da-equipe"
+        }
+      ]
+    }
+  ],
+  "emojis": [
+    "sonar",
+    "submarino",
+    "mergulhador",
+    "tubarao",
+    "abismo",
+    "orb",
+    "ressonancia",
+    "cardume",
+    "colossal",
+    "gamemaster",
+    "musica",
+    "guardiao"
+  ]
+}
