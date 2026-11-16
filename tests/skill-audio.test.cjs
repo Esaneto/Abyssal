@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Sfx = require('../public/skill-audio.js');
 
-test('every combat and shop skill has its own distinct sonic motif', () => {
+test('current combat skills have distinct sonic motifs', () => {
   const skillIds = ['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','nova','pulse','dash'];
   for (const id of skillIds) assert.ok(Sfx.PATTERNS[id], `missing sound motif for ${id}`);
   const signatures = skillIds.map(id => JSON.stringify(Sfx.PATTERNS[id]));

@@ -9,6 +9,8 @@ test('retired shop passives cannot be researched, migrated, equipped or unlocked
  assert.equal(research.studyCombatEnergy('pulse',{},legacy,500).reason,'owned');
  assert.equal(research.studyCombatEnergy('dash',{}, {},400).ok,true);
  assert.equal(legacy.bulkhead,3,'historical purchase records are not mutated');
+ assert.equal(research.unlocked('constructor',{},legacy),false);
+ for(const id of retired)assert.equal(audio.PATTERNS[id],undefined);
 });
 test('fresh Solo and Online dives have the same baseline regardless of old purchase records',()=>{
  const game=read('public/game.js'),server=read('server.js');

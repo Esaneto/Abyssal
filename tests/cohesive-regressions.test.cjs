@@ -161,8 +161,10 @@ test('menu ambience and active skills remain present without per-frame current-z
   assert.match(html, /id="menuOceanSubmarine"/);
   assert.match(css, /menuFishSwim/);
   assert.doesNotMatch(game, /function drawCurrentZones|currentSpawnTimer|currentZones/);
-  assert.match(game, /function toggleEquippedActiveSkill/);
-  assert.match(game, /DESEQUIPAR/);
+  assert.match(game, /function loadEquippedActiveSkills/);
+  assert.match(game, /return \['pulse','dash'\]\.filter\(id=>combatResearchUnlocked\(id\)\)/);
+  assert.match(game, /function activateAbility\(id\)/);
+  assert.doesNotMatch(game, /function toggleEquippedActiveSkill/);
 });
 
 
