@@ -1,4 +1,4 @@
-/* Distinct synthesized underwater motifs for every combat and shop skill. No external audio files required. */
+/* Distinct synthesized underwater motifs for current combat skills. No external audio files required. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -19,11 +19,7 @@
     ricochet:   { notes:[392, 784, 523, 988], wave:'triangle', step:.045, duration:.15, fall:.86 },
     nova:       { notes:[65, 98, 147, 294], wave:'sawtooth', step:.10, duration:.30, fall:.48 },
     pulse:      { notes:[164, 246, 369, 554], wave:'triangle', step:.075, duration:.21, fall:.66 },
-    dash:       { notes:[1175, 784, 1568], wave:'square', step:.045, duration:.13, fall:.9 },
-    bulkhead:   { notes:[98, 147, 196], wave:'square', step:.09, duration:.22, fall:.62 },
-    focuser:    { notes:[523, 659, 1047], wave:'sine', step:.075, duration:.18, fall:.82 },
-    current:    { notes:[294, 440, 587, 784], wave:'triangle', step:.055, duration:.16, fall:.88 },
-    startShield:{ notes:[130, 196, 260, 390], wave:'square', step:.08, duration:.20, fall:.58 }
+    dash:       { notes:[1175, 784, 1568], wave:'square', step:.045, duration:.13, fall:.9 }
   });
 
   function play(context, skillId, options = {}) {
