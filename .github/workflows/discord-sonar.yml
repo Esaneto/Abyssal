@@ -1,0 +1,48 @@
+name: Abyssal Sonar - Discord
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply changes (false = preview)
+        type: boolean
+        default: true
+  pull_request:
+    paths:
+      - 'discord/**'
+      - 'tests/discord-sonar.test.cjs'
+      - '.github/workflows/discord-sonar.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'discord/**'
+      - '.github/workflows/discord-sonar.yml'
+permissions:
+  contents: read
+concurrency:
+  group: abyssal-discord-sonar
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/discord-sonar.test.cjs
+      - name: Sync official Discord server
+        if: github.event_name != 'pull_request'
+        env:
+          ABYSSAL_DISCORD_BOT_TOKEN: ${{ secrets.ABYSSAL_DISCORD_BOT_TOKEN }}
+          APPLY: ${{ github.event_name == 'push' || inputs.apply }}
+        run: |
+          if [ -z "$ABYSSAL_DISCORD_BOT_TOKEN" ]; then
+            echo "::warning::Sonar not configured: add repository Actions secret ABYSSAL_DISCORD_BOT_TOKEN."
+            exit 1
+          fi
+          if [ "$APPLY" = "true" ]; then
+            node discord/sonar-sync.cjs --apply
+          else
+            node discord/sonar-sync.cjs
+          fi
