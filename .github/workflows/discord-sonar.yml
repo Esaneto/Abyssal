@@ -43,6 +43,7 @@ jobs:
           fi
           if [ "$APPLY" = "true" ]; then
             node discord/sonar-sync.cjs --apply
+            node discord/official-invite.cjs
           else
             node discord/sonar-sync.cjs
           fi
