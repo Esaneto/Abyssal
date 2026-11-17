@@ -45,7 +45,9 @@
    if(active){
      const height=Math.max(1,Math.min(root.innerHeight,root.visualViewport?.height||root.innerHeight));
      html.style.setProperty('--abyssal-edit-height',height+'px');
-     scrollTimer=setTimeout(()=>{const field=document.activeElement;if(!editing())return;const rect=field.getBoundingClientRect();const vv=root.visualViewport;const top=vv?.offsetTop||0,bottom=top+(vv?.height||root.innerHeight);if(rect.bottom>bottom-12||rect.top<top+8)field.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});},80);
+     // Avoid scrollIntoView on the fixed cockpit: Android can scroll the whole
+     // game shell offscreen and leave only the visor header above the keyboard.
+     // abyssal-keyboard-focus.js scrolls the nearest form container instead.
    }else html.style.removeProperty('--abyssal-edit-height');
    html.classList.remove('abyssal-mobile-landscape');
    html.classList.toggle('abyssal-handheld-landscape',landscape);
