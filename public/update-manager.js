@@ -91,10 +91,14 @@
   if(gameplayBlocked()){if(status)status.textContent='Encerre o mergulho antes de instalar a atualização.';return {ok:false,gameplayActive:true};}
   installingNative=true;
   const original=button?.textContent||'ATUALIZAR AGORA';
-  root.AbyssalLoadingScreen?.beginUpdate(data.latestVersion||'');
-  root.AbyssalLoadingScreen?.updateDownload('Baixando e verificando o pacote oficial…',64);
-  if(button){button.disabled=true;button.textContent='BAIXANDO ATUALIZAÇÃO…';}
-  if(status)status.textContent='Baixando e verificando a atualização. Não feche o Abyssal.';
+  if(data.platform!=='play'){
+   root.AbyssalLoadingScreen?.beginUpdate(data.latestVersion||'');
+   root.AbyssalLoadingScreen?.updateDownload('Baixando e verificando o pacote oficial…',64);
+  }
+  if(button){button.disabled=true;button.textContent=data.platform==='play'?'ABRINDO GOOGLE PLAY…':'BAIXANDO ATUALIZAÇÃO…';}
+  if(status)status.textContent=data.platform==='play'
+   ?'Abrindo o atualizador oficial da Google Play…'
+   :'Baixando e verificando a atualização. Não feche o Abyssal.';
   let progressListener=null;
   try{
    let result;
@@ -201,6 +205,9 @@
  let playLaunchChecked=false,playLaunchData=null;
  async function check(force=false){
   if(!native())return checkInner(force);
+  // A mandatory Play prompt cannot be downgraded to an optional one by a
+  // forced/manual check or a focus event. It ends only after app replacement.
+  if(playLaunchData?.required&&document.getElementById('abyssalUpdatePrompt'))return playLaunchData;
   if(nativeCheckInFlight)return nativeCheckInFlight;
   if(installingNative)return null;
   if(!force&&document.getElementById('abyssalUpdatePrompt'))return null;
