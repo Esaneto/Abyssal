@@ -1,0 +1,25 @@
+/* Review CTA identical in sizing and typography to the Discord footer link. */
+#menuScreen #playReviewBtn{margin-left:7px!important}
+#menuScreen #playReviewBtn .rate-star{font-size:17px;line-height:1;color:#f4c94f;text-shadow:0 0 10px #e9b84480}
+.abyss-rate-reminder[hidden]{display:none!important}
+.abyss-rate-reminder{display:grid;gap:11px;margin:12px 0 13px;padding:13px 15px;
+ border:1px solid #526e6a;border-radius:12px;background:linear-gradient(140deg,#0d2c34,#061922);
+ box-shadow:inset 0 1px #ffffff1b,0 0 23px #38cec423;color:#deeff1;font:13px/1.45 system-ui}
+.abyss-rate-copy strong{font-size:15px;color:#f5fff8}
+.abyss-rate-copy strong span{color:#f7cf62;margin-right:5px}
+.abyss-rate-copy p{margin:3px 0 0!important}
+.abyss-rate-actions{display:flex;flex-wrap:wrap;gap:7px}
+.abyss-rate-actions button{flex:1 1 125px;min-height:43px;padding:8px;
+ border:1px solid #567b79;border-radius:8px;background:#13313a;color:#d7eff1;font:700 12px system-ui;cursor:pointer}
+.abyss-rate-actions button:first-child{background:#d6b756;border-color:#f3d785;color:#14262a}
+.abyss-rate-actions button:focus-visible{outline:2px solid #c2fff0;outline-offset:2px}
+#menuScreen #loginBtn.abyss-attention,#menuScreen #hubNoticesBtn.abyss-attention,
+#submarineWorkshop [data-cockpit-proxy="notifBtn"].abyss-attention{
+ animation:abyss-attention 2.5s ease-in-out infinite!important;border-color:#6de7d8!important;
+}
+@keyframes abyss-attention{0%,100%{box-shadow:0 0 0 1px #3f8b8470,0 0 7px #31c9bc30}
+ 50%{box-shadow:0 0 0 2px #8cf1de,0 0 18px 3px #2bd6c798;filter:brightness(1.12)}}
+@media(prefers-reduced-motion:reduce){
+ #menuScreen #loginBtn.abyss-attention,#menuScreen #hubNoticesBtn.abyss-attention,
+ #submarineWorkshop [data-cockpit-proxy="notifBtn"].abyss-attention{animation:none!important;box-shadow:0 0 0 2px #74dccd!important}
+}
