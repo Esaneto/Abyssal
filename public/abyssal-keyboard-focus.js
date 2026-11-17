@@ -67,7 +67,9 @@
    html.style.setProperty('--abyssal-ime-top',view.top+'px');
    let rect=field.getBoundingClientRect(),delta=distanceToVisible(rect,view,22);
    if(Math.abs(delta)>1){
-    if(!scrollClosest(field,delta,doc,win))field.scrollIntoView?.({block:'center',inline:'nearest',behavior:'instant'});
+    // Only scroll a genuine form container. Scrolling the page or a fixed
+    // cockpit with scrollIntoView can push the entire editor behind the IME.
+    scrollClosest(field,delta,doc,win);
     rect=field.getBoundingClientRect();delta=distanceToVisible(rect,view,22);
    }
    const el=getDock();
