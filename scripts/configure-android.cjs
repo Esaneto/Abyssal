@@ -98,11 +98,12 @@ public class AbyssalUpdaterPlugin extends Plugin {
   public void checkPlayUpdate(PluginCall call) {
     AppUpdateManager manager = AppUpdateManagerFactory.create(getContext());
     manager.getAppUpdateInfo().addOnSuccessListener(info -> {
-      boolean available = (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE ||
-          info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS)
-          && info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE);
+      boolean available = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE ||
+          info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS;
       JSObject result = new JSObject();
       result.put("available", available);
+      result.put("immediateAllowed", info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE));
+      result.put("inProgress", info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS);
       result.put("versionCode", info.availableVersionCode());
       call.resolve(result);
     }).addOnFailureListener(error -> call.reject("play-update-check-failed", error));
