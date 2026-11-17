@@ -25,7 +25,13 @@
       event.preventDefault();
       event.stopPropagation();
       pendingNativeClicks.set(button, { id: event.pointerId, at: Date.now() });
-      button.click(); // Run the existing click handler once, on finger-down.
+      if (button.id === 'skinActiveBtn') {
+        // Unlike Q/E, R verifies isTrusted in the game engine. Forward the actual
+        // touchscreen PointerEvent, never a synthetic click with isTrusted=false.
+        global.AbyssalGameHooks?.activateSkinAbilityFromPointer?.(event);
+      } else {
+        button.click(); // Other gameplay controls retain their existing click handlers.
+      }
     }
     function onClickCapture(event) {
       if (!active() || event.isTrusted !== true || event.detail === 0) return;
