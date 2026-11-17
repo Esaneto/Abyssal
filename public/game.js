@@ -934,8 +934,9 @@ function updateNotifBadge() {
 
   const dot = document.getElementById('notifUnreadDot');
   btn.classList.toggle('has-unread', hasUnread);
+  const hubNotices=document.getElementById('hubNoticesBtn');if(hubNotices){hubNotices.classList.toggle('abyss-attention',hasUnread);hubNotices.setAttribute('aria-label',hasUnread?'Avisos: novas notificações':'Avisos');}
   if (dot) dot.hidden = !hasUnread;
-  const cockpit=document.querySelector('[data-cockpit-proxy="notifBtn"]');if(cockpit){cockpit.classList.toggle('has-unread',hasUnread);const indicator=cockpit.querySelector('.cockpit-unread-dot');if(indicator)indicator.hidden=!hasUnread;cockpit.setAttribute('aria-label',hasUnread?'Avisos: novos itens não lidos':'Avisos');}
+  const cockpit=document.querySelector('[data-cockpit-proxy="notifBtn"]');if(cockpit){cockpit.classList.toggle('has-unread',hasUnread);const indicator=cockpit.querySelector('.cockpit-unread-dot');if(indicator)indicator.hidden=!hasUnread;cockpit.setAttribute('aria-label',hasUnread?'Avisos: novos itens não lidos':'Avisos');cockpit.classList.toggle('abyss-attention',hasUnread);}
   btn.setAttribute(
     'aria-label',
     hasUnread ? 'Abrir notificações — há itens não lidos' : 'Abrir notificações'
@@ -1165,7 +1166,10 @@ function openNotifPanel() {
   var panel = document.getElementById('notifPanel');
   if (!panel) return;
   window.AbyssalOnline?.refreshAccount?.();
-  if(window.AbyssalCockpitNavigation?.routeScreen?.('notifPanel'))return;
+  // Mark as read on either embedded cockpit navigation or floating panel.
+  try { localStorage.setItem('abyssalNotificationsLastSeen', String(Date.now())); } catch(e) {}
+  updateNotifBadge();
+  if(window.AbyssalCockpitNavigation?.routeScreen?.('notifPanel')){renderNotifPanel();return;}
   renderNotifPanel();
   panel.hidden = false;
   if(!window.AbyssalCockpitNavigation?.isEmbedded?.('notifPanel'))document.body.style.overflow = 'hidden';
@@ -3744,7 +3748,7 @@ function endGame(reason='death'){
  renderDiveReport(diveReport,true);
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
  renderRunEndPresentation();
- gameState='over';closeDiveSettings();document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
+ gameState='over';closeDiveSettings();document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;window.dispatchEvent(new CustomEvent('abyssal-run-ended',{detail:{duration:elapsed,reason:diveEndReason}}));const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
  renderDiveReport(diveReport,authenticated);
  if(score>bestScore){bestScore=score;localStorage.setItem('abyssalBestScore',String(score));const el=$('bestScore');if(el)el.textContent=bestScore.toLocaleString('pt-BR')}
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));const el=$('bestTime');if(el)el.textContent=fmtTime(bestTime)}
