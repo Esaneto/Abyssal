@@ -6,26 +6,26 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const ASSETS=Object.freeze({
-  playerDeath:{file:'effects/morte_jogador.ogg',gain:.8,group:'critical',priority:103,max:.424},
+  playerDeath:{file:'effects/morte_jogador.ogg',group:'critical',priority:103,max:.424},
   music:{file:'music/musica.mp3',gain:.72,group:'music'},
-  damage:{file:'effects/dano.wav',gain:.66,group:'combat',priority:68,max:.85},
-  pulse:{file:'effects/pulsos.wav',gain:.82,group:'shot',priority:84,max:1.6},
-  dash:{file:'effects/investida.ogg',gain:.76,group:'shot',priority:80,max:1.5},
-  propulsorStart:{file:'effects/investida.ogg',gain:.76,group:'combat',priority:72,max:.85},
-  propulsor:{file:'effects/investida.ogg',gain:.55,group:'loop',priority:67},
-  cloud:{file:'effects/nuvem_toxica.wav',gain:.70,group:'shot',priority:77,max:1.8},
-  bite:{file:'effects/bite.wav',gain:.70,group:'combat',priority:55,max:1.1},
-  boss:{file:'effects/boss_entrance.wav',gain:.92,group:'critical',priority:100},
-  orb:{file:'effects/collect_orb.wav',gain:.62,group:'reward',priority:64,max:1},
-  echo:{file:'effects/eco_da_mare.wav',gain:.78,group:'shot',priority:82,max:1.5},
-  kill:{file:'effects/kill.wav',gain:.68,group:'reward',priority:62,max:1.25},
-  photon:{file:'effects/lanca_de_fotons.wav',gain:.78,group:'shot',priority:82,max:1.35},
-  pierce:{file:'effects/lanca_do_abismo.wav',gain:.78,group:'shot',priority:82,max:1.35},
-  nova:{file:'effects/nova_gravitacional.ogg',gain:.86,group:'shot',priority:88,max:2},
-  beam:{file:'effects/raio_de_fotons.wav',gain:.57,group:'loop',priority:86},
-  repair:{file:'effects/reparar_sub.wav',gain:.67,group:'loop',priority:76},
-  destroyed:{file:'effects/submarino_destruido.ogg',gain:.90,group:'critical',priority:98},
-  electric:{file:'effects/tempestade_eletrica.wav',gain:.79,group:'shot',priority:82,max:1.25}
+  damage:{file:'effects/dano.wav',group:'combat',priority:68,max:.85},
+  pulse:{file:'effects/pulsos.wav',group:'shot',priority:84,max:1.6},
+  dash:{file:'effects/investida.ogg',group:'shot',priority:80,max:1.5},
+  propulsorStart:{file:'effects/investida.ogg',group:'combat',priority:72,max:.85},
+  propulsor:{file:'effects/investida.ogg',group:'loop',priority:67},
+  cloud:{file:'effects/nuvem_toxica.wav',group:'shot',priority:77,max:1.8},
+  bite:{file:'effects/bite.wav',group:'combat',priority:55,max:1.1},
+  boss:{file:'effects/boss_entrance.wav',group:'critical',priority:100},
+  orb:{file:'effects/collect_orb.wav',group:'reward',priority:64,max:1},
+  echo:{file:'effects/eco_da_mare.wav',group:'shot',priority:82,max:1.5},
+  kill:{file:'effects/kill.wav',group:'reward',priority:62,max:1.25},
+  photon:{file:'effects/lanca_de_fotons.wav',group:'shot',priority:82,max:1.35},
+  pierce:{file:'effects/lanca_do_abismo.wav',group:'shot',priority:82,max:1.35},
+  nova:{file:'effects/nova_gravitacional.ogg',group:'shot',priority:88,max:2},
+  beam:{file:'effects/raio_de_fotons.wav',group:'loop',priority:86},
+  repair:{file:'effects/reparar_sub.wav',group:'loop',priority:76},
+  destroyed:{file:'effects/submarino_destruido.ogg',group:'critical',priority:98},
+  electric:{file:'effects/tempestade_eletrica.wav',group:'shot',priority:82,max:1.25}
  });
  const CUES=Object.freeze({'shot-electric':'electric','shot-photon':'photon','shot-pierce':'pierce','shot-echoShot':'echo','shot-nova':'nova','shot-photonRay':'beam','enemy-death':'kill','boss-defeated':'kill','orb':'orb','bite':'bite','boss-entrance':'boss','submarine-destroyed':'destroyed','submarine-repair':'repair','player-hit':'damage','player-death':'playerDeath','enemy-hit':'damage','specimen-hit':'damage','ability-nova':'pulse','ability-dash':'dash','ability-poison':'cloud'});
  function abilityCue(id){const key=String(id||'').replace(/^wildlife-/,'').toLowerCase();if(['push','pulse','bio-shock','gulper-chomp','pressure-impact','rupture-pulse','abyssal-pulse','pressure-pulse'].includes(key))return 'pulse';if(['shot','slowshot','pressure-lance','hypothermic-projectile','colossal-shot'].includes(key))return 'echo';if(['cloud','toxic-cloud','monster-toxic-cloud'].includes(key))return 'cloud';if(key==='dash')return 'dash';return null;}
@@ -34,21 +34,38 @@
  // Separate sound identity from loudness. Measure the active part of each
  // decoded sample once, not in the gameplay/audio hot path.
  const WEAPONS=new Set(['electric','photon','pierce','echo','nova','beam']);
- const MIX=Object.freeze({weaponRms:.25,effectRms:.13,peakCeiling:.94,maxBoost:8,weaponPriority:94});
+ // Consistent active-window loudness across effects and shots. Keep enough
+ // transient headroom for overlapping voices, especially on phone speakers.
+ // This scales playback only: the original sample PCM/music is untouched.
+ const MIX=Object.freeze({effectRms:.09,peakCeiling:.78,maxBoost:3.5,mobileHeadroom:.84,weaponPriority:94});
  function measureSample(buffer,maxDuration){
   const frames=Math.min(buffer.length,Math.max(1,Math.floor((maxDuration||buffer.duration)*buffer.sampleRate)));
   const step=Math.max(1,Math.floor(buffer.sampleRate/12000));
+  const channels=Array.from({length:buffer.numberOfChannels},(_,ch)=>buffer.getChannelData(ch));
+  if(!channels.length)return {peak:0,rms:0,loudness:0};
   let peak=0,sum=0,count=0;
-  for(let ch=0;ch<buffer.numberOfChannels;ch++){
-   const pcm=buffer.getChannelData(ch);
-   for(let i=0;i<frames;i+=step)peak=Math.max(peak,Math.abs(pcm[i]));
+  for(const pcm of channels)for(let i=0;i<frames;i+=step)peak=Math.max(peak,Math.abs(pcm[i]));
+  if(!peak)return {peak:0,rms:0,loudness:0};
+  const gate=Math.max(.0001,peak*.035),windowSize=Math.max(1,Math.round(buffer.sampleRate*.05/step));
+  const levels=[];let power=0,samples=0;
+  for(let i=0;i<frames;i+=step){
+   let framePower=0;
+   for(const pcm of channels){
+    const v=pcm[i];framePower+=v*v;
+    if(Math.abs(v)>=gate){sum+=v*v;count++;}
+   }
+   power+=framePower/channels.length;samples++;
+   if(samples>=windowSize||i+step>=frames){
+    const level=Math.sqrt(power/Math.max(1,samples));
+    // Exclude near-silent tails and the noise floor, not the attack texture.
+    if(level>Math.max(.0008,peak*.012))levels.push(level);
+    power=0;samples=0;
+   }
   }
-  const gate=Math.max(.0001,peak*.035);
-  for(let ch=0;ch<buffer.numberOfChannels;ch++){
-   const pcm=buffer.getChannelData(ch);
-   for(let i=0;i<frames;i+=step){const v=pcm[i];if(Math.abs(v)>=gate){sum+=v*v;count++;}}
-  }
-  return {peak,rms:count?Math.sqrt(sum/count):0};
+  levels.sort((a,b)=>a-b);
+  const rms=count?Math.sqrt(sum/count):0;
+  const loudness=levels.length?levels[Math.min(levels.length-1,Math.floor((levels.length-1)*.8))]:rms;
+  return {peak,rms,loudness};
  }
  // Find the first sustained audible attack in decoded weapon PCM.
  // Ignore isolated clicks, retain a small pre-roll, and never cut more than
@@ -74,14 +91,14 @@
  }
  function normalizedGain(id,buffer){
   if(id==='music')return ASSETS.music.gain;
-  const {peak,rms}=measureSample(buffer,ASSETS[id]?.max);
-  if(!rms||!peak)return 0;
-  const target=WEAPONS.has(id)?MIX.weaponRms:MIX.effectRms;
-  return Math.min(target/rms,MIX.peakCeiling/peak,MIX.maxBoost);
+  const {peak,loudness}=measureSample(buffer,ASSETS[id]?.max);
+  if(!loudness||!peak)return 0;
+  // Match the sustained audible level, not one click or a long silent tail.
+  // A bounded boost avoids lifting hiss on quiet recordings.
+  return Math.min(MIX.effectRms/loudness,MIX.peakCeiling/peak,MIX.maxBoost);
  }
- function voiceGain(id,normalization,space){
-  // Per-call volume is an artistic trim, not a second independent mix.
-  // Preserve distance and stereo while narrowing arbitrary gain differences.
+ function voiceGain(normalization,space){
+  // Keep event-level gain meaningful at every distance, including local shots.
   return normalization*space.attenuation*space.trim;
  }
  // Listener-relative world coordinates. The 2D ocean is mapped to the
@@ -93,7 +110,7 @@
   if(distance>=far)return null;
   const t=clamp((distance-near)/(far-near),0,1);
   const attenuation=weapon?(1-t*t*(3-2*t))/(1+3.8*t*t):1/(1+(distance/(range*.65))**2);
-  const requested=clamp(Number(options.volume??1),0,1),trim=requested===0?0:weapon&&distance<=near?1:.8+.2*requested;
+  const trim=clamp(Number(options.volume??1),0,1);
   const dx=Number(options.dx),dy=Number(options.dy),directional=Number.isFinite(dx)&&Number.isFinite(dy)&&Math.hypot(dx,dy)>1;
   const length=directional?Math.hypot(dx,dy):1;
   const pan=directional?clamp(dx/length,-.95,.95):clamp(Number(options.pan)||0,-.85,.85);
@@ -136,7 +153,9 @@
   const metrics={played:0,overlapped:0,stolen:0,deduplicated:0,inaudible:0,notReady:0,errors:0};
   const clock=()=>env.performance?.now?.()??Date.now();
   const read=(key,def)=>{try{const raw=env.localStorage?.getItem(key);return raw===null||raw===undefined?def:clamp(Number(raw)||0,0,100)/100;}catch{return def;}};
-  let sfxVolume=read('abyssalSfxVolume',.8),musicVolume=read('abyssalMusicVolume',.45);
+  const mobile=env.Capacitor?.getPlatform?.()==='android'||/Android|iPhone|iPad|iPod/i.test(env.navigator?.userAgent||'');
+  const deviceSfxHeadroom=mobile?MIX.mobileHeadroom:1;
+  let sfxVolume=read('abyssalSfxVolume',.15),musicVolume=read('abyssalMusicVolume',.50);
   function smooth(param,value,seconds=.035){if(!ctx||!param)return;const now=ctx.currentTime;try{param.cancelScheduledValues(now);param.setTargetAtTime(value,now,seconds);}catch{param.value=value;}}
   function setup(){
    if(ctx)return true;
@@ -145,7 +164,7 @@
     ctx=new AC({latencyHint:'interactive'});master=ctx.createGain();sfx=ctx.createGain();musicBus=ctx.createGain();
     const limiter=ctx.createDynamicsCompressor();
     limiter.threshold.value=-6;limiter.knee.value=10;limiter.ratio.value=8;limiter.attack.value=.003;limiter.release.value=.12;
-    master.gain.value=muted||hidden?0:1;sfx.gain.value=sfxVolume;musicBus.gain.value=musicVolume;
+    master.gain.value=muted||hidden?0:1;sfx.gain.value=sfxVolume*deviceSfxHeadroom;musicBus.gain.value=musicVolume;
     sfx.connect(master);musicBus.connect(master);master.connect(limiter);limiter.connect(ctx.destination);return true;
    }catch{metrics.errors++;return false;}
   }
@@ -224,7 +243,7 @@
    }
    if(!pan&&typeof ctx.createStereoPanner==='function'){pan=ctx.createStereoPanner();pan.pan.value=space.pan;}
    if(pan){tail.connect(pan);tail=pan;}tail.connect(sfx);
-   const now=ctx.currentTime,amplitude=voiceGain(id,normalizations.get(id)??normalizedGain(id,buffer),space),voice={source,gain,pan,filter,hrtf,id,group:cfg.group,owner:String(options.owner||'world'),priority:priorityFor(id,options),protected:cfg.group==='critical'||Boolean(loopKey&&options.local),key:loopKey,started:clock(),expires:0,updated:0,done:false,stopping:false};
+   const now=ctx.currentTime,amplitude=voiceGain(normalizations.get(id)??normalizedGain(id,buffer),space),voice={source,gain,pan,filter,hrtf,id,group:cfg.group,owner:String(options.owner||'world'),priority:priorityFor(id,options),protected:cfg.group==='critical'||Boolean(loopKey&&options.local),key:loopKey,started:clock(),expires:0,updated:0,done:false,stopping:false};
    const attack=id==='propulsor'?.28:WEAPONS.has(id)?.0015:.006;
    source.onended=()=>cleanVoice(voice);gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(amplitude,now+attack);
    voices.add(voice);
@@ -271,7 +290,7 @@
    if(!space||space.gain<.006){if(old)stopVoice(old);return false;}
    if(old&&!old.stopping){
     old.expires=now+(Number(options.leaseMs)||450);
-    if(now-old.updated>=80){old.updated=now;smooth(old.gain.gain,voiceGain(id,normalizations.get(id)||0,space));if(old.filter)smooth(old.filter.frequency,space.cutoff,.06);if(old.hrtf)placePanner(old.pan,space.direction);else if(old.pan)smooth(old.pan.pan,space.pan);}
+    if(now-old.updated>=80){old.updated=now;smooth(old.gain.gain,voiceGain(normalizations.get(id)||0,space));if(old.filter)smooth(old.filter.frequency,space.cutoff,.06);if(old.hrtf)placePanner(old.pan,space.direction);else if(old.pan)smooth(old.pan.pan,space.pan);}
     return true;
    }
    const b=buffers.get(id);if(!b){load(id);return false;}
@@ -290,10 +309,10 @@
    if(!setup())return false;try{if(ctx.state!=='running')await ctx.resume();}catch{return false;}
    if(ctx.state!=='running')return false;started=true;prewarm();startMusic();return true;
   }
-  function setVolume(channel,value){value=clamp(Number(value)||0,0,1);if(channel==='abyssalMusicVolume'){musicVolume=value;if(ctx&&ctx.currentTime<duckUntil)duck(duckUntil-ctx.currentTime);else smooth(musicBus?.gain,value);}else if(channel==='abyssalSfxVolume'){sfxVolume=value;smooth(sfx?.gain,value);if(!value)stopEffects();}}
+  function setVolume(channel,value){value=clamp(Number(value)||0,0,1);if(channel==='abyssalMusicVolume'){musicVolume=value;if(ctx&&ctx.currentTime<duckUntil)duck(duckUntil-ctx.currentTime);else smooth(musicBus?.gain,value);}else if(channel==='abyssalSfxVolume'){sfxVolume=value;smooth(sfx?.gain,value*deviceSfxHeadroom);if(!value)stopEffects();}}
   function setMuted(value){muted=Boolean(value);smooth(master?.gain,muted||hidden?0:1);if(muted)stopEffects();else if(started)startMusic();}
   function setHidden(value){hidden=Boolean(value);smooth(master?.gain,hidden||muted?0:1);if(hidden)stopEffects();else if(started){if(ctx?.state==='suspended')ctx.resume().catch(()=>{});startMusic();}}
-  function inspect(){return {...metrics,active:voices.size,loops:loops.size,decoded:buffers.size,decodedBytes:[...buffers.values()].reduce((n,b)=>n+b.length*b.numberOfChannels*4,0),loading:loading.size,musicPlaying:Boolean(musicVoice),sfxVolume,musicVolume,state:ctx?.state||'locked'};}
+  function inspect(){return {...metrics,active:voices.size,loops:loops.size,decoded:buffers.size,decodedBytes:[...buffers.values()].reduce((n,b)=>n+b.length*b.numberOfChannels*4,0),loading:loading.size,musicPlaying:Boolean(musicVoice),sfxVolume,musicVolume,mobile,deviceSfxHeadroom,state:ctx?.state||'locked'};}
   env.addEventListener?.('pointerdown',unlock,{capture:true,passive:true});env.addEventListener?.('keydown',unlock,{capture:true});env.addEventListener?.('touchstart',unlock,{capture:true,passive:true});
   env.addEventListener?.('abyssal-volume-change',e=>setVolume(e.detail?.channel,e.detail?.value));
   env.document?.addEventListener?.('visibilitychange',()=>setHidden(env.document.hidden));
