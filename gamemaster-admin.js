@@ -34,13 +34,18 @@ function apply(u,p,c,now=Date.now()){
  u.adminUpdatedAt=now;notice(u,result+'. Motivo: '+reason,now);return {action:a,reason,item,amount:Number.isFinite(amount)?amount:null,hours:Number.isFinite(hours)?hours:null,before,after,result};
 }
 function summary(key,u,online,detail=false){const data={key,nickname:u.nickname,accountId:u.accountId||null,online,energy:Math.max(0,Number(u.energy)||0),warnings:Number(u.chatWarnings)||0,mutedUntil:Number(u.chatMutedUntil)||0,chatBanned:!!u.chatBanned,banned:!!u.adminBanned,suspendedUntil:Number(u.adminSuspendedUntil)||0,rankingExcluded:!!u.adminRankingExcluded,reportCount:Number(u.moderationReportCount)||0};if(detail)Object.assign(data,{ownedSkins:u.ownedSkins||['default'],cosmetics:u.ownedAvatarCosmetics||[],inventory:u.resourceInventory||{},matchHistory:(u.matchHistory||[]).slice(0,10)});return data;}
-function createAdmin({getUsers,isDeveloper,persist,onlineKeys,catalog,onAction,inRoom=key=>onlineKeys().has(key)}){
+function createAdmin({getUsers,isDeveloper,persist,onlineKeys,onlineConnections=()=>0,catalog,onAction,inRoom=key=>onlineKeys().has(key)}){
  let busy=false;
  function attach(socket){socket.on('gamemaster-admin',async(p={},ack)=>{
   const reply=x=>{if(typeof ack==='function')ack(x);},fail=message=>reply({ok:false,message});
   const actor=socket.data.userKey,users=getUsers(),gm=users[actor];
   if(actor!=='gamemaster'||!isDeveloper(gm))return fail('Acesso exclusivo do GameMaster.');
   p=p&&typeof p==='object'?p:{};const op=p.op,key=clean(p.target,80).toLowerCase(),u=Object.hasOwn(users,key)?users[key]:null;
+  if(op==='online'){
+   const keys=[...onlineKeys()].filter(k=>Object.hasOwn(users,k));
+   const sorted=keys.sort((a,b)=>String(users[a].nickname||a).localeCompare(String(users[b].nickname||b),'pt-BR'));
+   return reply({ok:true,total:sorted.length,connections:Math.max(0,Number(onlineConnections())||0),players:sorted.map(k=>({...summary(k,users[k],true),inGame:Boolean(inRoom(k))}))});
+  }
   if(op==='list'){const q=clean(p.query,80).toLowerCase(),offset=Math.max(0,Math.min(100000,Math.floor(Number(p.offset)||0))),online=onlineKeys();const keys=Object.keys(users).filter(k=>k!==actor&&(!q||k.includes(q)||String(users[k].accountId||'').toLowerCase()===q)).sort();return reply({ok:true,total:keys.length,offset,players:keys.slice(offset,offset+30).map(k=>summary(k,users[k],online.has(k)))});}
   if(op==='detail')return u&&key!==actor?reply({ok:true,player:summary(key,u,onlineKeys().has(key),true)}):fail('Jogador não encontrado.');
   if(op==='catalog'){const c=catalog();return reply({ok:true,skins:[...c.skins].filter(x=>x!=='default'),cosmetics:c.cosmetics,resources:c.resources});}
