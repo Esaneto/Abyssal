@@ -935,8 +935,9 @@ function updateNotifBadge() {
   const dot = document.getElementById('notifUnreadDot');
   btn.classList.toggle('has-unread', hasUnread);
   if (dot) dot.hidden = !hasUnread;
-  const hubNotices=document.getElementById('hubNoticesBtn');if(hubNotices){hubNotices.classList.toggle('abyss-attention',hasUnread);hubNotices.setAttribute('aria-label',hasUnread?'Avisos: novas notificações':'Avisos');}
-  const cockpit=document.querySelector('[data-cockpit-proxy="notifBtn"]');if(cockpit){cockpit.classList.toggle('has-unread',hasUnread);const indicator=cockpit.querySelector('.cockpit-unread-dot');if(indicator)indicator.hidden=!hasUnread;cockpit.setAttribute('aria-label',hasUnread?'Avisos: novos itens não lidos':'Avisos');cockpit.classList.toggle('abyss-attention',hasUnread);}
+  btn.classList.toggle('abyss-attention',hasUnread);window.AbyssalAttention?.ensure(btn);
+  const hubNotices=document.getElementById('hubNoticesBtn');if(hubNotices){hubNotices.classList.toggle('abyss-attention',hasUnread);window.AbyssalAttention?.ensure(hubNotices);hubNotices.setAttribute('aria-label',hasUnread?'Avisos: novas notificações':'Avisos');}
+  const cockpit=document.querySelector('[data-cockpit-proxy="notifBtn"]');if(cockpit){cockpit.classList.toggle('has-unread',hasUnread);const indicator=cockpit.querySelector('.cockpit-unread-dot');if(indicator)indicator.hidden=!hasUnread;cockpit.setAttribute('aria-label',hasUnread?'Avisos: novos itens não lidos':'Avisos');cockpit.classList.toggle('abyss-attention',hasUnread);window.AbyssalAttention?.ensure(cockpit);}
   btn.setAttribute(
     'aria-label',
     hasUnread ? 'Abrir notificações — há itens não lidos' : 'Abrir notificações'
