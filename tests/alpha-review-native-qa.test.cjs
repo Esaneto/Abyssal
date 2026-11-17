@@ -18,7 +18,7 @@ test('end-of-dive review offers only with five-minute interval, permanent opt ou
  assert.match(client,/Capacitor\?\.Plugins\?\.AbyssalStore/);
 });
 test('login and unread notices pulse without blocking navigation; embedded notices get marked read',()=>{
- const online=src('public/online.js'),game=src('public/game.js'),css=src('public/abyssal-review.css');
+ const online=src('public/online.js'),game=src('public/game.js'),css=src('public/abyssal-state-signals.css');
  assert.match(online,/btn\.classList\.toggle\('abyss-attention',!authenticated\)/);
  assert.match(game,/hubNotices\.classList\.toggle\('abyss-attention',hasUnread\)/);
  assert.match(game,/cockpit\.classList\.toggle\('abyss-attention',hasUnread\)/);
