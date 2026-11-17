@@ -1,0 +1,40 @@
+/* Keyboard-safe editing on Android WebView and mobile browsers. */
+html.abyssal-handheld.abyssal-ime-visible{
+ --abyssal-edit-height:var(--abyssal-ime-height,100dvh);
+}
+html.abyssal-handheld.abyssal-ime-visible .modal-screen:not([hidden]):not(.abyss-cockpit-embedded):focus-within{
+ position:fixed!important;top:var(--abyssal-ime-top,0px)!important;bottom:auto!important;
+ height:var(--abyssal-ime-height,100dvh)!important;max-height:var(--abyssal-ime-height,100dvh)!important;
+ min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;
+ align-items:flex-start!important;justify-content:center!important;padding:8px 10px!important;
+}
+html.abyssal-handheld.abyssal-ime-visible .modal-screen:not([hidden]):not(.abyss-cockpit-embedded)>.modal-card:focus-within{
+ max-height:calc(var(--abyssal-ime-height,100dvh) - 16px)!important;min-height:0!important;
+ overflow-y:auto!important;scroll-padding:24px!important;overscroll-behavior:contain!important;
+ margin:auto!important;
+}
+html.abyssal-handheld.abyssal-ime-visible #submarineWorkshop.abyss-visor-expanded:focus-within{
+ max-height:var(--abyssal-ime-height,100dvh)!important;
+}
+html.abyssal-handheld.abyssal-ime-visible #submarineWorkshop .abyss-cockpit-console:focus-within{
+ height:var(--abyssal-ime-height,100dvh)!important;max-height:var(--abyssal-ime-height,100dvh)!important;
+}
+html.abyssal-handheld.abyssal-ime-visible #submarineWorkshop .abyss-visor-body:focus-within{
+ min-height:0!important;max-height:calc(var(--abyssal-ime-height,100dvh) - 20px)!important;
+ overflow-y:auto!important;overscroll-behavior:contain!important;scroll-padding:32px!important;
+}
+html.abyssal-handheld.abyssal-ime-visible :is(input,textarea,[contenteditable]):focus{
+ scroll-margin-block:28px!important;outline:2px solid #86f3eb!important;outline-offset:2px!important;
+ caret-color:#c7fffc;
+}
+.abyssal-ime-focus[hidden]{display:none!important}
+.abyssal-ime-focus{
+ position:fixed;left:12px;right:12px;z-index:30000;pointer-events:none;
+ display:flex;flex-direction:column;gap:5px;max-height:88px;overflow:hidden;
+ padding:10px 14px;border:1px solid #74ddd8;border-radius:12px;
+ background:linear-gradient(135deg,#092e39 0%,#03141c 100%);
+ color:#f4ffff;box-shadow:0 9px 26px #000c,0 0 24px #00eee72f;
+}
+.abyssal-ime-focus .abyssal-ime-label{font:750 10px/1.2 system-ui;letter-spacing:.1em;color:#8ae9df;text-transform:uppercase}
+.abyssal-ime-focus .abyssal-ime-preview{font:650 16px/1.4 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(prefers-reduced-motion:reduce){.abyssal-ime-focus{animation:none!important}}
