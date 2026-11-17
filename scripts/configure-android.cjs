@@ -368,6 +368,37 @@ public class AbyssalCommunityPlugin extends Plugin {
 }
 `);
 
+fs.writeFileSync(path.join(javaDir,'AbyssalStorePlugin.java'),`package com.esaneto.abyssal;
+
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.net.Uri;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+@CapacitorPlugin(name = "AbyssalStore")
+public class AbyssalStorePlugin extends Plugin {
+  @PluginMethod public void openListing(PluginCall call) {
+    getActivity().runOnUiThread(() -> {
+      try {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.esaneto.abyssal"));
+        intent.setPackage("com.android.vending");
+        getActivity().startActivity(intent);
+        call.resolve();
+      } catch (Exception ignored) {
+        try {
+          Intent web = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.esaneto.abyssal"));
+          getActivity().startActivity(web);
+          call.resolve();
+        } catch (Exception e) { call.reject("Play Store unavailable"); }
+      }
+    });
+  }
+}
+`);
+
 const java=path.join(javaDir,'MainActivity.java');
 if(fs.existsSync(java)){
  const src=`package com.esaneto.abyssal;
@@ -410,6 +441,7 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(AbyssalUpdaterPlugin.class);
     registerPlugin(AbyssalFullscreenPlugin.class);
     registerPlugin(AbyssalCommunityPlugin.class);
+    registerPlugin(AbyssalStorePlugin.class);
     super.onCreate(savedInstanceState);
     immersive = getPreferences(MODE_PRIVATE).getBoolean("abyssalImmersive", true);
     Window window = getWindow();
@@ -447,7 +479,14 @@ public class MainActivity extends BridgeActivity {
         view.setPadding(0, 0, 0, 0);
         return insets;
       }
-      view.setPadding(safe.left, safe.top, safe.right, Math.max(safe.bottom, ime.bottom));
+      // When the keyboard is visible, forwarding IME insets to WebView lets
+      // Chromium calculate the real visualViewport. Applying ime.bottom as
+      // parent padding AND consuming it double-shrinks the installed APK.
+      if (keyboardVisible) {
+        view.setPadding(safe.left, safe.top, safe.right, 0);
+        return insets;
+      }
+      view.setPadding(safe.left, safe.top, safe.right, safe.bottom);
       return WindowInsetsCompat.CONSUMED;
     });
     applySystemBars();

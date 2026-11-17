@@ -396,7 +396,7 @@ const TITLE_DEFINITIONS=[
  }
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
  function migrateEnergy(u){if(!u)return;if(!Number.isFinite(Number(u.energy)))u.energy=Math.max(0,Math.floor((Number(u.coins)||0)/10));else u.energy=Math.max(0,Math.floor(Number(u.energy)));delete u.coins;}
- function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return { adminNotices:GMAdmin.notices(u), cardumeInvites:CardumeInvites.publicInvites(u,users,cardumes,{blocked:GMAdmin.blocked}), likedProfiles:u.likedProfiles.slice(), canInviteCardume:Boolean(cardumes[u.cardumeId]?.open&&cardumes[u.cardumeId]?.leader===u.nickname&&!GMAdmin.blocked(u)&&!u.chatBanned&&!(Number(u.chatMutedUntil)>Date.now())), wheel:wheelDailyStatus(u), nickname: u.nickname, role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), hudLayout:HudLayout.normalize(u.hudLayout),hudLayoutRevision:Math.max(0,Number(u.hudLayoutRevision)||0), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), metaUpgrades: ResearchSystem.sanitizeLegacyActives(u.metaUpgrades), researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return { adminNotices:GMAdmin.notices(u), cardumeInvites:CardumeInvites.publicInvites(u,users,cardumes,{blocked:GMAdmin.blocked}), likedProfiles:u.likedProfiles.slice(), canInviteCardume:Boolean(cardumes[u.cardumeId]?.open&&cardumes[u.cardumeId]?.leader===u.nickname&&!GMAdmin.blocked(u)&&!u.chatBanned&&!(Number(u.chatMutedUntil)>Date.now())), wheel:wheelDailyStatus(u), nickname: u.nickname, role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), hudLayout:HudLayout.normalize(u.hudLayout),hudLayoutRevision:Math.max(0,Number(u.hudLayoutRevision)||0), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), alphaFinCredits:Math.max(0,Math.min(1,Number(u.alphaFinCredits)||0)), metaUpgrades: ResearchSystem.sanitizeLegacyActives(u.metaUpgrades), researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];normalizeHallTitle(u);return {nickname:u.nickname,isDeveloper:isDeveloperUser(u),hallPosition:hallPosition(u),equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)),hudLayout:viewerKey&&(viewer?.blockedUsers.includes(key)||u.blockedUsers.includes(viewerKey))?null:HudLayout.normalize(u.hudLayout),specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
@@ -1772,7 +1772,7 @@ function worldTick() {
 }
 
 function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}
-const gmAdmin=GMAdmin.createAdmin({getUsers:()=>users,isDeveloper:isDeveloperUser,persist:persistAdminUsers,onlineKeys:onlineAccountKeys,inRoom:key=>[...io.sockets.sockets.values()].some(client=>client.data.userKey===key&&client.data.joined),catalog:()=>({skins:allowedSkinIds,cosmetics:AvatarBase.products.filter(p=>p.currency!=='free').map(p=>p.key),resources:Object.keys(ExplorationConfig.RESOURCES)}),onAction:(key,u,record)=>{
+const gmAdmin=GMAdmin.createAdmin({getUsers:()=>users,isDeveloper:isDeveloperUser,persist:persistAdminUsers,onlineKeys:onlineAccountKeys,onlineConnections:()=>io.sockets.sockets.size,inRoom:key=>[...io.sockets.sockets.values()].some(client=>client.data.userKey===key&&client.data.joined),catalog:()=>({skins:allowedSkinIds,cosmetics:AvatarBase.products.filter(p=>p.currency!=='free').map(p=>p.key),resources:Object.keys(ExplorationConfig.RESOURCES)}),onAction:(key,u,record)=>{
  if(['ranking-exclude','ranking-restore','ban','suspend','restore'].includes(record.action))reconcileHallTitles({persist:false});
  for(const client of io.sockets.sockets.values())if(client.data.userKey===key){
   if(['kick','ban','suspend'].includes(record.action)&&client.data.joined){removeFromRoom(client,{announce:true,emitResult:true});client.data.runStats=null;}
@@ -3026,6 +3026,20 @@ io.on('connection', socket => {
   saveUsers();
   try{await flushPersistence();}catch{return reply({ok:false,message:'Não foi possível confirmar o salvamento. Atualize a conta.'});}socket.emit('account-data', publicUser(u));reply({ok:true,account:publicUser(u)});
  });
+ socket.on('claim-alpha-fin',async(payload={},ack)=>{
+  const reply=data=>{if(typeof ack==='function')ack(data);};
+  const u=users[socket.data.userKey];if(!u)return reply({ok:false,message:'Entre na sua conta antes de resgatar a nadadeira.'});
+  const id=String(payload.id||'');const product=AvatarBase.byProduct(id);
+  if(!product||product.slot!=='fins'||product.currency==='free')return reply({ok:false,message:'Escolha uma nadadeira válida do armário.'});
+  if(!(Number(u.alphaFinCredits)>0))return reply({ok:false,message:'Você não possui um prêmio de nadadeira disponível.'});
+  const owned=AvatarBase.normalizeOwned(u.ownedAvatarCosmetics);
+  if(owned.includes(id))return reply({ok:false,message:'Essa nadadeira já pertence à sua coleção. Selecione outra.'});
+  u.alphaFinCredits=0;u.ownedAvatarCosmetics=[...owned,id];
+  saveUsers();
+  try{await flushPersistence();}catch(e){u.alphaFinCredits=1;u.ownedAvatarCosmetics=owned;return reply({ok:false,message:'Falha ao salvar. Tente novamente.'});}
+  const account=publicUser(u);socket.emit('account-data',account);
+  reply({ok:true,account,message:'Nadadeira Alpha desbloqueada permanentemente. Você já pode equipá-la no armário.'});
+ });
  socket.on('purchase-avatar-cosmetic',async(payload={},ack)=>{
   const reply=data=>{if(typeof ack==='function')ack(data);};const u=users[socket.data.userKey];if(!u)return reply({ok:false,message:'Entre na conta para comprar.'});migrateEnergy(u);
   const result=AvatarBase.buyEnergy(String(payload.id||''),u.ownedAvatarCosmetics,u.energy);if(!result.ok)return reply({ok:false,message:result.reason==='energy'?'Energia insuficiente. Você precisa de 2.999 energias.':'Item não disponível por energia.'});
@@ -3045,12 +3059,30 @@ io.on('connection', socket => {
   if ((u.energy || 0) < price) return socket.emit('purchase-result', { ok:false, message:'energia insuficientes.', account:publicUser(u) });
   u.energy -= price; u.ownedSkins = [...(u.ownedSkins || ['default']), id]; u.equippedSkin = id; saveUsers(); socket.emit('purchase-result', { ok:true, message:'Espécime desbloqueado e salvo na conta!', account:publicUser(u) });
  });
- socket.on('redeem-code', payload => {
+ socket.on('redeem-code', async payload => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('code-redeem-result',{ok:false,message:'Entre na sua conta para resgatar este código.'});
   const code=String(payload?.code||'').trim().toLowerCase();
   const welcome=String(process.env.ABYSSAL_WELCOME_CODE||'').trim().toLowerCase();
   const founder=String(process.env.ABYSSAL_FOUNDER_CODE||'vi-o-nascimento-abyssal').trim().toLowerCase();
   u.redeemedPromoIds=Array.isArray(u.redeemedPromoIds)?u.redeemedPromoIds:[];
+  // The promotional phrase is never stored in tracked source. Only a digest is
+  // compiled into the server. Claims are authenticated, persistent and one-time.
+  const alphaDigest='82a7b9a13fd8a7c14f867e70c8a8d56951eaa55d965c7556fab6111eddc99240';
+  const actualDigest=crypto.createHash('sha256').update(code).digest('hex');
+  if(crypto.timingSafeEqual(Buffer.from(actualDigest,'hex'),Buffer.from(alphaDigest,'hex'))){
+   const claimId='alpha-fins-energy-v1';
+   if(u.redeemedPromoIds.includes(claimId))return socket.emit('code-redeem-result',{ok:false,message:'Este prêmio Alpha já foi resgatado nesta conta.'});
+   const previousEnergy=Number(u.energy)||0,previousCredits=Number(u.alphaFinCredits)||0;
+   u.redeemedPromoIds.push(claimId);
+   u.energy=Math.min(999999999,previousEnergy+1000);
+   u.alphaFinCredits=Math.min(1,previousCredits+1);
+   saveUsers();
+   try{await flushPersistence();}catch(e){u.redeemedPromoIds=u.redeemedPromoIds.filter(x=>x!==claimId);u.energy=previousEnergy;u.alphaFinCredits=previousCredits;return socket.emit('code-redeem-result',{ok:false,message:'Não foi possível salvar o prêmio. Tente novamente.'});}
+   const account=publicUser(u);
+   socket.emit('code-redeem-result',{ok:true,coinsAwarded:1000,message:'Teste Alpha: +1.000 Energia e uma nadadeira à sua escolha! Abra CABINE > ARMÁRIO > NADADEIRAS para resgatar.',account});
+   socket.emit('account-data',account);
+   return;
+  }
   if(code==='exclusivoabyssal'){
    const promoId='exclusive-abyssal-skin-choice-v1';
    if(u.redeemedPromoIds.includes(promoId))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi utilizado nesta conta.'});

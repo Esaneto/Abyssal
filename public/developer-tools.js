@@ -6,7 +6,7 @@ function metric(label,id){return '<div class="dev-metric"><small>'+label+'</smal
 function ensure(){
  if(toggle)return;
  toggle=document.createElement('button');toggle.id='developerToolsToggle';toggle.type='button';toggle.textContent='DEV';toggle.title='Ferramentas GameMaster · F10';
- panel=document.createElement('section');panel.id='developerToolsPanel';panel.hidden=true;panel.innerHTML='<div class="dev-panel-head"><strong>GAMEMASTER · DEV</strong><small>F10</small></div><div class="dev-telemetry">'+metric('BUILD','devBuild')+metric('FPS','devFps')+metric('MODO','devMode')+metric('SALA','devRoom')+metric('HP','devHp')+metric('POSIÇÃO','devPosition')+metric('INIMIGOS','devEnemies')+metric('BOSSES','devBosses')+metric('ENERGIA','devEnergy')+metric('PRÓXIMO BOSS','devNextBoss')+'</div><div class="dev-actions"><button data-dev-command="heal">CURAR / REVIVER</button><button data-dev-command="god-mode">INVULNERÁVEL</button><button data-dev-command="grant-energy">+100K ENERGIA</button><button data-dev-command="unlock-specimens">LIBERAR ESPÉCIMES</button><button data-dev-command="max-proficiency">PROFICIÊNCIA MÁX.</button><button data-dev-command="boss-now">FORÇAR BOSS</button><button data-dev-command="clear-enemies" data-danger="1">LIMPAR INIMIGOS</button><button data-dev-command="refresh">ATUALIZAR DADOS</button></div><p id="developerToolsMessage"></p>';
+ panel=document.createElement('section');panel.id='developerToolsPanel';panel.hidden=true;panel.innerHTML='<div class="dev-panel-head"><strong>GAMEMASTER · DEV</strong><small>F10</small></div><div class="dev-telemetry">'+metric('BUILD','devBuild')+metric('FPS','devFps')+metric('MODO','devMode')+metric('SALA','devRoom')+metric('HP','devHp')+metric('POSIÇÃO','devPosition')+metric('INIMIGOS','devEnemies')+metric('BOSSES','devBosses')+metric('ENERGIA','devEnergy')+metric('JOGADORES ONLINE','devOnline')+metric('PRÓXIMO BOSS','devNextBoss')+'</div><div class="dev-actions"><button data-dev-command="heal">CURAR / REVIVER</button><button data-dev-command="god-mode">INVULNERÁVEL</button><button data-dev-command="grant-energy">+100K ENERGIA</button><button data-dev-command="unlock-specimens">LIBERAR ESPÉCIMES</button><button data-dev-command="max-proficiency">PROFICIÊNCIA MÁX.</button><button data-dev-command="boss-now">FORÇAR BOSS</button><button data-dev-command="clear-enemies" data-danger="1">LIMPAR INIMIGOS</button><button data-dev-command="refresh">ATUALIZAR DADOS</button></div><p id="developerToolsMessage"></p>';
  document.body.append(toggle,panel);message=panel.querySelector('#developerToolsMessage');buildAdmin();
  toggle.addEventListener('click',()=>setOpen(panel.hidden));
  panel.addEventListener('click',e=>{const b=e.target.closest('[data-dev-command]');if(b)runCommand(b.dataset.devCommand,b)});
@@ -36,6 +36,7 @@ async function refresh(){
  put('devBosses',w?.bosses??local.bosses??0);
  put('devEnergy',a?Number(a.energy||0).toLocaleString('pt-BR'):'-');
  put('devNextBoss',w?Math.max(0,w.nextBossIn)+'s':'-');
+ if(active&&panel&&!panel.hidden){const online=await root.AbyssalOnlineDev?.admin?.({op:'online'});if(online?.ok)put('devOnline',online.total);}
 }
 async function runCommand(command,button){
  if(command==='refresh'){await refresh();return}
@@ -60,9 +61,18 @@ async function api(p){try{return await root.AbyssalOnlineDev.admin(p)}catch{retu
 function clearAdmin(){epoch++;request=null;if(body)body.replaceChildren();if(adminRoot)adminRoot.hidden=true}
 function buildAdmin(){
  const open=button('CENTRAL DE COMANDO',()=>{adminRoot.hidden=!adminRoot.hidden;if(!adminRoot.hidden)show('players')});open.className='gm-admin-open';panel.append(open);
- adminRoot=node('section',undefined,'gm-admin');adminRoot.hidden=true;const nav=node('div',undefined,'gm-nav');for(const [id,t] of [['players','Jogadores'],['reports','Denúncias'],['chat','Chat'],['audit','Auditoria']])nav.append(button(t,()=>show(id)));statusEl=node('p','');statusEl.setAttribute('role','status');body=node('div');adminRoot.append(nav,statusEl,body);panel.append(adminRoot)
+ adminRoot=node('section',undefined,'gm-admin');adminRoot.hidden=true;const nav=node('div',undefined,'gm-nav');for(const [id,t] of [['online','Online'],['players','Jogadores'],['reports','Denúncias'],['chat','Chat'],['audit','Auditoria']])nav.append(button(t,()=>show(id)));statusEl=node('p','');statusEl.setAttribute('role','status');body=node('div');adminRoot.append(nav,statusEl,body);panel.append(adminRoot)
 }
 async function show(v){view=v;const token=++epoch;body.replaceChildren();status('Carregando…');
+ if(v==='online'){
+  const r=await api({op:'online'});if(token!==epoch)return;
+  if(!r.ok)return status(r.message||'Não foi possível consultar jogadores online.');
+  status(r.total+' conta(s) online · '+r.connections+' conexão(ões) abertas.');put('devOnline',r.total);
+  const update=button('ATUALIZAR ONLINE',()=>show('online'));update.className='gm-admin-open';body.append(update);
+  if(!r.players.length)body.append(node('p','Nenhuma conta autenticada online.'));
+  for(const p of r.players){const card=node('article',undefined,'gm-card');card.append(node('strong',p.nickname),node('p',p.inGame?'Em partida':'Conectado no menu'),node('small','Conta: '+(p.accountId||p.key)),button('GERENCIAR',()=>player(p.key)));body.append(card)}
+  return;
+ }
  if(v==='players'){const q=node('input'),list=node('div'),nav=node('div',undefined,'gm-nav');q.placeholder='Nickname ou ID';q.setAttribute('aria-label','Buscar jogador');let offset=0;const load=async()=>{const r=await api({op:'list',query:q.value,offset});if(token!==epoch)return;list.replaceChildren();if(!r.ok)return status(r.message);status(r.total+' jogador(es).');for(const p of r.players){const b=button(p.nickname+' · '+(p.online?'online':'offline')+' · '+p.energy.toLocaleString('pt-BR')+' energia',()=>player(p.key));b.className='gm-player';list.append(b)}const pg=node('div',undefined,'gm-nav');if(offset>0)pg.append(button('Anterior',()=>{offset-=30;load()}));if(offset+30<r.total)pg.append(button('Próxima',()=>{offset+=30;load()}));list.append(pg)};nav.append(q,button('Buscar',()=>{offset=0;load()}));q.onkeydown=e=>{if(e.key==='Enter'){offset=0;load()}};body.append(nav,list);return load()}
  if(v==='audit'){const r=await api({op:'audit'});if(token!==epoch)return;if(!r.ok)return status(r.message);let chat=[];try{const cr=await root.AbyssalOnlineDev.chatAudit();if(cr.ok)chat=cr.rows.map(a=>({id:a.audit_id,nickname:a.message_nickname||'Chat',result:'Chat: '+a.action,reason:a.note,at:new Date(a.created_at).getTime()}))}catch{}if(token!==epoch)return;const rows=[...r.rows,...chat].sort((a,b)=>b.at-a.at);status(rows.length+' ações recentes.');for(const a of rows){const card=node('article',undefined,'gm-card');card.append(node('strong',a.nickname||a.target),node('p',a.result+' · '+a.reason),node('small',new Date(a.at).toLocaleString('pt-BR')+' · '+a.id));body.append(card)}return}
  let r;try{r=v==='chat'?await root.AbyssalOnlineDev.reports():await api({op:'reports'})}catch{return status('Fila indisponível.')}if(token!==epoch)return;if(!r?.ok)return status(r?.message||'Fila indisponível.');const rows=v==='chat'?r.reports:r.rows;status(rows.length+' denúncias pendentes.');
