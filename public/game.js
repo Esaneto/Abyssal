@@ -934,8 +934,8 @@ function updateNotifBadge() {
 
   const dot = document.getElementById('notifUnreadDot');
   btn.classList.toggle('has-unread', hasUnread);
-  const hubNotices=document.getElementById('hubNoticesBtn');if(hubNotices){hubNotices.classList.toggle('abyss-attention',hasUnread);hubNotices.setAttribute('aria-label',hasUnread?'Avisos: novas notificações':'Avisos');}
   if (dot) dot.hidden = !hasUnread;
+  const hubNotices=document.getElementById('hubNoticesBtn');if(hubNotices){hubNotices.classList.toggle('abyss-attention',hasUnread);hubNotices.setAttribute('aria-label',hasUnread?'Avisos: novas notificações':'Avisos');}
   const cockpit=document.querySelector('[data-cockpit-proxy="notifBtn"]');if(cockpit){cockpit.classList.toggle('has-unread',hasUnread);const indicator=cockpit.querySelector('.cockpit-unread-dot');if(indicator)indicator.hidden=!hasUnread;cockpit.setAttribute('aria-label',hasUnread?'Avisos: novos itens não lidos':'Avisos');cockpit.classList.toggle('abyss-attention',hasUnread);}
   btn.setAttribute(
     'aria-label',
