@@ -5260,6 +5260,10 @@ window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Num
 window.addEventListener('abyssal-hit-synergy-visual',event=>{const d=event.detail||{},x1=Number(d.x1)*W,y1=Number(d.y1)*H,x2=Number(d.x2)*W,y2=Number(d.y2)*H;if(![x1,y1,x2,y2].every(Number.isFinite))return;if(d.type==='ricochet-line')queueEffect({type:'ricochet-line',x1,y1,x2,y2,life:.18,maxLife:.18,color:'#f7ff19',width:3.4/GAME_WORLD_ZOOM});else if(d.type==='electric-arc')queueEffect({type:'electric-arc',x1,y1,x2,y2,seed:Number(d.seed)||performance.now(),life:.22,maxLife:.22,color:'#31eaff',width:4.2/GAME_WORLD_ZOOM});});
 window.addEventListener('abyssal-remote-photon-stop',event=>{const fromId=String(event.detail?.fromId||'');if(!fromId)return;stopAudioLoop('beam','remote:'+fromId);for(const fx of effects)if(fx.type==='photon-ray'&&fx.remoteBeamKey===fromId)fx.life=Math.min(fx.life,.06);});
 window.AbyssalGameHooks={
+ // The Android multi-touch bridge passes the original trusted pointer event.
+ // R must never be invoked through button.click(): that creates an untrusted event.
+ activateSkinAbilityFromPointer:event=>Boolean(event?.isTrusted===true&&event.type==='pointerdown'&&
+   (event.pointerType==='touch'||event.pointerType==='pen')&&event.target?.closest?.('#skinActiveBtn')&&activateSkinAbility(event)),
  browserUpdateBlocked:()=>gameState!=='menu',
  notifyBrowserUpdate:()=>showToast('NOVA VERSÃO · ATUALIZAÇÃO AO RETORNAR AO MENU'),
  captureUpdateRun:()=>onlineMode&&player?{upgrades:{...upgrades},upgradeLevels:{...upgradeLevels},chosen:[...chosen],runShotId,runResonanceIds:[...runResonanceIds]}:null,
