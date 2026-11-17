@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-17-mobile-multitouch-v274';
+const VERSION = '2026-11-17-android-keyboard-tutorial-v275';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -42,7 +42,7 @@ const GAME_FILES = [
   'age-slider.js',
   'age-slider.css',
   'mobile-portrait.js',
-  'mobile-portrait.css','abyssal-responsive-v247.css',
+  'mobile-portrait.css','abyssal-responsive-v247.css','abyssal-keyboard-focus.css','abyssal-keyboard-focus.js','abyssal-onboarding-spotlight.css',
   'abyssal-ocean-cinema.svg',
   'ocean-entry.svg',
   'abyssal-tentacle-cursor.svg',
