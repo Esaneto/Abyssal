@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-17-review-gm-native-ime-v277';
+const VERSION = '2026-11-17-neon-ranking-rewards-v278';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -13,6 +13,7 @@ const GAME_FILES = [
   'abyssal-menu-v2.css',
   'abyssal-discord-community.css','abyssal-discord-community.js',
   'abyssal-review.js','abyssal-review.css',
+  'abyssal-attention.js','abyssal-state-signals.css','abyssal-ranking-rewards.css',
   'abyssal-menu-navigation.css',
   'abyssal-lab-menu.css',
   'abyssal-submarine-laboratory.css',
