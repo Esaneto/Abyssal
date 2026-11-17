@@ -3758,7 +3758,7 @@ function endGame(reason='death'){
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));const el=$('bestTime');if(el)el.textContent=fmtTime(bestTime)}
  $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'EXPEDIÇÃO ENCERRADA · SEM PENALIDADE DE SAQUE'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');if(player)burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);if(diveEndReason!=='death')settleDiveReport();else if(onlineMode){const current=diveReport;window.AbyssalOnline?.previewRunReport?.(result=>{if(gameState!=='over'||diveReport!==current||diveSettling||diveSettled)return;diveReport={...diveReport,...result,survival:current.survival};renderDiveReport(diveReport,true);});}
 }
-const DIVE_VOLUME_FIELDS=[['diveSfxVolume','diveSfxValue','abyssalSfxVolume',80],['diveMusicVolume','diveMusicValue','abyssalMusicVolume',45]];
+const DIVE_VOLUME_FIELDS=[['diveSfxVolume','diveSfxValue','abyssalSfxVolume',15],['diveMusicVolume','diveMusicValue','abyssalMusicVolume',50]];
 function syncDiveVolumeSettings(){
  for(const [id,out,key,fallback] of DIVE_VOLUME_FIELDS){
   let value=fallback;try{const stored=localStorage.getItem(key);if(stored!==null&&Number.isFinite(Number(stored)))value=clamp(Number(stored),0,100);}catch{}
