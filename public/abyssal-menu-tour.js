@@ -27,7 +27,7 @@ function markSeen(){autoOff=true;try{localStorage.setItem(KEY,'1');}catch{}autoO
 function create(){
  if(overlay)return;
  overlay=document.createElement('section');overlay.id='abyssalMenuTour';overlay.hidden=true;overlay.setAttribute('role','presentation');
- overlay.innerHTML='<div class="amt-spot" aria-hidden="true"></div><article class="amt-card" role="dialog" aria-modal="true" aria-labelledby="amtTitle" aria-describedby="amtCopy" tabindex="-1"><div class="amt-kicker">GUIA DA CABINE</div><div class="amt-counter" aria-live="polite"></div><progress value="1" max="12" aria-label="Progresso do tutorial"></progress><h2 id="amtTitle"></h2><p id="amtCopy"></p><div class="amt-actions"><button class="amt-prev" type="button">Voltar</button><button class="amt-next" type="button">Próximo</button><button class="amt-skip" type="button">Pular tutorial</button></div></article>';
+ overlay.innerHTML='<div class="amt-spot" aria-hidden="true"></div><span class="amt-arrow" aria-hidden="true">➤</span><article class="amt-card" role="dialog" aria-modal="true" aria-labelledby="amtTitle" aria-describedby="amtCopy" tabindex="-1"><div class="amt-kicker">GUIA DA CABINE</div><div class="amt-counter" aria-live="polite"></div><progress value="1" max="12" aria-label="Progresso do tutorial"></progress><h2 id="amtTitle"></h2><p id="amtCopy"></p><p class="amt-instruction">Siga a luz e avance quando compreender esta etapa.</p><div class="amt-actions"><button class="amt-prev" type="button">Voltar</button><button class="amt-next" type="button">Próximo</button><button class="amt-skip" type="button">Pular tutorial</button></div></article>';
  document.body.append(overlay);card=overlay.querySelector('.amt-card');spot=overlay.querySelector('.amt-spot');
  overlay.querySelector('.amt-prev').onclick=()=>show(idx-1);
  overlay.querySelector('.amt-next').onclick=()=>idx===STEPS.length-1?close():show(idx+1);
@@ -52,13 +52,14 @@ function place(){
  const candidates=[[right+gap,(top+bottom-ch)/2],[left-cw-gap,(top+bottom-ch)/2],[(left+right-cw)/2,bottom+gap],[(left+right-cw)/2,top-ch-gap]];
  const options=candidates.map(([x,y])=>{x=clamp(x,12,w-cw-12);y=clamp(y,12,h-ch-12);const overlap=Math.max(0,Math.min(x+cw,right)-Math.max(x,left))*Math.max(0,Math.min(y+ch,bottom)-Math.max(y,top));return {x,y,overlap};}).sort((a,b)=>a.overlap-b.overlap);
  card.style.left=options[0].x+'px';card.style.top=options[0].y+'px';
+ const arrow=overlay.querySelector('.amt-arrow');if(arrow){const nearRight=right+52<w,ax=nearRight?right+12:Math.max(4,left-35);arrow.style.left=ax+'px';arrow.style.top=clamp((top+bottom)/2-16,16,h-44)+'px';arrow.style.rotate=nearRight?'0deg':'180deg';}
 }
 function queuePlace(){if(active&&!raf)raf=requestAnimationFrame(place);}
 function show(n){
  idx=Math.max(0,Math.min(STEPS.length-1,n));const step=STEPS[idx];prepare(step);
  card.querySelector('#amtTitle').textContent=step.title;card.querySelector('#amtCopy').textContent=step.copy;const lang=root.AbyssalI18n?.getLanguage?.()||'pt';card.querySelector('.amt-counter').textContent=(lang==='en'?'Step ':lang==='es'?'Etapa ':'Etapa ')+(idx+1)+(lang==='en'?' of ':' de ')+STEPS.length;const progress=card.querySelector('progress');progress.max=STEPS.length;progress.value=idx+1;
  const prev=card.querySelector('.amt-prev'),next=card.querySelector('.amt-next');prev.disabled=idx===0;next.textContent=idx===STEPS.length-1?'Concluir':'Próximo';
- const target=document.querySelector(step.target);if(target&&visible(target))target.scrollIntoView?.({block:'nearest',inline:'nearest'});queuePlace();next.focus({preventScroll:true});
+ const target=document.querySelector(step.target);if(target&&visible(target))target.scrollIntoView?.({block:'nearest',inline:'nearest'});queuePlace();const current=idx;root.setTimeout?.(()=>{if(active&&idx===current)queuePlace();},140);next.focus({preventScroll:true});
 }
 function open(from='exterior',full=false){
  if(active||document.body.classList.contains('game-active')||!root.AbyssalCockpitNavigation)return false;
