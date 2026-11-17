@@ -38,3 +38,54 @@ html.abyssal-handheld.abyssal-ime-visible :is(input,textarea,[contenteditable]):
 .abyssal-ime-focus .abyssal-ime-label{font:750 10px/1.2 system-ui;letter-spacing:.1em;color:#8ae9df;text-transform:uppercase}
 .abyssal-ime-focus .abyssal-ime-preview{font:650 16px/1.4 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(prefers-reduced-motion:reduce){.abyssal-ime-focus{animation:none!important}}
+
+
+/* Android IME v2: the cockpit is a fixed viewport, not an inset menu.
+   The keyboard changes visualViewport, but the old top/bottom inset and
+   82dvh sizing could collapse the visor and clip the text field at the top. */
+html.abyssal-handheld.abyssal-ime-visible body:not(.game-active) #submarineWorkshop.abyss-visor-expanded:focus-within{
+ position:fixed!important;
+ inset:var(--abyssal-ime-top,0px) 0 auto 0!important;
+ height:var(--abyssal-ime-height,100dvh)!important;
+ max-height:var(--abyssal-ime-height,100dvh)!important;
+ width:100%!important;min-height:0!important;overflow:hidden!important;
+ transform:none!important;
+}
+html.abyssal-handheld.abyssal-ime-visible body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-cockpit-console:focus-within{
+ position:absolute!important;inset:8px!important;top:8px!important;right:8px!important;
+ bottom:8px!important;left:8px!important;
+ width:calc(100% - 16px)!important;height:calc(100% - 16px)!important;
+ max-width:none!important;max-height:none!important;min-height:0!important;
+ margin:0!important;transform:none!important;box-sizing:border-box!important;
+ display:flex!important;flex-direction:column!important;overflow:hidden!important;
+}
+html.abyssal-handheld.abyssal-ime-visible body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .submarine-workshop-grid{
+ display:flex!important;flex:1 1 0!important;min-height:0!important;
+ width:100%!important;height:100%!important;flex-direction:column!important;
+}
+html.abyssal-handheld.abyssal-ime-visible body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-cockpit-visor{
+ display:flex!important;flex-direction:column!important;flex:1 1 0!important;
+ min-height:0!important;height:100%!important;max-height:100%!important;
+ overflow:hidden!important;
+}
+html.abyssal-handheld.abyssal-ime-visible body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-heading{
+ flex:0 0 auto!important;min-height:42px!important;max-height:58px!important;
+ padding:5px 8px!important;overflow:hidden!important;
+}
+html.abyssal-handheld.abyssal-ime-visible body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-visor-body:focus-within{
+ display:block!important;flex:1 1 0!important;min-height:0!important;
+ max-height:none!important;overflow-x:hidden!important;overflow-y:auto!important;
+ scroll-padding-top:14px!important;scroll-padding-bottom:18px!important;
+ overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch;
+}
+html.abyssal-handheld.abyssal-ime-visible #submarineWorkshop .abyss-visor-scroll-hint{
+ display:none!important;
+}
+html.abyssal-handheld.abyssal-ime-visible #submarineWorkshop .abyss-visor-body :is(input,textarea,[contenteditable]):focus{
+ scroll-margin-top:14px!important;scroll-margin-bottom:14px!important;
+}
+@media(max-height:440px){
+ html.abyssal-handheld.abyssal-ime-visible #submarineWorkshop.abyss-visor-expanded .abyss-visor-heading{
+  min-height:36px!important;max-height:40px!important;
+ }
+}
