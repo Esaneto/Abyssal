@@ -99,9 +99,26 @@
   try{
    let result;
    if(data.platform==='play'){
-    result=await androidBridge().startPlayUpdate();
-    root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização da Google Play concluída ou adiada.');
-    if(status)status.textContent=result?.ok?'Atualização aceita pela Google Play.':'Atualização não concluída. Você pode tentar novamente.';
+    // A Play update is mandatory only on a NEW launch. Never release the game
+    // gate after cancellation or an interrupted immediate update.
+    if(button)button.textContent='ABRINDO GOOGLE PLAY…';
+    if(status)status.textContent='A Google Play fará a atualização e reiniciará o aplicativo. Seu progresso salvo será preservado.';
+    try{
+     result=await androidBridge().startPlayUpdate();
+    }catch(playError){
+     // Play Core can disallow the IMMEDIATE flow for a specific track or
+     // installation. Keep the gate, but provide the official listing as a
+     // safe fallback instead of trapping the player in a failed flow.
+     if(root.Capacitor?.Plugins?.AbyssalStore?.openListing){
+      await root.Capacitor.Plugins.AbyssalStore.openListing();
+      if(status)status.textContent='Abra a atualização na Google Play e reinicie o Abyssal após instalar.';
+      return {ok:false,storeOpened:true};
+     }
+     throw playError;
+    }
+    if(status)status.textContent=result?.ok
+     ?'Atualização iniciada. Aguarde a Google Play instalar e reiniciar o Abyssal.'
+     :'Atualização não concluída. Toque em ATUALIZAR novamente para continuar.';
     return result;
    }
    if(data.platform==='android'&&androidBridge()?.installApk){
@@ -134,8 +151,13 @@
    return {ok:false,fallback:true};
   }catch(error){
    console.error('[Abyssal] Falha ao instalar atualização:',error);
-   root.AbyssalLoadingScreen?.updateError('Não foi possível concluir a atualização. Abrindo a versão instalada.');
-   if(status)status.textContent='Não foi possível concluir a atualização. Verifique a conexão e tente novamente.';
+   if(data.platform==='play'){
+    // Failure cannot expose the outdated version on a mandatory Play launch.
+    if(status)status.textContent='Falha ao abrir a atualização da Google Play. Verifique sua conexão e toque novamente em ATUALIZAR.';
+   }else{
+    root.AbyssalLoadingScreen?.updateError('Não foi possível concluir a atualização. Abrindo a versão instalada.');
+    if(status)status.textContent='Não foi possível concluir a atualização. Verifique a conexão e tente novamente.';
+   }
    return {ok:false,error:String(error?.message||error||'update-failed')};
   }finally{
    try{await progressListener?.remove?.();}catch(_){}
@@ -148,14 +170,16 @@
   if(gameplayBlocked()||installingNative)return false;
   const existing=document.getElementById('abyssalUpdatePrompt');
   if(existing){existing.remove();}
-  const el=document.createElement('section');el.id='abyssalUpdatePrompt';el.className='abyssal-update-prompt';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');
+  const el=document.createElement('section');el.id='abyssalUpdatePrompt';el.className='abyssal-update-prompt';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.dataset.required=data.required?'true':'false';
   const card=document.createElement('div');card.className='abyssal-update-card';
-  const kicker=document.createElement('small');kicker.textContent='ATUALIZAÇÃO DISPONÍVEL';
+  const kicker=document.createElement('small');kicker.textContent=data.required?'ATUALIZAÇÃO OBRIGATÓRIA':'ATUALIZAÇÃO DISPONÍVEL';
   const title=document.createElement('h2');title.textContent=data.platform==='play'?'ABYSSAL · GOOGLE PLAY':'ABYSSAL '+String(data.latestVersion||'');
   const version=document.createElement('p');version.className='abyssal-update-version';version.textContent=data.platform==='play'?'Versão instalada '+String(build.version||'')+' · nova versão na loja':'Versão instalada '+String(build.version||'')+' → '+String(data.latestVersion||'');
-  const notes=document.createElement('p');notes.textContent=String(data.releaseNotes||'Nova versão disponível.');
+  const notes=document.createElement('p');notes.textContent=data.required&&data.platform==='play'
+   ?'Existe uma nova versão na Google Play. Para continuar jogando, atualize o Abyssal. O progresso dos mergulhos anteriores continua salvo.'
+   :String(data.releaseNotes||'Nova versão disponível.');
   const actions=document.createElement('div');actions.className='abyssal-update-actions';
-  const now=document.createElement('button');now.type='button';now.className='primary-btn';now.dataset.updateNow='';now.textContent='ATUALIZAR AGORA';actions.appendChild(now);
+  const now=document.createElement('button');now.type='button';now.className='primary-btn';now.dataset.updateNow='';now.textContent=data.platform==='play'?'ATUALIZAR PELA GOOGLE PLAY':'ATUALIZAR AGORA';actions.appendChild(now);
   if(!data.required){
    const later=document.createElement('button');later.type='button';later.className='secondary-btn';later.dataset.updateLater='';later.textContent='DEPOIS';actions.appendChild(later);
    later.addEventListener('click',()=>{if(installingNative)return;permissionResume=null;try{sessionStorage.setItem('abyssalUpdateDeferred',String(data.latestVersion||''));}catch(_){}root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização adiada. Abrindo a versão instalada.');el.remove();});
@@ -171,12 +195,17 @@
  }
  let nativeCheckInFlight=null;
  let lastNativeCheckAt=0;
+ // Once the first Play Store availability check has completed, never promote
+ // a newly published update into a blocking prompt during this app session.
+ // The next cold launch rechecks and enforces the new version.
+ let playLaunchChecked=false,playLaunchData=null;
  async function check(force=false){
   if(!native())return checkInner(force);
   if(nativeCheckInFlight)return nativeCheckInFlight;
   if(installingNative)return null;
   if(!force&&document.getElementById('abyssalUpdatePrompt'))return null;
   if(gameplayBlocked())return null;
+  if(!force&&playLaunchChecked&&platform()==='android'&&androidBridge())return playLaunchData;
   if(!force&&Date.now()-lastNativeCheckAt<10000)return null;
   lastNativeCheckAt=Date.now();nativeCheckInFlight=checkInner(force);
   try{return await nativeCheckInFlight;}finally{nativeCheckInFlight=null;}
@@ -187,28 +216,54 @@
    root.AbyssalLoadingScreen?.resolveUpdateGate();
    return browserResult;
   }
-  if(navigator.onLine===false){
-   root.AbyssalLoadingScreen?.status('MODO OFFLINE','Sem internet: usando os arquivos locais. Solo e modos offline continuam disponíveis.','offline',84);
-   root.AbyssalLoadingScreen?.resolveUpdateGate();
-   return null;
-  }
   const p=platform();
   if(p==='android'&&androidBridge()?.getUpdateChannel){
    try{
     const bridge=androidBridge(),channel=await bridge.getUpdateChannel();
     if(channel?.channel==='play'){
-     const play=bridge.checkPlayUpdate?await Promise.race([bridge.checkPlayUpdate(),delay(6500).then(()=>null)]):null;
+     if(playLaunchChecked&&!force){
+      root.AbyssalLoadingScreen?.resolveUpdateGate();
+      return playLaunchData;
+     }
+     const isColdLaunch=!playLaunchChecked;
+     playLaunchChecked=true;
+     if(navigator.onLine===false){
+      root.AbyssalLoadingScreen?.status('MODO OFFLINE','Sem conexão, não foi possível consultar a Google Play. A verificação será feita na próxima abertura.','offline',84);
+      root.AbyssalLoadingScreen?.resolveUpdateGate();
+      return null;
+     }
+     // Play Core is the only authority for updates in Play-installed builds.
+     // No server version or sideload APK is used to force an upgrade.
+     const play=bridge.checkPlayUpdate?await Promise.race([
+      bridge.checkPlayUpdate(),
+      delay(6500).then(()=>null)
+     ]):null;
      if(play?.available){
       const version='play-'+String(play.versionCode||'available');
-      let deferred='';try{deferred=sessionStorage.getItem('abyssalUpdateDeferred')||'';}catch(_){}
-      const data={ok:true,platform:'play',latestVersion:version,required:false,releaseNotes:'Uma nova versão oficial está disponível na Google Play.'};
-      if(force||deferred!==version){root.AbyssalLoadingScreen?.resolveUpdateGate();modal(data);}
-      else root.AbyssalLoadingScreen?.resolveUpdateGate();
+      const data={ok:true,platform:'play',latestVersion:version,
+       required:isColdLaunch,releaseNotes:'Uma nova versão oficial está disponível na Google Play.'};
+      playLaunchData=data;
+      root.AbyssalLoadingScreen?.resolveUpdateGate();
+      if(!gameplayBlocked()&&(isColdLaunch||force))modal(data);
       return data;
      }
-     root.AbyssalLoadingScreen?.resolveUpdateGate();return {ok:true,platform:'play',latestVersion:build.version};
+     playLaunchData={ok:true,platform:'play',latestVersion:build.version,available:false};
+     root.AbyssalLoadingScreen?.resolveUpdateGate();
+     return playLaunchData;
     }
-   }catch(_){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
+   }catch(error){
+    // Fail open for unavailable Play services/network; do not lock offline
+    // players behind a prompt that cannot perform an installation.
+    playLaunchChecked=true;
+    console.warn('[Abyssal] Não foi possível consultar Google Play:',error?.message||error);
+    root.AbyssalLoadingScreen?.resolveUpdateGate();
+    return null;
+   }
+  }
+  if(navigator.onLine===false){
+   root.AbyssalLoadingScreen?.status('MODO OFFLINE','Sem internet: usando os arquivos locais. Solo e modos offline continuam disponíveis.','offline',84);
+   root.AbyssalLoadingScreen?.resolveUpdateGate();
+   return null;
   }
   if(!p){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
   const base=server();if(!/^https:\/\//i.test(base)){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
