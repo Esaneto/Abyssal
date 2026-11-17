@@ -1174,9 +1174,6 @@ function openNotifPanel() {
   renderNotifPanel();
   panel.hidden = false;
   if(!window.AbyssalCockpitNavigation?.isEmbedded?.('notifPanel'))document.body.style.overflow = 'hidden';
-  // Marcar como lidas apenas ao abrir a caixa, removendo o ponto vermelho do sino.
-  try { localStorage.setItem('abyssalNotificationsLastSeen', String(Date.now())); } catch(e) {}
-  updateNotifBadge();
 }
 
 function closeNotifPanel() {
@@ -1196,6 +1193,12 @@ function initNotifSystem() {
       openNotifPanel();
     });
   }
+  // Entrada do menu inicial usa a mesma caixa e marca tudo como visto.
+  var hubNoticesBtn = document.getElementById('hubNoticesBtn');
+  if (hubNoticesBtn) hubNoticesBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openNotifPanel();
+  });
   // Botão de fechar dentro do painel
   var closeBtn = document.getElementById('notifPanelClose');
   if (closeBtn) {
