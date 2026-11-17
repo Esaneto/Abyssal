@@ -29,6 +29,8 @@ test('notifications flash for unread; opening marks as viewed before cockpit rou
   for(const call of ['ensure(hubNotices)','ensure(cockpit)','ensure(btn)'])assert.ok(game.includes('AbyssalAttention?.'+call));
   const open=game.slice(game.indexOf('function openNotifPanel()'),game.indexOf('function closeNotifPanel()'));
   assert.ok(open.indexOf('abyssalNotificationsLastSeen')<open.indexOf("routeScreen?.('notifPanel')"));
+  const handlers=game.slice(game.indexOf('function initNotifSystem()'),game.indexOf('// User-supplied audio only'));
+  assert.match(handlers,/hubNoticesBtn\.addEventListener\('click'/);
 });
 test('lightweight indicator cannot steal touch or add textual noise',()=>{
   const mockDocument={createElement:()=>({className:'',setAttribute(n,v){this[n]=v}})};
