@@ -935,8 +935,9 @@ function updateNotifBadge() {
   const dot = document.getElementById('notifUnreadDot');
   btn.classList.toggle('has-unread', hasUnread);
   if (dot) dot.hidden = !hasUnread;
-  const hubNotices=document.getElementById('hubNoticesBtn');if(hubNotices){hubNotices.classList.toggle('abyss-attention',hasUnread);hubNotices.setAttribute('aria-label',hasUnread?'Avisos: novas notificações':'Avisos');}
-  const cockpit=document.querySelector('[data-cockpit-proxy="notifBtn"]');if(cockpit){cockpit.classList.toggle('has-unread',hasUnread);const indicator=cockpit.querySelector('.cockpit-unread-dot');if(indicator)indicator.hidden=!hasUnread;cockpit.setAttribute('aria-label',hasUnread?'Avisos: novos itens não lidos':'Avisos');cockpit.classList.toggle('abyss-attention',hasUnread);}
+  btn.classList.toggle('abyss-attention',hasUnread);window.AbyssalAttention?.ensure(btn);
+  const hubNotices=document.getElementById('hubNoticesBtn');if(hubNotices){hubNotices.classList.toggle('abyss-attention',hasUnread);window.AbyssalAttention?.ensure(hubNotices);hubNotices.setAttribute('aria-label',hasUnread?'Avisos: novas notificações':'Avisos');}
+  const cockpit=document.querySelector('[data-cockpit-proxy="notifBtn"]');if(cockpit){cockpit.classList.toggle('has-unread',hasUnread);const indicator=cockpit.querySelector('.cockpit-unread-dot');if(indicator)indicator.hidden=!hasUnread;cockpit.setAttribute('aria-label',hasUnread?'Avisos: novos itens não lidos':'Avisos');cockpit.classList.toggle('abyss-attention',hasUnread);window.AbyssalAttention?.ensure(cockpit);}
   btn.setAttribute(
     'aria-label',
     hasUnread ? 'Abrir notificações — há itens não lidos' : 'Abrir notificações'
@@ -1173,9 +1174,6 @@ function openNotifPanel() {
   renderNotifPanel();
   panel.hidden = false;
   if(!window.AbyssalCockpitNavigation?.isEmbedded?.('notifPanel'))document.body.style.overflow = 'hidden';
-  // Marcar como lidas apenas ao abrir a caixa, removendo o ponto vermelho do sino.
-  try { localStorage.setItem('abyssalNotificationsLastSeen', String(Date.now())); } catch(e) {}
-  updateNotifBadge();
 }
 
 function closeNotifPanel() {
@@ -1195,6 +1193,12 @@ function initNotifSystem() {
       openNotifPanel();
     });
   }
+  // Entrada do menu inicial usa a mesma caixa e marca tudo como visto.
+  var hubNoticesBtn = document.getElementById('hubNoticesBtn');
+  if (hubNoticesBtn) hubNoticesBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openNotifPanel();
+  });
   // Botão de fechar dentro do painel
   var closeBtn = document.getElementById('notifPanelClose');
   if (closeBtn) {

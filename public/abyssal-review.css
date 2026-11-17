@@ -13,13 +13,4 @@
  border:1px solid #567b79;border-radius:8px;background:#13313a;color:#d7eff1;font:700 12px system-ui;cursor:pointer}
 .abyss-rate-actions button:first-child{background:#d6b756;border-color:#f3d785;color:#14262a}
 .abyss-rate-actions button:focus-visible{outline:2px solid #c2fff0;outline-offset:2px}
-#menuScreen #loginBtn.abyss-attention,#menuScreen #hubNoticesBtn.abyss-attention,
-#submarineWorkshop [data-cockpit-proxy="notifBtn"].abyss-attention{
- animation:abyss-attention 2.5s ease-in-out infinite!important;border-color:#6de7d8!important;
-}
-@keyframes abyss-attention{0%,100%{box-shadow:0 0 0 1px #3f8b8470,0 0 7px #31c9bc30}
- 50%{box-shadow:0 0 0 2px #8cf1de,0 0 18px 3px #2bd6c798;filter:brightness(1.12)}}
-@media(prefers-reduced-motion:reduce){
- #menuScreen #loginBtn.abyss-attention,#menuScreen #hubNoticesBtn.abyss-attention,
- #submarineWorkshop [data-cockpit-proxy="notifBtn"].abyss-attention{animation:none!important;box-shadow:0 0 0 2px #74dccd!important}
-}
+/* Neon status outlines are owned by abyssal-state-signals.css; obsolete teal pulse removed. */

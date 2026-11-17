@@ -1,0 +1,39 @@
+/* An actual overlay child avoids competing with legacy !important button borders,
+ * shadows and :before/:after suppression in the expedition hub. */
+body:not(.game-active) #menuScreen.expedition-hub .hub-more-group button#hubNoticesBtn,
+#menuScreen.expedition-hub .hub-account #loginBtn,
+#submarineWorkshop [data-cockpit-proxy="notifBtn"],#notifBtn{
+ position:relative!important;isolation:isolate;
+}
+#menuScreen #loginBtn > .abyss-neon-frame,
+#menuScreen #hubNoticesBtn > .abyss-neon-frame,
+#submarineWorkshop [data-cockpit-proxy="notifBtn"] > .abyss-neon-frame,
+#notifBtn > .abyss-neon-frame{
+ display:none;position:absolute;inset:0;box-sizing:border-box;
+ border:2px solid #ff244e;border-radius:inherit;pointer-events:none;
+ z-index:2;opacity:0;
+}
+#menuScreen #loginBtn.abyss-attention > .abyss-neon-frame,
+#menuScreen #hubNoticesBtn.abyss-attention > .abyss-neon-frame,
+#submarineWorkshop [data-cockpit-proxy="notifBtn"].abyss-attention > .abyss-neon-frame,
+#notifBtn.abyss-attention > .abyss-neon-frame{
+ display:block!important;animation:abyss-neon-red-blink 1.75s ease-in-out infinite!important;
+}
+@keyframes abyss-neon-red-blink{
+ 0%,100%{opacity:0;box-shadow:0 0 0 #ff245000,inset 0 0 0 #ff245000}
+ 42%,56%{opacity:1;box-shadow:0 0 7px #ff2d55,0 0 17px #ff244e99,inset 0 0 8px #ff244e66}
+}
+#menuScreen #loginBtn.abyss-account-linked > .abyss-neon-frame{
+ display:block!important;opacity:1!important;
+ border-color:#39e5a1!important;
+ box-shadow:0 0 8px #39e5a17a,inset 0 0 5px #39e5a147!important;
+ animation:none!important;
+}
+@media(prefers-reduced-motion:reduce){
+ #menuScreen #loginBtn.abyss-attention > .abyss-neon-frame,
+ #menuScreen #hubNoticesBtn.abyss-attention > .abyss-neon-frame,
+ #submarineWorkshop [data-cockpit-proxy="notifBtn"].abyss-attention > .abyss-neon-frame,
+ #notifBtn.abyss-attention > .abyss-neon-frame{
+   animation:none!important;opacity:1!important;box-shadow:0 0 7px #ff244e88!important;
+ }
+}
