@@ -51,7 +51,7 @@ async function token() {
   if (!json.access_token) throw Error('Google nao retornou token.');
   return json.access_token;
 }
-async function call(access,method,url,body) {
+async function call(access,method,url,body,options={}) {
   const res = await fetch(url,{
     method,headers:{Authorization:'Bearer '+access,...(body ? {'Content-Type':'application/json'} : {})},
     ...(body ? {body:JSON.stringify(body)} : {}),
@@ -63,6 +63,10 @@ async function call(access,method,url,body) {
     throw Error('Google Play HTTP '+res.status+': '+reason);
   }
   const raw = await res.text();
+  if (res.status===204 && method==='GET' && options.allowEmptyList && new URL(url).pathname.endsWith('/oneTimeProducts')) {
+    console.log('Google Play retornou HTTP 204 (sem produtos no inventario consultado).');
+    return {oneTimeProducts:[]};
+  }
   if (!raw.trim()) {
     throw Error('API sem corpo: '+method+' '+new URL(url).pathname+' HTTP '+res.status+'. Nenhum produto foi alterado por esta etapa.');
   }
@@ -74,7 +78,7 @@ async function listing(access) {
   let pageToken;
   do {
     const u = API + '/oneTimeProducts?pageSize=100' + (pageToken ? '&pageToken='+encodeURIComponent(pageToken) : '');
-    const r = await call(access,'GET',u);
+    const r = await call(access,'GET',u,undefined,{allowEmptyList:true});
     all.push(...(r.oneTimeProducts || []));
     pageToken = r.nextPageToken;
   } while (pageToken);
