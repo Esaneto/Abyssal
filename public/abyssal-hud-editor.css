@@ -99,7 +99,7 @@ body.game-active #mobileAimStick.is-firing small{color:#ffd5d8!important}
    wheel. Individual control stacking must never compete with pause. */
 html body.game-active.custom-hud-active #gameShell :is(#mobilePauseBtn,#toggleHudBtn,#skillPulseBtn,#skillDashBtn,#skinActiveBtn,#soloSubmarineRepairBtn,#soloSubmarinePowerBtn,#endDiveBtn){z-index:2!important}
 html body.game-active.custom-hud-active #gameShell > #quickComms:not([hidden]){z-index:3!important}
-html body.game-active.custom-hud-active #gameShell > #quickComms:has(#quickCommsWheel:not([hidden])){z-index:40!important}
+html body.game-active.custom-hud-active #gameShell > #quickComms:has(#quickCommsWheel:not([hidden])){z-index:100!important}
 html body.game-active #gameShell > :is(#pauseScreen,#controlsScreen,#gameOverScreen):not([hidden]){z-index:2147483000!important;isolation:isolate;pointer-events:auto!important}
 html body.game-active:has(#pauseScreen:not([hidden])) #gameShell{z-index:2147482000!important}
 html body.game-active #gameShell:has(> #pauseScreen:not([hidden])) > :is(#quickComms,#mobilePauseBtn,#toggleHudBtn,#hud,#gameplayOverlayRoot,#mobileAimStick,#mobileJoystick,#endDiveBtn){visibility:hidden!important;pointer-events:none!important}
