@@ -1,0 +1,40 @@
+/* Abyssal entrance v2: isolated from cockpit/HUD, responsive in portrait and desktop. */
+#loginScreen.abyss-entry{position:fixed!important;inset:0!important;z-index:9000!important;overflow:auto!important;overscroll-behavior:contain;background:#020912!important;display:grid!important;place-items:center!important;visibility:visible!important;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important;}
+#loginScreen.abyss-entry[hidden]{display:none!important}
+#loginScreen .abyss-entry-shell{position:relative;display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,420px);width:min(100%,980px);height:min(740px,calc(100dvh - 36px));min-height:450px;max-height:920px;border:1px solid #46748a;border-radius:18px;overflow:hidden;background:#071620;box-shadow:0 28px 90px #000e,0 0 0 1px #87f5fa1a;font-family:Inter,system-ui,sans-serif;color:#e5f5f7}
+#loginScreen .abyss-entry-art{position:relative;background:linear-gradient(0deg,#01081199,#04192800 42%),url('abyssal-login-scene.svg') center / cover no-repeat;min-width:0}
+#loginScreen .abyss-entry-art:before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 60%,#071620 100%)}
+#loginScreen .abyss-entry-brand{position:absolute;top:7%;left:7%;right:7%;text-shadow:0 3px 25px #000}
+#loginScreen .abyss-entry-brand strong{display:block;font:700 clamp(40px,5vw,76px)/1 'Cinzel',Georgia,serif;letter-spacing:.13em;color:#ecffff}
+#loginScreen .abyss-entry-brand span{display:block;font:700 10px/1.8 Inter,system-ui,sans-serif;letter-spacing:.29em;color:#88e6df}
+#loginScreen .abyss-entry-legend{position:absolute;left:7%;bottom:7%;right:10%;font-size:12px;line-height:1.7;letter-spacing:.13em;color:#b1d4db;text-transform:uppercase}
+#loginScreen .abyss-entry-legend b{display:block;color:#83f5eb;font-size:10px;letter-spacing:.25em}
+#loginScreen .abyss-entry-panel{position:relative;display:flex;flex-direction:column;justify-content:center;overflow:auto;min-width:0;padding:clamp(22px,3.2vw,44px);background:radial-gradient(circle at 80% 0%,#10425455,transparent 43%),#071620}
+#loginScreen .abyss-entry-indicator{font-size:10px;font-weight:750;letter-spacing:.23em;color:#7cdad9}
+#loginScreen .abyss-entry-heading{margin:12px 0 6px!important;font:700 clamp(24px,2.4vw,34px)/1.25 'Cinzel',Georgia,serif!important;letter-spacing:.05em;color:#f1f8fb}
+#loginScreen .abyss-entry-copy{font-size:12px;line-height:1.5;color:#9cbec8;margin:0 0 17px!important}
+#loginScreen .abyss-entry-tabs{display:grid;grid-template-columns:1fr 1fr;background:#020c15;border:1px solid #1f4a58;border-radius:9px;padding:4px;gap:4px;margin-bottom:13px}
+#loginScreen .abyss-entry-tabs button{border:0;border-radius:6px;background:transparent;color:#83a7b6;height:37px;font:700 11px Inter,system-ui,sans-serif;letter-spacing:.07em;cursor:pointer}
+#loginScreen .abyss-entry-tabs button[aria-selected=true]{background:#125364;color:#ecffff;box-shadow:0 0 16px #39d7e52b}
+#loginScreen .abyss-entry-fields{display:grid;gap:8px;min-width:0}
+#loginScreen .abyss-entry-fields[hidden]{display:none}
+#loginScreen .abyss-entry-fields label{font-size:10px;font-weight:750;letter-spacing:.09em;color:#9bc7d1}
+#loginScreen .abyss-entry-fields input{width:100%!important;min-width:0;box-sizing:border-box;background:#03121c!important;border:1px solid #2b5463!important;color:#edfcff!important;border-radius:7px!important;padding:11px 12px!important;font:500 14px Inter,system-ui,sans-serif!important;min-height:43px!important;box-shadow:none!important}
+#loginScreen .abyss-entry-fields input:focus-visible{outline:2px solid #65eae5;outline-offset:1px}
+#loginScreen .abyss-entry-fields input::placeholder{color:#648997}
+#loginScreen .abyss-entry-terms{display:flex;align-items:flex-start;gap:9px;color:#9ebfc6;font-size:10px;line-height:1.5;margin:7px 0}
+#loginScreen .abyss-entry-terms input{margin-top:2px;accent-color:#48dad4}
+#loginScreen .abyss-entry-terms a{color:#8af0ea;text-decoration:underline}
+#loginScreen .abyss-entry-main{min-height:43px!important;margin-top:10px!important;border:1px solid #5be8e0!important;background:linear-gradient(140deg,#1daab0,#0b596d)!important;color:white!important;letter-spacing:.12em;font:800 12px Inter,system-ui,sans-serif!important;border-radius:8px!important}
+#loginScreen .abyss-entry-google{display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid #3f6d7b!important;background:#081a24!important;color:#e9f7f9!important;font:700 12px Inter,system-ui,sans-serif!important;border-radius:8px!important;min-height:41px!important}
+#loginScreen .abyss-entry-google svg{width:18px;height:18px}
+#loginScreen .abyss-entry-divider{display:flex;align-items:center;gap:10px;color:#6698a6;font-size:10px;margin:11px 0}
+#loginScreen .abyss-entry-divider:before,#loginScreen .abyss-entry-divider:after{content:'';height:1px;background:#224756;flex:1}
+#loginScreen .abyss-entry-footer{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:11px}
+#loginScreen .abyss-entry-footer button{background:none!important;border:0!important;color:#93bbc5!important;font:600 11px Inter,system-ui,sans-serif!important;min-height:32px!important}
+#loginScreen .abyss-entry-footer #loginGuestBtn{color:#7df1e6!important;text-decoration:underline}
+#loginScreen #loginMessage{font:500 11px/1.5 Inter,system-ui,sans-serif!important;min-height:16px;margin:6px 0!important}
+#loginScreen .abyss-entry-test-note{position:absolute;top:12px;right:14px;font-size:9px;color:#749ba5;letter-spacing:.1em}
+@media(max-width:700px){#loginScreen.abyss-entry{padding:0!important;align-items:stretch!important}#loginScreen .abyss-entry-shell{width:100%;height:100dvh;min-height:0;max-height:none;grid-template-columns:1fr;grid-template-rows:minmax(126px,25dvh) minmax(0,1fr);border:0;border-radius:0;overflow:auto}#loginScreen .abyss-entry-art{background-position:center 46%}#loginScreen .abyss-entry-art:before{background:linear-gradient(0deg,#071620,transparent 70%)}#loginScreen .abyss-entry-brand{top:12%;left:6%}#loginScreen .abyss-entry-brand strong{font-size:clamp(31px,8vw,48px)}#loginScreen .abyss-entry-brand span{font-size:8px;letter-spacing:.18em}#loginScreen .abyss-entry-legend{display:none}#loginScreen .abyss-entry-panel{justify-content:flex-start;overflow:visible;padding:12px max(18px,5vw) 28px;min-height:0}#loginScreen .abyss-entry-heading{font-size:23px!important;margin:5px 0!important}#loginScreen .abyss-entry-copy{margin-bottom:9px!important}#loginScreen .abyss-entry-tabs{margin-bottom:8px}#loginScreen .abyss-entry-fields{gap:5px}#loginScreen .abyss-entry-fields input{min-height:38px!important;padding:7px 11px!important}#loginScreen .abyss-entry-main{min-height:39px!important}#loginScreen .abyss-entry-footer{margin-top:4px}}
+@media(max-height:630px) and (min-width:701px){#loginScreen .abyss-entry-shell{height:calc(100dvh - 16px);min-height:0}#loginScreen .abyss-entry-panel{justify-content:flex-start;padding:14px 30px}#loginScreen .abyss-entry-heading{font-size:24px!important;margin:4px 0!important}#loginScreen .abyss-entry-fields{gap:5px}#loginScreen .abyss-entry-copy{margin-bottom:7px!important}}
+@media(prefers-reduced-motion:reduce){#loginScreen *{animation:none!important;transition:none!important}}
