@@ -53,6 +53,7 @@ const { createCardumeChat } = require('./cardume-chat');
 const { registerChatModerationRoutes } = require('./chat-moderation');
 const GMAdmin=require('./gamemaster-admin');
 const {birthBand}=require('./auth-birthdate');
+const {verifyGoogleIdToken}=require('./google-login');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const APP_VERSION=require('./package.json').version;
 const CardumeInvites=require('./cardume-invites');
@@ -102,6 +103,11 @@ app.use((req,res,next)=>/^\/api\/payments\/webhook\/?$/i.test(req.path)?next():j
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
+app.get('/api/auth/google-config',(req,res)=>{
+ res.setHeader('Cache-Control','no-store');
+ const clientId=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
+ res.json({enabled:/^[\\w.-]+\\.apps\\.googleusercontent\\.com$/.test(clientId),clientId:/^[\\w.-]+\\.apps\\.googleusercontent\\.com$/.test(clientId)?clientId:null});
+});
 app.get('/api/browser-version',(req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');res.json({ok:true,version:APP_VERSION,channel:'stable',serverTime:Date.now()});});
 // Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
 io.engine.on('connection', rawSocket => { rawSocket.request = null; });
@@ -1824,6 +1830,7 @@ io.on('connection', socket => {
      : 'Conta não encontrada. Clique em Criar conta primeiro.';
     return socket.emit('auth-result',{ok:false,message});
    }
+   if(!user.salt||!user.passwordHash)return socket.emit('auth-result',{ok:false,message:'Esta conta usa Google. Entre com Google para continuar.'});
    const candidate = await hashPassword(password, user.salt);
    if (!candidate || !safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: key==='gamemaster'?'Senha GameMaster incorreta para este servidor.':'Senha incorreta para este nickname.' }); }
   }
@@ -1832,6 +1839,49 @@ io.on('connection', socket => {
   ensureAccountId(user);user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.redeemedCodes ||= []; user.energy ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0}; user.likedBy ||= [];user.likedProfiles ||= []; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key; socket.data.isDeveloper=isDeveloperUser(user);
   const sessionToken=issueSessionToken(user);saveUsers();await flushPersistence();
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user), sessionToken });broadcastCardumeRosters();
+ });
+ socket.on('authenticate-google',async(payload={})=>{
+  const clientId=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
+  if(!clientId)return socket.emit('auth-result',{ok:false,message:'Entrar com Google ainda não está configurado.'});
+  const ip=socket.handshake.address||'unknown',now=Date.now();
+  pruneAuthAttempts(now);
+  const attempts=(authAttempts.get(ip)||[]).filter(t=>now-t<60000);
+  if(attempts.length>=12)return socket.emit('auth-result',{ok:false,message:'Muitas tentativas. Aguarde um minuto.'});
+  let google;
+  try{google=await verifyGoogleIdToken(payload.idToken,clientId);}
+  catch(error){
+   attempts.push(now);authAttempts.set(ip,attempts);
+   return socket.emit('auth-result',{ok:false,message:'Não foi possível validar sua conta Google. Tente novamente.'});
+  }
+  let found=Object.entries(users).find(([,u])=>u?.googleSub===google.sub);
+  let user,key,mode='google-login';
+  if(found){[key,user]=found;}
+  else{
+   // Never link to an existing password account based on email alone.
+   if(Object.values(users).some(u=>String(u?.email||'').toLowerCase()===google.email))
+    return socket.emit('auth-result',{ok:false,message:'Este e-mail já tem uma conta Abyssal. Entre com nickname e senha para preservar seu progresso.'});
+   const nickname=String(payload.nickname||'').trim();
+   const birth=birthBand(String(payload.birthDate||''));
+   if(!nickname||!birth||payload.termsAccepted!==true)
+    return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'Para criar sua conta Google, informe nickname, data de nascimento e aceite dos Termos.'});
+   if(!/^[a-zA-Z0-9_]{3,18}$/.test(nickname))
+    return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'Nickname: 3 a 18 caracteres, letras, números ou _.'});
+   if(birth.age<16)return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'O cadastro é destinado a jogadores a partir de 16 anos.'});
+   key=nickname.toLowerCase();
+   if(key==='gamemaster'||REVIEW_ACCOUNTS.some(([reserved])=>reserved===key)||Object.hasOwn(users,key))
+    return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'Nickname indisponível. Escolha outro.'});
+   mode='google-register';
+   user=users[key]={accountId:crypto.randomUUID(),nickname,email:google.email,googleSub:google.sub,ageBand:birth.band,
+     termsAcceptedAt:new Date().toISOString(),termsVersion:'2026-11-18-dob-v3',
+     createdAt:new Date().toISOString(),energy:0,ownedSkins:['default'],equippedSkin:'default',metaUpgrades:{},lastWheelAt:0};
+  }
+  if(GMAdmin.blocked(user))return socket.emit('auth-result',{ok:false,message:GMAdmin.accessMessage(user)});
+  authAttempts.delete(ip);
+  ensureAccountId(user);user.metaUpgrades||={};user.ownedSkins||=['default'];user.redeemedCodes||=[];user.energy||=0;user.lastWheelAt||=0;
+  user.titleStats||={monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};user.likedBy||=[];user.likedProfiles||=[];user.equippedTitle||='abyss-drifter';
+  socket.data.nickname=user.nickname;socket.data.userKey=key;socket.data.isDeveloper=isDeveloperUser(user);
+  const sessionToken=issueSessionToken(user);saveUsers();await flushPersistence();
+  socket.emit('auth-result',{ok:true,mode,...publicUser(user),sessionToken});broadcastCardumeRosters();
  });
  socket.on('logout-session',async(payload={},ack)=>{
   const key=socket.data.userKey,user=users[key],token=String(payload?.token||'');
