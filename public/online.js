@@ -335,7 +335,7 @@ async function setupGoogleSignIn(){
   window.google.accounts.id.initialize({client_id:googleOAuthClientId,callback:acceptGoogleCredential,auto_select:false,cancel_on_tap_outside:true});
   const host=$('loginGoogleHost');if(!host)return;
   host.replaceChildren();
-  window.google.accounts.id.renderButton(host,{type:'standard',theme:'filled_black',size:'large',shape:'rectangular',text:'signin_with',locale:'pt-BR',width:300});
+  window.google.accounts.id.renderButton(host,{type:'standard',theme:'filled_black',size:'large',shape:'rectangular',text:'signin_with',locale:'pt-BR',width:Math.max(200,Math.min(360,Math.floor(host.getBoundingClientRect().width||280)))});
  }catch(error){console.warn('[login] Login Google indisponível:',error?.message||'erro de inicialização');}
 }
 
@@ -351,8 +351,8 @@ function setEntryMode(mode){
  $('forgotPasswordBtn').hidden=register;
  $('abyssPasswordFields').hidden=Boolean(register&&googlePendingToken);
  $('loginGoogleHost').hidden=Boolean(register&&googlePendingToken);
- $('abyssEntryHeading').textContent=register?'CRIE SUA IDENTIDADE':'BEM-VINDO AO ABISMO';
- $('abyssEntryCopy').textContent=register?'Escolha seu nome de mergulhador e prepare sua expedição.':'Sua identidade acompanha cada expedição.';
+ $('abyssEntryHeading').textContent=register?'CRIAR CONTA':'ENTRAR NO ABYSSAL';
+ $('abyssEntryCopy').textContent=register?'Defina seu nickname e seus dados de acesso.':'Acesse sua conta para continuar.';
  setMessage('');
 }
 function openLogin(options={}){

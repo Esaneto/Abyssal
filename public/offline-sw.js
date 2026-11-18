@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-18-onboarding-v283';
+const VERSION = '2026-11-18-login-art-v284';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -42,7 +42,7 @@ const GAME_FILES = [
   'developer-tools.js',
   'developer-tools.css',
   'abyssal-login-v2.css',
-  'abyssal-login-scene.svg',
+  'abyssal-cabin-ocean.webp',
   'mobile-portrait.js',
   'mobile-portrait.css','abyssal-responsive-v247.css','abyssal-keyboard-focus.css','abyssal-keyboard-focus.js','abyssal-onboarding-spotlight.css',
   'abyssal-ocean-cinema.svg',

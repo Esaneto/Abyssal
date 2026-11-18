@@ -103,9 +103,12 @@ app.use((req,res,next)=>/^\/api\/payments\/webhook\/?$/i.test(req.path)?next():j
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
+// Client IDs OAuth são identificadores públicos; a variável de ambiente sempre prevalece.
+// O mesmo Web Client ID é usado como audience dos tokens da Web e do Android nativo.
+const GOOGLE_OAUTH_WEB_CLIENT_ID=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'356475666791-t6tfa24kg3iqad3r1b5h4ecusvachjv6.apps.googleusercontent.com').trim();
 app.get('/api/auth/google-config',(req,res)=>{
  res.setHeader('Cache-Control','no-store');
- const clientId=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
+ const clientId=GOOGLE_OAUTH_WEB_CLIENT_ID;
  res.json({enabled:/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId),clientId:/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId)?clientId:null});
 });
 app.get('/api/browser-version',(req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');res.json({ok:true,version:APP_VERSION,channel:'stable',serverTime:Date.now()});});
@@ -1841,7 +1844,7 @@ io.on('connection', socket => {
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user), sessionToken });broadcastCardumeRosters();
  });
  socket.on('authenticate-google',async(payload={})=>{
-  const clientId=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
+  const clientId=GOOGLE_OAUTH_WEB_CLIENT_ID;
   if(!clientId)return socket.emit('auth-result',{ok:false,message:'Entrar com Google ainda não está configurado.'});
   const ip=socket.handshake.address||'unknown',now=Date.now();
   pruneAuthAttempts(now);
