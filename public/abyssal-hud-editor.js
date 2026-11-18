@@ -36,6 +36,9 @@ function modeLayout(layout,mode){return mode==='online'?layout.online:layout;}
 // it is a baseline, not a live dependency or an overwrite of player settings.
 const MOBILE_PRESET={
  "portrait": {
+  "stats": {"x":0.4987702469031016,"y":0.06359508633613586,"s":0.9},
+  "pause": {"x":1,"y":0.036030980256887585,"s":1},
+  "hide": {"x":0.078125,"y":0.06850961538461539,"s":1},
   "health": {
    "x": 0.24212964375813803,
    "y": 0.11094417652258506,
@@ -150,58 +153,14 @@ const MOBILE_PRESET={
   }
  }
 };
-// Nekko's public Solo desktop layout, retrieved 2026-11-15. Unedited controls retain their native baseline.
-const DESKTOP_PRESET={
- "skills": {
-  "x": 0.9932291666666667,
-  "y": 0.12840043525571274,
-  "s": 1
- },
- "hide": {
-  "x": 0.996875,
-  "y": 0.08378672470076169,
-  "s": 1
- },
- "pulse": {
-  "x": 0.007291666666666667,
-  "y": 1,
-  "s": 1
- },
- "dash": {
-  "x": 0.043229166666666666,
-  "y": 0.9912948857453754,
-  "s": 1
- },
- "petSkill": {
-  "x": 0.07083333333333333,
-  "y": 1,
-  "s": 1
- },
- "pet": {
-  "x": 0,
-  "y": 0.8813928182807399,
-  "s": 1
- },
- "repair": {
-  "x": 0.009895833333333333,
-  "y": 0.8030467899891186,
-  "s": 1
- },
- "power": {
-  "x": 0.008854166666666666,
-  "y": 0.750816104461371,
-  "s": 1
- },
- "end": {
-  "x": 1,
-  "y": 1,
-  "s": 1
- }
-};
+// GameMaster's public desktop profile has no saved overrides (2026-11-18).
+// The native PC HUD, not another player's positions, is the correct baseline.
+const DESKTOP_PRESET={};
+const NATIVE_DESKTOP_POWER=Object.freeze({x:.045,y:.59,s:1});
 function defaultLayout(mode,profile){
  const source=profile==='desktop'?DESKTOP_PRESET:MOBILE_PRESET[profile];if(!source)return {};
  const layout=Object.fromEntries(Object.entries(source).map(([id,pos])=>[id,{...pos}]));
- if(mode==='online')layout.comms=profile==='desktop'?{x:layout.power.x,y:layout.power.y-.085,s:1}:profile==='portrait'?{x:.15,y:.47,s:1}:{x:.15,y:.52,s:1};
+ if(mode==='online')layout.comms=profile==='desktop'?{x:NATIVE_DESKTOP_POWER.x,y:NATIVE_DESKTOP_POWER.y-.085,s:1}:profile==='portrait'?{x:.15,y:.47,s:1}:{x:.15,y:.52,s:1};
  return layout;
 }
 function effectiveLayout(layout,mode,profile){return {...defaultLayout(mode,profile),...modeLayout(layout,mode)[profile]};}
@@ -216,7 +175,7 @@ function resolvePositions(entries,w,h,safe={},avoidOverlap=true,device='portrait
  for(const e of ordered){
   if(e.pos.hidden)continue;
   let wanted=e.pos;
-  if(device==='desktop'&&e.id==='comms'&&!e.custom){const power=entries.find(v=>v.id==='power'),p=power?.pos||DESKTOP_PRESET.power,box=power?.box||{w:48,h:48},actual=result.power||p,pf=fit(actual,box,w,h,safe);wanted={...e.pos,x:pf.x/w,y:(pf.y-box.h*pf.s/2-e.box.h*e.pos.s/2-8)/h};}
+  if(device==='desktop'&&e.id==='comms'&&!e.custom){const power=entries.find(v=>v.id==='power'),p=power?.pos||NATIVE_DESKTOP_POWER,box=power?.box||{w:48,h:48},actual=result.power||p,pf=fit(actual,box,w,h,safe);wanted={...e.pos,x:pf.x/w,y:(pf.y-box.h*pf.s/2-e.box.h*e.pos.s/2-8)/h};}
   const target=fit(wanted,e.box,w,h,safe),hw=e.box.w*target.s/2,hh=e.box.h*target.s/2;
   const rect=(x,y)=>({l:x-hw,r:x+hw,t:y-hh,b:y+hh});
   const intersects=(a,b)=>a.l<b.r+gap-.001&&a.r>b.l-gap+.001&&a.t<b.b+gap-.001&&a.b>b.t-gap+.001;
@@ -251,6 +210,14 @@ function planPositions(entries,w,h,safe={},device='portrait'){
 function displayPosition(pos,slot,box,h){return slot?{...pos,y:pos.y+slot.anchor*(box.h-slot.reference)*pos.s/(2*h)}:pos;}
 function fit(pos,box,w,h,safe={}){const l=Math.max(6,safe.left||0),r=Math.max(6,safe.right||0),t=Math.max(6,safe.top||0),b=Math.max(6,safe.bottom||0),s=Math.min(pos.s,Math.max(.1,(w-l-r)/Math.max(1,box.w)),Math.max(.1,(h-t-b)/Math.max(1,box.h)));const hw=box.w*s/2,hh=box.h*s/2;return {x:clamp(pos.x*w,l+hw,Math.max(l+hw,w-r-hw)),y:clamp(pos.y*h,t+hh,Math.max(t+hh,h-b-hh)),s};}
 function safeInsets(doc){const html=doc.documentElement;if(!html.classList.contains('abyssal-handheld'))return {};let el=doc.getElementById('abyssalHudSafeAreaProbe');if(!el){el=doc.createElement('div');el.id='abyssalHudSafeAreaProbe';el.style.cssText='position:fixed;pointer-events:none;visibility:hidden;width:0;height:0;box-sizing:content-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);';doc.body.append(el);}const c=doc.defaultView.getComputedStyle(el);return {left:parseFloat(c.paddingLeft)||0,right:parseFloat(c.paddingRight)||0,top:parseFloat(c.paddingTop)||0,bottom:parseFloat(c.paddingBottom)||0};}
+// A control can move without a viewport resize when a flex sibling gains
+// or loses the hidden attribute. Detect the rendered drift, but re-anchor only
+// that control rather than resetting every translated HUD node.
+function placementDrift(rect,pos,stage,tolerance=2){
+ if(!rect||!pos)return false;
+ const x=stage.left+pos.x*stage.width,y=stage.top+pos.y*stage.height;
+ return Math.abs(rect.cx-x)>tolerance||Math.abs(rect.cy-y)>tolerance;
+}
 function groupRect(els){if(!els.length)return null;const rects=els.map(el=>el.getBoundingClientRect()),l=Math.min(...rects.map(r=>r.left)),t=Math.min(...rects.map(r=>r.top)),r=Math.max(...rects.map(r=>r.right)),b=Math.max(...rects.map(r=>r.bottom));return {rects,l,t,r,b,w:r-l,h:b-t,cx:(l+r)/2,cy:(t+b)/2};}
 function skillReservation(el,box){const c=el.ownerDocument.defaultView.getComputedStyle(el),row=el.querySelector('.selected-skill-row'),r=row?.getBoundingClientRect(),reference=Math.max(1,(r?.height||32)+(parseFloat(c.paddingTop)||0)+(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderTopWidth)||0)+(parseFloat(c.borderBottomWidth)||0));return {reference,height:Math.max(reference,parseFloat(c.maxHeight)||box.h)};}
 function visibleGroup(doc,selectors){return selectors.flatMap(s=>[...doc.querySelectorAll(s)]).filter(el=>{const r=el.getBoundingClientRect(),cs=doc.defaultView.getComputedStyle(el);return r.width>0&&r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden';});}
@@ -260,7 +227,7 @@ function ownerKey(name){return String(name||'').trim().toLowerCase();}
 function changedProfiles(before,after){const result=[];for(const mode of MODES)for(const device of PROFILES)if(JSON.stringify(modeLayout(before,mode)[device])!==JSON.stringify(modeLayout(after,mode)[device]))result.push(mode+':'+device);return result;}
 function mergeProfiles(remote,local,changes){const out=normalize(remote),next=normalize(local);for(const key of (Array.isArray(changes)?changes.slice(0,6):[])){if(typeof key!=='string')continue;const [mode,device]=key.split(':');if(MODES.includes(mode)&&PROFILES.includes(device))modeLayout(out,mode)[device]=modeLayout(next,mode)[device];}return out;}
 function hasEdits(layout){return MODES.some(mode=>PROFILES.some(device=>Object.keys(modeLayout(layout,mode)[device]).length));}
-const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,planPositions,displayPosition,fixedPlacement,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
+const core={normalize,fit,placementDrift,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,planPositions,displayPosition,fixedPlacement,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
 const doc=root.document;if(!doc)return;
 function read(key){try{return JSON.parse(root.localStorage.getItem(key)||'null');}catch{return null;}}
 function write(key,v){try{root.localStorage.setItem(key,JSON.stringify(v));return true;}catch{return false;}}
@@ -275,16 +242,21 @@ function storeCurrent(){const ok=write(scoped(KEY,owner),{layout:saved,revision}
 function pendingFor(name){const key=scoped(PENDING,name),v=read(key);if(v)return v;const old=read(PENDING);if(name&&ownerKey(old?.owner)===name&&old.layout){const next={layout:normalize(old.layout),changes:MODES.flatMap(mode=>PROFILES.map(device=>mode+':'+device))};write(key,next);try{root.localStorage.removeItem(PENDING);}catch{}return next;}return null;}
 function switchOwner(name){name=ownerKey(name);if(name===owner)return;storeCurrent();owner=name;record=readScoped(owner);saved=record.layout;revision=record.revision;if(!doc.body.classList?.contains('game-active')){runLayout=null;layoutPlan=null;}storeCurrent();schedule();}
 storeCurrent();
-const applied=new Map(),scales=new Map(),userHidden=new Set(),observedSizes=new Set();
+const applied=new Map(),scales=new Map(),userHidden=new Set(),observedSizes=new Set(),measuredSkills=new Map();
 const layoutSizeObserver=typeof root.ResizeObserver==='function'?new root.ResizeObserver(()=>schedule()):null;
 function watchSizes(entries){if(!layoutSizeObserver)return;const next=new Set(entries.flatMap(e=>e.els));for(const el of observedSizes)if(!next.has(el)){layoutSizeObserver.unobserve(el);observedSizes.delete(el);}for(const el of next)if(!observedSizes.has(el)){observedSizes.add(el);layoutSizeObserver.observe(el);}}
-function profile(){return doc.documentElement.classList.contains('abyssal-handheld')||root.matchMedia('(pointer: coarse)').matches||root.innerWidth<=700?root.innerWidth>root.innerHeight?'landscape':'portrait':'desktop';}
+function profile(){
+ // Narrow PC windows keep the desktop preset; only touch devices rotate profiles.
+ const handheld=doc.documentElement.classList.contains('abyssal-handheld')||Boolean(root.matchMedia?.('(pointer: coarse)').matches);
+ return handheld?(root.innerWidth>root.innerHeight?'landscape':'portrait'):'desktop';
+}
 function gameMode(){return doc.body.dataset.hudMode==='online'?'online':'solo';}
 function mobileControls(){try{return root.localStorage.getItem('abyssalControlsMobile')==='dual-stick'?'dual-stick':'classic';}catch{return 'classic';}}
 function activeLayout(){return effectiveLayout(runLayout||saved,gameMode(),profile());}
 function beginRun(){runLayout=normalize(saved);layoutPlan=null;schedule();}
 function active(){return doc.body.classList.contains('game-active');}
-function clear(){for(const el of applied.keys()){el.style.removeProperty('translate');el.style.removeProperty('scale');el.style.removeProperty('transform-origin');el.removeAttribute('data-hud-custom-opacity');el.style.removeProperty('--hud-custom-opacity');}applied.clear();scales.clear();for(const el of userHidden)el.removeAttribute('data-hud-user-hidden');userHidden.clear();}
+function resetPlacement(el){el.style.removeProperty('translate');el.style.removeProperty('scale');el.style.removeProperty('transform-origin');el.removeAttribute('data-hud-custom-opacity');el.style.removeProperty('--hud-custom-opacity');applied.delete(el);}
+function clear(){for(const el of [...applied.keys()])resetPlacement(el);scales.clear();measuredSkills.clear();for(const el of userHidden)el.removeAttribute('data-hud-user-hidden');userHidden.clear();}
 // A plan is rebuilt only on a real viewport/mode/control/layout change.
 // Hidden contextual controls keep their slots. Measure the full DOM once,
 // synchronously, then restore every original visibility flag before painting.
@@ -313,25 +285,54 @@ function refresh(){
  scheduled=false;
  const shell=doc.getElementById('gameShell');
  if(!shell||!active()){clear();watchSizes([]);layoutPlan=null;runLayout=null;doc.body.classList.remove('custom-hud-active');return;}
- // The level-up modal hides HUD nodes by design. Do not replace their geometry
- // with a partial/empty layout while it is open.
- const upgrade=doc.getElementById('upgradeScreen');if(upgrade&&!upgrade.hidden)return;
+ const upgrade=doc.getElementById('upgradeScreen');
+ if(upgrade&&!upgrade.hidden)return;
+ const pause=doc.getElementById('pauseScreen');
+ if(pause&&!pause.hidden)return;
  if(!runLayout)runLayout=normalize(saved);
  const device=profile(),mode=gameMode(),raw=modeLayout(runLayout,mode)[device],layout=effectiveLayout(runLayout,mode,device),safe=safeInsets(doc),controls=mobileControls();
  const sr=shell.getBoundingClientRect();if(!sr.width||!sr.height)return;
- const key=JSON.stringify([mode,device,controls,Math.round(sr.width),Math.round(sr.height),safe,raw]);
+ const key=JSON.stringify([mode,device,controls,safe,raw]);
+ const geometryChanged=layoutPlan&&(Math.abs(sr.width-layoutPlan.width)>Math.max(48,layoutPlan.width*.08)||Math.abs(sr.height-layoutPlan.height)>Math.max(48,layoutPlan.height*.08));
+ const replan=!layoutPlan||layoutPlan.key!==key||geometryChanged;
  doc.body.classList.add('custom-hud-active');
- clear();
  const items=eligibleItems(mode,device,controls);
- if(!layoutPlan||layoutPlan.key!==key)layoutPlan={key,...measurePlan(items,layout,raw,sr,safe,device)};
+ if(replan){
+  clear();
+  layoutPlan={key,width:sr.width,height:sr.height,...measurePlan(items,layout,raw,sr,safe,device)};
+ }
  const entries=[];
  for(const [id,,selectors] of items){
   const pos=layoutPlan.positions[id];
-  if(canRemove(id)&&layout[id]?.hidden){for(const sel of selectors)for(const el of doc.querySelectorAll(sel)){el.setAttribute('data-hud-user-hidden','');userHidden.add(el);}continue;}
-  if(!pos)continue;const els=visibleGroup(doc,selectors),g=groupRect(els);if(!g)continue;
-  entries.push({id,els});
+  if(canRemove(id)&&layout[id]?.hidden){
+   for(const sel of selectors)for(const el of doc.querySelectorAll(sel)){el.setAttribute('data-hud-user-hidden','');userHidden.add(el);}
+   continue;
+  }
+  if(!pos)continue;
+  const els=visibleGroup(doc,selectors);if(!els.length)continue;
+  // Preserve translations through ordinary HUD updates. Previously every
+  // ResizeObserver/attribute event cleared them and reread responsive CSS
+  // baselines, which can move buttons during the same dive.
+  const g0=groupRect(els);
+  const sizeChanged=id==='skills'&&Math.abs((measuredSkills.get(id)??g0.h)-g0.h)>2;
+  const missing=els.some(el=>!applied.has(el));
+  const display=displayPosition(pos,layoutPlan.slots[id],g0,sr.height);
+  // Opening the emoji wheel changes the bounds of its root; the toggle must
+  // remain anchored while the popup expands. Other groups need to be
+  // individually re-anchored when sibling visibility changes their native
+  // flex positions, including E/R/Q buttons.
+  const popupOpen=id==='comms'&&!doc.getElementById('quickCommsWheel')?.hidden;
+  const drifted=!popupOpen&&placementDrift(g0,display,sr);
+  if(!replan&&!missing&&!sizeChanged&&!drifted){entries.push({id,els});continue;}
+  // Recalculate only the affected element. Other HUD controls keep their
+  // existing translations and cannot jump during contextual changes.
+  for(const el of els)if(applied.has(el))resetPlacement(el);
+  const g=groupRect(els);if(!g)continue;
   const f=placeGroup(els,g,displayPosition(pos,layoutPlan.slots[id],g,sr.height),sr,safe);
-  scales.set(id,f.s);for(const el of els)applied.set(el,true);
+  scales.set(id,f.s);
+  if(id==='skills')measuredSkills.set(id,g.h*f.s);
+  for(const el of els)applied.set(el,true);
+  entries.push({id,els});
  }
  watchSizes(entries);
 }

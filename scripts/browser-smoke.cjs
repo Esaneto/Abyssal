@@ -260,6 +260,14 @@ const injected=`<script>
        const filter=shop.querySelector('#shopFamilyFilter');filter.value='legendary';filter.dispatchEvent(new Event('change'));
        if([...grid.querySelectorAll('.skin-card')].some(card=>card.dataset.rarity!=='legendary'))throw Error('Rarity filter did not match actual rarity');
        filter.value='all';filter.dispatchEvent(new Event('change'));
+       if(document.documentElement.classList.contains('abyssal-handheld-landscape')){
+        const card=grid.querySelector('.skin-card'),rect=card?.getBoundingClientRect(),preview=card?.querySelector('.skin-preview')?.getBoundingClientRect(),information=card?.querySelector('.specimen-card-information')?.getBoundingClientRect();
+        const fields=[...shop.querySelectorAll('#shopFilterSummary ~ input,#shopSearchInput,#shopFamilyFilter,#shopOwnershipFilter,#shopHabitatFilter')].filter(e=>e.matches('input,select'));
+        const tops=fields.map(e=>e.getBoundingClientRect().top);
+        if(!rect||rect.top>=innerHeight-46)throw Error('Landscape catalogue starts below first viewport '+JSON.stringify({card:rect?.toJSON(),height:innerHeight}));
+        if(Math.max(...tops)-Math.min(...tops)>5)throw Error('Landscape filters wrap into multiple rows '+JSON.stringify(tops));
+        if(!preview||!information||preview.right>information.left+2)throw Error('Landscape specimen art and attributes must occupy horizontal columns');
+       }
       }else if(view==='specimens'){
        box.querySelector('.abyss-control-specimens').click();
        if(document.getElementById('catalogScreen').hidden||document.querySelectorAll('#catalogGrid .specimen-journal-entry').length<50)throw Error('Embedded Abyssario missing entries');
@@ -699,11 +707,11 @@ async function main(){
 
   // Test the actual hatch transition and physical console in a real browser,
   // including mobile; save screenshots for visual acceptance inspection.
-  for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-wardrobe-portrait',390,844,'wardrobe'],['cockpit-wardrobe-small',360,640,'wardrobe'],['cockpit-wardrobe-landscape',844,390,'wardrobe'],['cockpit-shop',1280,720,'shop'],['cockpit-abyssario',1280,720,'specimens'],['cockpit-solo-upgrades',1280,720,'upgrades'],['cockpit-resonance',1280,720,'resonance']]){
+  for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-wardrobe-portrait',390,844,'wardrobe'],['cockpit-wardrobe-small',360,640,'wardrobe'],['cockpit-wardrobe-landscape',844,390,'wardrobe'],['cockpit-shop',1280,720,'shop'],['cockpit-shop-mobile-landscape',844,390,'shop'],['cockpit-abyssario',1280,720,'specimens'],['cockpit-solo-upgrades',1280,720,'upgrades'],['cockpit-resonance',1280,720,'resonance']]){
    const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
     '--no-first-run','--disable-background-networking','--window-size='+w+','+h,
     '--force-device-scale-factor=1','--virtual-time-budget=11000'];
-   if(label==='cockpit-mobile'||label.includes('wardrobe'))flags.push('--user-agent=Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36');
+   if(label==='cockpit-mobile'||label.includes('wardrobe')||label==='cockpit-shop-mobile-landscape')flags.push('--user-agent=Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36');
    const cockpitURL=url+'?stage=cockpit&view='+view;
    const dom=await run(browser,[...flags,'--dump-dom',cockpitURL]);
    const status=dom.match(/data-cockpit-status="([^"]*)"/)?.[1];
