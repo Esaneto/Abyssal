@@ -49,3 +49,38 @@ test('purchase responsibility declaration is versioned and must be explicitly re
  assert.equal(hasPurchaseResponsibilityAcceptance({purchaseResponsibilityAcceptedVersion:'old-version',purchaseResponsibilityAcceptedAt:new Date().toISOString()}),false);
  assert.equal(hasPurchaseResponsibilityAcceptance({purchaseResponsibilityAcceptedVersion:TERMS_VERSION,purchaseResponsibilityAcceptedAt:new Date().toISOString()}),true);
 });
+
+test('Play Billing catalog stays in test phase until server credentials and database exist',()=>{
+ const {registerPaymentRoutes}=require('../payments');
+ const endpoints=new Map(),app={
+  get:(path,...handlers)=>endpoints.set('GET '+path,handlers.at(-1)),
+  post:(path,...handlers)=>endpoints.set('POST '+path,handlers.at(-1))
+ };
+ const former=process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
+ try{
+  delete process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
+  registerPaymentRoutes({app,getUsers:()=>({}),getPool:()=>null,saveUsers:()=>{},dataDir:require('node:os').tmpdir()+'/abyssal-test-play-billing-nonexistent'});
+  let response;
+  endpoints.get('GET /api/payments/play/catalog')({}, {json:value=>response=value});
+  assert.equal(response.ready,false);
+  assert.equal(response.testMessage,'Em fase de testes');
+  assert.equal(response.products.length,67);
+  assert.ok(response.products.some(p=>p.gameId==='violet'&&p.productId==='specimen_violet'));
+  assert.ok(response.products.some(p=>p.gameId==='avatar:fins:ion'&&p.productId==='cosmetic_fins_ion'));
+ }finally{
+  if(former===undefined)delete process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
+  else process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON=former;
+ }
+});
+test('billing code declares native Billing bridge, Google permission and verified delivery',()=>{
+ const fs=require('node:fs'),android=fs.readFileSync(require.resolve('../scripts/configure-android.cjs'),'utf8');
+ const payment=require('node:fs').readFileSync(require.resolve('../payments'),'utf8');
+ const online=fs.readFileSync(require.resolve('../public/online.js'),'utf8');
+ assert.match(android,/com\.android\.vending\.BILLING/);
+ assert.match(android,/com\.android\.billingclient:billing:9\.1\.0/);
+ assert.match(android,/registerPlugin\(AbyssalBillingPlugin\.class\)/);
+ assert.match(payment,/playVerifyPurchase\(productId,purchaseToken\)/);
+ assert.match(payment,/CREATE TABLE IF NOT EXISTS abyssal_play_purchases/);
+ assert.match(online,/api\/payments\/play\/verify/);
+ assert.match(online,/Em fase de testes/);
+});
