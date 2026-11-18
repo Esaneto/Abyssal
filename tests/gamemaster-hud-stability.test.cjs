@@ -43,7 +43,7 @@ test('HUD placements do not reset for ordinary gameplay mutations or temporary m
 
 test('pause and modal layer wins over emoji wheel and all action controls',()=>{
  const css=read('abyssal-hud-editor.css');
- assert.match(css,/#quickComms:has\(#quickCommsWheel:not\(\[hidden\]\)\)\{z-index:6!important\}/);
+ assert.match(css,/#quickComms:has\(#quickCommsWheel:not\(\[hidden\]\)\)\{z-index:40!important\}/);
  assert.match(css,/#pauseScreen,#controlsScreen,#gameOverScreen/);
  assert.match(css,/#pauseScreen:not\(\[hidden\]\)\) > :is\(#quickComms/);
  assert.match(css,/visibility:hidden!important;pointer-events:none!important/);
