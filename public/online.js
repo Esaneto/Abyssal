@@ -317,34 +317,62 @@ function acceptGoogleCredential(response){
  googlePendingToken=token;
  sendGoogleAuth(token);
 }
+let googleSetupPromise=null,googleSdkReady=false,googleSignInFailure='';
 async function setupGoogleSignIn(){
- const host=$('loginGoogleHost');
- try{
-  if(navigator.onLine===false)return;
-  const response=await fetch(SERVER_URL+'/api/auth/google-config',{cache:'no-store'});
-  if(!response.ok)throw Error('google_config_unavailable');
-  const cfg=await response.json();
-  const clientId=String(cfg.clientId||'').trim();
-  if(!cfg.enabled||!/^\\w[\\w.-]*\\.apps\\.googleusercontent\\.com$/.test(clientId))
-   throw Error('google_client_id_missing');
-  googleOAuthClientId=clientId;
-  if(window.Capacitor?.isNativePlatform?.())return;
-  const ready=()=>new Promise((resolve,reject)=>{
-   if(window.google?.accounts?.id)return resolve();
-   const script=document.createElement('script');script.src='https://accounts.google.com/gsi/client';script.async=true;
-   script.onload=resolve;script.onerror=()=>reject(Error('google_sdk_unavailable'));
-   document.head.appendChild(script);
-  });
-  await ready();
-  window.google.accounts.id.initialize({client_id:googleOAuthClientId,callback:acceptGoogleCredential,auto_select:false,cancel_on_tap_outside:true});
-  if(!host)return;
-  host.replaceChildren();
-  window.google.accounts.id.renderButton(host,{type:'standard',theme:'filled_black',size:'large',shape:'rectangular',text:'signin_with',locale:'pt-BR',width:Math.max(200,Math.min(360,Math.floor(host.getBoundingClientRect().width||280)))});
- }catch(error){
-  console.warn('[login] Login Google indisponível:',error?.message||'erro de inicialização');
-  if(host&&!host.querySelector('button'))host.replaceChildren();
-  if(!googleOAuthClientId)setMessage('Login Google temporariamente indisponível. Entre com nickname e senha ou como visitante.',true);
- }
+ if(googleSetupPromise)return googleSetupPromise;
+ googleSetupPromise=(async()=>{
+  try{
+   // navigator.onLine is not a reliable reachability indicator in installed apps.
+   const controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),10000);
+   let response;
+   try{
+    response=await fetch(SERVER_URL+'/api/auth/google-config',{
+     cache:'no-store',headers:{'Cache-Control':'no-cache'},signal:controller.signal
+    });
+   }finally{clearTimeout(timeout);}
+   if(!response.ok)throw Error('google_config_unavailable');
+   const cfg=await response.json();
+   const clientId=String(cfg.clientId||'').trim();
+   if(!cfg.enabled||!window.AbyssalGoogleOauthConfig?.isWebClientId(clientId))
+    throw Error('web_client_id_not_configured');
+   googleOAuthClientId=clientId;
+   if(window.Capacitor?.isNativePlatform?.()){googleSignInFailure='';return true;}
+   if(window.location.protocol==='abyssal:'){
+    throw Error('desktop_custom_scheme_not_authorized');
+   }
+   if(!window.google?.accounts?.id){
+    await new Promise((resolve,reject)=>{
+     const script=document.createElement('script');
+     script.src='https://accounts.google.com/gsi/client';
+     script.async=true;
+     const timer=setTimeout(()=>{script.remove();reject(Error('google_sdk_timeout'));},12000);
+     script.onload=()=>{clearTimeout(timer);resolve();};
+     script.onerror=()=>{clearTimeout(timer);reject(Error('google_sdk_unavailable'));};
+     document.head.appendChild(script);
+    });
+   }
+   if(!window.google?.accounts?.id)throw Error('google_sdk_unavailable');
+   window.google.accounts.id.initialize({
+    client_id:clientId,callback:acceptGoogleCredential,auto_select:false,cancel_on_tap_outside:true
+   });
+   const host=$('loginGoogleHost');
+   if(!host)throw Error('google_button_missing');
+   host.replaceChildren();
+   window.google.accounts.id.renderButton(host,{
+    type:'standard',theme:'filled_black',size:'large',shape:'rectangular',
+    text:'signin_with',locale:'pt-BR',
+    width:Math.max(200,Math.min(360,Math.floor(host.getBoundingClientRect().width||280)))
+   });
+   googleSdkReady=true;googleSignInFailure='';
+   return true;
+  }catch(error){
+   googleSignInFailure=String(error?.message||'google_unavailable');
+   console.warn('[login] Login Google indisponível:',googleSignInFailure);
+   return false;
+  }
+ })().finally(()=>{googleSetupPromise=null;});
+ return googleSetupPromise;
 }
 
 function setEntryMode(mode){
@@ -633,16 +661,36 @@ $('loginGuestBtn').addEventListener('click',()=>{
  applyAgeTreatment('unknown');
 });
 $('loginGoogleBtn').addEventListener('click',async()=>{
- if(!googleOAuthClientId){setMessage('Login Google ainda precisa do Client ID OAuth no servidor. Entre com nickname e senha por enquanto.',true);return;}
+ if(!googleOAuthClientId){
+  setMessage('Preparando login com Google…');
+  await setupGoogleSignIn();
+ }
+ if(!googleOAuthClientId){
+  setMessage('O servidor ainda não disponibilizou o Client ID Web OAuth. Verifique a configuração de produção.',true);
+  return;
+ }
  if(window.Capacitor?.isNativePlatform?.()){
   try{
    const plugin=window.Capacitor?.Plugins?.AbyssalGoogle;
-   if(!plugin){setMessage('Instale a próxima versão Android com suporte a login Google.',true);return;}
+   if(!plugin){setMessage('O aplicativo Android precisa de uma versão com login Google nativo.',true);return;}
    acceptGoogleCredential(await plugin.signIn({clientId:googleOAuthClientId}));
-  }catch(error){setMessage('Não foi possível concluir o login com Google.',true);}
- }else setMessage('Aguarde o botão oficial de login Google ser carregado.',true);
+  }catch(error){setMessage('O login Google Android foi cancelado ou não está autorizado para a assinatura deste app.',true);}
+  return;
+ }
+ if(window.location.protocol==='abyssal:'){
+  setMessage('No aplicativo Windows, o login Google exige uma integração segura com o navegador HTTPS. Use nickname e senha nesta versão.',true);
+  return;
+ }
+ if(!googleSdkReady){
+  const started=await setupGoogleSignIn();
+  setMessage(started?'O botão oficial do Google está disponível. Clique nele para entrar.':
+   googleSignInFailure==='web_client_id_not_configured'?
+   'O servidor precisa do Client ID Web OAuth, não do Client ID Android.':
+   'Não foi possível carregar a autenticação Google. Verifique a conexão e tente novamente.',!started);
+ }
 });
 queueMicrotask(setupGoogleSignIn);
+window.addEventListener('online',()=>{if(!googleSdkReady)setupGoogleSignIn();});
 function setAuthFlowMessage(id,message,isError=false){const el=$(id);if(!el)return;el.textContent=message;el.classList.toggle('is-error',Boolean(isError));}
 function closePasswordRecovery(){ $('passwordRecoveryScreen').hidden=true; $('recoveryMessage').textContent=''; }
 const AGE_TERMS_VERSION='2026-11-18-dob-v3';
