@@ -85,6 +85,77 @@ function chrome(bin,args){
   proc.once('close',status=>{clearTimeout(timeout);status===0?resolve(out):reject(Error('Chromium exited '+status+': '+err));});
  });
 }
+
+async function captureNativeViewport(bin,url,name,width,height,mode){
+  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'abyssal-login-cdp-'));
+  const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
+    '--no-first-run','--remote-debugging-port=0','--remote-allow-origins=*',
+    '--user-data-dir='+profile,'about:blank'];
+  const chrome=spawn(bin,flags,{stdio:['ignore','ignore','pipe']});
+  let stderr='',socket;
+  chrome.stderr.on('data',x=>{stderr+=String(x);if(stderr.length>4000)stderr=stderr.slice(-4000)});
+  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  try{
+    let port=0;
+    for(let attempt=0;attempt<80;attempt++){
+      const portFile=path.join(profile,'DevToolsActivePort');
+      if(fs.existsSync(portFile)){port=Number(fs.readFileSync(portFile,'utf8').split(/\r?\n/)[0]);if(port)break}
+      if(chrome.exitCode!==null)throw Error('Chromium quit during CDP startup: '+stderr);
+      await sleep(100);
+    }
+    assert.ok(port,'Chromium CDP port unavailable: '+stderr);
+    const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list',{signal:AbortSignal.timeout(7000)})).json();
+    const target=tabs.find(tab=>tab.type==='page');
+    assert.ok(target?.webSocketDebuggerUrl,'CDP page target unavailable');
+    socket=new WebSocket(target.webSocketDebuggerUrl);
+    await Promise.race([
+      new Promise((resolve,reject)=>{socket.addEventListener('open',resolve,{once:true});socket.addEventListener('error',reject,{once:true})}),
+      sleep(8000).then(()=>{throw Error('CDP WebSocket timeout')})
+    ]);
+    let sequence=0;
+    const pending=new Map();
+    socket.addEventListener('message',event=>{
+      let data;try{data=JSON.parse(String(event.data))}catch{return}
+      const request=pending.get(data.id);
+      if(!request)return;
+      clearTimeout(request.timer);pending.delete(data.id);
+      if(data.error)request.reject(Error('CDP: '+JSON.stringify(data.error)));else request.resolve(data.result||{});
+    });
+    const send=(method,params={})=>new Promise((resolve,reject)=>{
+      const id=++sequence;
+      const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP timeout '+method))},12000);
+      pending.set(id,{resolve,reject,timer});
+      socket.send(JSON.stringify({id,method,params}));
+    });
+    await send('Page.enable');
+    await send('Runtime.enable');
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:true,screenWidth:width,screenHeight:height});
+    await send('Page.navigate',{url:url+'?view='+mode});
+    let measured=null;
+    for(let attempt=0;attempt<20;attempt++){
+      await sleep(250);
+      const result=await send('Runtime.evaluate',{
+        expression:'JSON.stringify({width:innerWidth,height:innerHeight,status:document.body?.dataset?.loginQaStatus||null,metrics:document.body?.dataset?.loginQaMetrics||null})',
+        returnByValue:true
+      });
+      try{measured=JSON.parse(result.result?.value||'null')}catch{}
+      if(measured?.status)break;
+    }
+    const screenshot=await send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
+    const file=path.join(output,'login-'+name+'.png');
+    fs.writeFileSync(file,Buffer.from(screenshot.data,'base64'));
+    assert.ok(fs.statSync(file).size>6000,'CDP screenshot missing: '+name);
+    assert.equal(measured?.width,width,'Incorrect emulated CSS viewport for '+name);
+    assert.equal(measured?.status,'ok','CDP mobile login geometry failed '+name+': '+JSON.stringify(measured));
+    console.log('[login-ui] '+name+' genuine mobile viewport '+measured.width+'x'+measured.height+' '+measured.metrics);
+  }finally{
+    if(socket)try{socket.close()}catch{}
+    chrome.kill('SIGKILL');
+    await Promise.race([new Promise(resolve=>chrome.once('close',resolve)),sleep(1800)]);
+    fs.rmSync(profile,{recursive:true,force:true,maxRetries:5});
+  }
+}
+
 async function main(){
  const bin=browser();
  assert.ok(bin,'Chromium is required for login visual smoke');
@@ -93,7 +164,7 @@ async function main(){
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  try{
   const url='http://127.0.0.1:'+server.address().port+'/__abyss_login__';
-  const cases=[['desktop',1280,720,'login'],['mobile',390,844,'login'],['compact-register',320,568,'register'],['landscape',844,390,'register']];
+  const cases=[['desktop',1280,720,'login'],['landscape',844,390,'register']];
   for(const [name,w,h,mode] of cases){
    const profile=fs.mkdtempSync(path.join(os.tmpdir(),'abyssal-login-smoke-'));
    try{
@@ -115,6 +186,8 @@ async function main(){
     console.log('[login-ui] '+name+' '+metrics);
    }finally{fs.rmSync(profile,{recursive:true,force:true,maxRetries:3});}
   }
+  await captureNativeViewport(bin,url,'mobile-390',390,844,'login');
+  await captureNativeViewport(bin,url,'compact-320',320,568,'register');
  }finally{await new Promise(resolve=>server.close(resolve));}
 }
 main().catch(err=>{console.error(err);process.exitCode=1;});
