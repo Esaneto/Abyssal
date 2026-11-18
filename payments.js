@@ -87,6 +87,106 @@ function checkoutPublicOrigin() {
 function liveSalesReady() {
  return process.env.STRIPE_CHECKOUT_ENABLED!=='false'&&/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(String(process.env.STRIPE_SECRET_KEY||'').trim())&&Boolean(checkoutPublicOrigin());
 }
+
+const PLAY_PACKAGE='com.esaneto.abyssal';
+const PLAY_PRODUCTS=require('./docs/google-play/products.json').products;
+const PLAY_BY_ID=new Map(PLAY_PRODUCTS.map(p=>[p.productId,p]));
+const PLAY_BY_GAME=new Map(PLAY_PRODUCTS.map(p=>[p.gameId,p]));
+const PLAY_TEST_MESSAGE='Em fase de testes';
+function playServiceCredentials(){
+ try{
+  const raw=process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
+  if(!raw)return null;
+  const data=JSON.parse(raw);
+  return data.client_email&&data.private_key?data:null;
+ }catch{return null;}
+}
+const jwtBase64=value=>Buffer.from(typeof value==='string'?value:JSON.stringify(value)).toString('base64url');
+let playAuth={value:null,until:0};
+async function playGoogleAccessToken(){
+ const credentials=playServiceCredentials();
+ if(!credentials)throw Error('play_credentials_unavailable');
+ if(playAuth.value&&Date.now()<playAuth.until-120000)return playAuth.value;
+ const now=Math.floor(Date.now()/1000),header={alg:'RS256',typ:'JWT'},claims={
+  iss:credentials.client_email,
+  scope:'https://www.googleapis.com/auth/androidpublisher',
+  aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3600
+ };
+ const unsigned=jwtBase64(header)+'.'+jwtBase64(claims);
+ const signature=crypto.sign('RSA-SHA256',Buffer.from(unsigned),credentials.private_key).toString('base64url');
+ const body=new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion:unsigned+'.'+signature});
+ const response=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(12000)});
+ if(!response.ok)throw Error('play_auth_failed');
+ const result=await response.json();
+ if(!result.access_token)throw Error('play_auth_missing_token');
+ playAuth={value:result.access_token,until:Date.now()+Math.min(3600,Number(result.expires_in)||3600)*1000};
+ return playAuth.value;
+}
+async function playVerifyPurchase(productId,token){
+ const access=await playGoogleAccessToken();
+ const url='https://androidpublisher.googleapis.com/androidpublisher/v3/applications/'+PLAY_PACKAGE+'/purchases/products/'+encodeURIComponent(productId)+'/tokens/'+encodeURIComponent(token);
+ const response=await fetch(url,{headers:{Authorization:'Bearer '+access},signal:AbortSignal.timeout(15000)});
+ if(!response.ok)throw Error('play_purchase_verification_failed_'+response.status);
+ const result=await response.json();
+ if(Number(result.purchaseState)!==0||result.purchaseType===2)throw Error('play_purchase_not_paid');
+ if(!result.orderId||!String(result.orderId).startsWith('GPA.'))throw Error('play_order_missing');
+ return result;
+}
+function registerPlayBillingRoutes(app,getUsers,getPool,saveUsers,jsonParser){
+ let schemaPromise;
+ async function schema(){
+  if(!getPool())throw Error('play_database_unavailable');
+  if(!schemaPromise)schemaPromise=getPool().query('CREATE TABLE IF NOT EXISTS abyssal_play_purchases (purchase_token TEXT PRIMARY KEY, order_id TEXT NOT NULL, product_id TEXT NOT NULL, user_key TEXT NOT NULL, verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW());');
+  try{await schemaPromise;}catch(error){schemaPromise=null;throw error;}
+ }
+ app.get('/api/payments/play/catalog',(_req,res)=>{
+  res.json({ok:true,ready:Boolean(playServiceCredentials()&&getPool()),testMessage:PLAY_TEST_MESSAGE,
+   products:PLAY_PRODUCTS.map(p=>({productId:p.productId,gameId:p.gameId}))});
+ });
+ app.post('/api/payments/play/verify',jsonParser,async(req,res)=>{
+  const auth=String(req.headers.authorization||''),token=auth.startsWith('Bearer ')?auth.slice(7):'';
+  const account=tokenUser(getUsers(),token);
+  if(!account)return res.status(401).json({ok:false,message:'Entre na sua conta para comprar.'});
+  const productId=String(req.body?.productId||''),purchaseToken=String(req.body?.purchaseToken||'');
+  const product=PLAY_BY_ID.get(productId);
+  if(!product||!product.gameId||product.type!=='non_consumable'||purchaseToken.length<16||purchaseToken.length>4096)
+   return res.status(400).json({ok:false,message:'Compra inválida.'});
+  if(!playServiceCredentials()||!getPool())return res.status(503).json({ok:false,message:PLAY_TEST_MESSAGE});
+  try{
+   await schema();
+   const receipt=await playVerifyPurchase(productId,purchaseToken);
+   const pool=getPool(),client=await pool.connect();
+   try{
+    await client.query('BEGIN');
+    const previous=await client.query('SELECT user_key,product_id FROM abyssal_play_purchases WHERE purchase_token=$1 FOR UPDATE',[purchaseToken]);
+    if(previous.rowCount){
+     await client.query('COMMIT');
+     if(previous.rows[0].user_key!==account.key||previous.rows[0].product_id!==productId)
+      return res.status(409).json({ok:false,message:'Compra vinculada a outra conta.'});
+     return res.json({ok:true,alreadyGranted:true,message:'Compra restaurada.'});
+    }
+    const state=await client.query("SELECT state_value FROM abyssal_state WHERE state_key='users' FOR UPDATE");
+    const stored=state.rows[0]?.state_value||{},user=stored[account.key];
+    if(!user){await client.query('ROLLBACK');return res.status(401).json({ok:false,message:'Conta não encontrada.'});}
+    const existing=PLAY_BY_GAME.get(product.gameId);
+    if(!existing||existing.productId!==productId){await client.query('ROLLBACK');return res.status(400).json({ok:false,message:'Produto não cadastrado.'});}
+    grantOrder(user,[product.gameId]);
+    user.purchaseTitles||={storeSupporter:false,bossAbyssal:false};
+    user.purchaseTitles.storeSupporter=true;
+    await client.query('INSERT INTO abyssal_play_purchases(purchase_token,order_id,product_id,user_key) VALUES($1,$2,$3,$4)',[purchaseToken,receipt.orderId,productId,account.key]);
+    await client.query("UPDATE abyssal_state SET state_value=$1::jsonb,updated_at=NOW() WHERE state_key='users'",[JSON.stringify(stored)]);
+    await client.query('COMMIT');
+    Object.assign(getUsers(),stored);
+    saveUsers();
+    return res.json({ok:true,message:'Compra confirmada. Item liberado na sua conta.'});
+   }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error;}finally{client.release();}
+  }catch(error){
+   console.warn('[play-billing] Verification unavailable:',error.message);
+   return res.status(503).json({ok:false,message:PLAY_TEST_MESSAGE});
+  }
+ });
+}
+
 function registerPaymentRoutes(options) {
  const app=options.app,getUsers=options.getUsers,getPool=options.getPool,saveUsers=options.saveUsers;
  const dataDir=options.dataDir||path.resolve(__dirname,'data');
@@ -99,6 +199,7 @@ function registerPaymentRoutes(options) {
  const express=require('express');
  const jsonParser=typeof express.json==='function'?express.json({limit:'10kb'}):(_req,_res,next)=>next?.();
  const rawParser=typeof express.raw==='function'?express.raw({type:'application/json',limit:'1mb'}):(_req,_res,next)=>next?.();
+ registerPlayBillingRoutes(app,getUsers,getPool,saveUsers,jsonParser);
  let schemaPromise=null;
  async function ensureSchema(){
   const pool=getPool();if(!pool)return;
