@@ -22,7 +22,7 @@ O servidor valida assinatura JWT RSA, emissor, audiência, validade, ID do sujei
 Acesso como **Nekko** ou **GameMaster** no Abyssal é independente do teste de faturamento da Play Console. A lista de **testadores de licença da Play Store** deve receber endereços de **contas Google**, não nicknames de jogo. Nenhuma conta de teste de licença é adicionada automaticamente pelo código.
 
 ## Visual e infraestrutura (18/11)
-- O novo acesso utiliza a imagem já presente `public/abyssal-cabin-ocean-hq.webp`, com a marca ajustável e sem legendas sobre a arte. A ilustração anterior `abyssal-login-scene.svg` foi retirada do aplicativo e do cache offline.
+- O novo acesso utiliza a imagem já presente `public/abyssal-cabin-ocean.webp`, com a marca ajustável e sem legendas sobre a arte. A ilustração anterior `abyssal-login-scene.svg` foi retirada do aplicativo e do cache offline.
 - `mobile/capacitor.config.json` aponta para a VPS em `https://abyssalgame.duckdns.org`. O domínio Render foi descontinuado e não deve ser reutilizado.
 - O teste `scripts/login-ui-smoke.cjs` captura screenshots reais do Chromium em desktop, portrait e landscape, e valida alvos de toque e overflow.
 - Verifique na Google Auth Platform se o aplicativo está em **Produção** antes de disponibilizar a autenticação para todos; em estado de teste, apenas contas Google autorizadas podem entrar.
