@@ -36,6 +36,9 @@ function modeLayout(layout,mode){return mode==='online'?layout.online:layout;}
 // it is a baseline, not a live dependency or an overwrite of player settings.
 const MOBILE_PRESET={
  "portrait": {
+  "stats": {"x":0.4987702469031016,"y":0.06359508633613586,"s":0.9},
+  "pause": {"x":1,"y":0.036030980256887585,"s":1},
+  "hide": {"x":0.078125,"y":0.06850961538461539,"s":1},
   "health": {
    "x": 0.24212964375813803,
    "y": 0.11094417652258506,
@@ -150,58 +153,13 @@ const MOBILE_PRESET={
   }
  }
 };
-// Nekko's public Solo desktop layout, retrieved 2026-11-15. Unedited controls retain their native baseline.
-const DESKTOP_PRESET={
- "skills": {
-  "x": 0.9932291666666667,
-  "y": 0.12840043525571274,
-  "s": 1
- },
- "hide": {
-  "x": 0.996875,
-  "y": 0.08378672470076169,
-  "s": 1
- },
- "pulse": {
-  "x": 0.007291666666666667,
-  "y": 1,
-  "s": 1
- },
- "dash": {
-  "x": 0.043229166666666666,
-  "y": 0.9912948857453754,
-  "s": 1
- },
- "petSkill": {
-  "x": 0.07083333333333333,
-  "y": 1,
-  "s": 1
- },
- "pet": {
-  "x": 0,
-  "y": 0.8813928182807399,
-  "s": 1
- },
- "repair": {
-  "x": 0.009895833333333333,
-  "y": 0.8030467899891186,
-  "s": 1
- },
- "power": {
-  "x": 0.008854166666666666,
-  "y": 0.750816104461371,
-  "s": 1
- },
- "end": {
-  "x": 1,
-  "y": 1,
-  "s": 1
- }
-};
+// GameMaster's public desktop profile has no saved overrides (2026-11-18).
+// The native PC HUD, not another player's positions, is the correct baseline.
+const DESKTOP_PRESET={};
 function defaultLayout(mode,profile){
  const source=profile==='desktop'?DESKTOP_PRESET:MOBILE_PRESET[profile];if(!source)return {};
  const layout=Object.fromEntries(Object.entries(source).map(([id,pos])=>[id,{...pos}]));
- if(mode==='online')layout.comms=profile==='desktop'?{x:layout.power.x,y:layout.power.y-.085,s:1}:profile==='portrait'?{x:.15,y:.47,s:1}:{x:.15,y:.52,s:1};
+ if(mode==='online')layout.comms=profile==='desktop'?{x:DESKTOP_DEFAULTS.power[0],y:DESKTOP_DEFAULTS.power[1]-.085,s:1}:profile==='portrait'?{x:.15,y:.47,s:1}:{x:.15,y:.52,s:1};
  return layout;
 }
 function effectiveLayout(layout,mode,profile){return {...defaultLayout(mode,profile),...modeLayout(layout,mode)[profile]};}
@@ -216,7 +174,7 @@ function resolvePositions(entries,w,h,safe={},avoidOverlap=true,device='portrait
  for(const e of ordered){
   if(e.pos.hidden)continue;
   let wanted=e.pos;
-  if(device==='desktop'&&e.id==='comms'&&!e.custom){const power=entries.find(v=>v.id==='power'),p=power?.pos||DESKTOP_PRESET.power,box=power?.box||{w:48,h:48},actual=result.power||p,pf=fit(actual,box,w,h,safe);wanted={...e.pos,x:pf.x/w,y:(pf.y-box.h*pf.s/2-e.box.h*e.pos.s/2-8)/h};}
+  if(device==='desktop'&&e.id==='comms'&&!e.custom){const power=entries.find(v=>v.id==='power'),p=power?.pos||{x:DESKTOP_DEFAULTS.power[0],y:DESKTOP_DEFAULTS.power[1],s:1},box=power?.box||{w:48,h:48},actual=result.power||p,pf=fit(actual,box,w,h,safe);wanted={...e.pos,x:pf.x/w,y:(pf.y-box.h*pf.s/2-e.box.h*e.pos.s/2-8)/h};}
   const target=fit(wanted,e.box,w,h,safe),hw=e.box.w*target.s/2,hh=e.box.h*target.s/2;
   const rect=(x,y)=>({l:x-hw,r:x+hw,t:y-hh,b:y+hh});
   const intersects=(a,b)=>a.l<b.r+gap-.001&&a.r>b.l-gap+.001&&a.t<b.b+gap-.001&&a.b>b.t-gap+.001;
