@@ -60,7 +60,8 @@ function handler(req,res){
     const cleanHead=head.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
     const section=document.match(/<section id="loginScreen"[\s\S]*?<\/section>/i)?.[0];
     assert.ok(section,'Real login markup not found');
-    data=Buffer.from('<!doctype html><html lang="pt-BR"><head>'+cleanHead+'</head><body><div id="app">'+section+'</div>'+probe+'</body></html>');
+    const visualScripts='<script src="avatar-base.js"></script><script src="abyssal-diver-rig.js"></script><script src="abyssal-realistic-body.js"></script><script src="diver-art.js"></script><script src="login-wardrobe-preview.js"></script>';
+    data=Buffer.from('<!doctype html><html lang="pt-BR"><head>'+cleanHead+'</head><body><div id="app">'+section+'</div>'+visualScripts+probe+'</body></html>');
   }
   const ext=isLogin?'.html':path.extname(file);
   res.writeHead(200,{'Content-Type':types[ext]||'application/octet-stream','Cache-Control':'no-store'});

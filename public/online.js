@@ -318,12 +318,16 @@ function acceptGoogleCredential(response){
  sendGoogleAuth(token);
 }
 async function setupGoogleSignIn(){
+ const host=$('loginGoogleHost');
  try{
   if(navigator.onLine===false)return;
   const response=await fetch(SERVER_URL+'/api/auth/google-config',{cache:'no-store'});
+  if(!response.ok)throw Error('google_config_unavailable');
   const cfg=await response.json();
-  if(!cfg.enabled||!cfg.clientId)return;
-  googleOAuthClientId=cfg.clientId;
+  const clientId=String(cfg.clientId||'').trim();
+  if(!cfg.enabled||!/^\\w[\\w.-]*\\.apps\\.googleusercontent\\.com$/.test(clientId))
+   throw Error('google_client_id_missing');
+  googleOAuthClientId=clientId;
   if(window.Capacitor?.isNativePlatform?.())return;
   const ready=()=>new Promise((resolve,reject)=>{
    if(window.google?.accounts?.id)return resolve();
@@ -333,10 +337,14 @@ async function setupGoogleSignIn(){
   });
   await ready();
   window.google.accounts.id.initialize({client_id:googleOAuthClientId,callback:acceptGoogleCredential,auto_select:false,cancel_on_tap_outside:true});
-  const host=$('loginGoogleHost');if(!host)return;
+  if(!host)return;
   host.replaceChildren();
   window.google.accounts.id.renderButton(host,{type:'standard',theme:'filled_black',size:'large',shape:'rectangular',text:'signin_with',locale:'pt-BR',width:Math.max(200,Math.min(360,Math.floor(host.getBoundingClientRect().width||280)))});
- }catch(error){console.warn('[login] Login Google indisponível:',error?.message||'erro de inicialização');}
+ }catch(error){
+  console.warn('[login] Login Google indisponível:',error?.message||'erro de inicialização');
+  if(host&&!host.querySelector('button'))host.replaceChildren();
+  if(!googleOAuthClientId)setMessage('Login Google temporariamente indisponível. Entre com nickname e senha ou como visitante.',true);
+ }
 }
 
 function setEntryMode(mode){
