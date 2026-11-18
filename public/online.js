@@ -296,7 +296,49 @@ function logoutAccount(){
  const button=$('profileSessionBtn');if(button)button.disabled=true;
  if(activeSocket?.connected&&token){activeSocket.timeout(5000).emit('logout-session',{token},(error,result)=>finish(error||!result?.ok?'Sessão local encerrada. Não foi possível confirmar a revogação no servidor.':''));}else finish(token?'Sessão local encerrada sem confirmação do servidor.':'');
 }
-let entryMode='login',entryGuestChosen=false;
+let entryMode='login',entryGuestChosen=false,googlePendingToken='',googleOAuthClientId='';
+function sendGoogleAuth(token=googlePendingToken){
+ const s=connect();
+ if(!s){setMessage('Conecte-se à internet para entrar com Google.',true);return;}
+ googlePendingToken=String(token||'');
+ const payload={idToken:googlePendingToken};
+ if(entryMode==='register'){
+  payload.nickname=String($('nicknameInput')?.value||'').trim();
+  payload.birthDate=String($('birthDateInput')?.value||'');
+  payload.termsAccepted=Boolean($('createTermsAccept')?.checked);
+ }
+ setMessage('Validando sua conta Google…');
+ const send=()=>s.emit('authenticate-google',payload);
+ if(s.connected)send();else s.once('connect',send);
+}
+function acceptGoogleCredential(response){
+ const token=String(response?.credential||response?.idToken||'');
+ if(!token){setMessage('O Google não retornou uma credencial válida.',true);return;}
+ googlePendingToken=token;
+ sendGoogleAuth(token);
+}
+async function setupGoogleSignIn(){
+ try{
+  if(navigator.onLine===false)return;
+  const response=await fetch(SERVER_URL+'/api/auth/google-config',{cache:'no-store'});
+  const cfg=await response.json();
+  if(!cfg.enabled||!cfg.clientId)return;
+  googleOAuthClientId=cfg.clientId;
+  if(window.Capacitor?.isNativePlatform?.())return;
+  const ready=()=>new Promise((resolve,reject)=>{
+   if(window.google?.accounts?.id)return resolve();
+   const script=document.createElement('script');script.src='https://accounts.google.com/gsi/client';script.async=true;
+   script.onload=resolve;script.onerror=()=>reject(Error('google_sdk_unavailable'));
+   document.head.appendChild(script);
+  });
+  await ready();
+  window.google.accounts.id.initialize({client_id:googleOAuthClientId,callback:acceptGoogleCredential,auto_select:false,cancel_on_tap_outside:true});
+  const host=$('loginGoogleHost');if(!host)return;
+  host.replaceChildren();
+  window.google.accounts.id.renderButton(host,{type:'standard',theme:'filled_black',size:'large',shape:'rectangular',text:'signin_with',locale:'pt-BR',width:300});
+ }catch(error){console.warn('[login] Login Google indisponível:',error?.message||'erro de inicialização');}
+}
+
 function setEntryMode(mode){
  entryMode=mode==='register'?'register':'login';
  const register=entryMode==='register';
@@ -307,6 +349,8 @@ function setEntryMode(mode){
  $('loginSubmitBtn').textContent=register?'CRIAR MINHA CONTA':'ENTRAR NA CONTA';
  $('passwordInput').autocomplete=register?'new-password':'current-password';
  $('forgotPasswordBtn').hidden=register;
+ $('abyssPasswordFields').hidden=Boolean(register&&googlePendingToken);
+ $('loginGoogleHost').hidden=Boolean(register&&googlePendingToken);
  $('abyssEntryHeading').textContent=register?'CRIE SUA IDENTIDADE':'BEM-VINDO AO ABISMO';
  $('abyssEntryCopy').textContent=register?'Escolha seu nome de mergulhador e prepare sua expedição.':'Sua identidade acompanha cada expedição.';
  setMessage('');
@@ -396,13 +440,21 @@ socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeou
  socket.on('connect_error',()=>{connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Servidor temporariamente indisponível. Tentando reconectar…');else hideMaintenanceOverlay();setMessage('Servidor temporariamente indisponível. Solo disponível offline.',true)});
  socket.on('disconnect',(reason)=>{stopPositionHeartbeat();rememberReconnectTarget();connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount&&$('profileScreen')&&!$('profileScreen').hidden)renderProfile(serverAccount);setMessage(sessionToken?(reconnectPending?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Sem conexão. O mergulho solo continua e será sincronizado ao conectar.'):'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));scheduleOnlineMaintenance(reason==='io server disconnect'?1000:3000);if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
  socket.on('auth-result',result=>{
+  if(!result.ok&&result.code==='google_signup_required'&&googlePendingToken){
+   setEntryMode('register');
+   $('emailInput').value=String(result.email||'');
+   $('emailInput').readOnly=true;
+   $('loginSubmitBtn').textContent='CONCLUIR COM GOOGLE';
+   setMessage(result.message||'Informe seu nickname, data de nascimento e aceite dos termos.',true);
+   return;
+  }
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});if(reconnectPending)failReconnect('Servidor reconectado, mas sua sessão precisa ser validada novamente.');else hideMaintenanceOverlay();setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname,isDeveloper:Boolean(result.isDeveloper)};serverAccount=result;
   if(result.sessionToken){sessionToken=result.sessionToken;localStorage.setItem('abyssalSessionToken',sessionToken);}
   localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';
   updateAccount();renderProfile(result);
   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
-  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;entryGuestChosen=false;openAgeTermsIfNeeded();
+  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;entryGuestChosen=false;googlePendingToken='';$('emailInput').readOnly=false;openAgeTermsIfNeeded();
   socket.emit('get-account');socket.emit('list-cardumes');const restoring=restoreRoomAfterReconnect();window.dispatchEvent(new CustomEvent('abyssal-authenticated',{detail:{restoringRoom:Boolean(restoring)}}));
  });
  socket.on('session-resumed',result=>{
@@ -561,8 +613,8 @@ function createRoom(data={}){
 }
 function leaveWorld(){quickBubbles.clear();setQuickOpen(false);if($('quickComms'))$('quickComms').hidden=true;specimenMotion.clear();if(socket?.connected&&authenticated)socket.emit('leave-world');stopPositionHeartbeat();players.clear();hostId=null;currentRoom=null;stopRoomPolling();}
 function requestHostTransfer(){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('request-host-transfer');}
-$('loginSubmitBtn').addEventListener('click',()=>authenticate($('nicknameInput').value,$('passwordInput').value,entryMode));
-$('loginModeSignIn').addEventListener('click',()=>setEntryMode('login'));
+$('loginSubmitBtn').addEventListener('click',()=>{if(entryMode==='register'&&googlePendingToken)sendGoogleAuth();else authenticate($('nicknameInput').value,$('passwordInput').value,entryMode);});
+$('loginModeSignIn').addEventListener('click',()=>{googlePendingToken='';$('emailInput').readOnly=false;setEntryMode('login');});
 $('registerBtn').addEventListener('click',()=>setEntryMode('register'));
 $('loginGuestBtn').addEventListener('click',()=>{
  entryGuestChosen=true;
@@ -572,7 +624,17 @@ $('loginGuestBtn').addEventListener('click',()=>{
  window.dispatchEvent(new CustomEvent('abyssal-guest-entry'));
  applyAgeTreatment('unknown');
 });
-$('loginGoogleBtn').addEventListener('click',()=>setMessage('Entrar com Google depende da configuração OAuth do aplicativo. O login por nickname já está disponível.',true));
+$('loginGoogleBtn').addEventListener('click',async()=>{
+ if(!googleOAuthClientId){setMessage('Login Google ainda precisa do Client ID OAuth no servidor. Entre com nickname e senha por enquanto.',true);return;}
+ if(window.Capacitor?.isNativePlatform?.()){
+  try{
+   const plugin=window.Capacitor?.Plugins?.AbyssalGoogle;
+   if(!plugin){setMessage('Instale a próxima versão Android com suporte a login Google.',true);return;}
+   acceptGoogleCredential(await plugin.signIn({clientId:googleOAuthClientId}));
+  }catch(error){setMessage('Não foi possível concluir o login com Google.',true);}
+ }else setMessage('Aguarde o botão oficial de login Google ser carregado.',true);
+});
+queueMicrotask(setupGoogleSignIn);
 function setAuthFlowMessage(id,message,isError=false){const el=$(id);if(!el)return;el.textContent=message;el.classList.toggle('is-error',Boolean(isError));}
 function closePasswordRecovery(){ $('passwordRecoveryScreen').hidden=true; $('recoveryMessage').textContent=''; }
 const AGE_TERMS_VERSION='2026-11-18-dob-v3';
