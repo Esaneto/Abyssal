@@ -283,4 +283,17 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>#openRedeemCodeBtn{grid-column:1/-1!important;grid-row:6!important}
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>#shopCloseBtn{grid-column:1/-1!important;grid-row:7!important}
 
+
+ /* Landscape catalogue prioritizes specimens over repeated header chrome.
+    The boss bundle remains actionable, but becomes one compact ribbon. */
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-title-actions .shop-redeem-shortcut{min-height:30px!important;height:32px!important;padding:3px 7px!important;font-size:10px!important;line-height:1!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal .shop-catalog-intro .boss-bundle-banner{display:block!important;padding:3px 6px!important;min-height:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal .boss-bundle-banner .boss-bundle-art{display:none!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal .boss-bundle-banner .boss-banner-copy{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(130px,48%)!important;gap:5px!important;align-items:center!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal .boss-bundle-banner .boss-banner-copy strong{font-size:10px!important;line-height:1.1!important;min-width:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal .boss-bundle-banner .boss-banner-copy small{display:none!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal .boss-bundle-banner .boss-banner-copy button{margin:0!important;width:100%!important;min-height:30px!important;height:30px!important;max-height:30px!important;font-size:10px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-filter-bar :is(input,select){height:30px!important;min-height:30px!important;font-size:11px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>.shop-filter-bar{padding:3px!important;gap:4px!important}
+
 }
