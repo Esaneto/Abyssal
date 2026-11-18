@@ -5,17 +5,17 @@ const fs=require('node:fs');
 const path=require('node:path');
 const read=f=>fs.readFileSync(path.resolve(__dirname,'..',f),'utf8');
 const oauth=require('../public/google-oauth-config.js');
-test('Google OAuth needs a Web client; a Play Android client must never be served as Web',()=>{
+test('OAuth accepts provided client ID, rejects retired ID and keeps server override/fallback',()=>{
  const server=read('server.js');
- assert.equal(oauth.isWebClientId(oauth.ANDROID_PLAY_CLIENT_ID),false);
- assert.equal(oauth.normalizeWebClientId(oauth.ANDROID_PLAY_CLIENT_ID),'');
+ assert.equal(oauth.isWebClientId(oauth.USER_PROVIDED_CLIENT_ID),true);
+ assert.equal(oauth.normalizeWebClientId(oauth.RETIRED_CLIENT_ID),'');
  assert.equal(oauth.normalizeWebClientId(''),'');
  assert.equal(oauth.isWebClientId('not-a-client-id'),false);
  assert.equal(oauth.isWebClientId('356475666791-actualwebclient.apps.googleusercontent.com'),true);
  assert.match(server,/process\.env\.ABYSSAL_GOOGLE_WEB_CLIENT_ID/);
- assert.match(server,/normalizeWebClientId\(GOOGLE_OAUTH_CONFIGURED_ID\)/);
+ assert.match(server,/GOOGLE_OAUTH_CONFIGURED_ID===RETIRED_CLIENT_ID/);
+ assert.match(server,/normalizeWebClientId\(candidateGoogleClientId\)/);
  assert.match(server,/verifyGoogleIdToken\(payload\.idToken,clientId\)/);
- assert.doesNotMatch(server,/GOOGLE_OAUTH_DEFAULT_CLIENT_ID/);
 });
 test('login animates real diver outfits/accessories without changing owned profile',()=>{
  const html=read('public/index.html'),css=read('public/abyssal-login-v2.css');

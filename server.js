@@ -103,14 +103,17 @@ app.use((req,res,next)=>/^\/api\/payments\/webhook\/?$/i.test(req.path)?next():j
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
-// Google OAuth requires a real Web client ID configured on the VPS.
-// The Play Store Android client ID is NOT interchangeable with the Web ID.
-// Never publish an invented/fallback ID or silently override server configuration.
-const {normalizeWebClientId}=require('./public/google-oauth-config');
+// Configured Web OAuth client takes precedence. The developer-provided client ID
+// is retained as fallback; client type cannot be inferred from ID syntax alone.
+const {USER_PROVIDED_CLIENT_ID,RETIRED_CLIENT_ID,normalizeWebClientId}=require('./public/google-oauth-config');
 const GOOGLE_OAUTH_CONFIGURED_ID=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
-const GOOGLE_OAUTH_WEB_CLIENT_ID=normalizeWebClientId(GOOGLE_OAUTH_CONFIGURED_ID);
+const candidateGoogleClientId=(!GOOGLE_OAUTH_CONFIGURED_ID||GOOGLE_OAUTH_CONFIGURED_ID===RETIRED_CLIENT_ID)
+ ?USER_PROVIDED_CLIENT_ID:GOOGLE_OAUTH_CONFIGURED_ID;
+const GOOGLE_OAUTH_WEB_CLIENT_ID=normalizeWebClientId(candidateGoogleClientId);
+if(GOOGLE_OAUTH_CONFIGURED_ID===RETIRED_CLIENT_ID)
+ console.warn('[google-oauth] ID legado inválido configurado; usando ID fornecido pelo desenvolvedor.');
 if(!GOOGLE_OAUTH_WEB_CLIENT_ID)
- console.warn('[google-oauth] Defina ABYSSAL_GOOGLE_WEB_CLIENT_ID com o ID do cliente OAuth Aplicativo da Web no serviço systemd.');
+ console.warn('[google-oauth] Configure um Client ID do tipo Aplicativo da Web em ABYSSAL_GOOGLE_WEB_CLIENT_ID.');
 app.get('/api/auth/google-config',(_req,res)=>{
  res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
  res.json({enabled:Boolean(GOOGLE_OAUTH_WEB_CLIENT_ID),clientId:GOOGLE_OAUTH_WEB_CLIENT_ID||null,

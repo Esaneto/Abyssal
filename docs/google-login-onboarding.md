@@ -12,7 +12,7 @@
 1. Em Google Cloud Console > Google Auth Platform / Credenciais, configure a tela de consentimento OAuth e crie um cliente OAuth **Aplicativo da Web** para o domínio público real do Abyssal.
 2. Cadastre as **origens JavaScript autorizadas** que executam o jogo, por exemplo `https://abyssalgame.duckdns.org` (confirme o domínio efetivo). O GIS retorna um ID token; não se trata de usar o JSON privado de faturamento.
 3. No projeto Cloud, prepare também um cliente OAuth **Android** com pacote `com.esaneto.abyssal` e SHA-1 da **chave de assinatura de apps do Google Play**, para a seleção nativa de conta.
-4. **Obrigatório na VPS:** defina `ABYSSAL_GOOGLE_WEB_CLIENT_ID` em `/etc/abyssal/abyssal.env` com o ID do cliente **Abyssal Web** (tipo Aplicativo da Web) criado no Google Cloud, e reinicie `abyssal.service`. O ID Android `356475666791-b0m2248cgt80et9126c41br3mnk868v3.apps.googleusercontent.com` pertence ao cliente Android Play Store e **nunca deve ser usado como Web Client ID**. O servidor deixa de usar IDs padrão não verificados. O Android usa o ID Web como audience no token nativo, enquanto seu cliente Android SHA-1 valida assinatura. **Nunca envie segredo, token ou JSON de serviço ao Git.**
+4. Na VPS, `ABYSSAL_GOOGLE_WEB_CLIENT_ID` em `/etc/abyssal/abyssal.env` tem prioridade. Se estiver ausente ou contiver o ID antigo desativado, é utilizado o ID OAuth **fornecido pelo proprietário do projeto** (`356475666791-b0m2248cgt80et9126c41br3mnk868v3.apps.googleusercontent.com`). **O formato de um Client ID não revela se o cliente foi criado como Web ou Android**; o tipo deve ser conferido na Google Auth Platform. Para GIS Web, ele precisa ser do tipo **Aplicativo da Web**, com origem `https://abyssalgame.duckdns.org`. O app Android usa o ID Web como audiência do token nativo, e requer adicionalmente um cliente Android autorizado para a assinatura SHA-1. Nunca envie segredo, token ou JSON privado ao Git.
 5. A versão Android precisa ser compilada a partir de `scripts/configure-android.cjs`, incluindo o plugin nativo `AbyssalGoogle`; versões antigas do AAB não oferecem essa capacidade.
 
 ### Segurança
@@ -39,7 +39,7 @@ Acesso como **Nekko** ou **GameMaster** no Abyssal é independente do teste de f
 `public/index.html`, `public/online.js`, `public/abyssal-login-v2.css`, `server.js`, `auth-birthdate.js`, `google-login.js`, `scripts/configure-android.cjs`, `public/offline-sw.js`, `public/privacy.html` `mobile/capacitor.config.json`, `scripts/login-ui-smoke.cjs` e testes relacionados.
 
 ## Verificação após deploy
-- Abra `https://abyssalgame.duckdns.org/api/auth/google-config` e confirme `enabled: true` e `clientId` igual ao valor do cliente **Abyssal Web** no Google Cloud; **não** deve ser o cliente Android..
+- Abra `https://abyssalgame.duckdns.org/api/auth/google-config` e confirme `enabled: true` e `clientId` igual ao ID do cliente **Aplicativo da Web** no Google Cloud, sem presumir seu tipo pela aparência do ID.
 - Confirme na Google Auth Platform que o **cliente é do tipo Web** e contém a origem JavaScript autorizada `https://abyssalgame.duckdns.org` (sem caminho).
 - Confirme que o consentimento OAuth está em produção ou que a conta de teste está cadastrada. O código não pode habilitar nem verificar essas configurações externas sozinho.
 - No Android, a credencial nativa precisa de um OAuth Android com SHA-1 do certificado de assinatura usado no Play Store e de AAB recompilado com o plugin `AbyssalGoogle`.
