@@ -56,9 +56,9 @@ function handler(req,res){
   if(err)return res.writeHead(404).end('Not found');
   if(isLogin){
     const document=String(data);
-    const head=document.match(/<head>([\\s\\S]*?)<\\/head>/i)?.[1]||'';
-    const cleanHead=head.replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi,'');
-    const section=document.match(/<section id="loginScreen"[\\s\\S]*?<\\/section>/i)?.[0];
+    const head=document.match(/<head>([\s\S]*?)<\/head>/i)?.[1]||'';
+    const cleanHead=head.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
+    const section=document.match(/<section id="loginScreen"[\s\S]*?<\/section>/i)?.[0];
     assert.ok(section,'Real login markup not found');
     data=Buffer.from('<!doctype html><html lang="pt-BR"><head>'+cleanHead+'</head><body><div id="app">'+section+'</div>'+probe+'</body></html>');
   }
