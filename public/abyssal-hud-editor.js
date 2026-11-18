@@ -156,10 +156,11 @@ const MOBILE_PRESET={
 // GameMaster's public desktop profile has no saved overrides (2026-11-18).
 // The native PC HUD, not another player's positions, is the correct baseline.
 const DESKTOP_PRESET={};
+const NATIVE_DESKTOP_POWER=Object.freeze({x:.045,y:.59,s:1});
 function defaultLayout(mode,profile){
  const source=profile==='desktop'?DESKTOP_PRESET:MOBILE_PRESET[profile];if(!source)return {};
  const layout=Object.fromEntries(Object.entries(source).map(([id,pos])=>[id,{...pos}]));
- if(mode==='online')layout.comms=profile==='desktop'?{x:DESKTOP_DEFAULTS.power[0],y:DESKTOP_DEFAULTS.power[1]-.085,s:1}:profile==='portrait'?{x:.15,y:.47,s:1}:{x:.15,y:.52,s:1};
+ if(mode==='online')layout.comms=profile==='desktop'?{x:NATIVE_DESKTOP_POWER.x,y:NATIVE_DESKTOP_POWER.y-.085,s:1}:profile==='portrait'?{x:.15,y:.47,s:1}:{x:.15,y:.52,s:1};
  return layout;
 }
 function effectiveLayout(layout,mode,profile){return {...defaultLayout(mode,profile),...modeLayout(layout,mode)[profile]};}
@@ -174,7 +175,7 @@ function resolvePositions(entries,w,h,safe={},avoidOverlap=true,device='portrait
  for(const e of ordered){
   if(e.pos.hidden)continue;
   let wanted=e.pos;
-  if(device==='desktop'&&e.id==='comms'&&!e.custom){const power=entries.find(v=>v.id==='power'),p=power?.pos||{x:DESKTOP_DEFAULTS.power[0],y:DESKTOP_DEFAULTS.power[1],s:1},box=power?.box||{w:48,h:48},actual=result.power||p,pf=fit(actual,box,w,h,safe);wanted={...e.pos,x:pf.x/w,y:(pf.y-box.h*pf.s/2-e.box.h*e.pos.s/2-8)/h};}
+  if(device==='desktop'&&e.id==='comms'&&!e.custom){const power=entries.find(v=>v.id==='power'),p=power?.pos||NATIVE_DESKTOP_POWER,box=power?.box||{w:48,h:48},actual=result.power||p,pf=fit(actual,box,w,h,safe);wanted={...e.pos,x:pf.x/w,y:(pf.y-box.h*pf.s/2-e.box.h*e.pos.s/2-8)/h};}
   const target=fit(wanted,e.box,w,h,safe),hw=e.box.w*target.s/2,hh=e.box.h*target.s/2;
   const rect=(x,y)=>({l:x-hw,r:x+hw,t:y-hh,b:y+hh});
   const intersects=(a,b)=>a.l<b.r+gap-.001&&a.r>b.l-gap+.001&&a.t<b.b+gap-.001&&a.b>b.t-gap+.001;
