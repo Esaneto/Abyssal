@@ -235,7 +235,7 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
 
 /* Mobile landscape only: use the wide visor for horizontal specimen cards.
    Portrait and desktop retain their existing catalogue layouts. */
-@media (orientation:landscape) and (pointer:coarse){
+@media (orientation:landscape){
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal{padding:7px!important;overflow:visible!important;max-height:none!important;width:100%!important;display:flex!important;flex-direction:column!important;gap:5px!important}
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen :is(.eyebrow,.shop-heading p){display:none!important}
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-heading{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;flex-wrap:nowrap!important;gap:8px!important;padding:0!important;margin:0!important;min-width:0!important}
