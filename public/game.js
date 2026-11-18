@@ -5662,6 +5662,10 @@ let pendingStripePurchase = null, stripeCheckoutBusy=false;
 function openSkinPurchaseConfirm(skin, name, priceFormatted, isBundle = false) {
   const skinId = typeof skin === 'string' ? skin : skin?.id;
   if(!skinId||stripeCheckoutBusy)return;
+  if(window.Capacitor?.getPlatform?.()==='android'){
+    window.AbyssalOnline?.purchaseStripe?.(skinId,'brl',gameLanguage);
+    return true;
+  }
   const modal = $('skinPurchaseConfirmModal');
   if (!modal) {showToast('Confirmação de compra indisponível. Recarregue o jogo.');return false;}
   // In the cabin, checkout confirmation belongs in the visor. Outside, retain the existing modal.
