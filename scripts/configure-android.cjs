@@ -3,6 +3,8 @@ const path=require('path');
 
 const manifest=path.join('android','app','src','main','AndroidManifest.xml');
 let xml=fs.readFileSync(manifest,'utf8');
+// Play Console requires this permission in a submitted AAB before enabling one-time products.
+if(!xml.includes('com.android.vending.BILLING'))xml=xml.replace(/<manifest([^>]*)>/, '<manifest$1>\n    <uses-permission android:name="com.android.vending.BILLING" />');
 if(!xml.includes('android.permission.ACCESS_NETWORK_STATE'))xml=xml.replace(/<uses-permission android:name="android.permission.INTERNET"\s*\/>/,'<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />');
 xml=xml.replace(/<activity([^>]*android:name="\.MainActivity"[^>]*)>/,(_,attrs)=>{
  let a=attrs;
@@ -400,6 +402,123 @@ public class AbyssalStorePlugin extends Plugin {
 }
 `);
 
+
+fs.writeFileSync(path.join(javaDir,'AbyssalBillingPlugin.java'),`package com.esaneto.abyssal;
+
+import com.android.billingclient.api.*;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import java.util.ArrayList;
+import java.util.List;
+
+@CapacitorPlugin(name = "AbyssalBilling")
+public class AbyssalBillingPlugin extends Plugin implements PurchasesUpdatedListener {
+  private BillingClient client;
+  private PluginCall purchaseCall;
+  private String requestedProduct;
+
+  @Override public void load() {
+    client = BillingClient.newBuilder(getContext())
+        .setListener(this)
+        .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+        .enableAutoServiceReconnection()
+        .build();
+  }
+
+  private void connect(final PluginCall call, final Runnable success) {
+    if(client.isReady()) {success.run();return;}
+    client.startConnection(new BillingClientStateListener() {
+      @Override public void onBillingServiceDisconnected() { }
+      @Override public void onBillingSetupFinished(BillingResult result) {
+        if(result.getResponseCode()==BillingClient.BillingResponseCode.OK) success.run();
+        else call.reject("PLAY_BILLING_UNAVAILABLE");
+      }
+    });
+  }
+
+  private JSObject purchaseJson(Purchase purchase) {
+    JSObject data = new JSObject();
+    data.put("productIds",purchase.getProducts());
+    data.put("purchaseToken",purchase.getPurchaseToken());
+    data.put("state",purchase.getPurchaseState());
+    data.put("acknowledged",purchase.isAcknowledged());
+    return data;
+  }
+
+  @PluginMethod public void buy(PluginCall call) {
+    String productId=call.getString("productId","");
+    if(!productId.matches("[a-z0-9_]{3,100}")) {call.reject("INVALID_PRODUCT");return;}
+    if(purchaseCall!=null) {call.reject("PURCHASE_IN_PROGRESS");return;}
+    connect(call, () -> {
+      List<QueryProductDetailsParams.Product> products=new ArrayList<>();
+      products.add(QueryProductDetailsParams.Product.newBuilder()
+          .setProductId(productId).setProductType(BillingClient.ProductType.INAPP).build());
+      client.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(products).build(),(result, detailsResult) -> {
+        if(result.getResponseCode()!=BillingClient.BillingResponseCode.OK || detailsResult.getProductDetailsList().isEmpty()){
+          call.reject("PRODUCT_NOT_READY");return;
+        }
+        ProductDetails detail=detailsResult.getProductDetailsList().get(0);
+        List<BillingFlowParams.ProductDetailsParams> params=new ArrayList<>();
+        params.add(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(detail).build());
+        purchaseCall=call;
+        requestedProduct=productId;
+        getActivity().runOnUiThread(() -> {
+          BillingResult launch=client.launchBillingFlow(getActivity(),BillingFlowParams.newBuilder().setProductDetailsParamsList(params).build());
+          if(launch.getResponseCode()!=BillingClient.BillingResponseCode.OK){
+            PluginCall current=purchaseCall;purchaseCall=null;requestedProduct=null;
+            if(current!=null)current.reject("PLAY_BILLING_UNAVAILABLE");
+          }
+        });
+      });
+    });
+  }
+
+  @Override public void onPurchasesUpdated(BillingResult result,List<Purchase> purchases) {
+    PluginCall call=purchaseCall;
+    purchaseCall=null;requestedProduct=null;
+    if(result.getResponseCode()==BillingClient.BillingResponseCode.USER_CANCELED){
+      if(call!=null)call.reject("PURCHASE_CANCELED");
+      return;
+    }
+    if(result.getResponseCode()!=BillingClient.BillingResponseCode.OK||purchases==null||purchases.isEmpty()){
+      if(call!=null)call.reject("PURCHASE_NOT_COMPLETED");
+      return;
+    }
+    JSObject data=new JSObject();
+    com.getcapacitor.JSArray items=new com.getcapacitor.JSArray();
+    for(Purchase purchase:purchases)items.put(purchaseJson(purchase));
+    data.put("purchases",items);
+    notifyListeners("purchasesUpdated",data);
+    if(call!=null)call.resolve(data);
+  }
+
+  @PluginMethod public void restore(PluginCall call) {
+    connect(call,()->client.queryPurchasesAsync(
+      QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build(),
+      (result,purchases)->{
+        if(result.getResponseCode()!=BillingClient.BillingResponseCode.OK){call.reject("PLAY_BILLING_UNAVAILABLE");return;}
+        JSObject data=new JSObject();
+        com.getcapacitor.JSArray items=new com.getcapacitor.JSArray();
+        for(Purchase purchase:purchases)items.put(purchaseJson(purchase));
+        data.put("purchases",items);call.resolve(data);
+      }));
+  }
+
+  @PluginMethod public void acknowledge(PluginCall call) {
+    String token=call.getString("purchaseToken","");
+    if(token.length()<8){call.reject("INVALID_TOKEN");return;}
+    connect(call,()->client.acknowledgePurchase(
+      AcknowledgePurchaseParams.newBuilder().setPurchaseToken(token).build(),result->{
+        if(result.getResponseCode()==BillingClient.BillingResponseCode.OK)call.resolve();
+        else call.reject("ACKNOWLEDGEMENT_FAILED");
+      }));
+  }
+}
+`);
+
 const java=path.join(javaDir,'MainActivity.java');
 if(fs.existsSync(java)){
  const src=`package com.esaneto.abyssal;
@@ -443,6 +562,7 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(AbyssalFullscreenPlugin.class);
     registerPlugin(AbyssalCommunityPlugin.class);
     registerPlugin(AbyssalStorePlugin.class);
+    registerPlugin(AbyssalBillingPlugin.class);
     super.onCreate(savedInstanceState);
     immersive = getPreferences(MODE_PRIVATE).getBoolean("abyssalImmersive", true);
     Window window = getWindow();
@@ -511,6 +631,7 @@ const gradle=path.join('android','app','build.gradle');
 if(fs.existsSync(gradle)){
  let build=fs.readFileSync(gradle,'utf8');
  if(!build.includes('com.google.android.play:app-update:'))build += "\n dependencies { implementation 'com.google.android.play:app-update:2.1.0' }\n";
+  if(!build.includes('com.android.billingclient:billing:'))build += "\n dependencies { implementation 'com.android.billingclient:billing:9.1.0' }\n";
  const packageVersion=String(process.env.ABYSSAL_VERSION_NAME||require('../package.json').version||'1.0.0').replace(/[^0-9A-Za-z._-]/g,'');
  const runNumber=Math.max(1,Number.parseInt(process.env.ABYSSAL_VERSION_CODE||process.env.GITHUB_RUN_NUMBER||'1',10)||1);
  build=build.replace(/versionCode\s+\d+/, 'versionCode '+runNumber);
