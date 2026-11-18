@@ -210,6 +210,14 @@ function planPositions(entries,w,h,safe={},device='portrait'){
 function displayPosition(pos,slot,box,h){return slot?{...pos,y:pos.y+slot.anchor*(box.h-slot.reference)*pos.s/(2*h)}:pos;}
 function fit(pos,box,w,h,safe={}){const l=Math.max(6,safe.left||0),r=Math.max(6,safe.right||0),t=Math.max(6,safe.top||0),b=Math.max(6,safe.bottom||0),s=Math.min(pos.s,Math.max(.1,(w-l-r)/Math.max(1,box.w)),Math.max(.1,(h-t-b)/Math.max(1,box.h)));const hw=box.w*s/2,hh=box.h*s/2;return {x:clamp(pos.x*w,l+hw,Math.max(l+hw,w-r-hw)),y:clamp(pos.y*h,t+hh,Math.max(t+hh,h-b-hh)),s};}
 function safeInsets(doc){const html=doc.documentElement;if(!html.classList.contains('abyssal-handheld'))return {};let el=doc.getElementById('abyssalHudSafeAreaProbe');if(!el){el=doc.createElement('div');el.id='abyssalHudSafeAreaProbe';el.style.cssText='position:fixed;pointer-events:none;visibility:hidden;width:0;height:0;box-sizing:content-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);';doc.body.append(el);}const c=doc.defaultView.getComputedStyle(el);return {left:parseFloat(c.paddingLeft)||0,right:parseFloat(c.paddingRight)||0,top:parseFloat(c.paddingTop)||0,bottom:parseFloat(c.paddingBottom)||0};}
+// A control can move without a viewport resize when a flex sibling gains
+// or loses the hidden attribute. Detect the rendered drift, but re-anchor only
+// that control rather than resetting every translated HUD node.
+function placementDrift(rect,pos,stage,tolerance=2){
+ if(!rect||!pos)return false;
+ const x=stage.left+pos.x*stage.width,y=stage.top+pos.y*stage.height;
+ return Math.abs(rect.cx-x)>tolerance||Math.abs(rect.cy-y)>tolerance;
+}
 function groupRect(els){if(!els.length)return null;const rects=els.map(el=>el.getBoundingClientRect()),l=Math.min(...rects.map(r=>r.left)),t=Math.min(...rects.map(r=>r.top)),r=Math.max(...rects.map(r=>r.right)),b=Math.max(...rects.map(r=>r.bottom));return {rects,l,t,r,b,w:r-l,h:b-t,cx:(l+r)/2,cy:(t+b)/2};}
 function skillReservation(el,box){const c=el.ownerDocument.defaultView.getComputedStyle(el),row=el.querySelector('.selected-skill-row'),r=row?.getBoundingClientRect(),reference=Math.max(1,(r?.height||32)+(parseFloat(c.paddingTop)||0)+(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderTopWidth)||0)+(parseFloat(c.borderBottomWidth)||0));return {reference,height:Math.max(reference,parseFloat(c.maxHeight)||box.h)};}
 function visibleGroup(doc,selectors){return selectors.flatMap(s=>[...doc.querySelectorAll(s)]).filter(el=>{const r=el.getBoundingClientRect(),cs=doc.defaultView.getComputedStyle(el);return r.width>0&&r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden';});}
@@ -219,7 +227,7 @@ function ownerKey(name){return String(name||'').trim().toLowerCase();}
 function changedProfiles(before,after){const result=[];for(const mode of MODES)for(const device of PROFILES)if(JSON.stringify(modeLayout(before,mode)[device])!==JSON.stringify(modeLayout(after,mode)[device]))result.push(mode+':'+device);return result;}
 function mergeProfiles(remote,local,changes){const out=normalize(remote),next=normalize(local);for(const key of (Array.isArray(changes)?changes.slice(0,6):[])){if(typeof key!=='string')continue;const [mode,device]=key.split(':');if(MODES.includes(mode)&&PROFILES.includes(device))modeLayout(out,mode)[device]=modeLayout(next,mode)[device];}return out;}
 function hasEdits(layout){return MODES.some(mode=>PROFILES.some(device=>Object.keys(modeLayout(layout,mode)[device]).length));}
-const core={normalize,fit,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,planPositions,displayPosition,fixedPlacement,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
+const core={normalize,fit,placementDrift,ITEMS,PROFILES,MODES,eligibleItems,modeLayout,canRemove,scaleLimit,defaultLayout,effectiveLayout,resolvePositions,planPositions,displayPosition,fixedPlacement,ownerKey,changedProfiles,mergeProfiles,hasEdits};if(typeof module!=='undefined'&&module.exports){module.exports=core;return;}
 const doc=root.document;if(!doc)return;
 function read(key){try{return JSON.parse(root.localStorage.getItem(key)||'null');}catch{return null;}}
 function write(key,v){try{root.localStorage.setItem(key,JSON.stringify(v));return true;}catch{return false;}}
@@ -308,8 +316,16 @@ function refresh(){
   const g0=groupRect(els);
   const sizeChanged=id==='skills'&&Math.abs((measuredSkills.get(id)??g0.h)-g0.h)>2;
   const missing=els.some(el=>!applied.has(el));
-  if(!replan&&!missing&&!sizeChanged){entries.push({id,els});continue;}
-  // Only the skill rail is intentionally resizable while the game runs.
+  const display=displayPosition(pos,layoutPlan.slots[id],g0,sr.height);
+  // Opening the emoji wheel changes the bounds of its root; the toggle must
+  // remain anchored while the popup expands. Other groups need to be
+  // individually re-anchored when sibling visibility changes their native
+  // flex positions, including E/R/Q buttons.
+  const popupOpen=id==='comms'&&!doc.getElementById('quickCommsWheel')?.hidden;
+  const drifted=!popupOpen&&placementDrift(g0,display,sr);
+  if(!replan&&!missing&&!sizeChanged&&!drifted){entries.push({id,els});continue;}
+  // Recalculate only the affected element. Other HUD controls keep their
+  // existing translations and cannot jump during contextual changes.
   for(const el of els)if(applied.has(el))resetPlacement(el);
   const g=groupRect(els);if(!g)continue;
   const f=placeGroup(els,g,displayPosition(pos,layoutPlan.slots[id],g,sr.height),sr,safe);
