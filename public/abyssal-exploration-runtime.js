@@ -388,14 +388,14 @@
   if(openedPrimaryCockpit||!workshop)return;
   const menu=document.getElementById('menuScreen');
   if(!menu||menu.hidden||document.body.classList.contains('game-active'))return;
-  for(const id of ['ageTermsScreen','loginScreen']){
+  for(const id of ['loginScreen']){
    const modal=document.getElementById(id);
    if(modal&&!modal.hidden)return;
   }
   openedPrimaryCockpit=true;showExterior();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showPrimaryCockpit,{once:true});else showPrimaryCockpit();
- for(const id of ['ageTermsScreen','loginScreen','menuScreen']){
+ for(const id of ['loginScreen','menuScreen']){
   const modal=document.getElementById(id);
   if(modal&&typeof MutationObserver==='function'){
    const observer=new MutationObserver(()=>showPrimaryCockpit());
