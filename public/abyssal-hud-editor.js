@@ -275,16 +275,21 @@ function storeCurrent(){const ok=write(scoped(KEY,owner),{layout:saved,revision}
 function pendingFor(name){const key=scoped(PENDING,name),v=read(key);if(v)return v;const old=read(PENDING);if(name&&ownerKey(old?.owner)===name&&old.layout){const next={layout:normalize(old.layout),changes:MODES.flatMap(mode=>PROFILES.map(device=>mode+':'+device))};write(key,next);try{root.localStorage.removeItem(PENDING);}catch{}return next;}return null;}
 function switchOwner(name){name=ownerKey(name);if(name===owner)return;storeCurrent();owner=name;record=readScoped(owner);saved=record.layout;revision=record.revision;if(!doc.body.classList?.contains('game-active')){runLayout=null;layoutPlan=null;}storeCurrent();schedule();}
 storeCurrent();
-const applied=new Map(),scales=new Map(),userHidden=new Set(),observedSizes=new Set();
+const applied=new Map(),scales=new Map(),userHidden=new Set(),observedSizes=new Set(),measuredSkills=new Map();
 const layoutSizeObserver=typeof root.ResizeObserver==='function'?new root.ResizeObserver(()=>schedule()):null;
 function watchSizes(entries){if(!layoutSizeObserver)return;const next=new Set(entries.flatMap(e=>e.els));for(const el of observedSizes)if(!next.has(el)){layoutSizeObserver.unobserve(el);observedSizes.delete(el);}for(const el of next)if(!observedSizes.has(el)){observedSizes.add(el);layoutSizeObserver.observe(el);}}
-function profile(){return doc.documentElement.classList.contains('abyssal-handheld')||root.matchMedia('(pointer: coarse)').matches||root.innerWidth<=700?root.innerWidth>root.innerHeight?'landscape':'portrait':'desktop';}
+function profile(){
+ // Narrow PC windows keep the desktop preset; only touch devices rotate profiles.
+ const handheld=doc.documentElement.classList.contains('abyssal-handheld')||Boolean(root.matchMedia?.('(pointer: coarse)').matches);
+ return handheld?(root.innerWidth>root.innerHeight?'landscape':'portrait'):'desktop';
+}
 function gameMode(){return doc.body.dataset.hudMode==='online'?'online':'solo';}
 function mobileControls(){try{return root.localStorage.getItem('abyssalControlsMobile')==='dual-stick'?'dual-stick':'classic';}catch{return 'classic';}}
 function activeLayout(){return effectiveLayout(runLayout||saved,gameMode(),profile());}
 function beginRun(){runLayout=normalize(saved);layoutPlan=null;schedule();}
 function active(){return doc.body.classList.contains('game-active');}
-function clear(){for(const el of applied.keys()){el.style.removeProperty('translate');el.style.removeProperty('scale');el.style.removeProperty('transform-origin');el.removeAttribute('data-hud-custom-opacity');el.style.removeProperty('--hud-custom-opacity');}applied.clear();scales.clear();for(const el of userHidden)el.removeAttribute('data-hud-user-hidden');userHidden.clear();}
+function resetPlacement(el){el.style.removeProperty('translate');el.style.removeProperty('scale');el.style.removeProperty('transform-origin');el.removeAttribute('data-hud-custom-opacity');el.style.removeProperty('--hud-custom-opacity');applied.delete(el);}
+function clear(){for(const el of [...applied.keys()])resetPlacement(el);scales.clear();measuredSkills.clear();for(const el of userHidden)el.removeAttribute('data-hud-user-hidden');userHidden.clear();}
 // A plan is rebuilt only on a real viewport/mode/control/layout change.
 // Hidden contextual controls keep their slots. Measure the full DOM once,
 // synchronously, then restore every original visibility flag before painting.
@@ -313,25 +318,46 @@ function refresh(){
  scheduled=false;
  const shell=doc.getElementById('gameShell');
  if(!shell||!active()){clear();watchSizes([]);layoutPlan=null;runLayout=null;doc.body.classList.remove('custom-hud-active');return;}
- // The level-up modal hides HUD nodes by design. Do not replace their geometry
- // with a partial/empty layout while it is open.
- const upgrade=doc.getElementById('upgradeScreen');if(upgrade&&!upgrade.hidden)return;
+ const upgrade=doc.getElementById('upgradeScreen');
+ if(upgrade&&!upgrade.hidden)return;
+ const pause=doc.getElementById('pauseScreen');
+ if(pause&&!pause.hidden)return;
  if(!runLayout)runLayout=normalize(saved);
  const device=profile(),mode=gameMode(),raw=modeLayout(runLayout,mode)[device],layout=effectiveLayout(runLayout,mode,device),safe=safeInsets(doc),controls=mobileControls();
  const sr=shell.getBoundingClientRect();if(!sr.width||!sr.height)return;
- const key=JSON.stringify([mode,device,controls,Math.round(sr.width),Math.round(sr.height),safe,raw]);
+ const key=JSON.stringify([mode,device,controls,safe,raw]);
+ const geometryChanged=layoutPlan&&(Math.abs(sr.width-layoutPlan.width)>Math.max(48,layoutPlan.width*.08)||Math.abs(sr.height-layoutPlan.height)>Math.max(48,layoutPlan.height*.08));
+ const replan=!layoutPlan||layoutPlan.key!==key||geometryChanged;
  doc.body.classList.add('custom-hud-active');
- clear();
  const items=eligibleItems(mode,device,controls);
- if(!layoutPlan||layoutPlan.key!==key)layoutPlan={key,...measurePlan(items,layout,raw,sr,safe,device)};
+ if(replan){
+  clear();
+  layoutPlan={key,width:sr.width,height:sr.height,...measurePlan(items,layout,raw,sr,safe,device)};
+ }
  const entries=[];
  for(const [id,,selectors] of items){
   const pos=layoutPlan.positions[id];
-  if(canRemove(id)&&layout[id]?.hidden){for(const sel of selectors)for(const el of doc.querySelectorAll(sel)){el.setAttribute('data-hud-user-hidden','');userHidden.add(el);}continue;}
-  if(!pos)continue;const els=visibleGroup(doc,selectors),g=groupRect(els);if(!g)continue;
-  entries.push({id,els});
+  if(canRemove(id)&&layout[id]?.hidden){
+   for(const sel of selectors)for(const el of doc.querySelectorAll(sel)){el.setAttribute('data-hud-user-hidden','');userHidden.add(el);}
+   continue;
+  }
+  if(!pos)continue;
+  const els=visibleGroup(doc,selectors);if(!els.length)continue;
+  // Preserve translations through ordinary HUD updates. Previously every
+  // ResizeObserver/attribute event cleared them and reread responsive CSS
+  // baselines, which can move buttons during the same dive.
+  const g0=groupRect(els);
+  const sizeChanged=id==='skills'&&Math.abs((measuredSkills.get(id)??g0.h)-g0.h)>2;
+  const missing=els.some(el=>!applied.has(el));
+  if(!replan&&!missing&&!sizeChanged){entries.push({id,els});continue;}
+  // Only the skill rail is intentionally resizable while the game runs.
+  for(const el of els)if(applied.has(el))resetPlacement(el);
+  const g=groupRect(els);if(!g)continue;
   const f=placeGroup(els,g,displayPosition(pos,layoutPlan.slots[id],g,sr.height),sr,safe);
-  scales.set(id,f.s);for(const el of els)applied.set(el,true);
+  scales.set(id,f.s);
+  if(id==='skills')measuredSkills.set(id,g.h*f.s);
+  for(const el of els)applied.set(el,true);
+  entries.push({id,els});
  }
  watchSizes(entries);
 }
