@@ -49,6 +49,11 @@ async function capture(root,label){
    await wait("Boolean(window.AbyssalCockpitNavigation&&document.getElementById('submarineWorkshop'))");
    // Complete real first-launch UI rather than relying on a historical stored profile.
    await wait("!document.getElementById('abyssalStartupLoading') && !document.documentElement.classList.contains('abyssal-startup')");
+   if(label==='after'){
+    await wait("document.getElementById('loginScreen')?.hidden===false");
+    await ev("document.getElementById('loginGuestBtn').click()");
+    await wait("document.getElementById('loginScreen').hidden===true");
+   }
    await ev(`(()=>{const gate=document.getElementById('ageTermsScreen');if(!gate||gate.hidden)return;const range=document.getElementById('ageYearsRange');if(range){range.value='27';range.dispatchEvent(new Event('input',{bubbles:true}));}else for(const [id,value] of [['ageBirthDay','1'],['ageBirthMonth','1'],['ageBirthYear','1990']]){const input=document.getElementById(id);if(input){input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}}const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;document.getElementById('ageTermsContinue')?.click();})()`);
    await wait("document.getElementById('ageTermsScreen')?.hidden!==false");
    await wait(`(()=>{const tour=document.getElementById('abyssalMenuTour'),menu=document.getElementById('menuScreen'),cabin=document.getElementById('submarineWorkshop');if(tour&&!tour.hidden){tour.querySelector('.amt-skip')?.click();return false;}if(!menu?.hidden&&window.AbyssalMenuTour&&localStorage.getItem('abyssalMenuTourV1')!=='1'&&window.AbyssalMenuTour.open('exterior',true))return false;const guide=document.getElementById('abyssalTutorialOverlay');if(guide&&!guide.hidden){document.getElementById('abyssalGuideX')?.click();return false;}if(cabin?.hidden||!cabin?.querySelector('.abyss-control-deck'))window.AbyssalCockpitNavigation.open();const e=cabin?.querySelector('.abyss-cockpit-visor');if(!e||cabin.hidden)return false;const r=e.getBoundingClientRect(),p=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !!p&&e.contains(p);})()`);
