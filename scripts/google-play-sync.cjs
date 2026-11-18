@@ -68,7 +68,7 @@ async function listing(access) {
   const all = [];
   let pageToken;
   do {
-    const u = API + '/onetimeproducts?pageSize=100' + (pageToken ? '&pageToken='+encodeURIComponent(pageToken) : '');
+    const u = API + '/oneTimeProducts?pageSize=100' + (pageToken ? '&pageToken='+encodeURIComponent(pageToken) : '');
     const r = await call(access,'GET',u);
     all.push(...(r.oneTimeProducts || []));
     pageToken = r.nextPageToken;
