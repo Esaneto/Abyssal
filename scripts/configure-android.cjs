@@ -450,6 +450,8 @@ public class AbyssalBillingPlugin extends Plugin implements PurchasesUpdatedList
 
   @PluginMethod public void buy(PluginCall call) {
     String productId=call.getString("productId","");
+    String accountId=call.getString("obfuscatedAccountId","");
+    if(!accountId.matches("[a-f0-9]{64}")){call.reject("INVALID_ACCOUNT");return;}
     if(!productId.matches("[a-z0-9_]{3,100}")) {call.reject("INVALID_PRODUCT");return;}
     if(purchaseCall!=null) {call.reject("PURCHASE_IN_PROGRESS");return;}
     connect(call, () -> {
@@ -469,7 +471,7 @@ public class AbyssalBillingPlugin extends Plugin implements PurchasesUpdatedList
         purchaseCall=call;
         requestedProduct=productId;
         getActivity().runOnUiThread(() -> {
-          BillingResult launch=client.launchBillingFlow(getActivity(),BillingFlowParams.newBuilder().setProductDetailsParamsList(params).build());
+          BillingResult launch=client.launchBillingFlow(getActivity(),BillingFlowParams.newBuilder().setObfuscatedAccountId(accountId).setProductDetailsParamsList(params).build());
           if(launch.getResponseCode()!=BillingClient.BillingResponseCode.OK){
             PluginCall current=purchaseCall;purchaseCall=null;requestedProduct=null;
             if(current!=null)current.reject("PLAY_BILLING_UNAVAILABLE");
