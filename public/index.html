@@ -67,7 +67,7 @@
 <link rel="stylesheet" href="abyssal-interface-harmony.css?v=2">
 <link rel="stylesheet" href="offline-ui.css?v=1">
 <link rel="stylesheet" href="loading-screen.css?v=2026.11.13.hq">
-<link rel="stylesheet" href="age-slider.css?v=1">
+
 <link rel="stylesheet" href="developer-tools.css?v=3">
 <link rel="stylesheet" href="update-manager.css?v=3.6.132">
 <link rel="stylesheet" href="abyssal-tutorials.css?v=2026.11.13.guide-v186">
@@ -178,6 +178,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 </style>
 <link rel="stylesheet" href="abyssal-ocean-design.css?v=2026.11.13.guide-v186">
 <link rel="stylesheet" href="abyssal-deep-systems.css?v=2026.11.13.playable-v216">
+<link rel="stylesheet" href="abyssal-login-v2.css?v=1">
 </head>
 <body>
 <div id="app">
@@ -345,42 +346,55 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-    <section id="loginScreen" class="screen modal-screen" hidden>
-      <div class="modal-card compact-card">
-        <div class="eyebrow"><span class="pulse-dot"></span> IDENTIFICAÇÃO DO MERGULHADOR</div>
-        <h2>ENTRE NO<br><em>ABISMO</em></h2>
-        <p>Crie sua conta com nickname e senha para salvar sua identidade e energia no servidor.</p>
-        <label class="field-label" for="nicknameInput">NICKNAME</label>
-        <input id="nicknameInput" class="text-field" maxlength="18" autocomplete="username" placeholder="Seu nickname">
-        <label id="emailFieldLabel" class="field-label" for="emailInput">EMAIL PARA RECUPERAÇÃO (OBRIGATÓRIO AO CRIAR CONTA)</label>
-        <input id="emailInput" class="text-field" type="email" maxlength="254" autocomplete="email" placeholder="voce@exemplo.com">
-        <label class="field-label" for="passwordInput">SENHA</label>
-        <input id="passwordInput" class="text-field" type="password" minlength="8" maxlength="128" autocomplete="current-password" placeholder="Mínimo de 8 caracteres">
-        <div id="loginMessage" class="form-message"></div>
-        <div class="auth-actions"><button id="loginSubmitBtn" class="primary-btn">ENTRAR <span>↗</span></button><button id="registerBtn" class="secondary-btn">CRIAR CONTA +</button></div>
-        <button id="forgotPasswordBtn" class="secondary-btn" type="button">ESQUECI A SENHA / FORGOT PASSWORD</button>
-        <button id="loginCancelBtn" class="secondary-btn">VOLTAR</button>
-      </div>
-    </section>
-
-    <section id="ageTermsScreen" class="screen modal-screen auth-flow-screen" hidden>
-      <div class="modal-card compact-card auth-flow-card" role="dialog" aria-modal="true" aria-labelledby="ageTermsTitle">
-        <div class="eyebrow"><span class="pulse-dot"></span> PRIMEIRO ACESSO</div>
-        <h2 id="ageTermsTitle">ANTES DE<br><em>MERGULHAR</em></h2>
-        <p>Informe sua idade. Usamos essa informação somente para aplicar uma experiência apropriada à sua faixa etária.</p>
-        <label class="field-label" for="ageYearsRange">SUA IDADE</label>
-        <div class="age-slider-shell" id="ageSliderShell" data-selected="false">
-          <div class="age-slider-value" aria-live="polite"><strong id="ageYearsValue">18</strong><span>ANOS</span></div>
-          <input id="ageYearsRange" class="age-years-range" type="range" min="0" max="100" step="1" value="18" aria-label="Selecione sua idade arrastando para o lado">
-          <div class="age-slider-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100+</span></div>
-          <p class="age-slider-hint">Arraste para o lado até sua idade aparecer no centro.</p>
+    <section id="loginScreen" class="screen modal-screen abyss-entry" hidden aria-label="Acesso ao Abyssal">
+      <div class="abyss-entry-shell" role="dialog" aria-modal="true" aria-labelledby="abyssEntryHeading">
+        <div class="abyss-entry-art" aria-hidden="true">
+          <div class="abyss-entry-brand"><strong>ABYSSAL</strong><span>ECOS DAS PROFUNDEZAS</span></div>
+          <div class="abyss-entry-legend"><b>ESTAÇÃO ABISSAL • IDENTIFICAÇÃO</b>Seu mergulho começa aqui. Aventure-se sozinho ou conecte-se à tripulação.</div>
         </div>
-        <label style="display:flex;align-items:flex-start;gap:10px;margin:16px 0;cursor:pointer;font-size:13px;line-height:1.45;">
-          <input type="checkbox" id="ageTermsAccept" style="margin-top:2px;accent-color:#2ee88a;">
-          <span>Li e concordo com os <a href="/terms.html" target="_blank" rel="noopener noreferrer">Termos de Uso</a> e confirmo que li a <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span>
-        </label>
-        <p id="ageTermsMessage" class="form-message" role="status" aria-live="polite"></p>
-        <button id="ageTermsContinue" class="primary-btn" type="button">CONTINUAR</button>
+        <div class="abyss-entry-panel">
+          <span class="abyss-entry-indicator">✦ CONTROLE DE ACESSO / 01</span>
+          <h2 class="abyss-entry-heading" id="abyssEntryHeading">BEM-VINDO AO ABISMO</h2>
+          <p class="abyss-entry-copy" id="abyssEntryCopy">Sua identidade acompanha cada expedição.</p>
+          <div class="abyss-entry-tabs" role="tablist" aria-label="Acesso à conta">
+            <button id="loginModeSignIn" type="button" role="tab" aria-selected="true" aria-controls="abyssLoginFields">ENTRAR</button>
+            <button id="registerBtn" type="button" role="tab" aria-selected="false" aria-controls="abyssRegisterFields">CRIAR CONTA</button>
+          </div>
+          <div class="abyss-entry-fields" id="abyssLoginFields">
+            <label for="nicknameInput">NICKNAME</label>
+            <input id="nicknameInput" class="text-field" type="text" maxlength="18" autocomplete="username" placeholder="Seu nickname" autocapitalize="none" spellcheck="false">
+          </div>
+          <div class="abyss-entry-fields" id="abyssRegisterFields" hidden>
+            <label for="emailInput">E-MAIL</label>
+            <input id="emailInput" class="text-field" type="email" maxlength="254" autocomplete="email" placeholder="voce@exemplo.com" autocapitalize="none">
+            <label for="birthDateInput">DATA DE NASCIMENTO</label>
+            <input id="birthDateInput" class="text-field" type="date" autocomplete="bday" aria-describedby="birthDateHint">
+            <small id="birthDateHint" style="color:#83aeb9;font-size:10px;line-height:1.4">Usada para determinar a faixa etária e proteger sua experiência.</small>
+          </div>
+          <div class="abyss-entry-fields">
+            <label for="passwordInput">SENHA</label>
+            <input id="passwordInput" class="text-field" type="password" minlength="8" maxlength="128" autocomplete="current-password" placeholder="Pelo menos 8 caracteres">
+          </div>
+          <label id="abyssEntryTerms" class="abyss-entry-terms" hidden>
+            <input id="createTermsAccept" type="checkbox">
+            <span>Concordo com os <a href="/terms.html" target="_blank" rel="noopener noreferrer">Termos de Uso</a> e li a <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span>
+          </label>
+          <div id="loginMessage" class="form-message" role="status" aria-live="polite"></div>
+          <button id="loginSubmitBtn" class="primary-btn abyss-entry-main" type="button">ENTRAR NA CONTA</button>
+          <div class="abyss-entry-divider">OU</div>
+          <div id="loginGoogleHost">
+            <button id="loginGoogleBtn" class="secondary-btn abyss-entry-google" type="button">
+              <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.7 1.2 9.2 3.6l6.8-6.8C35.8 2.1 30.4 0 24 0 14.6 0 6.5 5.4 2.5 13.3l8 6.2C12.4 13.7 17.8 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.9 24.5c0-1.6-.2-3.1-.5-4.5H24v9h12.8c-.5 2.8-2.2 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.7 6.6-17Z"/><path fill="#FBBC05" d="M10.5 28.5a14.4 14.4 0 0 1 0-9L2.5 13.3A24 24 0 0 0 0 24c0 3.9.9 7.6 2.5 10.7l8-6.2Z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-6.5L32.2 36c-2.2 1.5-5 2.5-8.2 2.5-6.2 0-11.6-4.2-13.5-10l-8 6.2C6.5 42.6 14.6 48 24 48Z"/></svg>
+              ENTRAR COM GOOGLE
+            </button>
+          </div>
+          <div class="abyss-entry-footer">
+            <button id="forgotPasswordBtn" type="button">Esqueci minha senha</button>
+            <button id="loginGuestBtn" type="button">ENTRAR COMO VISITANTE</button>
+            <button id="loginCancelBtn" type="button" hidden>VOLTAR</button>
+          </div>
+          <p class="abyss-entry-copy" style="font-size:10px;text-align:center;margin:7px 0 0!important">Visitante: acesso exclusivo ao modo Solo. Para jogar Online e salvar progresso, entre na conta.</p>
+        </div>
       </div>
     </section>
 
@@ -736,7 +750,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=3.6.130"></script>
 <script src="abyssal-keyboard-focus.js?v=3.6.130"></script>
-<script src="age-slider.js?v=1"></script>
+
 <script src="developer-tools.js?v=3.6.130"></script>
 <script src="abyssal-review.js?v=3.6.130"></script>
 <script src="abyssal-attention.js?v=3.6.131"></script>
@@ -861,7 +875,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-discord-community.js?v=3.6.126"></script>
 <script>
 // Recovery only if an essential script failed; never expose the legacy menu in normal boot.
-document.addEventListener("DOMContentLoaded",()=>{if(!document.documentElement.classList.contains("abyssal-startup"))return;const gate=document.getElementById("ageTermsScreen"),cockpit=document.getElementById("submarineWorkshop");if(gate&&!gate.hidden||cockpit&&!cockpit.hidden){window.AbyssalRevealStartup();return;}if(window.AbyssalCockpitNavigation?.showExterior){window.AbyssalCockpitNavigation.showExterior();return;}document.body.classList.add("abyss-hatch-navigation");window.AbyssalRevealStartup();},{once:true});
+document.addEventListener("DOMContentLoaded",()=>{if(!document.documentElement.classList.contains("abyssal-startup"))return;const login=document.getElementById("loginScreen"),cockpit=document.getElementById("submarineWorkshop");if(login&&!login.hidden||cockpit&&!cockpit.hidden){window.AbyssalRevealStartup();return;}if(window.AbyssalCockpitNavigation?.showExterior){window.AbyssalCockpitNavigation.showExterior();return;}document.body.classList.add("abyss-hatch-navigation");window.AbyssalRevealStartup();},{once:true});
 </script>
 </body>
 </html>
