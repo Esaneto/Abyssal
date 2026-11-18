@@ -1800,7 +1800,7 @@ io.on('connection', socket => {
   if (!/^[a-zA-Z0-9_]{3,18}$/.test(nickname) || password.length < 8 || password.length > 128) return socket.emit('auth-result', { ok: false, message: 'Nickname inválido ou senha fora do limite (8–128 caracteres).' });
   const key = nickname.toLowerCase(); let user = Object.hasOwn(users, key) ? users[key] : null;
   const mode = payload.mode === 'register' ? 'register' : 'login';
-  if(mode==='register'&&(key==='gamemaster'||REVIEW_ACCOUNTS.some(([reserved])=>reserved===key)))return socket.emit('auth-result',{ok:false,message:'Este nickname é reservado ao ambiente de desenvolvimento.'});
+  if(mode==='register'&&(key==='gamemaster'||key==='nekko'||REVIEW_ACCOUNTS.some(([reserved])=>reserved===key)))return socket.emit('auth-result',{ok:false,message:'Este nickname é reservado ao ambiente de desenvolvimento.'});
   // GameMaster self-heals at login. This covers VPS migrations, restored persistence
   // and password rotation where the boot-time provision may have happened before
   // the latest persisted users state was loaded.
@@ -1868,7 +1868,7 @@ io.on('connection', socket => {
     return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'Nickname: 3 a 18 caracteres, letras, números ou _.'});
    if(birth.age<16)return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'O cadastro é destinado a jogadores a partir de 16 anos.'});
    key=nickname.toLowerCase();
-   if(key==='gamemaster'||REVIEW_ACCOUNTS.some(([reserved])=>reserved===key)||Object.hasOwn(users,key))
+   if(key==='gamemaster'||key==='nekko'||REVIEW_ACCOUNTS.some(([reserved])=>reserved===key)||Object.hasOwn(users,key))
     return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'Nickname indisponível. Escolha outro.'});
    mode='google-register';
    user=users[key]={accountId:crypto.randomUUID(),nickname,email:google.email,googleSub:google.sub,ageBand:birth.band,
