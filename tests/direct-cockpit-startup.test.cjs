@@ -13,6 +13,7 @@ test('startup opens the exterior menu, with the cockpit available only on explic
  assert.match(runtime,/submarineWorkshopBtn'\)\?\.addEventListener\('click',openWorkshop\)/);
  assert.match(read('public/game.js'),/AbyssalCockpitNavigation\?\.showExterior\?\.\(\);document\.body\.classList\.add\('abyss-hatch-navigation'\)/);
  assert.match(ocean,/const visible=hatchVisible\(\)/);
- assert.match(read('public/online.js'),/screen\.hidden=false;window\.AbyssalRevealStartup\?\.\(\)/);
+ assert.match(read('public/online.js'),/openLogin\(\{startup:true\}\)/);
+ assert.match(html,/id="loginGuestBtn"/);
  assert.doesNotMatch(read('public/offline-ui.js'),/window\.location\.reload\(/);
 });
