@@ -489,9 +489,9 @@ function authenticate(nickname,password,mode='login'){
  if(!/^[a-zA-Z0-9_]{3,18}$/.test(nickname)){setMessage('Nickname: 3–18 caracteres, letras, números ou _.',true);return}
  if(password.length<8){setMessage('A senha precisa ter pelo menos 8 caracteres.',true);return}
  const email=String($('emailInput')?.value||'').trim().toLowerCase();
- if(mode==='register'&&(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||email.length>254)){setMessage('Informe um email válido para recuperar sua senha.',true);return}
+ if(mode==='register'&&(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)){setMessage('Informe um email válido para recuperar sua senha.',true);return}
  const birthDate=String($('birthDateInput')?.value||'');
- if(mode==='register'&&(!/^\\d{4}-\\d{2}-\\d{2}$/.test(birthDate)||Number.isNaN(new Date(birthDate).getTime()))){setMessage('Informe sua data de nascimento.',true);return}
+ if(mode==='register'&&(!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)||Number.isNaN(new Date(birthDate).getTime()))){setMessage('Informe sua data de nascimento.',true);return}
  if(mode==='register'&&!$('createTermsAccept')?.checked){setMessage('Leia e aceite os Termos de Uso e confirme a leitura da Política de Privacidade.',true);return}
  setMessage(mode==='register'?'Criando conta…':'Verificando acesso…');
  const send=()=>s.emit('authenticate',{nickname,password,mode,email,birthDate:mode==='register'?birthDate:undefined,termsAccepted:mode==='register'&&Boolean($('createTermsAccept')?.checked)});
