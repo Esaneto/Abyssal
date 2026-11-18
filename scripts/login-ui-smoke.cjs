@@ -26,7 +26,7 @@ const probe=String.raw`<script>
     document.getElementById('registerBtn').setAttribute('aria-selected','true');
     document.getElementById('loginModeSignIn').setAttribute('aria-selected','false');
   }
-  requestAnimationFrame(()=>{
+  {
    const shell=root.querySelector('.abyss-entry-shell');
    const panel=root.querySelector('.abyss-entry-panel');
    const brand=root.querySelector('.abyss-entry-brand strong');
@@ -42,9 +42,9 @@ const probe=String.raw`<script>
    const okay=shellFits&&brandFits&&fieldFits&&noOverflow&&hitTargets;
    document.body.dataset.loginQaStatus=okay?'ok':'fail';
    document.body.dataset.loginQaMetrics=JSON.stringify({width,shellFits,brandFits,fieldFits,noOverflow,hitTargets,controls:controls.length});
-  });
+  }
  };
- setTimeout(run,150);
+ run();
 })();
 </script>`;
 function handler(req,res){
