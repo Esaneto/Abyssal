@@ -106,7 +106,7 @@ const PORT = Number(process.env.PORT || 3000);
 app.get('/api/auth/google-config',(req,res)=>{
  res.setHeader('Cache-Control','no-store');
  const clientId=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
- res.json({enabled:/^[\\w.-]+\\.apps\\.googleusercontent\\.com$/.test(clientId),clientId:/^[\\w.-]+\\.apps\\.googleusercontent\\.com$/.test(clientId)?clientId:null});
+ res.json({enabled:/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId),clientId:/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId)?clientId:null});
 });
 app.get('/api/browser-version',(req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');res.json({ok:true,version:APP_VERSION,channel:'stable',serverTime:Date.now()});});
 // Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
