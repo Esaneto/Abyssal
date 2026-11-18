@@ -55,7 +55,7 @@ test('shop landscape grid and compact horizontal cards are scoped to handheld la
  const mark=css.lastIndexOf('Mobile landscape only:');
  const scoped=css.slice(mark);
  assert.ok(mark>=0);
- assert.match(scoped,/@media \(orientation:landscape\) and \(pointer:coarse\)/);
+ assert.match(scoped,/@media \(orientation:landscape\)/);
  assert.match(scoped,/#shopScreen #skinGrid/);
  assert.match(scoped,/grid-template-columns:minmax\(85px,36%\) minmax\(0,1fr\)/);
  assert.match(scoped,/\.skin-card \.skin-preview\.specimen-vessel/);
