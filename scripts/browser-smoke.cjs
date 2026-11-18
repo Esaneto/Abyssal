@@ -146,15 +146,8 @@ const injected=`<script>
  setInterval(check,350);
  window.addEventListener('load',()=>{
    setTimeout(()=>{
-    // Complete the real age-consent UI using a fictitious adult test profile;
-    // the test never modifies the live game or bypasses its validation.
-    const ageRange=document.getElementById('ageYearsRange');
-    if(ageRange){ageRange.value='27';ageRange.dispatchEvent(new Event('input',{bubbles:true}));}
-    else for(const [id,value] of [['ageBirthDay','1'],['ageBirthMonth','1'],['ageBirthYear','1990']]){
-     const input=document.getElementById(id);if(input){input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}
-    }
-    const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;
-    document.getElementById('ageTermsContinue')?.click();
+    // Use the actual guest control: visitors can test Solo without an account.
+    document.getElementById('loginGuestBtn')?.click();
    },300);
    const stage=new URLSearchParams(location.search).get('stage');
    if(stage==='hub'){setInterval(()=>{const tour=document.getElementById('abyssalMenuTour');if(tour&&!tour.hidden)tour.querySelector('.amt-skip')?.click();},250);}
@@ -189,7 +182,7 @@ const injected=`<script>
      const tour=document.getElementById('abyssalMenuTour');
      if(tour&&!tour.hidden){tour.querySelector('.amt-skip')?.click();setTimeout(enterCabin,250);return;}
      const gate=document.getElementById('ageTermsScreen');
-     if(gate&&!gate.hidden||document.documentElement.classList.contains('abyssal-startup')||!menu||!button||button.disabled){
+     if(document.getElementById('loginScreen')?.hidden===false||document.documentElement.classList.contains('abyssal-startup')||!menu||!button||button.disabled){
       setTimeout(enterCabin,250);return;
      }
      // Headless virtual time can defer the requestAnimationFrame that opens
