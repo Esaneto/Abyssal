@@ -64,8 +64,7 @@ async function call(access,method,url,body) {
   }
   const raw = await res.text();
   if (!raw.trim()) {
-    console.log('Resposta da API sem corpo: '+method+' '+new URL(url).pathname+' HTTP '+res.status);
-    return {};
+    throw Error('API sem corpo: '+method+' '+new URL(url).pathname+' HTTP '+res.status+'. Nenhum produto foi alterado por esta etapa.');
   }
   try { return JSON.parse(raw); }
   catch { throw Error('Resposta da API nao e JSON: '+method+' '+new URL(url).pathname+' HTTP '+res.status+' content-type='+String(res.headers.get('content-type')||'indefinido')); }
