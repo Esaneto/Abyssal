@@ -5950,7 +5950,7 @@ function renderCatalog(){
 $('shopCloseBtn').addEventListener('click',()=>{$('shopScreen').hidden=true});
 $('shopTopCloseBtn')?.addEventListener('click',()=>{$('shopScreen').hidden=true});
 
-window.addEventListener('abyssal-authenticated',ev=>{const target=window.AbyssalOnlinePendingStart;if(!target||ev.detail?.restoringRoom)return;$('loginScreen').hidden=true;if(target==='MERGULHO-ONLINE'){if(!$('ageTermsScreen')?.hidden)return;window.AbyssalOnlinePendingStart=false;window.AbyssalOnline?.showRooms();}else{window.AbyssalOnlinePendingStart=false;window.AbyssalOnline?.showRooms();}});
+window.addEventListener('abyssal-authenticated',ev=>{const target=window.AbyssalOnlinePendingStart;if(!target||ev.detail?.restoringRoom)return;$('loginScreen').hidden=true;if(target==='MERGULHO-ONLINE'){window.AbyssalOnlinePendingStart=false;window.AbyssalOnline?.showRooms();}else{window.AbyssalOnlinePendingStart=false;window.AbyssalOnline?.showRooms();}});
 window.addEventListener('abyssal-gameplay-notice',ev=>{const d=ev.detail||{};if(d.kind==='death'&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y))){const pos={x:Number(d.x)*W,y:Number(d.y)*H};spawnBloodPool(pos.x,pos.y,28/GAME_WORLD_ZOOM,Number(d.angle)||Math.random()*Math.PI*2);const self=window.AbyssalOnline?.getSocketId?.();if(d.playerId&&String(d.playerId)!==String(self)&&onlineMode&&gameState!=='over')playPlayerDeathCry(pos,false,'death:'+String(d.playerId));}if(['join','leave'].includes(d.kind))enqueueGameplayNotice(d.kind,d.title||'ECO ABISSAL',d.text||'',30);});
 window.addEventListener('abyssal-peer-skin-ability',ev=>{
  const d=ev.detail||{},fromId=String(d.fromId||'');
