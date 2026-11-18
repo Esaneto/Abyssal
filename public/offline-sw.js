@@ -42,7 +42,7 @@ const GAME_FILES = [
   'developer-tools.js',
   'developer-tools.css',
   'abyssal-login-v2.css',
-  'abyssal-cabin-ocean-hq.webp',
+  'abyssal-cabin-ocean.webp',
   'mobile-portrait.js',
   'mobile-portrait.css','abyssal-responsive-v247.css','abyssal-keyboard-focus.css','abyssal-keyboard-focus.js','abyssal-onboarding-spotlight.css',
   'abyssal-ocean-cinema.svg',
