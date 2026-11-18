@@ -524,6 +524,8 @@ public class AbyssalBillingPlugin extends Plugin implements PurchasesUpdatedList
 }
 `);
 
+fs.writeFileSync(path.join(javaDir,'AbyssalGooglePlugin.java'),"package com.esaneto.abyssal;\n\nimport android.os.CancellationSignal;\nimport androidx.credentials.CredentialManager;\nimport androidx.credentials.GetCredentialRequest;\nimport androidx.credentials.GetCredentialResponse;\nimport androidx.credentials.CustomCredential;\nimport androidx.credentials.CredentialManagerCallback;\nimport androidx.credentials.exceptions.GetCredentialException;\nimport com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;\nimport com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;\nimport com.getcapacitor.Plugin;\nimport com.getcapacitor.PluginCall;\nimport com.getcapacitor.PluginMethod;\nimport com.getcapacitor.JSObject;\nimport com.getcapacitor.annotation.CapacitorPlugin;\n\n@CapacitorPlugin(name=\"AbyssalGoogle\")\npublic class AbyssalGooglePlugin extends Plugin {\n  @PluginMethod\n  public void signIn(PluginCall call) {\n    final String clientId=call.getString(\"clientId\",\"\");\n    if(clientId==null||!clientId.endsWith(\".apps.googleusercontent.com\")){\n      call.reject(\"Google OAuth Client ID indisponivel\");return;\n    }\n    getActivity().runOnUiThread(()->{\n      try {\n        GetSignInWithGoogleOption option=new GetSignInWithGoogleOption.Builder(clientId).build();\n        GetCredentialRequest request=new GetCredentialRequest.Builder().addCredentialOption(option).build();\n        CredentialManager.create(getActivity()).getCredentialAsync(\n          getActivity(),request,new CancellationSignal(),getActivity().getMainExecutor(),\n          new CredentialManagerCallback<GetCredentialResponse,GetCredentialException>() {\n            @Override public void onResult(GetCredentialResponse response) {\n              try{\n                if(!(response.getCredential() instanceof CustomCredential))throw new IllegalArgumentException(\"Tipo de credencial nao suportado\");\n                CustomCredential credential=(CustomCredential)response.getCredential();\n                if(!GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType()))throw new IllegalArgumentException(\"Credencial Google nao recebida\");\n                GoogleIdTokenCredential parsed=GoogleIdTokenCredential.createFrom(credential.getData());\n                JSObject result=new JSObject();result.put(\"idToken\",parsed.getIdToken());\n                call.resolve(result);\n              }catch(Exception exception){call.reject(\"Falha ao ler credencial Google\");}\n            }\n            @Override public void onError(GetCredentialException exception){call.reject(\"Login Google cancelado ou indisponivel\");}\n          });\n      }catch(Exception exception){call.reject(\"Nao foi possivel iniciar o login Google\");}\n    });\n  }\n}\n");
+
 const java=path.join(javaDir,'MainActivity.java');
 if(fs.existsSync(java)){
  const src=`package com.esaneto.abyssal;
@@ -568,6 +570,7 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(AbyssalCommunityPlugin.class);
     registerPlugin(AbyssalStorePlugin.class);
     registerPlugin(AbyssalBillingPlugin.class);
+    registerPlugin(AbyssalGooglePlugin.class);
     super.onCreate(savedInstanceState);
     immersive = getPreferences(MODE_PRIVATE).getBoolean("abyssalImmersive", true);
     Window window = getWindow();
@@ -637,6 +640,9 @@ if(fs.existsSync(gradle)){
  let build=fs.readFileSync(gradle,'utf8');
  if(!build.includes('com.google.android.play:app-update:'))build += "\n dependencies { implementation 'com.google.android.play:app-update:2.1.0' }\n";
   if(!build.includes('com.android.billingclient:billing:'))build += "\n dependencies { implementation 'com.android.billingclient:billing:9.1.0' }\n";
+ if(!build.includes('androidx.credentials:credentials:'))build += "\n dependencies { implementation 'androidx.credentials:credentials:1.5.0' }\n";
+ if(!build.includes('androidx.credentials:credentials-play-services-auth:'))build += "\n dependencies { implementation 'androidx.credentials:credentials-play-services-auth:1.5.0' }\n";
+ if(!build.includes('com.google.android.libraries.identity.googleid:googleid:'))build += "\n dependencies { implementation 'com.google.android.libraries.identity.googleid:googleid:1.2.1' }\n";
  const packageVersion=String(process.env.ABYSSAL_VERSION_NAME||require('../package.json').version||'1.0.0').replace(/[^0-9A-Za-z._-]/g,'');
  const runNumber=Math.max(1,Number.parseInt(process.env.ABYSSAL_VERSION_CODE||process.env.GITHUB_RUN_NUMBER||'1',10)||1);
  build=build.replace(/versionCode\s+\d+/, 'versionCode '+runNumber);
