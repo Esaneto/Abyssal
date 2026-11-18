@@ -35,7 +35,7 @@ test('HUD placements do not reset for ordinary gameplay mutations or temporary m
  const js=read('abyssal-hud-editor.js');
  assert.match(js,/const replan=!layoutPlan\|\|layoutPlan\.key!==key\|\|geometryChanged/);
  assert.match(js,/if\(replan\)\{\s*clear\(\);/);
- assert.match(js,/if\(!replan&&!missing&&!sizeChanged\)\{entries\.push/);
+ assert.match(js,/if\(!replan&&!missing&&!sizeChanged&&!drifted\)\{entries\.push/);
  assert.match(js,/const pause=doc\.getElementById\('pauseScreen'\)/);
  assert.match(js,/root\.matchMedia\?\.\('\(pointer: coarse\)'\)/);
  assert.doesNotMatch(js,/root\.innerWidth<=700\?root\.innerWidth>root\.innerHeight/);
