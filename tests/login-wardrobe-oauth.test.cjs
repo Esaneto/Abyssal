@@ -27,6 +27,9 @@ test('login animates real diver outfits/accessories without changing owned profi
  assert.match(js,/painter\.draw\(/);
  assert.match(js,/base\.normalize/);
  assert.match(js,/prefers-reduced-motion/);
+ assert.match(js,/setInterval\(swapAppearance,changeInterval\)/);
+ assert.match(js,/if\(reducedMotion\?\.matches\)paint\(transitionAt\)/);
+ assert.doesNotMatch(js,/if\(!reduced\?\.matches\)frame=requestAnimationFrame/);
  assert.match(js,/Math\.random/);
  for(const slot of ['outfit','mask','visor','fins','hair','hairColor','eyewear','headgear','back'])assert.ok(js.includes("'"+slot+"'"),'Missing cosmetic '+slot);
  assert.doesNotMatch(js,/base\.apply\(/);
@@ -42,4 +45,13 @@ test('Google web client initialization validates server config and Android reuse
  assert.match(online,/client_id:clientId/);
  assert.match(online,/plugin\.signIn\(\{clientId:googleOAuthClientId\}\)/);
  assert.doesNotMatch(online,/!\s*\/\^\\\\w/);
+});
+
+test('OAuth endpoint indicates when client ID is an unverified fallback instead of claiming registration',()=>{
+ const server=read('server.js');
+ const online=read('public/online.js');
+ assert.match(server,/GOOGLE_OAUTH_FALLBACK_USED/);
+ assert.match(server,/source:GOOGLE_OAUTH_FALLBACK_USED\?'fallback':'environment'/);
+ assert.match(online,/cfg\.source==='fallback'/);
+ assert.match(online,/cliente ainda não confirmado na Google Cloud/);
 });
