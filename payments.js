@@ -143,6 +143,12 @@ function registerPlayBillingRoutes(app,getUsers,getPool,saveUsers,jsonParser){
   res.json({ok:true,ready:Boolean(playServiceCredentials()&&getPool()),testMessage:PLAY_TEST_MESSAGE,
    products:PLAY_PRODUCTS.map(p=>({productId:p.productId,gameId:p.gameId}))});
  });
+ app.get('/api/payments/play/account',(req,res)=>{
+  const auth=String(req.headers.authorization||''),token=auth.startsWith('Bearer ')?auth.slice(7):'';
+  const account=tokenUser(getUsers(),token);
+  if(!account)return res.status(401).json({ok:false,message:'Entre na sua conta para comprar.'});
+  res.json({ok:true,obfuscatedAccountId:crypto.createHash('sha256').update(account.key).digest('hex')});
+ });
  app.post('/api/payments/play/verify',jsonParser,async(req,res)=>{
   const auth=String(req.headers.authorization||''),token=auth.startsWith('Bearer ')?auth.slice(7):'';
   const account=tokenUser(getUsers(),token);
@@ -155,6 +161,8 @@ function registerPlayBillingRoutes(app,getUsers,getPool,saveUsers,jsonParser){
   try{
    await schema();
    const receipt=await playVerifyPurchase(productId,purchaseToken);
+   const expectedAccount=crypto.createHash('sha256').update(account.key).digest('hex');
+   if(receipt.obfuscatedExternalAccountId!==expectedAccount)return res.status(403).json({ok:false,message:'Compra vinculada a outra conta.'});
    const pool=getPool(),client=await pool.connect();
    try{
     await client.query('BEGIN');
