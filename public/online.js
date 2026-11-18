@@ -772,7 +772,10 @@ async function purchaseStripe(productId,currency,language='pt'){
    const product=catalog.products?.find(p=>p.gameId===productId);
    const billing=window.Capacitor?.Plugins?.AbyssalBilling;
    if(!catalog.ready||!product||!billing)throw Error('Em fase de testes');
-   const result=await billing.buy({productId:product.productId});
+   const identityResponse=await fetch(SERVER_URL+'/api/payments/play/account',{headers:{Authorization:'Bearer '+sessionToken},signal:AbortSignal.timeout(12000)});
+   const identity=await identityResponse.json().catch(()=>({}));
+   if(!identityResponse.ok||!identity.obfuscatedAccountId)throw Error('Em fase de testes');
+   const result=await billing.buy({productId:product.productId,obfuscatedAccountId:identity.obfuscatedAccountId});
    const purchases=(result?.purchases||[]).filter(p=>p.productIds?.includes(product.productId));
    if(!purchases.length)throw Error('Em fase de testes');
    let success=false;
