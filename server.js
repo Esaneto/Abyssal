@@ -103,19 +103,18 @@ app.use((req,res,next)=>/^\/api\/payments\/webhook\/?$/i.test(req.path)?next():j
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
-// Client ID OAuth público fornecido para o Abyssal. Compartilhado como audience Web/Android.
-// Ignora apenas o ID legado conhecido como incorreto, inclusive se ainda estiver no .env.
-const GOOGLE_OAUTH_DEFAULT_CLIENT_ID='356475666791-b0m2248cgt80et9126c41br3mnk868v3.apps.googleusercontent.com';
-const GOOGLE_OAUTH_RETIRED_CLIENT_ID='356475666791-t6tfa24kg3iqad3r1b5h4ecusvachjv6.apps.googleusercontent.com';
-const googleOAuthEnvClientId=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
-const GOOGLE_OAUTH_WEB_CLIENT_ID=(!googleOAuthEnvClientId||googleOAuthEnvClientId===GOOGLE_OAUTH_RETIRED_CLIENT_ID)
- ?GOOGLE_OAUTH_DEFAULT_CLIENT_ID:googleOAuthEnvClientId;
-if(googleOAuthEnvClientId===GOOGLE_OAUTH_RETIRED_CLIENT_ID)
- console.warn('[google-oauth] Client ID legado ignorado; utilizando o Client ID Web atual.');
-app.get('/api/auth/google-config',(req,res)=>{
- res.setHeader('Cache-Control','no-store');
- const clientId=GOOGLE_OAUTH_WEB_CLIENT_ID;
- res.json({enabled:/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId),clientId:/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId)?clientId:null});
+// Google OAuth requires a real Web client ID configured on the VPS.
+// The Play Store Android client ID is NOT interchangeable with the Web ID.
+// Never publish an invented/fallback ID or silently override server configuration.
+const {normalizeWebClientId}=require('./public/google-oauth-config');
+const GOOGLE_OAUTH_CONFIGURED_ID=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
+const GOOGLE_OAUTH_WEB_CLIENT_ID=normalizeWebClientId(GOOGLE_OAUTH_CONFIGURED_ID);
+if(!GOOGLE_OAUTH_WEB_CLIENT_ID)
+ console.warn('[google-oauth] Defina ABYSSAL_GOOGLE_WEB_CLIENT_ID com o ID do cliente OAuth Aplicativo da Web no serviço systemd.');
+app.get('/api/auth/google-config',(_req,res)=>{
+ res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
+ res.json({enabled:Boolean(GOOGLE_OAUTH_WEB_CLIENT_ID),clientId:GOOGLE_OAUTH_WEB_CLIENT_ID||null,
+   reason:GOOGLE_OAUTH_WEB_CLIENT_ID?null:'web_client_id_not_configured'});
 });
 app.get('/api/browser-version',(req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');res.json({ok:true,version:APP_VERSION,channel:'stable',serverTime:Date.now()});});
 // Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
