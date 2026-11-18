@@ -107,8 +107,8 @@ const PORT = Number(process.env.PORT || 3000);
 // is retained as fallback; client type cannot be inferred from ID syntax alone.
 const {USER_PROVIDED_CLIENT_ID,RETIRED_CLIENT_ID,normalizeWebClientId}=require('./public/google-oauth-config');
 const GOOGLE_OAUTH_CONFIGURED_ID=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
-const candidateGoogleClientId=(!GOOGLE_OAUTH_CONFIGURED_ID||GOOGLE_OAUTH_CONFIGURED_ID===RETIRED_CLIENT_ID)
- ?USER_PROVIDED_CLIENT_ID:GOOGLE_OAUTH_CONFIGURED_ID;
+const GOOGLE_OAUTH_FALLBACK_USED=!GOOGLE_OAUTH_CONFIGURED_ID||GOOGLE_OAUTH_CONFIGURED_ID===RETIRED_CLIENT_ID;
+const candidateGoogleClientId=GOOGLE_OAUTH_FALLBACK_USED?USER_PROVIDED_CLIENT_ID:GOOGLE_OAUTH_CONFIGURED_ID;
 const GOOGLE_OAUTH_WEB_CLIENT_ID=normalizeWebClientId(candidateGoogleClientId);
 if(GOOGLE_OAUTH_CONFIGURED_ID===RETIRED_CLIENT_ID)
  console.warn('[google-oauth] ID legado inválido configurado; usando ID fornecido pelo desenvolvedor.');
@@ -117,6 +117,7 @@ if(!GOOGLE_OAUTH_WEB_CLIENT_ID)
 app.get('/api/auth/google-config',(_req,res)=>{
  res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
  res.json({enabled:Boolean(GOOGLE_OAUTH_WEB_CLIENT_ID),clientId:GOOGLE_OAUTH_WEB_CLIENT_ID||null,
+   source:GOOGLE_OAUTH_FALLBACK_USED?'fallback':'environment',
    reason:GOOGLE_OAUTH_WEB_CLIENT_ID?null:'web_client_id_not_configured'});
 });
 app.get('/api/browser-version',(req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');res.json({ok:true,version:APP_VERSION,channel:'stable',serverTime:Date.now()});});

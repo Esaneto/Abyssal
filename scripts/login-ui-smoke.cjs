@@ -87,7 +87,7 @@ function chrome(bin,args){
  });
 }
 
-async function captureNativeViewport(bin,url,name,width,height,mode){
+async function captureNativeViewport(bin,url,name,width,height,mode,{mobile=true,reducedMotion=false}={}){
   const profile=fs.mkdtempSync(path.join(os.tmpdir(),'abyssal-login-cdp-'));
   const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
     '--no-first-run','--remote-debugging-port=0','--remote-allow-origins=*',
@@ -130,7 +130,8 @@ async function captureNativeViewport(bin,url,name,width,height,mode){
     });
     await send('Page.enable');
     await send('Runtime.enable');
-    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:true,screenWidth:width,screenHeight:height});
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile,screenWidth:width,screenHeight:height});
+    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:reducedMotion?'reduce':'no-preference'}]});
     await send('Page.navigate',{url:url+'?view='+mode});
     let measured=null;
     for(let attempt=0;attempt<20;attempt++){
@@ -142,18 +143,20 @@ async function captureNativeViewport(bin,url,name,width,height,mode){
       try{measured=JSON.parse(result.result?.value||'null')}catch{}
       if(measured?.status)break;
     }
-    // Verify that the actual in-game diver preview cycles through outfits on mobile.
-    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+    // Regression: real cosmetic swaps must advance on both desktop and mobile,
+    // including Windows/desktop browsers reporting prefers-reduced-motion: reduce.
     await sleep(2500);
-    const cycles=await send('Runtime.evaluate',{expression:'Number(document.getElementById("abyssLoginWardrobeCanvas")?.dataset?.previewCycles||0)',returnByValue:true});
-    assert.ok(Number(cycles.result?.value)>=1,'Wardrobe preview did not animate on '+name);
+    const cycles=await send('Runtime.evaluate',{expression:'JSON.stringify({cycles:Number(document.getElementById("abyssLoginWardrobeCanvas")?.dataset?.previewCycles||0),outfit:document.getElementById("abyssLoginWardrobeCanvas")?.dataset?.previewOutfit||"",reduced:matchMedia("(prefers-reduced-motion: reduce)").matches})',returnByValue:true});
+    const visual=JSON.parse(cycles.result?.value||'{}');
+    assert.ok(visual.cycles>=1&&visual.outfit,'Wardrobe cosmetics did not change on '+name+': '+JSON.stringify(visual));
+    assert.equal(visual.reduced,reducedMotion,'Wrong motion emulation on '+name);
     const screenshot=await send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
     const file=path.join(output,'login-'+name+'.png');
     fs.writeFileSync(file,Buffer.from(screenshot.data,'base64'));
     assert.ok(fs.statSync(file).size>6000,'CDP screenshot missing: '+name);
     assert.equal(measured?.width,width,'Incorrect emulated CSS viewport for '+name);
     assert.equal(measured?.status,'ok','CDP mobile login geometry failed '+name+': '+JSON.stringify(measured));
-    console.log('[login-ui] '+name+' genuine mobile viewport '+measured.width+'x'+measured.height+' '+measured.metrics);
+    console.log('[login-ui] '+name+' '+(mobile?'mobile':'desktop')+' viewport '+measured.width+'x'+measured.height+' '+measured.metrics);
   }finally{
     if(socket)try{socket.close()}catch{}
     chrome.kill('SIGKILL');
@@ -192,6 +195,8 @@ async function main(){
     console.log('[login-ui] '+name+' '+metrics);
    }finally{fs.rmSync(profile,{recursive:true,force:true,maxRetries:3});}
   }
+  await captureNativeViewport(bin,url,'desktop-reduced-1280',1280,720,'login',{mobile:false,reducedMotion:true});
+  await captureNativeViewport(bin,url,'desktop-motion-1280',1280,720,'login',{mobile:false});
   await captureNativeViewport(bin,url,'mobile-390',390,844,'login');
   await captureNativeViewport(bin,url,'compact-320',320,568,'register');
  }finally{await new Promise(resolve=>server.close(resolve));}

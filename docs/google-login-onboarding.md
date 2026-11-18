@@ -48,3 +48,8 @@ Acesso como **Nekko** ou **GameMaster** no Abyssal é independente do teste de f
 - `online.js` tinha uma regex de JavaScript com barras duplas literais (`\\w`) que rejeitava até Client IDs corretos; agora a validação Web é compartilhada com o backend.
 - A prévia de login sorteia a cada 1,9 s opções cosméticas de todas as categorias visuais e usa o renderizador do próprio jogo. `prefers-reduced-motion` mantém imagem estática por acessibilidade.
 - Não há autorização Google Cloud/SSH da VPS conectada às ferramentas GitHub. CI valida código e APK/EXE, mas não comprova credenciais OAuth, cadastro de origem JavaScript, SHA-1 nem login de usuário real.
+
+## Ajustes 3.6.138
+- A prévia do armário troca cosméticos via temporizador independente de frames, em desktop e celular. A opção `prefers-reduced-motion: reduce` agora remove apenas o fade, **sem congelar os looks**. Teste Chromium em desktop 1280×720 simula preferência por movimento reduzido.
+- `/api/auth/google-config` indica `source: fallback` quando falta configuração explícita na VPS. Nessa situação, um aviso informa que a origem e o tipo de cliente ainda precisam ser confirmados no Google Cloud. `enabled: true` verifica apenas a sintaxe, **não confirma** registro do Client ID no Google.
+- O erro do Google `401 invalid_client`/“The OAuth client was not found” não pode ser resolvido inventando IDs em código; compare o cliente realmente existente no painel `Google Auth Platform > Clients` (tipo Web, origem `https://abyssalgame.duckdns.org`) e configure o valor correto em `/etc/abyssal/abyssal.env` como `ABYSSAL_GOOGLE_WEB_CLIENT_ID`, reiniciando `abyssal.service`.

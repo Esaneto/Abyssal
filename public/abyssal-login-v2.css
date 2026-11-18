@@ -413,3 +413,13 @@
  #loginScreen .abyss-entry-brand{top:12px}
  #loginScreen .abyss-entry-brand strong{font-size:32px}
 }
+
+/* Show clear configuration guidance only when the server is using an unverified OAuth fallback. */
+#loginScreen .abyss-entry-google-notice {
+ margin:7px auto 2px!important;
+ color:#e6bf86;
+ max-width:350px;
+ font:500 10px/1.45 Inter,system-ui,sans-serif;
+ text-align:center;
+ overflow-wrap:anywhere;
+}

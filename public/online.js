@@ -364,6 +364,12 @@ async function setupGoogleSignIn(){
     text:'signin_with',locale:'pt-BR',
     width:Math.max(200,Math.min(360,Math.floor(host.getBoundingClientRect().width||280)))
    });
+   if(cfg.source==='fallback'){
+    const note=document.createElement('p');
+    note.className='abyss-entry-google-notice';
+    note.textContent='Google OAuth: cliente ainda não confirmado na Google Cloud. Erro 401? Verifique se este ID é de Aplicativo da Web e autoriza o domínio do Abyssal.';
+    host.appendChild(note);
+   }
    googleSdkReady=true;googleSignInFailure='';
    return true;
   }catch(error){
