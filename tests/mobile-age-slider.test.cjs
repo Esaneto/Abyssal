@@ -3,33 +3,29 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const root=path.resolve(__dirname,'..');
-const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const read=file=>fs.readFileSync(path.resolve(__dirname,'..',file),'utf8');
 
-test('age gate no longer opens numeric keyboard fields',()=>{
- const index=read('public/index.html');
- assert.doesNotMatch(index,/id="ageBirthDay"/);
- assert.doesNotMatch(index,/id="ageBirthMonth"/);
- assert.doesNotMatch(index,/id="ageBirthYear"/);
- assert.match(index,/id="ageYearsRange"[^>]*type="range"/);
+test('standalone age slider is removed; birthday appears only on registration',()=>{
+ const html=read('public/index.html');
+ assert.doesNotMatch(html,/id="ageTermsScreen"|id="ageYearsRange"|age-slider\.js/);
+ assert.match(html,/id="birthDateInput"[^>]*type="date"/);
+ assert.match(html,/id="loginGuestBtn"/);
+ assert.match(html,/id="registerBtn"/);
+ assert.match(html,/id="loginGoogleBtn"/);
+ assert.match(html,/abyssal-login-v2\.css/);
 });
-
-test('age slider requires explicit user interaction before continuing',()=>{
- const online=read('public/online.js');
- const slider=read('public/age-slider.js');
- assert.match(online,/AbyssalAgeSlider\?\.selected/);
- assert.match(online,/Arraste o seletor e informe sua idade antes de continuar/);
- assert.match(slider,/dataset\.userSelected='true'/);
+test('server validates birthday and requires 16+ registration, with terms accepted',()=>{
+ const server=read('server.js');
+ assert.match(server,/birthBand\(String\(payload.birthDate\|\|''\)\)/);
+ assert.match(server,/birth\.age<16/);
+ assert.match(server,/payload\.termsAccepted!==true/);
+ assert.match(server,/ageBand:birth\.band/);
+ assert.doesNotMatch(server,/birthDate:birthDate|dateOfBirth:birth/);
 });
-
-test('age slider stores only age band, not exact age',()=>{
+test('client keeps unknown age/guest restricted and only login accounts play online',()=>{
  const online=read('public/online.js');
- assert.match(online,/const band=age<16\?'under16':age<18\?'teen':'adult'/);
- assert.match(online,/JSON\.stringify\(\{band,termsVersion:AGE_TERMS_VERSION,acceptedAt:/);
- // Restrict the assertion to the actual persisted age profile and match an
- // age property, not suffixes in unrelated fields such as message or language.
- const stored=online.match(/localStorage\.setItem\('abyssalAgeProfile',JSON\.stringify\(\{([^}]+)\}\)\)/);
- assert.ok(stored,'age profile must use a literal, auditable field set');
- assert.doesNotMatch(stored[1],/(?:^|,)\s*(?:age|birthDate|birthYear|birthMonth|birthDay)\s*(?:[:,]|$)/);
- assert.deepEqual(stored[1].split(',').map(field=>field.split(':')[0].trim()),['band','termsVersion','acceptedAt']);
+ assert.match(online,/AbyssalRestrictedAgeTreatment=band==='under16'\|\|band==='unknown'/);
+ assert.match(online,/id='bad'|entryGuestChosen=true/);
+ assert.match(online,/function openAgeTermsIfNeeded\(\)\{applyAgeTreatment/);
+ assert.doesNotMatch(online,/ageTermsContinue|AbyssalAgeSlider/);
 });
