@@ -448,13 +448,13 @@ socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeou
    setMessage(result.message||'Informe seu nickname, data de nascimento e aceite dos termos.',true);
    return;
   }
-  if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});if(reconnectPending)failReconnect('Servidor reconectado, mas sua sessão precisa ser validada novamente.');else hideMaintenanceOverlay();setMessage(result.message||'Falha na autenticação.',true);return}
+  if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');applyAgeTreatment();$('profileScreen').hidden=true;updateAccount();renderProfile({});if(reconnectPending)failReconnect('Servidor reconectado, mas sua sessão precisa ser validada novamente.');else hideMaintenanceOverlay();setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname,isDeveloper:Boolean(result.isDeveloper)};serverAccount=result;
   if(result.sessionToken){sessionToken=result.sessionToken;localStorage.setItem('abyssalSessionToken',sessionToken);}
   localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';
   updateAccount();renderProfile(result);
   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
-  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;entryGuestChosen=false;googlePendingToken='';$('emailInput').readOnly=false;openAgeTermsIfNeeded();
+  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;entryGuestChosen=false;googlePendingToken='';$('emailInput').readOnly=false;applyAgeTreatment(result.ageBand);
   socket.emit('get-account');socket.emit('list-cardumes');const restoring=restoreRoomAfterReconnect();window.dispatchEvent(new CustomEvent('abyssal-authenticated',{detail:{restoringRoom:Boolean(restoring)}}));
  });
  socket.on('session-resumed',result=>{
@@ -465,7 +465,7 @@ socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeou
   // Session restoration must reactivate every privilege-gated client surface, including
   // the GameMaster DEV panel. Login already emits this event; resume must behave identically.
   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
-  setMessage(`Sessão restaurada: ${result.nickname}.`);$('loginScreen').hidden=true;openAgeTermsIfNeeded();
+  setMessage(`Sessão restaurada: ${result.nickname}.`);$('loginScreen').hidden=true;applyAgeTreatment(result.ageBand);
   socket.emit('get-account');const restoring=restoreRoomAfterReconnect();window.dispatchEvent(new CustomEvent('abyssal-authenticated',{detail:{restoringRoom:Boolean(restoring)}}));
  });
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
@@ -589,7 +589,7 @@ function showRooms(){
 function requestRooms(){if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp();}
 function connectAndJoin(targetRoom='MERGULHO-ONLINE'){
  const s=connect();if(!s){if(navigator.onLine!==false){pendingJoinAfterClient=targetRoom;setMessage('Carregando o cliente online…');}else setMessage('Sem internet: entre em MERGULHAR para jogar solo.',true);return;}
- if(authenticated){window.AbyssalOnlinePendingStart=false;if(targetRoom==='MERGULHO-ONLINE'&&!hasAgeTermsProfile()){window.AbyssalOnlinePendingStart=targetRoom;openAgeTermsIfNeeded();return;}showRooms();return;}
+ if(authenticated){window.AbyssalOnlinePendingStart=false;showRooms();return;}
  window.AbyssalOnlinePendingStart=targetRoom;
  if(sessionToken){
   setMessage('Restaurando sua sessão segura…');
@@ -638,7 +638,6 @@ queueMicrotask(setupGoogleSignIn);
 function setAuthFlowMessage(id,message,isError=false){const el=$(id);if(!el)return;el.textContent=message;el.classList.toggle('is-error',Boolean(isError));}
 function closePasswordRecovery(){ $('passwordRecoveryScreen').hidden=true; $('recoveryMessage').textContent=''; }
 const AGE_TERMS_VERSION='2026-11-18-dob-v3';
-function ageProfile(){try{return JSON.parse(localStorage.getItem('abyssalAgeProfile')||'null')}catch(_){return null}}
 function applyAgeTreatment(serverBand){
  const known=['teen','adult','under16'].includes(serverBand)?serverBand:null;
  if(known && authenticated) localStorage.setItem('abyssalAgeProfile',JSON.stringify({band:known,termsVersion:AGE_TERMS_VERSION,acceptedAt:new Date().toISOString()}));
@@ -648,7 +647,6 @@ function applyAgeTreatment(serverBand){
  window.google_tag_for_age_treatment=band==='adult'?0:band==='teen'?2:1;
  if(band==='adult')window.loadAbyssalAds?.();
 }
-function openAgeTermsIfNeeded(){applyAgeTreatment(serverAccount?.ageBand);return false;}
 applyAgeTreatment();
 queueMicrotask(()=>{
  if(new URLSearchParams(location.hash.slice(1)).has('passwordResetToken'))return;
