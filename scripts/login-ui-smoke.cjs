@@ -142,6 +142,11 @@ async function captureNativeViewport(bin,url,name,width,height,mode){
       try{measured=JSON.parse(result.result?.value||'null')}catch{}
       if(measured?.status)break;
     }
+    // Verify that the actual in-game diver preview cycles through outfits on mobile.
+    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+    await sleep(2500);
+    const cycles=await send('Runtime.evaluate',{expression:'Number(document.getElementById("abyssLoginWardrobeCanvas")?.dataset?.previewCycles||0)',returnByValue:true});
+    assert.ok(Number(cycles.result?.value)>=1,'Wardrobe preview did not animate on '+name);
     const screenshot=await send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
     const file=path.join(output,'login-'+name+'.png');
     fs.writeFileSync(file,Buffer.from(screenshot.data,'base64'));
