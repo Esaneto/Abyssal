@@ -236,7 +236,7 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
 /* Mobile landscape only: use the wide visor for horizontal specimen cards.
    Portrait and desktop retain their existing catalogue layouts. */
 @media (orientation:landscape){
- html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal{padding:7px!important;overflow:visible!important;max-height:none!important;width:100%!important;display:flex!important;flex-direction:column!important;gap:5px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal{padding:7px!important;overflow:visible!important;max-height:none!important;width:100%!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:start!important;gap:4px 8px!important}
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen :is(.eyebrow,.shop-heading p){display:none!important}
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-heading{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;flex-wrap:nowrap!important;gap:8px!important;padding:0!important;margin:0!important;min-width:0!important}
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-title-actions{display:flex!important;flex-direction:row!important;align-items:center!important;gap:7px!important;min-width:0!important}
@@ -266,4 +266,21 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen #skinGrid .skin-card .specimen-card-description{font-size:10px!important;line-height:1.2!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2;overflow:hidden!important}
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen #skinGrid .skin-card>button{grid-column:1/-1!important;grid-row:2!important;min-height:36px!important;height:auto!important;margin:0!important;padding:5px!important;font-size:11px!important}
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen #openRedeemCodeBtn{min-height:40px!important;margin:4px 0!important}
+
+ /* The previous flex stack consumed the complete 390px landscape viewport
+    before a single specimen card. Keep title/currency on the same row and
+    turn the four filters into one row, then expose the catalogue immediately. */
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>.shop-heading{grid-column:1!important;grid-row:1!important;align-self:center!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>.payment-settings{grid-column:2!important;grid-row:1!important;align-self:center!important;width:auto!important;min-width:0!important;margin:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .payment-settings label{display:none!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>.shop-catalog-intro{grid-column:1/-1!important;grid-row:2!important;margin:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .boss-bundle-banner{min-height:0!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .boss-bundle-banner button{min-height:30px!important;max-height:38px!important;padding:4px!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>.shop-filter-bar{grid-column:1/-1!important;grid-row:3!important;grid-auto-flow:column!important;grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr))!important;align-items:center!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-filter-bar #shopSearchInput{grid-column:auto!important;grid-row:auto!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>.shop-filter-summary{grid-column:1/-1!important;grid-row:4!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>#skinGrid{grid-column:1/-1!important;grid-row:5!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>#openRedeemCodeBtn{grid-column:1/-1!important;grid-row:6!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>#shopCloseBtn{grid-column:1/-1!important;grid-row:7!important}
+
 }
