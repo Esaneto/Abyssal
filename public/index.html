@@ -317,10 +317,10 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <p id="diveSettingsCopy">Ajuste o áudio ou retorne ao mergulho.</p>
         <fieldset class="dive-volume-settings" aria-label="Volume da partida">
           <legend>ÁUDIO</legend>
-          <label for="diveSfxVolume"><span>EFEITOS SONOROS</span><output id="diveSfxValue" for="diveSfxVolume">80%</output></label>
-          <input id="diveSfxVolume" type="range" min="0" max="100" step="1" value="80" aria-label="Volume dos efeitos sonoros">
-          <label for="diveMusicVolume"><span>MÚSICA</span><output id="diveMusicValue" for="diveMusicVolume">45%</output></label>
-          <input id="diveMusicVolume" type="range" min="0" max="100" step="1" value="45" aria-label="Volume da música">
+          <label for="diveSfxVolume"><span>EFEITOS SONOROS</span><output id="diveSfxValue" for="diveSfxVolume">15%</output></label>
+          <input id="diveSfxVolume" type="range" min="0" max="100" step="1" value="15" aria-label="Volume dos efeitos sonoros">
+          <label for="diveMusicVolume"><span>MÚSICA</span><output id="diveMusicValue" for="diveMusicVolume">50%</output></label>
+          <input id="diveMusicVolume" type="range" min="0" max="100" step="1" value="50" aria-label="Volume da música">
         </fieldset>
         <fieldset class="dive-volume-settings dive-graphics-settings" aria-label="Qualidade gráfica"><legend>GRÁFICOS</legend><label for="diveGraphicsQuality"><span>QUALIDADE</span><output id="diveGraphicsStatus"></output></label><select id="diveGraphicsQuality" class="text-field" aria-label="Qualidade gráfica"><option value="auto">Automática</option><option value="0">Leve</option><option value="1">Médio</option><option value="2">Ultra</option></select></fieldset>
         <button id="resumeBtn" class="primary-btn">CONTINUAR <span>↗</span></button>
@@ -732,7 +732,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.132"></script>
+<script src="client-build.js?v=3.6.133"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=3.6.130"></script>
 <script src="abyssal-keyboard-focus.js?v=3.6.130"></script>
@@ -741,7 +741,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-review.js?v=3.6.130"></script>
 <script src="abyssal-attention.js?v=3.6.131"></script>
 <script src="offline-ui.js?v=2026.11.13.deploy-resume"></script>
-<script src="update-manager.js?v=3.6.132"></script>
+<script src="update-manager.js?v=3.6.133"></script>
 <script src="abyssal-admob.js?v=2"></script>
 <!-- Socket.IO loads on demand so an offline solo launch never waits for a CDN. -->
 <script src="i18n.js?v=9"></script>
@@ -789,7 +789,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=3.6.110"></script>
 
  <script src="abyssal-feature-gates.js?v=3.6.113"></script>
- <script src="abyssal-sample-audio.js?v=2026.11.14.death-v2"></script>
+ <script src="abyssal-sample-audio.js?v=3.6.133"></script>
  <script src="abyssal-research-tree.js?v=3.6.118"></script>
 <script src="abyssal-hud-editor.js?v=3.6.126"></script>
  <script src="game.js?v=3.6.131"></script>
