@@ -462,7 +462,10 @@ public class AbyssalBillingPlugin extends Plugin implements PurchasesUpdatedList
         }
         ProductDetails detail=detailsResult.getProductDetailsList().get(0);
         List<BillingFlowParams.ProductDetailsParams> params=new ArrayList<>();
-        params.add(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(detail).build());
+        BillingFlowParams.ProductDetailsParams.Builder offerParams=BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(detail);
+        List<ProductDetails.OneTimePurchaseOfferDetails> offers=detail.getOneTimePurchaseOfferDetailsList();
+        if(offers!=null&&!offers.isEmpty())offerParams.setOfferToken(offers.get(0).getOfferToken());
+        params.add(offerParams.build());
         purchaseCall=call;
         requestedProduct=productId;
         getActivity().runOnUiThread(() -> {
