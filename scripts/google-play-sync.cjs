@@ -62,7 +62,13 @@ async function call(access,method,url,body) {
     try { const error = await res.json(); reason = String(error.error?.message || error.message || reason).slice(0,360); } catch {}
     throw Error('Google Play HTTP '+res.status+': '+reason);
   }
-  return res.json();
+  const raw = await res.text();
+  if (!raw.trim()) {
+    console.log('Resposta da API sem corpo: '+method+' '+new URL(url).pathname+' HTTP '+res.status);
+    return {};
+  }
+  try { return JSON.parse(raw); }
+  catch { throw Error('Resposta da API nao e JSON: '+method+' '+new URL(url).pathname+' HTTP '+res.status+' content-type='+String(res.headers.get('content-type')||'indefinido')); }
 }
 async function listing(access) {
   const all = [];
@@ -103,6 +109,7 @@ async function main() {
   if (!fs.existsSync(KEY_PATH)) throw Error('Chave nao encontrada no caminho protegido '+KEY_PATH);
   const access=await token();
   console.log('OAuth Google: autenticado (token oculto).');
+  console.log('Consultando produtos na Google Play...');
   const existing=await listing(access);
   const byId=new Map(existing.map(p=>[p.productId,p]));
   const missing=PRODUCTS.products.filter(p=>!byId.has(p.productId));
