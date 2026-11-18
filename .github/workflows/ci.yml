@@ -227,6 +227,10 @@ jobs:
           grep -q 'registerPlugin(AbyssalUpdaterPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'registerPlugin(AbyssalFullscreenPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'registerPlugin(AbyssalCommunityPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+           grep -q 'registerPlugin(AbyssalBillingPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+           grep -q 'com.android.vending.BILLING' android/app/src/main/AndroidManifest.xml
+           grep -q 'com.android.billingclient:billing:9.1.0' android/app/build.gradle
+           test -s android/app/src/main/java/com/esaneto/abyssal/AbyssalBillingPlugin.java
           cmp public/abyssal-discord-community.js android/app/src/main/assets/public/abyssal-discord-community.js
           cmp public/abyssal-discord-community.css android/app/src/main/assets/public/abyssal-discord-community.css
           grep -q 'controller.hide(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java

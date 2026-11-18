@@ -761,7 +761,44 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshChe
 async function purchaseStripe(productId,currency,language='pt'){
  const report=detail=>window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{productId,...detail}}));
  const nativeAndroid=Boolean(window.Capacitor?.getPlatform?.()==='android');
- if(nativeAndroid){report({ok:false,message:language==='en'?'Purchases in the Google Play version use Google Play Billing and will be enabled when the store catalog is connected.':'As compras na versão Google Play usam o Google Play Billing e serão liberadas quando o catálogo da loja for conectado.'});return;}
+ if(nativeAndroid){
+  if(!sessionToken){report({ok:false,requiresLogin:true,message:'Entre na sua conta antes de comprar.'});return;}
+  if(checkoutPreparing)return;
+  checkoutPreparing=true;
+  try{
+   const catalogResponse=await fetch(SERVER_URL+'/api/payments/play/catalog',{cache:'no-store',signal:AbortSignal.timeout(12000)});
+   if(!catalogResponse.ok)throw Error('Em fase de testes');
+   const catalog=await catalogResponse.json();
+   const product=catalog.products?.find(p=>p.gameId===productId);
+   const billing=window.Capacitor?.Plugins?.AbyssalBilling;
+   if(!catalog.ready||!product||!billing)throw Error('Em fase de testes');
+   const identityResponse=await fetch(SERVER_URL+'/api/payments/play/account',{headers:{Authorization:'Bearer '+sessionToken},signal:AbortSignal.timeout(12000)});
+   const identity=await identityResponse.json().catch(()=>({}));
+   if(!identityResponse.ok||!identity.obfuscatedAccountId)throw Error('Em fase de testes');
+   const result=await billing.buy({productId:product.productId,obfuscatedAccountId:identity.obfuscatedAccountId});
+   const purchases=(result?.purchases||[]).filter(p=>p.productIds?.includes(product.productId));
+   if(!purchases.length)throw Error('Em fase de testes');
+   let success=false;
+   for(const purchase of purchases){
+    if(purchase.state!==1)continue;
+    const response=await fetch(SERVER_URL+'/api/payments/play/verify',{
+     method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionToken},
+     body:JSON.stringify({productId:product.productId,purchaseToken:purchase.purchaseToken}),
+     signal:AbortSignal.timeout(25000)
+    });
+    const verified=await response.json().catch(()=>({}));
+    if(!response.ok||!verified.ok)throw Error(verified.message||'Em fase de testes');
+    success=true;
+    if(!purchase.acknowledged)await billing.acknowledge({purchaseToken:purchase.purchaseToken}).catch(()=>{});
+   }
+   if(!success)throw Error('Em fase de testes');
+   refreshAccount();
+   report({ok:true,opened:true,message:'Compra confirmada! Seu item foi liberado na conta.'});
+  }catch(error){
+   report({ok:false,message:error?.message==='PURCHASE_CANCELED'?'Compra cancelada.':'Em fase de testes'});
+  }finally{checkoutPreparing=false;}
+  return;
+ }
  if(!sessionToken){report({ok:false,requiresLogin:true,message:'Entre na sua conta antes de comprar.'});return;}
  if(checkoutPreparing)return;
  checkoutPreparing=true;
@@ -787,6 +824,39 @@ async function purchaseStripe(productId,currency,language='pt'){
  }catch(error){try{tab?.close();}catch(_){}report({ok:false,message:error.message});}
  finally{checkoutPreparing=false;}
 }
+// Reconcile purchases after login/reopen. Never grant items from an unverified device receipt.
+let playRestoreBusy=false,playRestoreLast=0;
+async function restorePlayPurchases(){
+ if(window.Capacitor?.getPlatform?.()!=='android'||!sessionToken||playRestoreBusy||Date.now()-playRestoreLast<60000)return;
+ const billing=window.Capacitor?.Plugins?.AbyssalBilling;
+ if(!billing)return;
+ playRestoreBusy=true;playRestoreLast=Date.now();
+ try{
+  const catalog=await fetch(SERVER_URL+'/api/payments/play/catalog',{cache:'no-store'}).then(r=>r.ok?r.json():null);
+  if(!catalog?.ready)return;
+  const purchases=(await billing.restore()).purchases||[];
+  let restored=false;
+  for(const p of purchases){
+   if(p.state!==1)continue;
+   const product=catalog.products.find(entry=>p.productIds?.includes(entry.productId));
+   if(!product)continue;
+   const response=await fetch(SERVER_URL+'/api/payments/play/verify',{
+    method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionToken},
+    body:JSON.stringify({productId:product.productId,purchaseToken:p.purchaseToken})
+   });
+   const verified=await response.json().catch(()=>({}));
+   if(response.ok&&verified.ok){
+    restored=true;
+    if(!p.acknowledged)await billing.acknowledge({purchaseToken:p.purchaseToken}).catch(()=>{});
+   }
+  }
+  if(restored)refreshAccount();
+ }catch(error){console.warn('[play-billing] Restore unavailable:',error?.message);}
+ finally{playRestoreBusy=false;}
+}
+window.addEventListener('abyssal-account-data',()=>{if(window.Capacitor?.getPlatform?.()==='android')restorePlayPurchases();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&window.Capacitor?.getPlatform?.()==='android')restorePlayPurchases();});
+
 function explorationScan(callback){
  if(!socket?.connected||!authenticated||!currentRoom){callback?.({ok:false,reason:'offline'});return;}
  socket.timeout(7000).emit('exploration-scan',{},(error,data)=>callback?.(error?{ok:false,reason:'timeout'}:data));

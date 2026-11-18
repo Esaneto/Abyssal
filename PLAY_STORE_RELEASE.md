@@ -43,7 +43,7 @@ O Abyssal contém violência fantástica e efeitos visuais de combate.
 - Account deletion: in-app deletion plus external deletion resource are implemented.
 - Data safety: disclose account identifiers/contact email when provided, user IDs/UUID, gameplay/progress, social/UGC and moderation reports, purchase data when payments are enabled, and technical/network data handled by hosting/advertising providers as applicable.
 - Privacy policy: use the public privacy URL above.
-- Purchases: do not enable Stripe checkout for Android digital goods. Implement/enable Google Play Billing before Android digital sales.
+- Purchases: Android Play builds use native Google Play Billing; web and desktop retain Stripe. Until a Play service-account JSON, matching Play Console SKUs, and a verified testing-track build are configured, Android shows **Em fase de testes**. The server only grants permanent items after Google Developer API verification and records each token idempotently.
 - Rewarded random wheel: optional, account-bound non-cash energy, odds shown before ad, 10 spins per day; SSV required. Verify Google policy and real reward delivery before production.
 
 ## Required release secrets
