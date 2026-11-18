@@ -118,6 +118,8 @@ jobs:
           node --check scripts/build-app-icons.cjs
       - name: Check JavaScript syntax and title definitions
         run: npm test
+      - name: Read-only GameMaster public HUD probe (temporary)
+        run: node scripts/probe-public-gamemaster-hud.cjs
       - name: Check gameplay in real Chromium desktop and mobile viewports
         # Existing legacy unit assertions can fail without obscuring real visual regressions.
         if: always() && !cancelled()
