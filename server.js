@@ -103,9 +103,15 @@ app.use((req,res,next)=>/^\/api\/payments\/webhook\/?$/i.test(req.path)?next():j
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
-// Client IDs OAuth são identificadores públicos; a variável de ambiente sempre prevalece.
-// O mesmo Web Client ID é usado como audience dos tokens da Web e do Android nativo.
-const GOOGLE_OAUTH_WEB_CLIENT_ID=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'356475666791-t6tfa24kg3iqad3r1b5h4ecusvachjv6.apps.googleusercontent.com').trim();
+// Client ID OAuth público fornecido para o Abyssal. Compartilhado como audience Web/Android.
+// Ignora apenas o ID legado conhecido como incorreto, inclusive se ainda estiver no .env.
+const GOOGLE_OAUTH_DEFAULT_CLIENT_ID='356475666791-b0m2248cgt80et9126c41br3mnk868v3.apps.googleusercontent.com';
+const GOOGLE_OAUTH_RETIRED_CLIENT_ID='356475666791-t6tfa24kg3iqad3r1b5h4ecusvachjv6.apps.googleusercontent.com';
+const googleOAuthEnvClientId=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
+const GOOGLE_OAUTH_WEB_CLIENT_ID=(!googleOAuthEnvClientId||googleOAuthEnvClientId===GOOGLE_OAUTH_RETIRED_CLIENT_ID)
+ ?GOOGLE_OAUTH_DEFAULT_CLIENT_ID:googleOAuthEnvClientId;
+if(googleOAuthEnvClientId===GOOGLE_OAUTH_RETIRED_CLIENT_ID)
+ console.warn('[google-oauth] Client ID legado ignorado; utilizando o Client ID Web atual.');
 app.get('/api/auth/google-config',(req,res)=>{
  res.setHeader('Cache-Control','no-store');
  const clientId=GOOGLE_OAUTH_WEB_CLIENT_ID;

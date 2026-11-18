@@ -17,7 +17,7 @@
   overflow-x:hidden!important;
   overflow-y:auto!important;
   overscroll-behavior:contain;
-  background:linear-gradient(105deg,rgba(1,7,14,.84),rgba(2,15,25,.78)),url('abyssal-cabin-ocean.webp') center/cover no-repeat #020a11!important;
+  background:radial-gradient(ellipse at 22% 18%,#0b3442 0%,transparent 43%),linear-gradient(135deg,#020911,#031721 54%,#020911)!important;
 }
 #loginScreen.abyss-entry[hidden]{display:none!important}
 #loginScreen.abyss-entry,
@@ -45,7 +45,7 @@
   min-width:0;
   min-height:0;
   overflow:hidden;
-  background:linear-gradient(180deg,rgba(0,7,13,.18) 0%,rgba(0,10,17,.12) 35%,rgba(1,10,18,.74) 100%),url('abyssal-cabin-ocean.webp') 49% center/cover no-repeat #02121e;
+  background:radial-gradient(ellipse at 51% 60%,rgba(25,138,160,.35),transparent 52%),linear-gradient(150deg,#092839,#04121f 55%,#020c15);
 }
 #loginScreen .abyss-entry-art:after{
   content:'';position:absolute;inset:0;
@@ -362,4 +362,54 @@
   #loginScreen *,
   #loginScreen *:before,
   #loginScreen *:after{animation:none!important;transition:none!important}
+}
+
+/* Armário animado: um único avatar real do jogo, sem catálogo nem itens expostos. */
+#loginScreen .abyss-entry-art{isolation:isolate}
+#loginScreen .abyss-entry-locker-wall{
+ position:absolute;inset:18% 4% 7%;border:1px solid rgba(95,193,207,.22);
+ background:repeating-linear-gradient(90deg,rgba(30,74,94,.16) 0 1px,transparent 1px 25%),linear-gradient(180deg,rgba(35,96,116,.17),rgba(1,9,18,.45));
+ border-radius:15px;box-shadow:inset 0 0 30px rgba(0,0,0,.65),0 0 38px rgba(1,16,23,.38);
+ pointer-events:none;
+}
+#loginScreen .abyss-entry-locker-wall>span{
+ position:absolute;top:12px;left:12px;right:12px;text-align:center;
+ color:#78bdc9;letter-spacing:.2em;font:700 9px/1.3 Inter,system-ui,sans-serif
+}
+#loginScreen .abyss-entry-locker-lights{
+ position:absolute;left:8%;right:8%;top:7%;height:3px;border-radius:8px;
+ background:linear-gradient(90deg,transparent,#2d91a0 20%,#7ee9e7 50%,#2d91a0 80%,transparent);
+ box-shadow:0 0 19px #35b1bf
+}
+#loginScreen .abyss-entry-avatar-canvas{
+ position:absolute;left:0;top:19%;display:block;width:100%;height:75%;
+ z-index:1;pointer-events:none;
+}
+#loginScreen .abyss-entry-stage-label{
+ position:absolute;bottom:27px;left:5%;right:5%;z-index:2;
+ display:flex;align-items:center;justify-content:center;gap:8px;
+ color:#9cd7dd;text-align:center;letter-spacing:.1em;
+ font:750 10px/1.4 Inter,system-ui,sans-serif;
+ text-shadow:0 2px 7px #000;
+}
+#loginScreen .abyss-entry-stage-dot{
+ display:inline-block;flex:none;width:6px;height:6px;border-radius:50%;
+ background:#50f6e7;box-shadow:0 0 10px #50f6e7;
+}
+#loginScreen .abyss-entry-stage-sep{color:#477b86}
+#loginScreen .abyss-entry-brand{z-index:3}
+@media(max-width:800px){
+ #loginScreen .abyss-entry-art{height:clamp(148px,26dvh,208px)}
+ #loginScreen .abyss-entry-brand{top:11px}
+ #loginScreen .abyss-entry-brand strong{font-size:clamp(28px,7vw,38px)}
+ #loginScreen .abyss-entry-brand span{font-size:8px}
+ #loginScreen .abyss-entry-locker-wall{inset:23% 3% 3%;border-radius:9px}
+ #loginScreen .abyss-entry-locker-wall>span{display:none}
+ #loginScreen .abyss-entry-avatar-canvas{top:17%;height:83%;width:min(48%,220px);left:auto;right:3%}
+ #loginScreen .abyss-entry-stage-label{left:16px;right:auto;bottom:16px;font-size:8px;max-width:56%;justify-content:flex-start;flex-wrap:wrap}
+}
+@media(max-height:430px) and (min-width:801px){
+ #loginScreen .abyss-entry-stage-label{bottom:10px}
+ #loginScreen .abyss-entry-brand{top:12px}
+ #loginScreen .abyss-entry-brand strong{font-size:32px}
 }

@@ -349,8 +349,10 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     <section id="loginScreen" class="screen modal-screen abyss-entry" hidden aria-label="Acesso ao Abyssal">
       <div class="abyss-entry-shell" role="dialog" aria-modal="true" aria-labelledby="abyssEntryHeading">
         <div class="abyss-entry-art" aria-hidden="true">
+          <div class="abyss-entry-locker-wall"><span>ESTAÇÃO DE PERSONALIZAÇÃO</span><div class="abyss-entry-locker-lights"></div></div>
+          <canvas id="abyssLoginWardrobeCanvas" class="abyss-entry-avatar-canvas" width="600" height="760"></canvas>
+          <div class="abyss-entry-stage-label"><span class="abyss-entry-stage-dot"></span>PRÉVIA DO ARMÁRIO <span class="abyss-entry-stage-sep">/</span> TROCA DE VISUAL</div>
           <div class="abyss-entry-brand"><strong>ABYSSAL</strong><span>ECOS DAS PROFUNDEZAS</span></div>
-          
         </div>
         <div class="abyss-entry-panel">
           <span class="abyss-entry-indicator">ÁREA DO MERGULHADOR</span>
@@ -746,7 +748,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.135"></script>
+<script src="client-build.js?v=3.6.136"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=3.6.130"></script>
 <script src="abyssal-keyboard-focus.js?v=3.6.130"></script>
@@ -793,6 +795,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-diver-rig.js?v=18"></script>
 <script src="abyssal-realistic-body.js?v=21"></script>
 <script src="diver-art.js?v=2026.11.14.directional-v240"></script>
+<script src="login-wardrobe-preview.js?v=3.6.136"></script>
 <script src="avatar-wardrobe.js?v=3.6.135"></script>
 <script src="diver-hitbox.js?v=2026.11.13.playable-v216"></script>
 <script src="gravity-cone.js?v=2026.11.8.1"></script>
@@ -809,7 +812,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
  <script src="game.js?v=3.6.135"></script>
  <script src="abyssal-mobile-multitouch.js?v=3.6.129"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=3.6.135"></script>
+<script src="online.js?v=3.6.136"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.14.playable-v220"></script>
 <script src="abyssal-rebuild.js?v=2026.11.13.playable-v216"></script>

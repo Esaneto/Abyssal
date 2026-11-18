@@ -12,7 +12,7 @@
 1. Em Google Cloud Console > Google Auth Platform / Credenciais, configure a tela de consentimento OAuth e crie um cliente OAuth **Aplicativo da Web** para o domínio público real do Abyssal.
 2. Cadastre as **origens JavaScript autorizadas** que executam o jogo, por exemplo `https://abyssalgame.duckdns.org` (confirme o domínio efetivo). O GIS retorna um ID token; não se trata de usar o JSON privado de faturamento.
 3. No projeto Cloud, prepare também um cliente OAuth **Android** com pacote `com.esaneto.abyssal` e SHA-1 da **chave de assinatura de apps do Google Play**, para a seleção nativa de conta.
-4. O ID **público** do cliente Web do projeto Abyssal Billing está configurado como fallback em `server.js`; `ABYSSAL_GOOGLE_WEB_CLIENT_ID` em `/etc/abyssal/abyssal.env` pode substituí-lo, sem alterar o código. A versão Android utiliza esse mesmo ID Web como audiência de token. **Nunca envie o segredo do cliente nem a chave JSON para o repositório**.
+4. O ID **público** do cliente Web informado na Google Auth Platform está configurado como fallback em `server.js` e substitui o ID antigo que causava `401 invalid_client`, mesmo que o antigo ainda esteja em `ABYSSAL_GOOGLE_WEB_CLIENT_ID`; `ABYSSAL_GOOGLE_WEB_CLIENT_ID` em `/etc/abyssal/abyssal.env` pode substituí-lo, sem alterar o código. A versão Android utiliza esse mesmo ID Web como audiência de token. **Nunca envie o segredo do cliente nem a chave JSON para o repositório**.
 5. A versão Android precisa ser compilada a partir de `scripts/configure-android.cjs`, incluindo o plugin nativo `AbyssalGoogle`; versões antigas do AAB não oferecem essa capacidade.
 
 ### Segurança
@@ -22,7 +22,7 @@ O servidor valida assinatura JWT RSA, emissor, audiência, validade, ID do sujei
 Acesso como **Nekko** ou **GameMaster** no Abyssal é independente do teste de faturamento da Play Console. A lista de **testadores de licença da Play Store** deve receber endereços de **contas Google**, não nicknames de jogo. Nenhuma conta de teste de licença é adicionada automaticamente pelo código.
 
 ## Visual e infraestrutura (18/11)
-- O novo acesso utiliza a imagem já presente `public/abyssal-cabin-ocean.webp`, com a marca ajustável e sem legendas sobre a arte. A ilustração anterior `abyssal-login-scene.svg` foi retirada do aplicativo e do cache offline.
+- A área visual do login usa `public/login-wardrobe-preview.js` e o renderizador real `AbyssalDiverArt` para alternar prévias de roupa, máscara e acessórios, sem apresentar catálogo e sem alterar o perfil do jogador. A ilustração anterior `abyssal-login-scene.svg` foi retirada do aplicativo e do cache offline.
 - `mobile/capacitor.config.json` aponta para a VPS em `https://abyssalgame.duckdns.org`. O domínio Render foi descontinuado e não deve ser reutilizado.
 - O teste `scripts/login-ui-smoke.cjs` captura screenshots reais do Chromium em desktop, portrait e landscape, e valida alvos de toque e overflow.
 - Verifique na Google Auth Platform se o aplicativo está em **Produção** antes de disponibilizar a autenticação para todos; em estado de teste, apenas contas Google autorizadas podem entrar.
@@ -37,3 +37,9 @@ Acesso como **Nekko** ou **GameMaster** no Abyssal é independente do teste de f
 
 ## Arquivos alterados
 `public/index.html`, `public/online.js`, `public/abyssal-login-v2.css`, `server.js`, `auth-birthdate.js`, `google-login.js`, `scripts/configure-android.cjs`, `public/offline-sw.js`, `public/privacy.html` `mobile/capacitor.config.json`, `scripts/login-ui-smoke.cjs` e testes relacionados.
+
+## Verificação após deploy
+- Abra `https://abyssalgame.duckdns.org/api/auth/google-config` e confirme que `clientId` é exatamente `356475666791-b0m2248cgt80et9126c41br3mnk868v3.apps.googleusercontent.com`.
+- Confirme na Google Auth Platform que o **cliente é do tipo Web** e contém a origem JavaScript autorizada `https://abyssalgame.duckdns.org` (sem caminho).
+- Confirme que o consentimento OAuth está em produção ou que a conta de teste está cadastrada. O código não pode habilitar nem verificar essas configurações externas sozinho.
+- No Android, a credencial nativa precisa de um OAuth Android com SHA-1 do certificado de assinatura usado no Play Store e de AAB recompilado com o plugin `AbyssalGoogle`.
