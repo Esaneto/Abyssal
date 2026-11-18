@@ -104,8 +104,12 @@ async function main(){
     const screenshot=path.join(output,'login-'+name+'.png');
     await chrome(bin,[...flags,'--screenshot='+screenshot,target]);
     assert.ok(fs.existsSync(screenshot)&&fs.statSync(screenshot).size>6000,'Login screenshot not captured: '+name);
-    const dom=await chrome(bin,[...flags,'--dump-dom',target]);
+    // Separate Chrome profiles: a screenshot process can keep the browser singleton alive briefly.
+    const domProfile=fs.mkdtempSync(path.join(os.tmpdir(),'abyssal-login-dom-'));
+    const dom=await chrome(bin,[...flags.filter(flag=>!flag.startsWith('--user-data-dir=')),'--user-data-dir='+domProfile,'--dump-dom',target]);
+    fs.rmSync(domProfile,{recursive:true,force:true,maxRetries:3});
     const status=dom.match(/data-login-qa-status="([^"]*)"/)?.[1];
+    if(!status)console.error('[login-ui] Chromium DOM unavailable for '+name+': bytes='+dom.length+' preview='+dom.slice(0,700).replace(/\\n/g,' '));
     const metrics=dom.match(/data-login-qa-metrics="([^"]*)"/)?.[1]||'not available';
     assert.equal(status,'ok','Login overflow/targets failed ('+name+'): '+metrics);
     console.log('[login-ui] '+name+' '+metrics);
