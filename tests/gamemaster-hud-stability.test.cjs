@@ -41,6 +41,19 @@ test('HUD placements do not reset for ordinary gameplay mutations or temporary m
  assert.doesNotMatch(js,/root\.innerWidth<=700\?root\.innerWidth>root\.innerHeight/);
 });
 
+test('HUD realigns only a control whose on-screen anchor drifts',()=>{
+ const stage={left:0,top:0,width:320,height:568};
+ const saved={x:290/320,y:367.59564208984375/568,s:1};
+ const centered={cx:290,cy:367.59564208984375};
+ const displaced={cx:238,cy:367.59564208984375};
+ assert.equal(hud.placementDrift(centered,saved,stage),false);
+ assert.equal(hud.placementDrift(displaced,saved,stage),true);
+ assert.equal(hud.placementDrift({cx:291,cy:367.59564208984375},saved,stage),false);
+ const js=read('abyssal-hud-editor.js');
+ assert.match(js,/const drifted=!popupOpen&&placementDrift\(g0,display,sr\)/);
+ assert.match(js,/!replan&&!missing&&!sizeChanged&&!drifted/);
+});
+
 test('pause and modal layer wins over emoji wheel and all action controls',()=>{
  const css=read('abyssal-hud-editor.css');
  assert.match(css,/#quickComms:has\(#quickCommsWheel:not\(\[hidden\]\)\)\{z-index:100!important\}/);
