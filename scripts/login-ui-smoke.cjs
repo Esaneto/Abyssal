@@ -19,7 +19,12 @@ const probe=String.raw`<script>
   if(!root)return;
   root.hidden=false;
   if(new URLSearchParams(location.search).get('view')==='register'){
-    document.getElementById('registerBtn')?.click();
+    document.getElementById('abyssRegisterFields').hidden=false;
+    document.getElementById('abyssEntryTerms').hidden=false;
+    document.getElementById('abyssEntryHeading').textContent='CRIAR CONTA';
+    document.getElementById('loginSubmitBtn').textContent='CRIAR MINHA CONTA';
+    document.getElementById('registerBtn').setAttribute('aria-selected','true');
+    document.getElementById('loginModeSignIn').setAttribute('aria-selected','false');
   }
   requestAnimationFrame(()=>{
    const shell=root.querySelector('.abyss-entry-shell');
@@ -39,7 +44,7 @@ const probe=String.raw`<script>
    document.body.dataset.loginQaMetrics=JSON.stringify({width,shellFits,brandFits,fieldFits,noOverflow,hitTargets,controls:controls.length});
   });
  };
- setTimeout(run,2000);
+ setTimeout(run,150);
 })();
 </script>`;
 function handler(req,res){
@@ -49,7 +54,14 @@ function handler(req,res){
  if(!file.startsWith(root+path.sep))return res.writeHead(403).end();
  fs.readFile(file,(err,data)=>{
   if(err)return res.writeHead(404).end('Not found');
-  if(isLogin)data=Buffer.from(String(data).replace('</body>',probe+'</body>'));
+  if(isLogin){
+    const document=String(data);
+    const head=document.match(/<head>([\\s\\S]*?)<\\/head>/i)?.[1]||'';
+    const cleanHead=head.replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi,'');
+    const section=document.match(/<section id="loginScreen"[\\s\\S]*?<\\/section>/i)?.[0];
+    assert.ok(section,'Real login markup not found');
+    data=Buffer.from('<!doctype html><html lang="pt-BR"><head>'+cleanHead+'</head><body><div id="app">'+section+'</div>'+probe+'</body></html>');
+  }
   const ext=isLogin?'.html':path.extname(file);
   res.writeHead(200,{'Content-Type':types[ext]||'application/octet-stream','Cache-Control':'no-store'});
   res.end(data);
@@ -87,7 +99,7 @@ async function main(){
    try{
     const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run',
       '--hide-scrollbars','--window-size='+w+','+h,'--force-device-scale-factor=1',
-      '--virtual-time-budget=5000','--user-data-dir='+profile];
+      '--virtual-time-budget=1400','--user-data-dir='+profile];
     const target=url+'?view='+mode;
     const screenshot=path.join(output,'login-'+name+'.png');
     await chrome(bin,[...flags,'--screenshot='+screenshot,target]);
