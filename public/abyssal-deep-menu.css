@@ -1,0 +1,139 @@
+/* Deep cabin: one navigable environment; original live UI is retained as a
+ * function-specific, camera-approached instrument. No second menu is exposed.
+ * Layout works in logical scene percentages, never stretches gameplay HUD. */
+#submarineWorkshop.abyss-deep-active{isolation:isolate;background:#040b12!important;overflow:hidden}
+#submarineWorkshop.abyss-deep-active .abyss-cockpit-canvas,
+#submarineWorkshop.abyss-deep-active .abyss-cockpit-chrome,
+#submarineWorkshop.abyss-deep-active .abyss-cockpit-utilities{display:none!important}
+#submarineWorkshop.abyss-deep-active .deep-menu{display:block!important}
+#submarineWorkshop .deep-menu[hidden]{display:none!important}
+.deep-menu{position:absolute;inset:0;z-index:24;overflow:hidden;pointer-events:none;color:#e2f6ef;contain:layout paint;--cyan:#84dfd7;--amber:#edb771;font-family:Inter,system-ui,sans-serif}
+.deep-menu *{box-sizing:border-box}
+.deep-world{position:absolute;inset:-2%;overflow:hidden;transform-origin:50% 55%;transition:transform .7s cubic-bezier(.18,.7,.22,1),filter .65s ease;transform:translate3d(0,0,0) scale(1);will-change:transform}
+.deep-chamber{position:absolute;inset:0;background:radial-gradient(ellipse at 52% 45%,#244e5a 0%,#0c2632 45%,#030d14 96%);pointer-events:none}
+.deep-backwall{position:absolute;left:23%;top:10%;width:54%;height:56%;border:12px solid #182c38;box-shadow:0 0 0 4px #4b6066,inset 0 0 36px #01080d,0 20px 65px #02090f;background:repeating-linear-gradient(0deg,transparent 0 26px,rgba(137,189,183,.045) 27px 28px),linear-gradient(125deg,#253e49,#081e29 50%,#1a3741)}
+.deep-backwall::before{content:"";position:absolute;inset:3%;border:2px solid rgba(140,196,186,.16);box-shadow:inset 0 0 24px rgba(0,0,0,.6)}
+.deep-leftwall,.deep-rightwall{position:absolute;top:0;height:100%;width:36%;background:linear-gradient(91deg,#040c15 4%,#172e3b 60%,#284857 94%,#091b28);box-shadow:inset -12px 0 25px #050d13;border-right:9px ridge #45626c;transform-origin:left center;clip-path:polygon(0 0,100% 11%,100% 79%,0 100%)}
+.deep-rightwall{right:0;transform:scaleX(-1);transform-origin:center;left:auto}
+.deep-leftwall{left:0}
+.deep-leftwall::after,.deep-rightwall::after{content:"";position:absolute;left:9%;top:11%;height:73%;width:16%;background:repeating-linear-gradient(90deg,#0b1d26 0 7px,#37515b 9px 11px,#0d202b 13px 18px);box-shadow:0 0 16px #071824}
+.deep-ceiling{position:absolute;inset:0 0 auto;height:32%;background:linear-gradient(#07121c,#263e4c 34%,#0c1d28 85%,transparent);clip-path:polygon(0 0,100% 0,77% 100%,23% 100%);filter:drop-shadow(0 8px 6px #02080d)}
+.deep-ceiling-ribs{position:absolute;top:4%;left:32%;width:36%;height:24%;border-left:8px solid #445e65;border-right:8px solid #445e65;transform:perspective(450px) rotateX(30deg);background:repeating-linear-gradient(0deg,#213c48 0 7px,#0b212c 9px 22px);box-shadow:inset 0 0 25px #030e14}
+.deep-floor{position:absolute;left:0;bottom:0;width:100%;height:53%;clip-path:polygon(32% 0,68% 0,100% 100%,0 100%);background:radial-gradient(ellipse at 50% 70%,rgba(110,169,167,.14),transparent 70%),repeating-linear-gradient(0deg,#142c38 0 42px,#23434f 44px 48px,#091c28 51px 83px);border-top:4px solid #5e7b80;box-shadow:inset 0 25px 35px #020b12}
+.deep-floor-lines{position:absolute;inset:47% 0 0;clip-path:polygon(32% 0,68% 0,100% 100%,0 100%);background:repeating-linear-gradient(90deg,transparent 0 11%,rgba(105,157,154,.12) 11.3% 11.6%,transparent 12% 22%);opacity:.7}
+.deep-operations{position:absolute;left:28%;top:18%;width:44%;height:34%;display:flex;gap:2.5%;padding:1.5% 1.7%;background:linear-gradient(154deg,#334a52 0%,#091b25 15%,#0d2932 70%,#060f18);border:5px ridge #5c7477;box-shadow:0 0 0 2px #142e3c,0 16px 35px #020a10,inset 0 0 20px #05121b;transform:perspective(960px) rotateX(5deg);border-radius:8px}
+.deep-operations::before{content:"";position:absolute;inset:2%;border:1px solid #48767a;pointer-events:none}
+.deep-hotspot{cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.deep-hotspot:focus-visible,.deep-utilities button:focus-visible,.deep-bottomline button:focus-visible,.deep-hatch-choice button:focus-visible{outline:3px solid #e9d498!important;outline-offset:4px!important}
+.deep-hotspot:hover{filter:brightness(1.18)}
+.deep-operations>button{position:relative;background:#081e29;border:3px inset #4b6770;color:#dcf1e8;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;padding:1.5%;border-radius:4px;text-shadow:0 2px 5px black}
+.deep-operations strong{font-size:clamp(8px,.85vw,13px);letter-spacing:.16em;margin-top:5px}
+.deep-sonar{flex:0 0 24%;gap:3px}
+.deep-sonar-face{position:relative;display:block;aspect-ratio:1;width:min(94%,150px);border-radius:50%;overflow:hidden;border:5px solid #233c42;box-shadow:0 0 0 2px #5a8884,inset 0 0 25px #010b10,0 0 13px rgba(57,196,169,.24);background:repeating-radial-gradient(circle,#163f3e 0 1px,transparent 2px 18px),linear-gradient(90deg,transparent 49.5%,#376b60 50%,transparent 50.5%),linear-gradient(0deg,transparent 49.5%,#376b60 50%,transparent 50.5%),radial-gradient(circle,#1c5d54,#04171c)}
+.deep-sonar-sweep{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 10deg,transparent 0deg,rgba(85,250,197,.03) 290deg,rgba(113,255,190,.48) 356deg,transparent 360deg);animation:deepSonar 5s linear infinite}
+.deep-sonar-ping{position:absolute;width:5px;height:5px;border-radius:50%;background:#bbffe0;box-shadow:0 0 9px 4px #4dcb9a;left:67%;top:24%;animation:deepPulse 2.7s ease-in-out infinite}
+.deep-sonar-ping.p2{left:30%;top:64%;animation-delay:-1.4s}
+.deep-sonar-ping.p3{left:75%;top:71%;animation-delay:-.75s}
+.deep-research{flex:1}
+.deep-research-display{position:relative;display:block;height:67%;width:95%;overflow:hidden;border:2px solid #3e7c82;background:radial-gradient(ellipse at center,#174454,#061d29 72%);box-shadow:inset 0 0 25px #010e14}
+.deep-research-display::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 12px,rgba(95,215,206,.08) 13px);pointer-events:none}
+.deep-research-core{position:absolute;left:47%;top:38%;width:13%;aspect-ratio:1;border-radius:42% 58% 43% 57%;background:radial-gradient(circle at 38% 40%,#b9fff1,#6ac7c1 30%,#173e51 65%,#061d2b);box-shadow:0 0 18px rgba(101,218,211,.55);animation:deepPulse 4s ease-in-out infinite}
+.deep-research-branch{position:absolute;left:53%;top:47%;height:3px;width:31%;border-radius:80%;transform-origin:left;transform:rotate(-30deg);background:linear-gradient(90deg,#68bcb5,#28585f);box-shadow:0 0 7px #3c8987}
+.deep-research-branch.b2{transform:rotate(30deg)}.deep-research-branch.b3{transform:rotate(145deg);width:36%}.deep-research-branch.b4{transform:rotate(213deg);width:36%}
+.deep-research small{font-size:clamp(6px,.55vw,9px);color:#8bbfc2;letter-spacing:.06em}
+.deep-capsule{position:absolute;top:34%;width:19%;height:43%;border:0;background:transparent;color:#e3f4f0;text-align:center;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:0;transform:perspective(550px) rotateY(8deg);filter:drop-shadow(0 15px 20px #030a10)}
+.deep-suits{left:9%;transform:perspective(550px) rotateY(9deg)}
+.deep-ecos{right:9%;width:20%;transform:perspective(550px) rotateY(-9deg)}
+.deep-capsule-rim{position:absolute;inset:0 9% 14%;border:11px ridge #61737b;border-radius:38% 38% 13% 13% / 11% 11% 12% 12%;background:linear-gradient(90deg,#07141b,#193b4a 48%,#0a242f);box-shadow:inset 0 0 23px #020f16,0 0 0 4px #071d29}
+.deep-capsule-rim::before{content:"";position:absolute;top:-4%;left:9%;right:9%;height:13%;border-radius:50%;background:linear-gradient(#4c6571,#07141e);box-shadow:inset 0 6px 7px #a1b5b3,0 6px 8px #0b151d}
+.deep-capsule-glass{position:absolute;inset:7% 14% 22%;overflow:hidden;border:3px solid #6d9293;border-radius:40% 40% 9% 9% / 12% 12% 6% 6%;background:radial-gradient(ellipse at 50% 38%,rgba(48,119,131,.4),rgba(4,23,34,.92) 75%);box-shadow:inset 13px 0 15px rgba(153,243,225,.13),inset -16px 0 26px rgba(0,10,18,.8),0 0 9px rgba(90,228,218,.15)}
+.deep-ecos .deep-capsule-glass{background:radial-gradient(ellipse at 40% 40%,rgba(39,115,111,.56),rgba(3,28,36,.96) 80%)}
+.deep-capsule-glass::after{content:"";position:absolute;inset:4% 10% 4% 64%;transform:skewX(-8deg);background:linear-gradient(90deg,transparent,rgba(189,249,235,.13),transparent);border-radius:50%;pointer-events:none}
+.deep-capsule-glass canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 6px rgba(116,240,227,.28))}
+.deep-capsule-scan{position:absolute;inset:0;background:linear-gradient(transparent 46%,rgba(140,254,238,.16) 50%,transparent 54%);animation:deepScan 5s linear infinite;pointer-events:none}
+.deep-capsule-base{position:absolute;left:3%;right:3%;bottom:10%;height:10%;border:6px ridge #586e77;border-radius:8px 8px 16px 16px;background:linear-gradient(#243f4b,#091e2a)}
+.deep-capsule>strong{position:absolute;bottom:6%;left:0;right:0;font-size:clamp(10px,1.1vw,16px);letter-spacing:.19em;text-shadow:0 2px 5px #000;white-space:nowrap}
+.deep-capsule>small{position:absolute;bottom:1%;left:-8%;right:-8%;color:#84c4c5;font-size:clamp(7px,.7vw,10px);white-space:nowrap}
+.deep-hatch{position:absolute;left:34%;bottom:3%;width:32%;height:29%;border:0;background:transparent;color:#eff9e7;text-align:center;transform:perspective(950px) rotateX(15deg)}
+.deep-hatch-outer{position:absolute;inset:0 4% 17%;border:12px ridge #586c73;border-radius:50%;background:conic-gradient(from -20deg,#6c7c80,#172a34 20%,#829496 27%,#263d44 45%,#7b8a88 55%,#091b27 75%,#52666e 90%,#6c7c80);box-shadow:0 15px 20px #010910,0 0 0 5px #0d222c,inset 0 0 24px #07131b}
+.deep-hatch-bolts{position:absolute;inset:-2%;border-radius:50%;background:repeating-conic-gradient(from 0deg,#c5b89e 0 1.5deg,transparent 1.5deg 30deg);-webkit-mask:radial-gradient(ellipse,transparent 68%,#000 70% 76%,transparent 78%);mask:radial-gradient(ellipse,transparent 68%,#000 70% 76%,transparent 78%)}
+.deep-hatch-inner{position:absolute;inset:12%;border:5px solid #87a6a2;border-radius:50%;background:radial-gradient(ellipse,#07111a,#051019 64%,#122e39);box-shadow:inset 0 0 28px #020509}
+.deep-hatch-lid{position:absolute;inset:5%;border-radius:50%;border:6px ridge #526770;background:radial-gradient(ellipse at 35% 28%,#677980 0%,#2a404b 40%,#091c27 85%);box-shadow:inset -15px -14px 26px #061018,0 8px 10px #01070c;transform-origin:50% 6%;transition:transform .8s cubic-bezier(.25,.35,.2,1)}
+.deep-hatch-wheel{position:absolute;left:40%;top:34%;width:20%;height:32%;border-radius:50%;border:6px double #91a7a1;background:#213742;box-shadow:0 2px 8px #02070d}
+.deep-hatch-cross{position:absolute;inset:45% 23%;height:8%;background:linear-gradient(#839798,#243b46);border-radius:8px;transform:rotate(-12deg);box-shadow:0 2px 7px #01070c}
+.deep-hatch strong{position:absolute;bottom:0;left:0;right:0;letter-spacing:.24em;font-size:clamp(11px,1.2vw,17px);text-shadow:0 2px 7px #000;color:#f7e4b1}
+.abyss-deep-hatch-opening .deep-hatch-lid{transform:perspective(380px) rotateX(73deg) translateY(-15%)!important}
+.deep-topline{position:absolute;left:max(2%,env(safe-area-inset-left));right:max(2%,env(safe-area-inset-right));top:max(9px,env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none}
+.deep-brand{color:#e6edeb;text-shadow:0 2px 5px black;font:700 clamp(14px,1.6vw,23px) Georgia,serif;letter-spacing:.19em}
+.deep-brand small{display:block;color:#7fbcbb;font:600 9px Inter,sans-serif;letter-spacing:.13em}
+.deep-utilities{display:flex;gap:5px;pointer-events:auto}
+.deep-utilities button,.deep-bottomline button{min-height:36px;padding:6px 11px;color:#ddf0ea;border:1px solid #53787c;background:rgba(5,21,30,.92);border-radius:5px;font:700 10px Inter,system-ui,sans-serif;cursor:pointer}
+.deep-bottomline{position:absolute;bottom:max(7px,env(safe-area-inset-bottom));left:2%;right:2%;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#95bfc3;font-size:clamp(8px,.8vw,11px);letter-spacing:.08em;text-shadow:0 2px 3px #000}
+.deep-bottomline button{pointer-events:auto;min-height:42px;color:#f5dfaa}
+.deep-bottomline button[hidden],.deep-hatch-choice[hidden]{display:none!important}
+.deep-hatch-choice{position:absolute;z-index:5;bottom:11%;left:50%;transform:translateX(-50%);width:min(440px,90%);display:grid;gap:9px;pointer-events:auto;background:linear-gradient(145deg,rgba(13,41,49,.94),rgba(2,17,27,.97));border:1px solid #7ca7a3;border-radius:9px;padding:17px;box-shadow:0 18px 40px #000;text-align:center}
+.deep-hatch-choice p{margin:0 0 2px;color:#a5d6cf;letter-spacing:.16em;font-size:10px}
+.deep-hatch-choice button{background:linear-gradient(#254a54,#0b2935);border:1px solid #6caaa6;border-radius:5px;min-height:49px;color:#f0f9f1;font:700 13px Inter,system-ui,sans-serif;cursor:pointer}
+.deep-hatch-choice button:hover{border-color:#f1d59c;color:#ffeba7}
+body:not(.game-active) #submarineWorkshop.abyss-deep-active:not(.abyss-deep-detail) .abyss-cockpit-console{display:none!important}
+body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .abyss-cockpit-console{
+ display:flex!important;position:absolute!important;z-index:29!important;left:50%!important;top:13%!important;bottom:auto!important;
+ transform:translateX(-50%)!important;width:min(1000px,91vw)!important;height:min(76dvh,700px)!important;max-height:calc(100dvh - 96px)!important;
+ padding:10px!important;border:5px ridge #536c72!important;border-radius:9px!important;
+ background:linear-gradient(140deg,rgba(12,37,48,.96),rgba(4,18,28,.97))!important;box-shadow:0 0 0 3px #091923,0 25px 60px #02070c!important;pointer-events:auto!important}
+#submarineWorkshop.abyss-deep-detail .abyss-cockpit-console .submarine-workshop-grid{grid-template-rows:minmax(0,1fr)!important}
+#submarineWorkshop.abyss-deep-detail .abyss-station-deck{display:none!important}
+#submarineWorkshop.abyss-deep-detail .abyss-cockpit-visor{height:100%;min-height:0}
+#submarineWorkshop.abyss-deep-detail .deep-hatch-choice{display:none!important}
+#submarineWorkshop.abyss-deep-detail .deep-hotspot{pointer-events:none}
+#submarineWorkshop.abyss-deep-detail .deep-topline{z-index:31}
+#submarineWorkshop.abyss-deep-detail .deep-bottomline{z-index:31}
+.deep-menu[data-focus="hatch"] .deep-world{transform:translate3d(0,-18%,0) scale(1.8)}
+.deep-menu[data-focus="wardrobe"] .deep-world{transform:translate3d(21%,6%,0) scale(1.8)}
+.deep-menu[data-focus="ecos"] .deep-world{transform:translate3d(-21%,6%,0) scale(1.8)}
+.deep-menu[data-focus="research"] .deep-world{transform:translate3d(-9%,20%,0) scale(1.8)}
+.deep-menu[data-focus="social"] .deep-world{transform:translate3d(16%,20%,0) scale(1.8)}
+.abyss-deep-hatch-opening .deep-world{transform:translate3d(0,-25%,0) scale(3.6)!important;filter:blur(1.5px)}
+.deep-dive-transition{position:fixed;inset:0;z-index:2147481000;pointer-events:none;overflow:hidden;opacity:1;background:radial-gradient(ellipse at 50% 65%,rgba(7,45,59,.04),rgba(0,4,12,.95));transition:opacity .75s ease}
+.deep-dive-transition.is-descending{background:radial-gradient(ellipse at 50% 50%,#0f5367,#010916 82%)}
+.deep-dive-transition.is-clearing{opacity:0}
+.deep-dive-tunnel{position:absolute;inset:-20%;background:radial-gradient(ellipse at 50% 50%,rgba(123,238,229,.14),rgba(7,43,67,.3) 35%,transparent 72%);transform:scale(.3);transition:transform 2.3s ease}
+.is-descending .deep-dive-tunnel{transform:scale(3.5)}
+.deep-dive-bubbles{position:absolute;inset:0;overflow:hidden}
+.deep-dive-bubbles i{position:absolute;left:var(--bx);top:var(--by);width:var(--br);height:var(--br);border:1.5px solid rgba(196,251,250,.66);box-shadow:inset -2px -2px 6px rgba(49,181,213,.4),0 0 8px rgba(86,227,247,.2);border-radius:50%;opacity:0;animation:deepBubble 1.75s ease-in var(--bd) forwards}
+@keyframes deepSonar{to{transform:rotate(360deg)}}
+@keyframes deepPulse{0%,100%{opacity:.52;filter:brightness(.75)}50%{opacity:1;filter:brightness(1.4)}}
+@keyframes deepScan{0%{transform:translateY(-110%)}100%{transform:translateY(110%)}}
+@keyframes deepBubble{0%{opacity:0;transform:translate3d(0,45vh,0) scale(.5)}22%{opacity:.85}85%{opacity:.55}100%{opacity:0;transform:translate3d(15px,-70vh,0) scale(1.45)}}
+@media(max-width:700px){
+ .deep-world{inset:0 -41%;width:182%;height:100%}
+ .deep-topline{left:max(9px,env(safe-area-inset-left));right:max(9px,env(safe-area-inset-right))}
+ .deep-brand{font-size:14px;letter-spacing:.08em}.deep-brand small{font-size:7px}
+ .deep-utilities{gap:3px}.deep-utilities button{padding:4px 6px;min-height:36px;font-size:9px}
+ .deep-bottomline{left:9px;right:9px;font-size:8px}
+ .deep-bottomline span{max-width:53%;line-height:1.3}
+ .deep-hatch{bottom:8%;height:25%;width:32%}
+ .deep-capsule{top:34%;height:40%}
+ .deep-operations{top:23%;height:27%}
+ .deep-operations strong{font-size:8px}.deep-research small{display:none}
+ .deep-capsule>strong{font-size:10px}
+ .deep-capsule>small{font-size:7px}
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .abyss-cockpit-console{
+  top:max(58px,calc(env(safe-area-inset-top) + 42px))!important;
+  width:calc(100vw - 12px)!important;height:calc(100dvh - max(112px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 90px))!important;
+  min-height:0!important;max-height:none!important;padding:5px!important}
+ .deep-menu[data-focus="wardrobe"] .deep-world{transform:translate3d(14%,4%,0) scale(1.45)}
+ .deep-menu[data-focus="ecos"] .deep-world{transform:translate3d(-14%,4%,0) scale(1.45)}
+ .deep-menu[data-focus="research"] .deep-world{transform:translate3d(-7%,17%,0) scale(1.65)}
+ .deep-menu[data-focus="social"] .deep-world{transform:translate3d(12%,17%,0) scale(1.65)}
+}
+@media(max-height:520px) and (orientation:landscape){
+ .deep-capsule{height:42%;top:32%}.deep-hatch{height:27%;bottom:1%}.deep-operations{top:14%;height:34%}
+ .deep-hatch-choice{bottom:2%;padding:7px;grid-template-columns:1fr 1fr;width:min(500px,94%)}.deep-hatch-choice p{grid-column:1/-1}
+ .deep-hatch-choice button{min-height:43px}
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .abyss-cockpit-console{top:48px!important;height:calc(100dvh - 90px)!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .deep-world,.deep-hatch-lid,.deep-dive-transition,.deep-dive-tunnel{transition:none!important}
+ .deep-sonar-sweep,.deep-sonar-ping,.deep-capsule-scan,.deep-research-core,.deep-dive-bubbles i{animation:none!important}
+}
