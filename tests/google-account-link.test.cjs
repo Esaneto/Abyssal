@@ -25,7 +25,7 @@ test('server linking requires active owned session and verified Google token; ne
  assert.match(server,/socket\.on\('link-google-account'/);
  assert.match(server,/socket\.data\.userKey/);
  assert.match(server,/hashSessionToken\(session\)/);
- assert.match(server,/Number\(t\.expiresAt\)>now&&safeEqual\(t\.hash,digest\)/);
+ assert.match(server,/Number\(item\.expiresAt\)>now&&safeEqual\(item\.hash,digest\)/);
  assert.match(server,/verifyGoogleIdToken\(payload\.idToken,GOOGLE_OAUTH_WEB_CLIENT_ID\)/);
  assert.match(server,/googleLinkDecision\(users,key,google\.sub\)/);
  assert.match(server,/user\.googleSub=google\.sub/);
