@@ -185,3 +185,22 @@
 @media(prefers-reduced-motion:reduce){
  #submarineWorkshop .abyss-cockpit-canvas{transition:none!important;transform:none!important;will-change:auto!important}
 }
+
+/* Expanded editors and detailed catalog pages may use the safe viewport height.
+ * The compact carousel applies only to the main hub, not full-height workflows. */
+@media(max-width:700px){
+ #submarineWorkshop.abyss-visor-expanded .abyss-cockpit-console{
+  height:calc(100dvh - max(72px,env(safe-area-inset-top) + 56px))!important;
+  max-height:calc(100dvh - 70px)!important;
+ }
+}
+@media(max-height:550px) and (orientation:landscape){
+ #submarineWorkshop.abyss-visor-expanded .abyss-cockpit-console{
+  height:calc(100dvh - 62px)!important;
+  max-height:calc(100dvh - 60px)!important;
+ }
+}
+#submarineWorkshop .abyss-station-rail{touch-action:pan-y}
+#submarineWorkshop .abyss-station-key-name{display:block;font-weight:700;line-height:1.25}
+#submarineWorkshop .abyss-station-key[aria-pressed="true"]{outline-offset:1px}
+#submarineWorkshop .abyss-visor-body>.abyss-station-cards{width:100%;box-sizing:border-box}
