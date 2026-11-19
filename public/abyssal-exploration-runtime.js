@@ -467,7 +467,7 @@
    const modal=document.getElementById(id);
    if(modal&&!modal.hidden)return;
   }
-  openedPrimaryCockpit=true;showExterior();
+  openedPrimaryCockpit=true;openWorkshop();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showPrimaryCockpit,{once:true});else showPrimaryCockpit();
  for(const id of ['loginScreen','menuScreen']){
