@@ -5,17 +5,25 @@ const fs=require('node:fs');
 const path=require('node:path');
 const read=f=>fs.readFileSync(path.resolve(__dirname,'..',f),'utf8');
 const oauth=require('../public/google-oauth-config.js');
-test('Google OAuth fails closed without explicit Web client configuration',()=>{
+test('Google OAuth uses registered Web client, never Android client or previous typo',()=>{
  const server=read('server.js');
- assert.equal(oauth.normalizeWebClientId(oauth.RETIRED_CLIENT_ID),'');
+ const WEB='356475666791-t5tfa24kg3lqad3r1b5h4ecusvachjv6.apps.googleusercontent.com';
+ const ANDROID='356475666791-b0m2248cgt80et9126c41br3mnk868v3.apps.googleusercontent.com';
+ assert.equal(oauth.WEB_CLIENT_ID,WEB);
+ assert.equal(oauth.ANDROID_PLAY_CLIENT_ID,ANDROID);
+ assert.equal(oauth.normalizeWebClientId(WEB),WEB);
+ assert.equal(oauth.normalizeWebClientId(ANDROID),'');
+ assert.equal(oauth.normalizeWebClientId(oauth.PREVIOUS_MISTYPED_WEB_ID),'');
  assert.equal(oauth.normalizeWebClientId(''),'');
- assert.equal(oauth.isWebClientId('not-a-client-id'),false);
- assert.equal(oauth.isWebClientId('356475666791-actualwebclient.apps.googleusercontent.com'),true);
- assert.match(server,/process\.env\.ABYSSAL_GOOGLE_WEB_CLIENT_ID/);
- assert.match(server,/normalizeWebClientId\(GOOGLE_OAUTH_CONFIGURED_ID\)/);
- assert.match(server,/source:GOOGLE_OAUTH_WEB_CLIENT_ID\?'environment':'unconfigured'/);
- assert.doesNotMatch(server,/USER_PROVIDED_CLIENT_ID|GOOGLE_OAUTH_FALLBACK_USED/);
+ assert.equal(oauth.isWebClientId('invalid-client'),false);
+ assert.deepEqual(JSON.parse(JSON.stringify(oauth.resolveWebClientId(''))),{clientId:WEB,source:'project-web',corrected:false});
+ assert.deepEqual(JSON.parse(JSON.stringify(oauth.resolveWebClientId(ANDROID))),{clientId:WEB,source:'recovered-project-web',corrected:true});
+ assert.deepEqual(JSON.parse(JSON.stringify(oauth.resolveWebClientId(oauth.PREVIOUS_MISTYPED_WEB_ID))),{clientId:WEB,source:'recovered-project-web',corrected:true});
+ assert.equal(oauth.resolveWebClientId(WEB).clientId,WEB);
+ assert.match(server,/resolveWebClientId\(GOOGLE_OAUTH_CONFIGURED_ID\)/);
+ assert.match(server,/clientId:GOOGLE_OAUTH_WEB_CLIENT_ID/);
  assert.match(server,/verifyGoogleIdToken\(payload\.idToken,clientId\)/);
+ assert.doesNotMatch(server,/USER_PROVIDED_CLIENT_ID|GOOGLE_OAUTH_FALLBACK_USED/);
 });
 
 test('login animates real diver outfits/accessories without changing owned profile',()=>{
