@@ -131,8 +131,32 @@ function soloDive(){
  if(launching)return;launching=true;choices.hidden=true;
  focus='hatch';deep.dataset.focus='hatch';workshop.classList.add('abyss-deep-hatch-opening');
  const transition=bubbles();let started=false,ended=false;
- const start=()=>{if(started)return;started=true;const live=$('playBtn');if(live&&!live.disabled)live.click();else {launching=false;workshop.classList.remove('abyss-deep-hatch-opening');transition.remove();overview();}};
- const finish=()=>{if(ended)return;ended=true;start();transition.classList.add('is-clearing');root.setTimeout(()=>transition.remove(),780);launching=false;};
+ const startedAt=performance.now();
+ const cleanup=()=>{transition.classList.add('is-clearing');root.setTimeout(()=>transition.remove(),780);launching=false;};
+ const start=()=>{
+  if(started)return;
+  started=true;
+  const live=$('playBtn');
+  if(live&&!live.disabled)live.click();
+  else {cleanup();workshop.classList.remove('abyss-deep-hatch-opening');overview();}
+ };
+ const finish=()=>{
+  if(ended||!launching)return;
+  if(!started)start();
+  if(!launching)return;
+  const ready=body.classList.contains('game-active')&&$('hud')?.hidden===false;
+  if(!ready){
+   // Slow startup: keep the bubble tunnel until gameplay is actually visible.
+   // Do not expose an unfinished black frame or wait forever after a failed launch.
+   if(performance.now()-startedAt<15000){root.setTimeout(finish,160);return;}
+   ended=true;cleanup();
+   root.AbyssalCockpitNavigation?.open?.();
+   overview();
+   $('roomsMessage')?.replaceChildren(document.createTextNode('Não foi possível iniciar o mergulho. Tente novamente.'));
+   return;
+  }
+  ended=true;cleanup();
+ };
  if(reduce()){start();finish();return;}
  root.setTimeout(()=>transition.classList.add('is-descending'),900);
  root.setTimeout(start,1950);
