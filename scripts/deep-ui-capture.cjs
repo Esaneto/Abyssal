@@ -75,7 +75,7 @@ async function capture(root,label){
     await wait("document.getElementById('abyssDeepMenu').dataset.focus==='overview'");
     await ev("document.querySelector('[data-deep-quick=settings]').click()");
     await wait("!document.getElementById('deepSettings').hidden");
-    assert.ok(await ev("document.querySelectorAll('#deepSettings [data-deep-setting]').length===6"),'All original technical settings and download must remain reachable');
+    assert.ok(await ev("document.querySelectorAll('#deepSettings [data-deep-setting]').length===7"),'All original technical settings and download must remain reachable');
     await snap(device+'-ajustes');
     await ev("document.querySelector('[data-deep-setting=volume]').click()");
     await wait("document.getElementById('submarineWorkshop').classList.contains('abyss-deep-detail')&&Boolean(document.querySelector('#submarineWorkshop .cockpit-settings-page[data-setting-page=volume]'))");
