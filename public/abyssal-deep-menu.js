@@ -144,7 +144,7 @@ root.addEventListener('abyssal-room-joined',()=>{
 });
 root.addEventListener('abyssal-room-left',()=>{pendingOnline=false;});
 root.addEventListener('abyssal-room-join-failed',()=>{pendingOnline=false;});
-root.addEventListener('abyssal-menu-return',()=>{if(!body.classList.contains('game-active'))root.setTimeout(()=>root.AbyssalCockpitNavigation?.open?.(),0);});
+// returnToMainMenu already opens the cockpit; reopening here would reset its live controls.
 function drawSamples(t){
  // Display actual diver assets and actual shop species; no fake ownership/unlocks.
  const sc=suitC,ec=echoC;if(!sc||!ec)return;
@@ -186,6 +186,19 @@ const observer=new MutationObserver(()=>{
  if(!isOpen()){stopPreview();if(launching)return;workshop.classList.remove('abyss-deep-active','abyss-deep-detail','abyss-deep-approaching','abyss-deep-hatch-opening');}
 });
 observer.observe(workshop,{attributes:true,attributeFilter:['hidden']});
+const grid=$('submarineWorkshopGrid');
+const embeddedObserver=new MutationObserver(()=>{
+ if(!isOpen()||!workshop.classList.contains('abyss-deep-active'))return;
+ // Legacy routes such as public-profile links must remain visible even when
+ // invoked outside the new cabin hotspots.
+ const visibleEmbedded=grid?.querySelector('.abyss-cockpit-embedded:not([hidden])');
+ if(visibleEmbedded){
+  if(focus==='overview'){focus='quick';deep.dataset.focus='research';back.hidden=false;}
+  workshop.classList.add('abyss-deep-detail');
+ }
+});
+if(grid)embeddedObserver.observe(grid,{subtree:true,childList:true});
+
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPreview();else startPreview();});
 root.AbyssalDeepMenu=Object.freeze({overview,isEnabled:()=>true,focus:()=>focus,view,visualStatus:()=>({active:isOpen(),focus,realDiver:Boolean(root.AbyssalDiverArt),realEcos:Boolean(root.AbyssalMarineArt)})});
 if(isOpen())activate();
