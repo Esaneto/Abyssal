@@ -442,7 +442,7 @@ function openLogin(options={}){
  window.AbyssalRevealStartup?.();
  if(account?.nickname)$('nicknameInput').value=account.nickname;
  if(options.startup){$('loginCancelBtn').hidden=true;setEntryMode('login');}
- else { $('loginCancelBtn').hidden=false;if(googleLinkIntent)setEntryMode('login');}
+ else { $('loginCancelBtn').hidden=false;setEntryMode('login');}
  if(!options.startup&&!googleLinkIntent)$('nicknameInput')?.focus();
 }
 
