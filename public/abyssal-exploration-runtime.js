@@ -445,7 +445,7 @@
  }
 
  let openedPrimaryCockpit=false;
- const openWorkshop=()=>{if(!workshop)return;openedPrimaryCockpit=true;document.body.classList.remove('abyss-hatch-navigation');selectedStation='cabine';workshop.dataset.station='cabine';activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();window.AbyssalRevealStartup?.();};
+ const openWorkshop=()=>{if(!workshop)return;openedPrimaryCockpit=true;document.body.classList.remove('abyss-hatch-navigation');selectedStation='cabine';workshop.dataset.station='cabine';activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();if(!window.AbyssalDeepMenu?.isEnabled?.())window.AbyssalSubmarineCockpit?.open?.();window.AbyssalRevealStartup?.();};
  const closeWorkshop=(animateExit=false)=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;document.querySelector('body > .hud-editor-fullscreen[data-cockpit-portal]')?.remove();window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop',animateExit:animateExit===true}}));};
  const showExterior=()=>{document.body.classList.add('abyss-hatch-navigation');closeWorkshop(false);const menu=document.getElementById('menuScreen');if(menu&&!document.body.classList.contains('game-active'))menu.hidden=false;window.AbyssalRevealStartup?.();};
  window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,showExterior,routeScreen:navigateEmbedded,routeCommand:navigateCommand,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded,select:selectStation,stations:CONSOLE_BUTTONS});
