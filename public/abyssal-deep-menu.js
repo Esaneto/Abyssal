@@ -186,7 +186,7 @@ const observer=new MutationObserver(()=>{
  if(!isOpen()){stopPreview();if(launching)return;workshop.classList.remove('abyss-deep-active','abyss-deep-detail','abyss-deep-approaching','abyss-deep-hatch-opening');}
 });
 observer.observe(workshop,{attributes:true,attributeFilter:['hidden']});
-root.addEventListener('visibilitychange',()=>{if(document.hidden)stopPreview();else startPreview();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPreview();else startPreview();});
 root.AbyssalDeepMenu=Object.freeze({overview,isEnabled:()=>true,focus:()=>focus,view,visualStatus:()=>({active:isOpen(),focus,realDiver:Boolean(root.AbyssalDiverArt),realEcos:Boolean(root.AbyssalMarineArt)})});
 if(isOpen())activate();
 })(window);
