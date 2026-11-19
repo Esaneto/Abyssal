@@ -204,3 +204,32 @@
 #submarineWorkshop .abyss-station-key-name{display:block;font-weight:700;line-height:1.25}
 #submarineWorkshop .abyss-station-key[aria-pressed="true"]{outline-offset:1px}
 #submarineWorkshop .abyss-visor-body>.abyss-station-cards{width:100%;box-sizing:border-box}
+
+
+/* The old four-key cockpit uses body:not(.game-active) selectors with !important.
+ * The station bar must override those selectors, rather than inherit 4/7 tracks.
+ * Keep left/right arrows narrow and expose multiple stations at once. */
+body:not(.game-active) #submarineWorkshop .abyss-control-deck.abyss-station-deck{
+ display:grid!important;
+ grid-template-columns:40px minmax(0,1fr) 40px!important;
+ grid-template-rows:minmax(64px,auto)!important;
+ gap:7px!important;
+ align-items:center!important;
+ justify-items:stretch!important;
+}
+body:not(.game-active) #submarineWorkshop .abyss-station-deck>.abyss-station-arrow{
+ width:40px!important;max-width:40px!important;
+ padding:0!important;
+}
+body:not(.game-active) #submarineWorkshop .abyss-station-deck>.abyss-station-rail{
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ box-sizing:border-box!important;justify-content:flex-start!important;
+}
+@media(max-width:700px){
+ body:not(.game-active) #submarineWorkshop .abyss-control-deck.abyss-station-deck{
+  grid-template-columns:32px minmax(0,1fr) 32px!important;gap:4px!important;
+ }
+ body:not(.game-active) #submarineWorkshop .abyss-station-deck>.abyss-station-arrow{
+  width:32px!important;max-width:32px!important;min-width:32px!important;
+ }
+}
