@@ -73,6 +73,15 @@ async function capture(root,label){
     await snap(device+'-escotilha');
     await ev("document.getElementById('deepReturn').click()");
     await wait("document.getElementById('abyssDeepMenu').dataset.focus==='overview'");
+    await ev("document.querySelector('[data-deep-quick=settings]').click()");
+    await wait("!document.getElementById('deepSettings').hidden");
+    assert.ok(await ev("document.querySelectorAll('#deepSettings [data-deep-setting]').length===6"),'All original technical settings and download must remain reachable');
+    await snap(device+'-ajustes');
+    await ev("document.querySelector('[data-deep-setting=volume]').click()");
+    await wait("document.getElementById('submarineWorkshop').classList.contains('abyss-deep-detail')&&Boolean(document.querySelector('#submarineWorkshop .cockpit-settings-page[data-setting-page=volume]'))");
+    await snap(device+'-audio');
+    await ev("document.getElementById('deepReturn').click()");
+    await wait("document.getElementById('abyssDeepMenu').dataset.focus==='overview'");
    }else{
     const report=await ev("(()=>{const box=document.getElementById('submarineWorkshop'),a=box.querySelector('#cockpitSoloDiveBtn')||box.querySelector('.abyss-console-info>button'),b=box.querySelector('#cockpitOnlineDiveBtn'),r=e=>{const q=e?.getBoundingClientRect();return q?{x:Math.round(q.x),y:Math.round(q.y),w:Math.round(q.width),h:Math.round(q.height)}:null;};const v=box.querySelector('.abyss-visor-body');return {solo:r(a),online:r(b),visor:r(v),deck:r(box.querySelector('.abyss-control-deck')),font:getComputedStyle(a).fontFamily,scrollWidth:v.scrollWidth,clientWidth:v.clientWidth,scrollHeight:v.scrollHeight,clientHeight:v.clientHeight,gameActive:document.body.classList.contains('game-active')};})()");
     reports.push({device,screen:'cabine',...report});
