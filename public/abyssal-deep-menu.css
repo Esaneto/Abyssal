@@ -68,6 +68,11 @@
 .deep-brand small{display:block;color:#7fbcbb;font:600 9px Inter,sans-serif;letter-spacing:.13em}
 .deep-utilities{display:flex;gap:5px;pointer-events:auto}
 .deep-utilities button,.deep-bottomline button{min-height:36px;padding:6px 11px;color:#ddf0ea;border:1px solid #53787c;background:rgba(5,21,30,.92);border-radius:5px;font:700 10px Inter,system-ui,sans-serif;cursor:pointer}
+.deep-topline{z-index:33}
+.deep-settings-popover[hidden]{display:none!important}
+.deep-settings-popover{position:absolute;top:43px;right:0;width:min(230px,90vw);max-height:min(65dvh,420px);overflow-y:auto;display:grid;gap:4px;padding:10px;border:2px ridge #64888a;border-radius:7px;background:linear-gradient(150deg,#172f3a,#061823 90%);box-shadow:0 20px 40px rgba(0,0,0,.68);pointer-events:auto}
+.deep-settings-popover button{min-height:42px;text-align:left;background:rgba(24,65,74,.68);border:1px solid #527c85;border-radius:4px;color:#e2f5f0;padding:9px 12px;font:700 11px Inter,system-ui,sans-serif;cursor:pointer}
+.deep-settings-popover button:hover,.deep-settings-popover button:focus-visible{border-color:#d0e9da;color:#fff3c2;outline-offset:2px}
 .deep-bottomline{position:absolute;bottom:max(7px,env(safe-area-inset-bottom));left:2%;right:2%;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#95bfc3;font-size:clamp(8px,.8vw,11px);letter-spacing:.08em;text-shadow:0 2px 3px #000}
 .deep-bottomline button{pointer-events:auto;min-height:42px;color:#f5dfaa}
 .deep-bottomline button[hidden],.deep-hatch-choice[hidden]{display:none!important}
