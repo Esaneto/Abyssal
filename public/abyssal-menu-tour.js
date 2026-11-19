@@ -2,28 +2,28 @@
  * Never starts a dive, buys an item, logs in, or changes game settings. */
 (function(root){
 'use strict';
-const KEY='abyssalMenuTourV1', $=id=>document.getElementById(id);
+const KEY='abyssalMenuTourV2', $=id=>document.getElementById(id);
 const STEPS=Object.freeze([
- {area:'exterior',target:'#divePortalBtn',title:'Escolha seu mergulho',copy:'Mergulhar abre a escolha entre Solo e Online. No Solo, jogue no seu ritmo; no Online, escolha ou crie uma sala cooperativa.'},
- {area:'exterior',target:'#submarineWorkshopBtn',title:'Entre na cabine',copy:'A cabine reúne equipamento, pesquisa, armário e sistemas do submarino. Use este botão para preparar a expedição.'},
- {area:'exterior',target:'#profileBtn',title:'Sua conta e progresso',copy:'No Perfil você pode entrar, criar uma conta e acompanhar conquistas. Uma conta permite guardar compras e sincronizar o progresso.'},
- {area:'exterior',target:'#hubMore',title:'Mais opções',copy:'Abra este menu para acessar rankings, Cardumes, recompensas, controles, idioma, downloads e suporte. O guia de mergulho explica o combate.'},
- {area:'cabin',target:'.abyss-control-deck',title:'Comandos da cabine',copy:'O painel central muda conforme o botão escolhido. Mergulhar prepara a expedição; Pesquisa reúne melhorias; Espécimes abre a loja; Abyssário consulta o registro de espécies.'},
- {area:'research',target:'.solo-research-tabs',title:'Pesquisa do mergulhador',copy:'Pesquise lanterna, Q (Pulso de Maré) e E (Propulsor Abissal). O botão Submarino abre as pesquisas da base e Ressonância organiza as habilidades do mergulho.'},
- {area:'resonance',target:'#resonanceSkillChoices [data-research-id="range"]',title:'Prepare suas ressonâncias',copy:'Escolha um disparo e combine habilidades que favoreçam seu estilo de combate. Você pode ajustar suas escolhas antes de mergulhar.'},
- {area:'wardrobe',target:'[data-cockpit-setting="wardrobe"]',title:'Personalize o mergulhador',copy:'Experimente cabelos, trajes, máscaras, armas e nadadeiras. Itens não adquiridos aparecem na prévia, mas só podem ser salvos depois da compra.'},
- {area:'shop',target:'.abyss-control-shop',title:'Espécimes e Abyssário',copy:'Espécimes oferece criaturas companheiras e suas habilidades. No Abyssário você consulta as espécies descobertas, raridades e informações de combate.'},
- {area:'cabin',target:'.abyss-cockpit-utilities',title:'Atalhos da cabine',copy:'Roleta entrega recompensas; Perfil mostra sua conta; Ranking acompanha as classificações; Cardumes conecta você à comunidade.'},
- {area:'cabin',target:'.abyss-cockpit-top-actions',title:'Ajustes e avisos',copy:'Use os comandos superiores para idioma, controles, armário, volume, gráficos, avisos, downloads e tela cheia.'},
- {area:'cabin',target:'#submarineWorkshopClose',title:'Pronto para mergulhar',copy:'A escotilha retorna ao menu principal. Quando estiver pronto, escolha Mergulhar. Você pode reabrir este guia a qualquer momento.'}
+ {area:'exterior',target:'#divePortalBtn',title:'Escolha seu mergulho',copy:'A opção Mergulhar apresenta os modos Solo e Online. Na cabine, os dois modos também possuem atalhos próprios.'},
+ {area:'exterior',target:'#submarineWorkshopBtn',title:'Entre na cabine',copy:'A cabine reúne as estações de preparação, progressão e comunidade.'},
+ {area:'exterior',target:'#profileBtn',title:'Sua conta e progresso',copy:'Entre na sua conta para sincronizar progresso e acompanhar suas conquistas.'},
+ {area:'exterior',target:'#hubMore',title:'Opções adicionais',copy:'Suporte, idioma e downloads continuam disponíveis no menu.'},
+ {area:'cabin',target:'[data-station="cabine"]',title:'Cabine central',copy:'Esta é sua estação inicial. Use os botões para iniciar o modo Solo ou Online.'},
+ {area:'research',target:'[data-station="laboratorio"]',title:'Laboratório',copy:'Pesquise habilidades do mergulhador, armas do submarino e abra a Ressonância.'},
+ {area:'resonance',target:'.abyss-station-cards',title:'Prepare sua evolução',copy:'A Ressonância permite organizar habilidades antes da expedição.'},
+ {area:'wardrobe',target:'[data-station="perfil"]',title:'Seu mergulhador',copy:'Abra o perfil, o armário ou o histórico da conta nesta estação.'},
+ {area:'shop',target:'[data-station="arsenal"]',title:'Arsenal de Ecos',copy:'Aqui você encontra seus Ecos, adquire outros e gerencia os companheiros.'},
+ {area:'social',target:'[data-station="social"]',title:'Central social',copy:'Cardumes, Ranking, Roleta e Avisos ficam agrupados nesta estação.'},
+ {area:'cabin',target:'.abyss-cockpit-top-actions',title:'Ajustes rápidos',copy:'Idioma, controles, áudio, gráficos e avisos continuam acessíveis no alto da cabine.'},
+ {area:'cabin',target:'#submarineWorkshopClose',title:'Voltar pela escotilha',copy:'Este botão retorna ao exterior. Você também pode navegar pelas setas ou arrastar a barra das estações.'}
 ]);
 let overlay=null,card=null,spot=null,idx=0,active=false,previousFocus=null,origin='exterior',raf=0,autoObserver=null,autoScheduled=false,autoOff=false;
 const editable=node=>!!node?.closest?.('textarea,input:not([type=button],[type=submit],[type=reset],[type=checkbox],[type=radio],[type=range],[type=file],[type=color]),[contenteditable]:not([contenteditable=false]),[data-selectable-text]');
-document.addEventListener('selectstart',e=>{if(!editable(e.target))e.preventDefault();},true);
+// Selection is permitted so instructions and labels remain accessible.
 document.addEventListener('dragstart',e=>{if(!editable(e.target)&&e.target?.closest?.('img,a,svg,canvas')&&!e.target?.closest?.('[draggable=true]'))e.preventDefault();},true);
 function visible(n){if(!n||n.closest('[hidden]')||!n.getClientRects().length)return false;const style=getComputedStyle(n);return style.display!=='none'&&style.visibility!=='hidden';}
 function seen(){try{return localStorage.getItem(KEY)==='1';}catch{return false;}}
-function markSeen(){autoOff=true;try{localStorage.setItem(KEY,'1');}catch{}autoObserver?.disconnect();}
+function markSeen(){autoOff=true;try{localStorage.setItem(KEY,'1');localStorage.setItem('abyssalMenuTourV1','1');}catch{}autoObserver?.disconnect();}
 function create(){
  if(overlay)return;
  overlay=document.createElement('section');overlay.id='abyssalMenuTour';overlay.hidden=true;overlay.setAttribute('role','presentation');
@@ -38,11 +38,11 @@ function prepare(step){
  const nav=root.AbyssalCockpitNavigation,cabin=$('submarineWorkshop');if(!nav)return;
  if(step.area==='exterior'){if(!visible($('menuScreen'))||cabin&&!cabin.hidden)nav.showExterior();return;}
  if(cabin?.hidden)nav.open();
- if(step.area==='research')cabin?.querySelector('.abyss-control-research')?.click();
- else if(step.area==='resonance'){cabin?.querySelector('.abyss-control-research')?.click();nav.routeScreen('resonanceScreen');}
- else if(step.area==='wardrobe')nav.routeCommand('wardrobe');
- else if(step.area==='shop')cabin?.querySelector('.abyss-control-shop')?.click();
- else cabin?.querySelector('.abyss-control-solo')?.click();
+ const target={cabin:'cabine',research:'laboratorio',resonance:'laboratorio',
+  wardrobe:'perfil',shop:'arsenal',social:'social'}[step.area]||'cabine';
+ nav.select(target);
+ if(step.area==='wardrobe')nav.routeCommand('wardrobe');
+ else if(step.area==='resonance')nav.routeScreen('resonanceScreen');
 }
 function rectFor(target){const w=innerWidth,h=innerHeight;if(!target||!visible(target))return {left:w/2-12,right:w/2+12,top:h/2-12,bottom:h/2+12};const r=target.getBoundingClientRect(),clamp=(v,max)=>Math.max(4,Math.min(max-4,v));return {left:clamp(r.left-5,w),right:clamp(r.right+5,w),top:clamp(r.top-5,h),bottom:clamp(r.bottom+5,h)};}
 function place(){
@@ -67,7 +67,7 @@ function open(from='exterior',full=false){
 }
 function close(){
  if(!active)return;active=false;markSeen();overlay.hidden=true;document.body.classList.remove('abyssal-menu-tour-open');if(raf)cancelAnimationFrame(raf);raf=0;
- const nav=root.AbyssalCockpitNavigation;if(origin==='exterior')nav?.showExterior();else{if($('submarineWorkshop')?.hidden)nav?.open();$('submarineWorkshop')?.querySelector('.abyss-control-solo')?.click();}
+ const nav=root.AbyssalCockpitNavigation;if(origin==='exterior')nav?.showExterior();else{if($('submarineWorkshop')?.hidden)nav?.open();nav?.select('cabine');}
  const focus=previousFocus;previousFocus=null;if(focus?.isConnected&&visible(focus))focus.focus({preventScroll:true});else (origin==='cabin'?$('cockpitTourBtn'):$('menuTourBtn'))?.focus({preventScroll:true});
 }
 function blocked(){if(document.documentElement.classList.contains('abyssal-startup')||document.body.classList.contains('game-active')||document.hidden)return true;const loading=$('abyssalStartupLoading');if(loading&&!loading.classList.contains('is-hidden'))return true;for(const n of document.querySelectorAll('.modal-screen:not(#submarineWorkshop),.modal-overlay,#abyssalTutorialOverlay,#abyssalProgressionChoice,#abyssalDiveChoicePanel'))if(visible(n))return true;return false;}

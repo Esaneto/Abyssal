@@ -15,7 +15,7 @@
 <meta property="og:locale" content="pt_BR">
 <meta property="og:site_name" content="Abyssal">
 <meta property="og:title" content="Abyssal | Ecos das Profundezas">
-<meta property="og:description" content="Mergulhe no abismo, enfrente criaturas colossais, evolua seu espécime e sobreviva sozinho ou com amigos. Jogue grátis no navegador.">
+<meta property="og:description" content="Mergulhe no abismo, enfrente criaturas colossais, evolua seu eco e sobreviva sozinho ou com amigos. Jogue grátis no navegador.">
 <meta property="og:url" content="https://abyssalgame.duckdns.org/">
 <meta property="og:image" content="https://abyssalgame.duckdns.org/abyssal-social-card.png">
 <meta property="og:image:secure_url" content="https://abyssalgame.duckdns.org/abyssal-social-card.png">
@@ -179,6 +179,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <link rel="stylesheet" href="abyssal-ocean-design.css?v=2026.11.13.guide-v186">
 <link rel="stylesheet" href="abyssal-deep-systems.css?v=2026.11.13.playable-v216">
 <link rel="stylesheet" href="abyssal-login-v2.css?v=3.6.143">
+<link rel="stylesheet" href="abyssal-cockpit-stations.css?v=3.6.144">
 </head>
 <body>
 <div id="app">
@@ -235,7 +236,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
             <button id="profileBtn" type="button" class="hub-destination"><span class="hub-nav-icon" aria-hidden="true"><svg class="abyss-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></span><strong>PERFIL</strong><small>Conta e conquistas</small></button>
           </nav>
           <div class="hub-secondary"><button id="exteriorGuideBtn" type="button"><svg class="abyss-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4 3c-1 1-1 1-1 2m0 3h.01"/></svg> Guia de mergulho</button><button id="menuTourBtn" type="button"><svg class="abyss-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4 3c-1 1-1 1-1 2m0 3h.01"/></svg> Guia da cabine</button><details id="hubMore"><summary>Mais opções <span aria-hidden="true">+</span></summary><div class="hub-more-panel">
-            <div class="hub-more-group"><h3>PROGRESSÃO</h3><button id="shopBtn" type="button">Espécimes e loja</button><button id="wheelBtn" type="button">Recompensas</button></div>
+            <div class="hub-more-group"><h3>PROGRESSÃO</h3><button id="shopBtn" type="button">Ecos e loja</button><button id="wheelBtn" type="button">Recompensas</button></div>
             <div class="hub-more-group"><h3>COMUNIDADE</h3><button id="rankingsBtn" type="button">Ranking</button><button id="cardumesBtn" type="button">Cardumes</button><button id="matchHistoryBtn" type="button">Histórico de partidas</button><button id="hubNoticesBtn" type="button">Avisos</button></div>
             <div class="hub-more-group"><h3>AJUSTES E SUPORTE</h3><button id="controlsBtn" type="button">Controles</button><button id="hubFullscreenBtn" type="button">Tela cheia</button><label for="languageSelect">Idioma</label><select id="languageSelect" class="text-field"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select><button id="downloadBtn" type="button">Baixar Abyssal</button><button id="supportBtn" type="button">Suporte</button></div>
           </div></details></div>
@@ -284,8 +285,8 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       <aside id="selectedSkillsPanel" class="selected-skills-panel" aria-live="polite" aria-label="Ressonância, habilidades adquiridas"><div id="selectedSkillsList" class="selected-skills-list"></div></aside>
       <div id="skillDescriptionTooltip" class="skill-description-tooltip" role="tooltip" hidden></div>
       <aside id="runEnergyRanking" class="run-energy-ranking" aria-live="polite"><strong>DANO · TOP 6</strong><div id="runEnergyRankingList"><span>1. Você — 0</span></div></aside>
-      <aside id="petHabitBar" class="pet-habit-bar" aria-label="Comportamento do espécime">
- <div class="pet-habit-actions" role="group" aria-label="Comportamento do espécime">
+      <aside id="petHabitBar" class="pet-habit-bar" aria-label="Comportamento do eco">
+ <div class="pet-habit-actions" role="group" aria-label="Comportamento do eco">
   <button type="button" data-pet-habit="passive" aria-pressed="true" title="4 · Evita monstros e coleta orbs de Energia pela rota mais segura"><span aria-hidden="true">⛏</span><small>4 · PASSIVO</small></button>
   <button type="button" data-pet-habit="aggressive" aria-pressed="false" title="5 · Ataca os monstros mais próximos e coleta Energia"><span aria-hidden="true">⚔</span><small>5 · AGRESSIVO</small></button>
   <button type="button" data-pet-habit="guardian" aria-pressed="false" title="6 · Protege o jogador dos monstros próximos e coleta Energia"><span aria-hidden="true">🛡</span><small>6 · PROTETOR</small></button>
@@ -294,7 +295,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       <div class="active-abilities" id="activeAbilities">
         <button id="skillPulseBtn" type="button" aria-label="Pulso de maré" class="active-ability pulse-ability" hidden><span class="ability-glyph" aria-hidden="true"></span><span class="ability-timer" hidden></span><kbd class="ability-key" aria-hidden="true">Q</kbd></button>
         <button id="skillDashBtn" type="button" aria-label="Propulsor" class="active-ability dash-ability" hidden><span class="ability-glyph" aria-hidden="true"></span><span class="ability-timer" hidden></span><kbd class="ability-key" aria-hidden="true">E</kbd></button>
-<button id="skinActiveBtn" type="button" aria-label="Habilidade do espécime" class="active-ability skin-active-ability"><span class="ability-glyph" aria-hidden="true"></span><span class="ability-timer" hidden></span><kbd class="ability-key" aria-hidden="true">R</kbd></button>
+<button id="skinActiveBtn" type="button" aria-label="Habilidade do eco" class="active-ability skin-active-ability"><span class="ability-glyph" aria-hidden="true"></span><span class="ability-timer" hidden></span><kbd class="ability-key" aria-hidden="true">R</kbd></button>
       </div>
     </div>
 
@@ -337,7 +338,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <div class="dive-report-flora" aria-hidden="true"><svg viewBox="0 0 580 180" preserveAspectRatio="none"><g fill="none" stroke-linecap="round"><path d="M12 180Q30 126 24 58M24 124Q4 100 7 78M25 103Q55 76 60 48M72 180Q67 125 90 103M90 134Q115 113 118 83M568 180Q548 126 554 58M554 124Q574 100 571 78M553 103Q523 76 518 48M508 180Q513 125 490 103M490 134Q465 113 462 83" stroke="#64e6bf" stroke-width="3"/><path d="M39 180Q45 143 43 111M541 180Q535 143 537 111" stroke="#b985ff" stroke-width="2"/></g><g fill="#a3ffda"><circle cx="24" cy="58" r="4"/><circle cx="7" cy="78" r="3"/><circle cx="60" cy="48" r="4"/><circle cx="118" cy="83" r="3"/><circle cx="554" cy="58" r="4"/><circle cx="571" cy="78" r="3"/><circle cx="518" cy="48" r="4"/><circle cx="462" cy="83" r="3"/></g></svg></div><div class="results dive-report-results">
           <div><small>SOBREVIVÊNCIA</small><strong id="finalTime">00:00</strong></div>
           <div><small>DANO TOTAL</small><strong id="finalScore">0</strong></div>
-          <div><small>ENERGIA DE CONCLUSÃO</small><strong id="finalCoins">0</strong></div><div><small>ENERGIA COLETADA</small><strong id="finalEnergy">0</strong></div><div><small>BÔNUS ATIVO DO ESPÉCIME</small><strong id="finalEnergyBonusPercent">+0%</strong></div><div><small>ENERGIA EXTRA DO ESPÉCIME</small><strong id="finalEnergyBonus">0</strong></div><div><small>COLETADA + BÔNUS</small><strong id="finalEnergyWithBonus">0</strong></div><div><small>CRIATURAS ABATIDAS</small><strong id="finalKills">0</strong></div><div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
+          <div><small>ENERGIA DE CONCLUSÃO</small><strong id="finalCoins">0</strong></div><div><small>ENERGIA COLETADA</small><strong id="finalEnergy">0</strong></div><div><small>BÔNUS ATIVO DO ECO</small><strong id="finalEnergyBonusPercent">+0%</strong></div><div><small>ENERGIA EXTRA DO ECO</small><strong id="finalEnergyBonus">0</strong></div><div><small>COLETADA + BÔNUS</small><strong id="finalEnergyWithBonus">0</strong></div><div><small>CRIATURAS ABATIDAS</small><strong id="finalKills">0</strong></div><div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
         </div><p id="finalReportStatus" role="status" aria-live="polite">Relatório da expedição</p>
         <button id="reviveWithAdBtn" class="primary-btn">ASSISTIR ANÚNCIO PARA REVIVER <span>▶</span></button>
         <button id="againBtn" class="secondary-btn">ENCERRAR E MERGULHAR NOVAMENTE</button>
@@ -463,12 +464,12 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     <section id="shopScreen" class="screen modal-screen" hidden>
       <div class="modal-card shop-modal"><button id="shopTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar loja">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> MERCADO DAS PROFUNDEZAS</div>
-        <div class="shop-heading"><div class="shop-heading-copy"><div class="shop-title-actions"><h2>CATÁLOGO DE ESPÉCIMES</h2><button id="shopRedeemShortcut" class="shop-redeem-shortcut" type="button" aria-label="Ir à seção de resgate de código">✦ RESGATAR CÓDIGO <span aria-hidden="true">↓</span></button></div><p>Escolha seu companheiro. Compare atributos, habilidades e raridades.</p></div><div class="wallet">⚡ <strong id="coinBalance">0</strong><small>ENERGIA ARMAZENADA</small></div></div>
+        <div class="shop-heading"><div class="shop-heading-copy"><div class="shop-title-actions"><h2>ARSENAL DE ECOS</h2><button id="shopRedeemShortcut" class="shop-redeem-shortcut" type="button" aria-label="Ir à seção de resgate de código">✦ RESGATAR CÓDIGO <span aria-hidden="true">↓</span></button></div><p>Escolha seu companheiro. Compare atributos, habilidades e raridades.</p></div><div class="wallet">⚡ <strong id="coinBalance">0</strong><small>ENERGIA ARMAZENADA</small></div></div>
         <div class="payment-settings"><label for="shopCurrency">Moeda de cobrança</label><div id="shopCurrency" class="text-field" aria-label="Moeda de cobrança">BRL · Real (R$)</div>
           
           
         </div>
-        <div class="shop-catalog-intro"><h3 class="shop-section-title">COLEÇÃO DE ESPÉCIMES</h3><article id="bossBundleBanner" class="boss-bundle-banner" aria-label="Pacote dos Bosses Abissais"></article></div>
+        <div class="shop-catalog-intro"><h3 class="shop-section-title">COLEÇÃO DE ECOS</h3><article id="bossBundleBanner" class="boss-bundle-banner" aria-label="Pacote dos Bosses Abissais"></article></div>
         <div class="shop-filter-bar" aria-label="Filtros da loja">
           <input id="shopSearchInput" class="text-field shop-filter-search" type="search" placeholder="Buscar espécie ou habilidade" aria-label="Buscar espécie ou habilidade" autocomplete="off">
           <select id="shopFamilyFilter" class="text-field shop-filter-select" aria-label="Filtrar por raridade"><option value="all">Todas as raridades</option><option value="common">Comum</option><option value="uncommon">Incomum</option><option value="rare">Rara</option><option value="epic">Épica</option><option value="legendary">Lendária</option></select>
@@ -511,7 +512,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <h2 id="redeemCodeTitle">CÓDIGO<br><em>ABISSAL</em></h2>
         <p>Digite seu código abaixo para desbloquear uma recompensa das profundezas.</p>
         <div class="redeem-code-controls"><label for="redeemCodeInput">CÓDIGO PROMOCIONAL</label><input id="redeemCodeInput" type="text" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="Digite seu código aqui" aria-label="Código promocional"><button id="redeemCodeBtn" class="primary-btn" type="button">RESGATAR CÓDIGO <span>↗</span></button></div>
-        <div id="redeemSkinChoice" class="redeem-skin-choice" hidden><label for="redeemSkinSelect">ESCOLHA O ESPÉCIME DA LOJA</label><select id="redeemSkinSelect" aria-label="Espécime gratuito a desbloquear"><option value="">Selecione um Espécime</option></select><p>O código libera um Espécime permanentemente, inclusive das opções pagas. A escolha é definitiva.</p></div>
+        <div id="redeemSkinChoice" class="redeem-skin-choice" hidden><label for="redeemSkinSelect">ESCOLHA O ECO DA LOJA</label><select id="redeemSkinSelect" aria-label="Eco gratuito a desbloquear"><option value="">Selecione um Eco</option></select><p>O código libera um Eco permanentemente, inclusive das opções pagas. A escolha é definitiva.</p></div>
         <p id="redeemCodeMessage" class="redeem-code-message" role="status" aria-live="polite"></p>
         <button id="redeemCodeBackBtn" class="secondary-btn" type="button">VOLTAR À LOJA</button>
       </div>
@@ -588,7 +589,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     </section>
 <section id="resonanceScreen" class="screen modal-screen" hidden><div class="modal-card codex-modal resonance-modal" role="dialog" aria-modal="true" aria-labelledby="resonanceTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="resonanceScreen" aria-label="Fechar ressonância">×</button><div class="eyebrow"><span class="pulse-dot"></span> PREPARE SUA EVOLUÇÃO</div><h2 id="resonanceTitle">RESSONÂNCIA<br><em>ABISSAL</em></h2><p>Monte uma configuração com até <strong>10 habilidades</strong>: exatamente 1 disparo e até 9 passivas ou aprimoramentos. Somente o disparo inicia no nível 1; as demais são obtidas ao subir de nível.</p><div class="resonance-mode-tabs"><button type="button" class="primary-btn" data-resonance-mode="pve" aria-label="Ressonância PvE">PVE</button><button type="button" class="secondary-btn" data-resonance-mode="pvp" disabled aria-disabled="true" aria-label="Ressonância PvP em desenvolvimento" title="Em desenvolvimento">PVP · EM BREVE</button></div><div id="resonanceSelectionCount" class="resonance-selection-count">0 de 10 selecionadas</div><div id="resonanceSkillChoices" class="resonance-skill-choices"></div><section id="resonanceFusionGuide" class="resonance-fusion-guide" aria-label="Fusões e combinações de habilidades"></section><p id="resonanceMessage" class="form-message" aria-live="polite"></p><button id="saveResonanceBtn" class="primary-btn" type="button">SALVAR COMBINAÇÃO</button></div></section>
     <section id="catalogScreen" class="screen modal-screen" hidden>
-      <div class="modal-card codex-modal abyss-journal" role="dialog" aria-modal="true" aria-labelledby="abyssJournalTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar Abyssário">×</button><div class="eyebrow">BANCO DE DADOS BIOLÓGICOS · TERMINAL 07</div><h2 id="abyssJournalTitle">ABYSSÁRIO</h2><p class="journal-intro">Consulte criaturas, espécimes e seus atributos. Novos registros são identificados conforme suas descobertas durante os mergulhos.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn" data-close-screen="catalogScreen">VOLTAR AO MENU</button></div>
+      <div class="modal-card codex-modal abyss-journal" role="dialog" aria-modal="true" aria-labelledby="abyssJournalTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar Abyssário">×</button><div class="eyebrow">BANCO DE DADOS BIOLÓGICOS · TERMINAL 07</div><h2 id="abyssJournalTitle">ABYSSÁRIO</h2><p class="journal-intro">Consulte criaturas, ecos e seus atributos. Novos registros são identificados conforme suas descobertas durante os mergulhos.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn" data-close-screen="catalogScreen">VOLTAR AO MENU</button></div>
     </section>
     <section id="rankingsScreen" class="screen modal-screen" hidden>
       <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="rankingsScreen" aria-label="Fechar ranking">×</button><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn" data-close-screen="rankingsScreen">VOLTAR AO MENU</button></div>
@@ -611,9 +612,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
           <button class="profile-diver-gender-btn" type="button" data-diver-gender="female" aria-pressed="false">MERGULHADORA</button>
         </div>
         <section class="profile-specimen-panel" aria-labelledby="profileSpecimenHeading">
-          <div class="profile-specimen-stage"><canvas id="profileSpecimenCanvas" width="520" height="230" aria-label="Mergulhador com espécime equipado"></canvas></div>
+          <div class="profile-specimen-stage"><canvas id="profileSpecimenCanvas" width="520" height="230" aria-label="Mergulhador com eco equipado"></canvas></div>
           <div class="profile-specimen-copy">
-            <div class="profile-title-heading"><div><h3 id="profileSpecimenHeading">ESPÉCIME EQUIPADO</h3><p id="profileSpecimenName">Luz Abissal</p></div><span id="profileAdaptationPercent" class="profile-progress">0%</span></div>
+            <div class="profile-title-heading"><div><h3 id="profileSpecimenHeading">ECO EQUIPADO</h3><p id="profileSpecimenName">Luz Abissal</p></div><span id="profileAdaptationPercent" class="profile-progress">0%</span></div>
             <div class="adaptation-bar" role="progressbar" aria-valuemin="0" aria-valuemax="5000" aria-valuenow="0"><span id="profileAdaptationFill"></span></div>
             <div class="adaptation-meta"><strong id="profileAdaptationPoints">0 / 5000</strong><span>ADAPTAÇÃO</span></div>
             <div class="adaptation-benefits">
@@ -632,7 +633,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <div class="profile-title-heading"><div><h3>TÍTULOS DO ABISMO</h3><p>Desbloqueie conquistas e escolha como será reconhecido.</p></div><span id="profileTitleProgress" class="profile-progress">1 título disponível</span></div>
         <div id="profileTitleGrid" class="profile-title-grid" aria-live="polite"></div>
         <section id="accountDeletePanel" class="account-delete-panel" aria-labelledby="deleteAccountHeading">
-          <div class="account-delete-heading"><span aria-hidden="true">⚠</span><div><h3 id="deleteAccountHeading">EXCLUIR CONTA</h3><p>Esta ação é permanente. Seu perfil, energia, Espécimes, melhorias, títulos e registros de ranking serão removidos.</p></div></div>
+          <div class="account-delete-heading"><span aria-hidden="true">⚠</span><div><h3 id="deleteAccountHeading">EXCLUIR CONTA</h3><p>Esta ação é permanente. Seu perfil, energia, Ecos, melhorias, títulos e registros de ranking serão removidos.</p></div></div>
           <label class="field-label" for="deleteNicknameInput">DIGITE SEU NICKNAME PARA CONFIRMAR</label>
           <input id="deleteNicknameInput" class="text-field delete-nickname-field" maxlength="18" autocomplete="off" placeholder="Digite exatamente seu nickname">
           <button id="deleteAccountBtn" class="danger-delete-btn" type="button" disabled>EXCLUIR MINHA CONTA PERMANENTEMENTE</button>
@@ -692,7 +693,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <span id="notifPanelTitle">🔔 NOTIFICAÇÕES DO ABISMO</span>
         <button id="notifPanelClose" aria-label="Fechar notificações" title="Fechar">✕</button>
       </div>
-      <div id="notifPanelSub">Energia, títulos, Espécimes e anúncios das profundezas. Expiram em 7 dias.</div>
+      <div id="notifPanelSub">Energia, títulos, Ecos e anúncios das profundezas. Expiram em 7 dias.</div>
       <div id="notifPanelList" role="list"></div>
     </div>
   </div>
@@ -881,7 +882,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-submarine-cockpit.js?v=3.6.107-ui"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
-<script src="abyssal-exploration-runtime.js?v=3.6.114.portal2"></script>
+<script src="abyssal-exploration-runtime.js?v=3.6.145.stations"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.24"></script>
 <script src="abyssal-sonar-minimap.js?v=3.6.107-ui"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>

@@ -39,7 +39,7 @@ test('catalog previews show diver and specimen together',()=>{
  const game=read('public/game.js');
  assert.match(game,/if\(kind==='player'&&skin\)/);
  assert.match(game,/shop-specimen:/);
- assert.match(game,/CATÁLOGO DE ESPÉCIMES/);
+ assert.match(game,/ARSENAL DE ECOS/);
 });
 
 test('profile exposes adaptation and only released dive routes',()=>{

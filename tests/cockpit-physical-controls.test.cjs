@@ -18,20 +18,24 @@ test('main-menu hatch is always named CABINE and opens the cockpit visor',()=>{
  assert.match(runtime,/activeConsoleSection='solo';soloConsolePage='home';workshop\.hidden=false;renderWorkshop\(\)/);
 });
 
-test('four clickable hardware controls update a single integrated cockpit visor',()=>{
+test('five clickable stations update a single integrated cockpit visor',()=>{
  const source=read('public/abyssal-exploration-runtime.js');
  const style=read('public/abyssal-submarine-laboratory.css');
+ const stationStyle=read('public/abyssal-cockpit-stations.css');
  const html=read('public/index.html');
- for(const id of ['solo','research','shop','specimens'])
-  assert.match(source,new RegExp("id:'"+id+"'"),id+' must be present on the console');
+ for(const id of ['social','cabine','laboratorio','arsenal','perfil'])
+  assert.match(source,new RegExp("station:'"+id+"'"),id+' must be present on the console');
  assert.match(source,/function mountCockpitConsole\(utility\)/);
  assert.match(source,/workshopGrid\.replaceChildren\(visor,keys\)/);
  assert.match(source,/key\.setAttribute\('aria-pressed'/);
- assert.match(source,/activeConsoleSection=option\.id;soloConsolePage='home';renderWorkshop\(\)/);
- assert.match(style,/\.abyss-control-key\.is-active/);
+ assert.match(source,/function selectStation\(id\)/);
+ assert.match(source,/function selectRelativeStation\(offset\)/);
+ assert.match(source,/className='abyss-station-rail'/);
+ assert.match(source,/select:selectStation/);
+ assert.match(stationStyle,/\.abyss-station-key\.is-active/);
  assert.match(style,/\.abyss-cockpit-visor/);
  assert.match(style,/\.abyss-visor-body/);
- assert.match(style,/@media\(max-width:700px\)/);
+ assert.match(stationStyle,/@media\(max-width:700px\)/);
  assert.match(html,/class="abyss-cockpit-top-actions"/);
  assert.ok(html.indexOf('abyssal-resource-icons.js')<html.indexOf('abyssal-exploration-runtime.js'));
  assert.ok(html.indexOf('abyssal-resource-icons.js')<html.indexOf('abyssal-inventory-ui.js'));

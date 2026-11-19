@@ -22,7 +22,7 @@
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
- let activeLabSection='survival',activeConsoleSection='laboratory',soloConsolePage='home';
+ let activeLabSection='survival',activeConsoleSection='laboratory',soloConsolePage='home',selectedStation='cabine';
  const researchTreeSelection={diver:null,submarine:null};
  let combatResearchPending=false,combatResearchMessage='';
  // Move the original live screens, not copies: purchases, filters, canvases,
@@ -32,10 +32,19 @@
  const childPages=new Set(['redeem','purchase','history','report','support']);
  const embeddedPages=Object.freeze({shop:'shopScreen',specimens:'catalogScreen',profile:'profileScreen',cardumes:'cardumesScreen',resonance:'resonanceScreen',login:'loginScreen',recovery:'passwordRecoveryScreen',notices:'notifPanel',download:'downloadScreen',wheel:'wheelScreen',ranking:'rankingsScreen',rooms:'roomsScreen',redeem:'redeemCodeScreen',purchase:'skinPurchaseConfirmModal',history:'matchHistoryScreen',report:'ugcReportScreen',support:'supportScreen'});
  const embeddedTitles=Object.freeze({profile:'PERFIL',cardumes:'CARDUMES',resonance:'RESSONÂNCIA',login:'IDENTIFICAÇÃO DO MERGULHADOR',recovery:'RECUPERAR ACESSO',notices:'CENTRAL DE AVISOS',download:'BAIXAR ABYSSAL',wheel:'ROLETA',ranking:'RANKING',rooms:'MERGULHO ONLINE',redeem:'RESGATAR CÓDIGO',purchase:'CONFIRMAR AQUISIÇÃO',history:'HISTÓRICO DE PARTIDAS',report:'DENUNCIAR',support:'SUPORTE',language:'IDIOMA',controls:'CONTROLES',zoom:'ZOOM DA CÂMERA',volume:'VOLUME',filter:'GRÁFICOS',fullscreen:'TELA CHEIA',wardrobe:'ARMÁRIO DO MERGULHADOR',hudEditor:'EDITAR INTERFACE'});
- function navigateEmbedded(id,skip=false){if(!workshop||workshop.hidden)return false;const page=Object.keys(embeddedPages).find(key=>embeddedPages[key]===id);if(!page)return false;if(embeddedCatalog?.screen.id===id)return false;if(childPages.has(page)&&activeConsoleSection!==page)embeddedReturns.set(page,activeConsoleSection);if(page==='login'&&activeConsoleSection!=='login'&&activeConsoleSection!=='recovery')loginReturn=activeConsoleSection;if(page==='profile'&&skip&&activeConsoleSection==='cardumes')publicProfileReturn='cardumes';else if(page==='profile'&&!skip)publicProfileReturn='solo';activeConsoleSection=page;skipEmbeddedOpen=skip;renderWorkshop();return true;}
+ function navigateEmbedded(id,skip=false){if(!workshop||workshop.hidden)return false;const page=Object.keys(embeddedPages).find(key=>embeddedPages[key]===id);if(!page)return false;if(embeddedCatalog?.screen.id===id)return false;if((childPages.has(page)||activeConsoleSection.endsWith('Hub'))&&activeConsoleSection!==page)embeddedReturns.set(page,activeConsoleSection);if(page==='login'&&activeConsoleSection!=='login'&&activeConsoleSection!=='recovery')loginReturn=activeConsoleSection;if(page==='profile'&&skip&&activeConsoleSection==='cardumes')publicProfileReturn='cardumes';else if(page==='profile'&&!skip)publicProfileReturn='solo';activeConsoleSection=page;skipEmbeddedOpen=skip;renderWorkshop();return true;}
  const commandPages=new Set(['language','controls','zoom','volume','filter','fullscreen','wardrobe','hudEditor']);
+ function openEchoCatalog(filterValue){
+  if(!navigateEmbedded('shopScreen'))return false;
+  const filter=$('shopOwnershipFilter');if(filter){filter.value=filterValue;filter.dispatchEvent(new Event('change',{bubbles:true}));}
+  return true;
+ }
+ function openEchoRedeem(){
+  if(!openEchoCatalog('all'))return;
+  $('openRedeemCodeBtn')?.click();
+ }
  function navigateCommand(page){if(!workshop||workshop.hidden)return false;if(page==='notices'||page==='download')return navigateEmbedded(embeddedPages[page]);if(!commandPages.has(page))return false;activeConsoleSection=page;renderWorkshop();return true;}
- function backEmbedded(){const from=activeConsoleSection,page=childPages.has(from)?(embeddedReturns.get(from)||(['redeem','purchase'].includes(from)?'shop':'profile')):from==='login'?loginReturn:from==='recovery'?'login':from==='profile'?publicProfileReturn:'solo';embeddedReturns.delete(from);activeConsoleSection=page;renderWorkshop();}
+ function backEmbedded(){const from=activeConsoleSection,landing=selectedStation==='arsenal'?'arsenalHub':selectedStation==='social'?'socialHub':selectedStation==='perfil'?'profileHub':selectedStation==='laboratorio'?'solo':'solo',page=childPages.has(from)?(embeddedReturns.get(from)||(['redeem','purchase'].includes(from)?'shop':'profile')):from==='login'?loginReturn:from==='recovery'?'login':(embeddedReturns.get(from)||(from==='profile'&&publicProfileReturn==='cardumes'?'cardumes':landing));embeddedReturns.delete(from);activeConsoleSection=page;renderWorkshop();}
  function restoreEmbeddedCatalog(){
   if(!embeddedCatalog)return;
   const {screen,anchor,role,modal,modalRole,modalAria,legacyClasses}=embeddedCatalog;embeddedCatalog=null;
@@ -180,16 +189,30 @@
   mountCockpitConsole();
  }
 
- // Four frequent destinations; unavailable systems stay gated in their original code.
+ // Five accessible stations, keeping the original live pages, research and purchase handlers.
  const CONSOLE_BUTTONS=Object.freeze([
-  {id:'solo',name:'MERGULHAR',symbol:'≈',title:'MERGULHAR'},
-  {id:'research',name:'PESQUISA',symbol:'⌬',title:'PESQUISA'},
-  {id:'shop',name:'ESPÉCIMES',symbol:'▣',title:'ESPÉCIMES'},
-  {id:'specimens',name:'ABYSSÁRIO',symbol:'◈',title:'ABYSSÁRIO'}
+  {id:'socialHub',station:'social',name:'SOCIAL',symbol:'◈',title:'CENTRAL SOCIAL'},
+  {id:'solo',station:'cabine',name:'CABINE',symbol:'⌂',title:'CABINE CENTRAL'},
+  {id:'research',station:'laboratorio',name:'PESQUISA',symbol:'⚗',title:'LABORATÓRIO'},
+  {id:'arsenalHub',station:'arsenal',name:'ARSENAL',symbol:'✧',title:'ARSENAL DE ECOS'},
+  {id:'profileHub',station:'perfil',name:'PERFIL',symbol:'♙',title:'MEU MERGULHADOR'}
  ]);
+ const stationIndex=id=>CONSOLE_BUTTONS.findIndex(item=>item.station===id);
+ function selectStation(id){
+  if(!workshop||workshop.hidden)return false;
+  const option=CONSOLE_BUTTONS.find(item=>item.station===id);if(!option)return false;
+  selectedStation=id;workshop.dataset.station=id;
+  activeConsoleSection=option.id==='research'?'solo':option.id;
+  soloConsolePage=option.id==='research'?'diver':'home';
+  renderWorkshop();return true;
+ }
+ function selectRelativeStation(offset){
+  const i=stationIndex(selectedStation);
+  return selectStation(CONSOLE_BUTTONS[Math.max(0,Math.min(CONSOLE_BUTTONS.length-1,i+offset))].station);
+ }
  function mountCockpitConsole(utility){
   const old=utility?[utility]:Array.from(workshopGrid.children);
-  const chosen=CONSOLE_BUTTONS.find(option=>option.id===activeConsoleSection)||CONSOLE_BUTTONS[0];
+  const chosen=CONSOLE_BUTTONS.find(option=>option.station===selectedStation)||CONSOLE_BUTTONS[1];
   const visor=document.createElement('section');visor.className='abyss-cockpit-visor';
  workshop.classList.toggle('abyss-visor-expanded',activeConsoleSection!=='solo'||soloConsolePage!=='home');
   visor.setAttribute('aria-label','Visor central de comandos');
@@ -206,25 +229,47 @@
    body.append(node);
   }
   visor.append(body);
-  const keys=document.createElement('nav');keys.className='abyss-control-deck';keys.setAttribute('aria-label','Controles físicos da cabine');
+  const keys=document.createElement('nav');keys.className='abyss-control-deck abyss-station-deck';
+  keys.setAttribute('aria-label','Estações da cabine');
+  const rail=document.createElement('div');rail.className='abyss-station-rail';rail.tabIndex=0;
+  rail.setAttribute('role','group');rail.setAttribute('aria-label','Arraste para mudar de estação');
+  const step=(n,text,name)=>{
+   const b=document.createElement('button');b.type='button';b.className='abyss-station-arrow';
+   b.textContent=text;b.setAttribute('aria-label',name);
+   b.disabled=stationIndex(selectedStation)+n<0||stationIndex(selectedStation)+n>=CONSOLE_BUTTONS.length;
+   b.addEventListener('click',()=>selectRelativeStation(n));return b;
+  };
+  const prev=step(-1,'‹','Estação anterior'),next=step(1,'›','Próxima estação');
   for(const option of CONSOLE_BUTTONS){
    const key=document.createElement('button');key.type='button';
-   const selected=option.id==='research'?activeConsoleSection==='solo'&&soloConsolePage!=='home'||activeConsoleSection==='resonance':option.id===activeConsoleSection&&(option.id!=='solo'||soloConsolePage==='home');
-   key.className='abyss-control-key abyss-control-'+option.id+(selected?' is-active':'');
-   key.setAttribute('aria-label',option.name);
+   const selected=option.station===selectedStation;
+   key.className='abyss-control-key abyss-station-key abyss-control-'+option.id+(selected?' is-active':'');
+   key.dataset.station=option.station;
+   key.setAttribute('aria-label',option.title);
    key.setAttribute('aria-pressed',String(selected));
-   if(option.locked){key.dataset.abyssLocked='true';key.setAttribute('aria-description','Em desenvolvimento. Disponível futuramente.');}
-   const symbol=document.createElement('span');symbol.className='abyss-control-icon';
-   const icons={solo:"<svg class=\"abyss-ui-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12h5l3-7 3 14 3-7h4\"/></svg>",research:"<svg class=\"abyss-ui-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 3h6m-5 0v7L5 19a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-9V3M8 16h8\"/></svg>",shop:"<svg class=\"abyss-ui-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 8h16l-1 13H5zM8 9V6a4 4 0 0 1 8 0v3\"/></svg>",specimens:"<svg class=\"abyss-ui-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 6C9 3 5 4 3 5v15c3-2 6-2 9 0 3-2 6-2 9 0V5c-2-1-6-2-9 1v14\"/></svg>"};symbol.innerHTML=icons[option.id];symbol.setAttribute('aria-hidden','true');
-   const name=document.createElement('span');name.textContent=option.name;
-   key.append(symbol,name);
-   key.addEventListener('click',()=>{
-    if(option.locked){window.AbyssalLaunchFocus?.notify?.();return;}
-    if(option.id==='research'){activeConsoleSection='solo';soloConsolePage='diver';renderWorkshop();return;}
-    if(option.id==='solo'){activeConsoleSection='solo';soloConsolePage='home';visorScrollByPage.delete('solo:home');renderWorkshop();const body=workshopGrid.querySelector('.abyss-visor-body');if(body)body.scrollTop=0;return;}if(activeConsoleSection!==option.id){activeConsoleSection=option.id;soloConsolePage='home';renderWorkshop();}
-   });
-   keys.append(key);
+   const symbol=document.createElement('span');symbol.className='abyss-control-icon';symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
+   const name=document.createElement('span');name.className='abyss-station-key-name';name.textContent=option.name;
+   key.append(symbol,name);key.addEventListener('click',()=>selectStation(option.station));rail.append(key);
   }
+  let pointer=null,dragged=false;
+  rail.addEventListener('pointerdown',e=>{if(e.button!==0)return;pointer={x:e.clientX,y:e.clientY,lastX:e.clientX,id:e.pointerId};dragged=false;});
+  rail.addEventListener('pointermove',e=>{if(!pointer||e.pointerId!==pointer.id)return;const dx=e.clientX-pointer.x;
+   if(Math.abs(dx)>8&&Math.abs(dx)>Math.abs(e.clientY-pointer.y)){try{rail.setPointerCapture(e.pointerId);}catch(_){}
+    rail.scrollLeft+=pointer.lastX-e.clientX;}pointer.lastX=e.clientX;
+  });
+  rail.addEventListener('pointerup',e=>{if(!pointer||e.pointerId!==pointer.id)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer=null;
+   if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3){dragged=true;selectRelativeStation(dx<0?1:-1);}
+  });
+  rail.addEventListener('pointercancel',()=>{pointer=null;});
+  rail.addEventListener('click',e=>{if(dragged){e.preventDefault();e.stopImmediatePropagation();dragged=false;}},true);
+  rail.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();selectRelativeStation(e.key==='ArrowLeft'?-1:1);}});
+  keys.append(prev,rail,next);
+  workshop.dataset.station=selectedStation;
+  requestAnimationFrame(()=>{
+   if(!rail.isConnected)return;
+   const active=rail.querySelector('.abyss-station-key.is-active');if(!active)return;
+   rail.scrollLeft=Math.max(0,active.offsetLeft-rail.offsetLeft-(rail.clientWidth-active.clientWidth)/2);
+  });
   // Show scrolling guidance only when the actual monitor contains hidden rows.
   const hint=document.createElement('span');
   hint.className='abyss-visor-scroll-hint';
@@ -252,6 +297,36 @@
  window.addEventListener('abyssal-modal-closed',event=>{if(event.detail?.screenId==='resonanceScreen')for(const nav of workshop?.querySelectorAll('.solo-research-tabs')||[]){const buttons=nav.querySelectorAll('button');buttons[2]?.setAttribute('aria-pressed','false');}});
  function renderConsoleUtility(){
   if(!workshopGrid)return;
+  if(['socialHub','arsenalHub','profileHub'].includes(activeConsoleSection)){
+   const hub=activeConsoleSection;
+   const entries=hub==='socialHub'?[
+    ['CARDUMES','Convites, chat e gestão de cardumes.',()=>navigateEmbedded('cardumesScreen')],
+    ['RANKING','Classificações e energia de recompensa.',()=>navigateEmbedded('rankingsScreen')],
+    ['ROLETA','Giros disponíveis e recompensas.',()=>navigateEmbedded('wheelScreen')],
+    ['AVISOS','Notificações e convites recebidos.',()=>navigateEmbedded('notifPanel')]
+   ]:hub==='arsenalHub'?[
+    ['MEUS ECOS','Visualize e equipe os Ecos já adquiridos.',()=>openEchoCatalog('owned')],
+    ['ADQUIRIR ECOS','Explore raridades e habilidades.',()=>openEchoCatalog('all')],
+    ['ABYSSÁRIO','Consulte as criaturas registradas.',()=>navigateEmbedded('catalogScreen')],
+    ['RESGATAR CÓDIGO','Acesse a área de resgate e recompensas.',openEchoRedeem]
+   ]:[
+    ['MEU PERFIL','Conquistas, títulos e conta.',()=>navigateEmbedded('profileScreen')],
+    ['ARMÁRIO','Personalize seu mergulhador.',()=>navigateCommand('wardrobe')],
+    ['EDITAR HUD','Ajuste a interface da partida.',()=>navigateCommand('hudEditor')],
+    ['HISTÓRICO','Consulte suas últimas expedições.',()=>$('matchHistoryBtn')?.click()]
+   ];
+   const panel=document.createElement('section');panel.className='abyss-station-cards';panel.setAttribute('aria-label',hub==='arsenalHub'?'Arsenal de Ecos':hub==='socialHub'?'Central Social':'Meu Mergulhador');
+   for(const [name,description,action] of entries){
+    const article=document.createElement('article');article.className='abyss-station-card';
+    const text=document.createElement('div');text.className='abyss-station-card-copy';
+    const title=document.createElement('strong');title.textContent=name;
+    const copy=document.createElement('p');copy.textContent=description;
+    text.append(title,copy);
+    const go=document.createElement('button');go.className='abyss-station-action';go.type='button';go.textContent='ACESSAR';go.addEventListener('click',action);
+    article.append(text,go);panel.append(article);
+   }
+   mountCockpitConsole(panel);return;
+  }
   if(activeConsoleSection==='hudEditor'){const page=window.AbyssalHudLayout?.createPage?.();if(page){const anchor=document.createElement('span');anchor.className='hud-editor-anchor';anchor.hidden=true;mountCockpitConsole(anchor);page.dataset.cockpitPortal='true';page.hudEditorAnchor=anchor;document.body.append(page);return;}}
   if(activeConsoleSection==='wardrobe'){const page=window.AbyssalAvatarWardrobe?.createPage?.();if(page){mountCockpitConsole(page);return;}}
   if(commandPages.has(activeConsoleSection)){const utility=window.AbyssalCockpitSettings?.createPage?.(activeConsoleSection);if(utility){mountCockpitConsole(utility);return;}}
@@ -327,8 +402,8 @@
    utility.append(note);
   }else{
    const pages={
-    solo:['MERGULHAR','A expedição ativa do Abyssal. Sobreviva, evolua seus disparos e comande o seu espécime durante a partida.','INICIAR MERGULHO','playBtn'],
-    shop:['ESPÉCIMES','Consulte os espécimes disponíveis, suas habilidades e os preços de aquisição.','ABRIR ESPÉCIMES','shopBtn'],
+    solo:['MERGULHAR','A expedição ativa do Abyssal. Sobreviva, evolua seus disparos e comande seu Eco durante a partida.','INICIAR MERGULHO','playBtn'],
+    shop:['ECOS','Consulte os Ecos disponíveis, suas habilidades e os preços de aquisição.','ABRIR ECOS','shopBtn'],
     specimens:['REGISTRO DE ESPÉCIES','Consulte espécies registradas, raridades e habilidades descobertas.','ABRIR ABYSSÁRIO','catalogBtn']
    };
    const info=pages[activeConsoleSection];if(info){
@@ -370,10 +445,10 @@
  }
 
  let openedPrimaryCockpit=false;
- const openWorkshop=()=>{if(!workshop)return;openedPrimaryCockpit=true;document.body.classList.remove('abyss-hatch-navigation');activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();window.AbyssalRevealStartup?.();};
+ const openWorkshop=()=>{if(!workshop)return;openedPrimaryCockpit=true;document.body.classList.remove('abyss-hatch-navigation');selectedStation='cabine';workshop.dataset.station='cabine';activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();window.AbyssalRevealStartup?.();};
  const closeWorkshop=(animateExit=false)=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;document.querySelector('body > .hud-editor-fullscreen[data-cockpit-portal]')?.remove();window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop',animateExit:animateExit===true}}));};
  const showExterior=()=>{document.body.classList.add('abyss-hatch-navigation');closeWorkshop(false);const menu=document.getElementById('menuScreen');if(menu&&!document.body.classList.contains('game-active'))menu.hidden=false;window.AbyssalRevealStartup?.();};
- window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,showExterior,routeScreen:navigateEmbedded,routeCommand:navigateCommand,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded});
+ window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,showExterior,routeScreen:navigateEmbedded,routeCommand:navigateCommand,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded,select:selectStation,stations:CONSOLE_BUTTONS});
  window.addEventListener('abyssal-authenticated',()=>{if(!workshop.hidden&&activeConsoleSection==='login'){activeConsoleSection=loginReturn==='login'?'profile':loginReturn;renderWorkshop();}});
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',()=>{document.body.classList.add('abyss-hatch-navigation');closeWorkshop(true);});

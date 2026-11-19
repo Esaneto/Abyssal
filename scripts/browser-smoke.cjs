@@ -205,22 +205,24 @@ const injected=`<script>
       const art=window.AbyssalSubmarineCockpit?.visualStatus?.();
       if(!art?.rendered||!art.original||!art.liveOcean||art.bitmapBackdrop)throw Error('Original animated bridge did not render');
       document.body.dataset.cockpitArt=art.original+','+art.liveOcean+','+art.mode;
-      const keys=[...box.querySelectorAll('.abyss-control-key')];
-      if(keys.length!==4)throw Error('Physical control keys: '+keys.length);
-      for(const id of ['solo','research','shop','specimens'])if(!box.querySelector('.abyss-control-'+id))throw Error('Missing current cockpit control '+id);
-      box.querySelector('.abyss-control-research').click();
+      const keys=[...box.querySelectorAll('.abyss-station-key')];
+      if(keys.length!==5)throw Error('Expected five cockpit stations, found '+keys.length);
+      for(const id of ['social','cabine','laboratorio','arsenal','perfil'])if(!box.querySelector('[data-station="'+id+'"]'))throw Error('Missing cockpit station '+id);
+      box.querySelector('[data-station="laboratorio"]').click();
       const research=box.querySelector('.abyss-tree-map'),nodes=research?.querySelectorAll('.abyss-tree-node')||[];
       if(nodes.length<5||!research.querySelector('[data-research-id="pulse"]')||!research.querySelector('[data-research-id="dash"]'))throw Error('Diver research Q/E or lamp nodes missing');
       const cards=nodes.length,icons=research.querySelectorAll('.abyss-tree-node-icon').length;
       if(cards!==icons||[...nodes].some(n=>!n.querySelector('svg')||n.textContent.trim()))throw Error('Missing icon-only research nodes');
       const pulse=research.querySelector('[data-research-id="pulse"]'),dash=research.querySelector('[data-research-id="dash"]');pulse.click();dash.dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'}));dash.focus();if(pulse.getAttribute('aria-pressed')!=='true'||!box.querySelector('.abyss-tree-detail-title')?.textContent.includes('Pulso de Maré'))throw Error('Research selection changed without click');dash.click();if(dash.getAttribute('aria-pressed')!=='true'||!box.querySelector('.abyss-tree-detail-title')?.textContent.includes('Propulsor Abissal'))throw Error('Research selection did not change on click');
       const monitor=box.querySelector('.abyss-cockpit-visor'),deck=box.querySelector('.abyss-control-deck');
+      if(box.dataset.station!=='laboratorio')throw Error('Station selection did not update camera');
+      if(!deck.querySelector('.abyss-station-rail'))throw Error('Horizontal station rail missing');
       const monitorRect=monitor?.getBoundingClientRect(),deckRect=deck?.getBoundingClientRect();
-      const currentKeys=[...box.querySelectorAll('.abyss-control-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
+      const currentKeys=[...box.querySelectorAll('.abyss-station-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
       const handheld=document.documentElement.classList.contains('abyssal-handheld');
       if(handheld){const back=box.querySelector('.mobile-cockpit-back'),r=back?.getBoundingClientRect();if(!r||r.width<40||r.height<40||monitorRect.height<150)throw Error('Mobile expanded visor or back action missing');}
       else{
-      if(currentKeys.length!==4||keyRects.some(r=>r.width<25||r.height<25))throw Error('Cockpit hardware buttons are hidden or detached');
+      if(currentKeys.length!==5||keyRects.some(r=>r.width<25||r.height<25))throw Error('Cockpit hardware buttons are hidden or detached');
       if(!monitorRect||!deckRect)throw Error('Cockpit monitor/deck missing');
       if(deckRect.top<monitorRect.bottom-4)throw Error('Console deck overlaps monitor or sits alongside it');
       if(Math.abs(deckRect.left-monitorRect.left)>8||Math.abs(deckRect.width-monitorRect.width)>18)throw Error('Console keys are not aligned with the main monitor');
@@ -243,7 +245,7 @@ const injected=`<script>
        const horizontal=document.documentElement.classList.contains('abyssal-handheld-landscape');
        if(horizontal&&a.right>b.left+2||!horizontal&&a.bottom>b.top+2)throw Error('Wardrobe preview and catalog overlap');
       }else if(view==='shop'){
-       box.querySelector('.abyss-control-shop').click();
+       box.querySelector('[data-station="arsenal"]').click();[...box.querySelectorAll('.abyss-station-card')].find(c=>c.textContent.includes('ADQUIRIR ECOS'))?.querySelector('button')?.click();
        const shop=document.getElementById('shopScreen'),grid=shop.querySelector('#skinGrid');
        if(shop.hidden||!shop.classList.contains('abyss-cockpit-embedded')||grid.querySelectorAll('.skin-card[data-skin-id]').length<50)throw Error('Embedded specimen shop missing real cards');
        if(shop.querySelectorAll('input[type=search]').length!==1||!shop.querySelector('#shopHabitatFilter'))throw Error('Duplicate shop search or habitat filter missing');
@@ -262,7 +264,7 @@ const injected=`<script>
         if(!preview||!information||preview.right>information.left+2)throw Error('Landscape specimen art and attributes must occupy horizontal columns');
        }
       }else if(view==='specimens'){
-       box.querySelector('.abyss-control-specimens').click();
+       box.querySelector('[data-station="arsenal"]').click();[...box.querySelectorAll('.abyss-station-card')].find(c=>c.textContent.includes('ABYSSÁRIO'))?.querySelector('button')?.click();
        if(document.getElementById('catalogScreen').hidden||document.querySelectorAll('#catalogGrid .specimen-journal-entry').length<50)throw Error('Embedded Abyssario missing entries');
       }else if(view==='resonance'){
        const btn=[...box.querySelectorAll('.solo-research-tabs button')].find(b=>b.textContent==='RESSONÂNCIA');if(!btn)throw Error('Resonance access missing');btn.click();
