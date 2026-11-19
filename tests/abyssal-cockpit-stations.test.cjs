@@ -74,7 +74,7 @@ test('cockpit controller initializes five stations and restores embedded pages',
  assert.equal(nodes.submarineWorkshop.dataset.station,'arsenal');
  nodes.shopScreen.hidden=true;
  // Embedded navigation is limited to actually open screens. Login guards remain in original click handlers.
- const parent=new Node('div');parent.append(nodes.shopScreen);
+ const parent=new Node('div');doc.body.append(parent);parent.append(nodes.shopScreen);
  assert.equal(nav.routeScreen('shopScreen'),false);
  assert.equal(nodes.shopScreen.classList.contains('abyss-cockpit-embedded'),true);
  assert.equal(nav.isEmbedded('shopScreen'),true);
