@@ -140,7 +140,7 @@ body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .a
  .deep-menu[data-focus="social"] .deep-world{transform:translate3d(12%,17%,0) scale(1.65)}
 }
 @media(max-height:520px) and (orientation:landscape){
- .deep-capsule{height:42%;top:32%}.deep-hatch{height:27%;bottom:1%}.deep-operations{top:14%;height:34%}
+ .deep-capsule{height:42%;top:32%}.deep-hatch{height:27%;bottom:4%}.deep-operations{top:14%;height:34%}
  .deep-hatch-choice{bottom:2%;padding:7px;grid-template-columns:1fr 1fr;width:min(500px,94%)}.deep-hatch-choice p{grid-column:1/-1}
  .deep-hatch-choice button{min-height:43px}
  body:not(.game-active) #submarineWorkshop.abyss-deep-active:has(.abyss-cockpit-embedded:not([hidden])) .abyss-cockpit-console,
