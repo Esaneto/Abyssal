@@ -43,7 +43,7 @@ test('offline install precaches the exact versioned assets referenced by the cur
 test('online navigation fetches fresh shell; offline navigation uses installed shell',async()=>{
  const sw=fs.readFileSync(path.join(__dirname,'../public/offline-sw.js'),'utf8');
  const events={};
- const cached={source:'installed-html'},fresh={source:'current-html'};
+ const cached={source:'installed-html'},fresh={ok:true,source:'current-html'};
  const cache={match:async()=>cached};
  let requestCount=0,online=true;
  const self={registration:{scope:'https://abyssal.example/'},location:{origin:'https://abyssal.example'},addEventListener:(key,cb)=>events[key]=cb};
