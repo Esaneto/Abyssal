@@ -278,7 +278,7 @@ function loadSocketClient(){
  });
  return socketClientLoading;
 }
-function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');const profileBtn=$('profileSessionBtn');if(profileBtn){profileBtn.textContent=authenticated?'SAIR DA CONTA':sessionToken?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA';profileBtn.hidden=Boolean(viewedPublicProfile);profileBtn.disabled=false;}let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status){status.textContent=authenticated&&account?(serverAccount?.isDeveloper?`DEV · ${account.nickname}`:`CONECTADO COMO ${account.nickname.toUpperCase()}`):sessionToken&&account?.nickname?(connected?'RESTAURANDO CONTA':'RECONEXÃO PENDENTE'):`VISITANTE #${guest}`;status.classList.toggle('developer-nickname',Boolean(authenticated&&serverAccount?.isDeveloper));}if(btn){btn.textContent=authenticated?'CONTA CONECTADA':sessionToken&&account?.nickname?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA';btn.classList.toggle('abyss-attention',!authenticated);btn.classList.toggle('abyss-account-linked',authenticated);window.AbyssalAttention?.ensure(btn);btn.setAttribute('aria-label',authenticated?'Conta conectada':'Entrar ou criar conta para salvar seu progresso');}}
+function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');const profileBtn=$('profileSessionBtn');const googleLinkBtn=$('profileGoogleLinkBtn');if(googleLinkBtn){googleLinkBtn.hidden=!authenticated||Boolean(viewedPublicProfile);googleLinkBtn.textContent=serverAccount?.googleLinked?'GOOGLE VINCULADO':'VINCULAR CONTA GOOGLE';googleLinkBtn.disabled=Boolean(serverAccount?.googleLinked);}if(profileBtn){profileBtn.textContent=authenticated?'SAIR DA CONTA':sessionToken?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA';profileBtn.hidden=Boolean(viewedPublicProfile);profileBtn.disabled=false;}let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status){status.textContent=authenticated&&account?(serverAccount?.isDeveloper?`DEV · ${account.nickname}`:`CONECTADO COMO ${account.nickname.toUpperCase()}`):sessionToken&&account?.nickname?(connected?'RESTAURANDO CONTA':'RECONEXÃO PENDENTE'):`VISITANTE #${guest}`;status.classList.toggle('developer-nickname',Boolean(authenticated&&serverAccount?.isDeveloper));}if(btn){btn.textContent=authenticated?'CONTA CONECTADA':sessionToken&&account?.nickname?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA';btn.classList.toggle('abyss-attention',!authenticated);btn.classList.toggle('abyss-account-linked',authenticated);window.AbyssalAttention?.ensure(btn);btn.setAttribute('aria-label',authenticated?'Conta conectada':'Entrar ou criar conta para salvar seu progresso');}}
 // Account-scoped cache must never survive an explicit sign-out.
 const ACCOUNT_CACHE_KEYS=['abyssalAccount','abyssalSessionToken','abyssalCoins','abyssalAccountEnergy','abyssalSkin','abyssalOwnedSkins','abyssalMetaUpgrades','abyssalSpecimenProficiency','abyssalDiscoveredSpecimens','abyssalDiverGender','abyssalResonancePresets','abyssalEquippedActiveSkills','abyssalKnownOnlineTitles','abyssalTitles','abyssalRedeemedCodes','abyssalNotifications','abyssalNotificationsLastSeen','abyssalCodex','abyssalBestScore','abyssalBestTime'];
 function clearAccountCache(){for(const key of ACCOUNT_CACHE_KEYS)localStorage.removeItem(key);window.AbyssalAvatarBase?.setOwned([]);window.AbyssalAvatarBase?.apply(null);}
@@ -296,7 +296,7 @@ function logoutAccount(){
  const button=$('profileSessionBtn');if(button)button.disabled=true;
  if(activeSocket?.connected&&token){activeSocket.timeout(5000).emit('logout-session',{token},(error,result)=>finish(error||!result?.ok?'Sessão local encerrada. Não foi possível confirmar a revogação no servidor.':''));}else finish(token?'Sessão local encerrada sem confirmação do servidor.':'');
 }
-let entryMode='login',entryGuestChosen=false,googlePendingToken='',googleOAuthClientId='';
+let entryMode='login',entryGuestChosen=false,googlePendingToken='',googleOAuthClientId='',googleLinkIntent=false;
 function sendGoogleAuth(token=googlePendingToken){
  const s=connect();
  if(!s){setMessage('Conecte-se à internet para entrar com Google.',true);return;}
@@ -315,6 +315,21 @@ function acceptGoogleCredential(response){
  const token=String(response?.credential||response?.idToken||'');
  if(!token){setMessage('O Google não retornou uma credencial válida.',true);return;}
  googlePendingToken=token;
+ if(googleLinkIntent){
+  if(!authenticated||!sessionToken){setMessage('Entre com sua conta Abyssal antes de vincular.',true);return;}
+  const s=connect();if(!s){setMessage('Servidor indisponível.',true);return;}
+  setMessage('Vinculando conta Google…');
+  const send=()=>s.timeout(15000).emit('link-google-account',{idToken:token,sessionToken},(error,result)=>{
+   if(error||!result?.ok){setMessage(result?.message||'Não foi possível vincular sua conta Google.',true);return;}
+   googleLinkIntent=false;googlePendingToken='';
+   serverAccount={...serverAccount,...result.account};updateAccount();renderProfile(serverAccount);
+   const status=$('profileGoogleLinkStatus');if(status)status.textContent=result.message;
+   $('loginScreen').hidden=true;$('profileScreen').hidden=false;
+   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:serverAccount}));
+  });
+  if(s.connected)send();else s.once('connect',send);
+  return;
+ }
  sendGoogleAuth(token);
 }
 let googleSetupPromise=null,googleSdkReady=false,googleSignInFailure='';
@@ -354,7 +369,7 @@ async function setupGoogleSignIn(){
    }
    if(!window.google?.accounts?.id)throw Error('google_sdk_unavailable');
    window.google.accounts.id.initialize({
-    client_id:clientId,callback:acceptGoogleCredential,auto_select:false,cancel_on_tap_outside:true
+    client_id:clientId,callback:acceptGoogleCredential,auto_select:false,cancel_on_tap_outside:true,use_fedcm_for_button:true
    });
    const host=$('loginGoogleHost');
    if(!host)throw Error('google_button_missing');
@@ -389,7 +404,7 @@ async function setupGoogleSignIn(){
 
 function setEntryMode(mode){
  entryMode=mode==='register'?'register':'login';
- const register=entryMode==='register';
+ const register=entryMode==='register',googleSignup=register&&Boolean(googlePendingToken);
  $('loginModeSignIn')?.setAttribute('aria-selected',String(!register));
  $('registerBtn')?.setAttribute('aria-selected',String(register));
  $('abyssRegisterFields').hidden=!register;
@@ -400,17 +415,35 @@ function setEntryMode(mode){
  $('abyssPasswordFields').hidden=Boolean(register&&googlePendingToken);
  $('loginGoogleHost').hidden=Boolean(register&&googlePendingToken);
  $('abyssEntryHeading').textContent=register?'CRIAR CONTA':'ENTRAR NO ABYSSAL';
- $('abyssEntryCopy').textContent=register?'Defina seu nickname e seus dados de acesso.':'Acesse sua conta para continuar.';
+ $('abyssEntryCopy').textContent=googleLinkIntent?'Associe o Google à sua conta atual sem perder o progresso.':googleSignup?'Escolha um nickname para sua nova conta Google.':register?'Defina seu nickname e seus dados de acesso.':'Acesse sua conta para continuar.';
+ const context=$('googleAccountContext');
+ if(context){
+  context.hidden=!(googleLinkIntent||googleSignup);
+  $('googleAccountContextHeading').textContent=googleLinkIntent?'VINCULAR CONTA GOOGLE':'CRIAR PERFIL GOOGLE';
+  $('googleAccountContextText').textContent=googleLinkIntent?'Selecione sua conta Google abaixo. O login tradicional continuará funcionando.':'Escolha um nickname, informe sua data de nascimento e aceite os Termos de Uso.';
+ }
+ $('abyssEntryHeading').textContent=googleLinkIntent?'VINCULAR GOOGLE':googleSignup?'CRIAR PERFIL GOOGLE':register?'CRIAR CONTA':'ENTRAR NO ABYSSAL';
+ $('loginSubmitBtn').textContent=googleSignup?'CONCLUIR COM GOOGLE':register?'CRIAR MINHA CONTA':'ENTRAR NA CONTA';
+ $('loginSubmitBtn').hidden=googleLinkIntent;
+ $('abyssEntryTabs').hidden=googleLinkIntent;
+ $('abyssLoginFields').hidden=googleLinkIntent;
+ $('abyssPasswordFields').hidden=googleLinkIntent||googleSignup;
+ $('abyssRegisterFields').hidden=!register||googleLinkIntent;
+ $('abyssEntryTerms').hidden=!register||googleLinkIntent;
+ $('forgotPasswordBtn').hidden=register||googleLinkIntent;
+ $('loginGuestBtn').hidden=googleLinkIntent;
  setMessage('');
 }
 function openLogin(options={}){
+ googleLinkIntent=Boolean(options.googleLink&&authenticated&&sessionToken);
+ if(googleLinkIntent)googlePendingToken='';
  if(!options.startup&&!window.AbyssalCockpitNavigation?.routeScreen?.('loginScreen'))$('loginScreen').hidden=false;
  $('loginScreen').hidden=false;
  window.AbyssalRevealStartup?.();
  if(account?.nickname)$('nicknameInput').value=account.nickname;
  if(options.startup){$('loginCancelBtn').hidden=true;setEntryMode('login');}
- else $('loginCancelBtn').hidden=false;
- if(!options.startup)$('nicknameInput')?.focus();
+ else { $('loginCancelBtn').hidden=false;if(googleLinkIntent)setEntryMode('login');}
+ if(!options.startup&&!googleLinkIntent)$('nicknameInput')?.focus();
 }
 
 function connect(){
@@ -489,12 +522,14 @@ socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeou
  socket.on('disconnect',(reason)=>{stopPositionHeartbeat();rememberReconnectTarget();connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount&&$('profileScreen')&&!$('profileScreen').hidden)renderProfile(serverAccount);setMessage(sessionToken?(reconnectPending?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Sem conexão. O mergulho solo continua e será sincronizado ao conectar.'):'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));scheduleOnlineMaintenance(reason==='io server disconnect'?1000:3000);if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
  socket.on('auth-result',result=>{
   if(!result.ok&&result.code==='google_signup_required'&&googlePendingToken){
-   setEntryMode('register');
-   $('emailInput').value=String(result.email||'');
-   $('emailInput').readOnly=true;
-   $('loginSubmitBtn').textContent='CONCLUIR COM GOOGLE';
-   setMessage(result.message||'Informe seu nickname, data de nascimento e aceite dos termos.',true);
-   return;
+   googleLinkIntent=false;setEntryMode('register');
+   $('emailInput').value=String(result.email||'');$('emailInput').readOnly=true;
+   setMessage(result.message||'Escolha nickname, data de nascimento e aceite os Termos.',true);
+   $('nicknameInput')?.focus();return;
+  }
+  if(!result.ok&&result.code==='google_link_required'){
+   googlePendingToken='';googleLinkIntent=false;setEntryMode('login');
+   setMessage(result.message,true);$('nicknameInput')?.focus();return;
   }
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');applyAgeTreatment();$('profileScreen').hidden=true;updateAccount();renderProfile({});if(reconnectPending)failReconnect('Servidor reconectado, mas sua sessão precisa ser validada novamente.');else hideMaintenanceOverlay();setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname,isDeveloper:Boolean(result.isDeveloper)};serverAccount=result;
@@ -502,7 +537,7 @@ socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeou
   localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';
   updateAccount();renderProfile(result);
   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
-  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;entryGuestChosen=false;googlePendingToken='';$('emailInput').readOnly=false;applyAgeTreatment(result.ageBand);
+  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;entryGuestChosen=false;googleLinkIntent=false;googlePendingToken='';$('emailInput').readOnly=false;applyAgeTreatment(result.ageBand);
   socket.emit('get-account');socket.emit('list-cardumes');const restoring=restoreRoomAfterReconnect();window.dispatchEvent(new CustomEvent('abyssal-authenticated',{detail:{restoringRoom:Boolean(restoring)}}));
  });
  socket.on('session-resumed',result=>{
@@ -662,10 +697,10 @@ function createRoom(data={}){
 function leaveWorld(){quickBubbles.clear();setQuickOpen(false);if($('quickComms'))$('quickComms').hidden=true;specimenMotion.clear();if(socket?.connected&&authenticated)socket.emit('leave-world');stopPositionHeartbeat();players.clear();hostId=null;currentRoom=null;stopRoomPolling();}
 function requestHostTransfer(){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('request-host-transfer');}
 $('loginSubmitBtn').addEventListener('click',()=>{if(entryMode==='register'&&googlePendingToken)sendGoogleAuth();else authenticate($('nicknameInput').value,$('passwordInput').value,entryMode);});
-$('loginModeSignIn').addEventListener('click',()=>{googlePendingToken='';$('emailInput').readOnly=false;setEntryMode('login');});
-$('registerBtn').addEventListener('click',()=>setEntryMode('register'));
+$('loginModeSignIn').addEventListener('click',()=>{googleLinkIntent=false;googlePendingToken='';$('emailInput').readOnly=false;setEntryMode('login');});
+$('registerBtn').addEventListener('click',()=>{googleLinkIntent=false;setEntryMode('register');});
 $('loginGuestBtn').addEventListener('click',()=>{
- entryGuestChosen=true;
+ googleLinkIntent=false;googlePendingToken='';entryGuestChosen=true;
  if(authenticated||sessionToken)logoutAccount();
  $('loginScreen').hidden=true;
  window.AbyssalRevealStartup?.();
@@ -1169,6 +1204,11 @@ function revivePlayer(ticket){if(socket?.connected&&authenticated)socket.emit('r
  $('loginBtn')?.addEventListener('click',()=>openLogin());
  $('profileBtn')?.addEventListener('click',()=>openProfile());
  $('profileSessionBtn')?.addEventListener('click',()=>{if(authenticated)logoutAccount();else openLogin();});
+ $('profileGoogleLinkBtn')?.addEventListener('click',()=>{
+  if(!authenticated||!sessionToken)return openLogin();
+  if(serverAccount?.googleLinked)return;
+  $('profileScreen').hidden=true;openLogin({googleLink:true});
+ });
  $('matchHistoryBtn')?.addEventListener('click',()=>openMatchHistory());
  $('onlineBtn')?.addEventListener('click',()=>{
   window.AbyssalPreferredRoomMode='coop';
