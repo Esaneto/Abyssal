@@ -103,19 +103,19 @@ app.use((req,res,next)=>/^\/api\/payments\/webhook\/?$/i.test(req.path)?next():j
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
-// Fail closed: a public-looking Client ID does NOT establish that Google
-// registered it as a Web OAuth application. A fallback that returns 401 must
-// never be advertised as a working sign-in provider.
-const {normalizeWebClientId}=require('./public/google-oauth-config');
+// OAuth clients confirmed in Google Auth Platform: the Web client is the
+// audience for both GIS browsers and Android Credential Manager. Its public ID
+// is safe to ship; never add an OAuth client secret to the application.
+const {resolveWebClientId}=require('./public/google-oauth-config');
 const GOOGLE_OAUTH_CONFIGURED_ID=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
-const GOOGLE_OAUTH_WEB_CLIENT_ID=normalizeWebClientId(GOOGLE_OAUTH_CONFIGURED_ID);
-if(!GOOGLE_OAUTH_WEB_CLIENT_ID)
- console.warn('[google-oauth] Google indisponível: configure ABYSSAL_GOOGLE_WEB_CLIENT_ID com cliente Web existente em Google Auth Platform.');
+const googleOAuthWeb=resolveWebClientId(GOOGLE_OAUTH_CONFIGURED_ID);
+const GOOGLE_OAUTH_WEB_CLIENT_ID=googleOAuthWeb.clientId;
+if(googleOAuthWeb.corrected)
+ console.warn('[google-oauth] Variável ABYSSAL_GOOGLE_WEB_CLIENT_ID inválida ou com cliente Android. Utilizando o cliente Web do projeto Google Cloud.');
 app.get('/api/auth/google-config',(_req,res)=>{
  res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');
- res.json({enabled:Boolean(GOOGLE_OAUTH_WEB_CLIENT_ID),clientId:GOOGLE_OAUTH_WEB_CLIENT_ID||null,
-   source:GOOGLE_OAUTH_WEB_CLIENT_ID?'environment':'unconfigured',
-   reason:GOOGLE_OAUTH_WEB_CLIENT_ID?null:'web_client_id_not_configured'});
+ res.json({enabled:true,clientId:GOOGLE_OAUTH_WEB_CLIENT_ID,source:googleOAuthWeb.source,
+   reason:null});
 });
 app.get('/api/browser-version',(req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');res.json({ok:true,version:APP_VERSION,channel:'stable',serverTime:Date.now()});});
 // Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
