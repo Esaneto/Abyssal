@@ -482,3 +482,11 @@
 #profileScreen .profile-google-link button{max-width:100%;min-width:0;white-space:normal}
 #profileScreen #profileGoogleLinkStatus{font-size:11px;color:#9edfe2;margin:0;overflow-wrap:anywhere}
 #profileScreen #profileGoogleLinkBtn[hidden]{display:none!important}
+
+/* Explicit display rules for Google-link flow; these override legacy button styles. */
+#loginScreen #abyssEntryTabs[hidden],
+#loginScreen #abyssLoginFields[hidden],
+#loginScreen #loginSubmitBtn[hidden],
+#loginScreen #abyssPasswordFields[hidden],
+#loginScreen #abyssRegisterFields[hidden],
+#loginScreen #abyssEntryTerms[hidden]{display:none!important}
