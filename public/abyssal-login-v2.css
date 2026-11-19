@@ -490,3 +490,21 @@
 #loginScreen #abyssPasswordFields[hidden],
 #loginScreen #abyssRegisterFields[hidden],
 #loginScreen #abyssEntryTerms[hidden]{display:none!important}
+
+/* Google onboarding requests one personal field: nickname. The single
+   declaration below is not a date-of-birth input or a Google age claim. */
+#loginScreen #abyssGoogleTermsText[hidden],
+#loginScreen #abyssRegularTermsText[hidden]{display:none!important}
+#profileScreen button.profile-google-brand-btn{
+ display:inline-flex;align-items:center;justify-content:center;gap:11px;
+ max-width:100%;min-width:0;min-height:44px;padding:11px 18px;
+ border:1px solid #dadce0;border-radius:8px;background:#fff;color:#202124;
+ box-shadow:0 2px 8px rgba(0,0,0,.15);cursor:pointer;
+ font:600 12px/1.4 Inter,Arial,sans-serif;letter-spacing:.01em;
+ transition:background .15s,border-color .15s,box-shadow .15s;
+}
+#profileScreen button.profile-google-brand-btn svg{display:block;width:20px;height:20px;flex:0 0 20px}
+#profileScreen button.profile-google-brand-btn:not(:disabled):hover{background:#f8fafd;border-color:#a8c7fa;box-shadow:0 3px 12px rgba(66,133,244,.19)}
+#profileScreen button.profile-google-brand-btn:focus-visible{outline:2px solid #8ab4f8;outline-offset:3px}
+#profileScreen button.profile-google-brand-btn.is-google-linked{background:#edf7ed;border-color:#bddabb;color:#245b35;opacity:1;cursor:default}
+#profileScreen button.profile-google-brand-btn[hidden]{display:none!important}

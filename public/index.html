@@ -178,7 +178,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 </style>
 <link rel="stylesheet" href="abyssal-ocean-design.css?v=2026.11.13.guide-v186">
 <link rel="stylesheet" href="abyssal-deep-systems.css?v=2026.11.13.playable-v216">
-<link rel="stylesheet" href="abyssal-login-v2.css?v=3.6.142">
+<link rel="stylesheet" href="abyssal-login-v2.css?v=3.6.143">
 </head>
 <body>
 <div id="app">
@@ -383,7 +383,8 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
           </div>
           <label id="abyssEntryTerms" class="abyss-entry-terms" hidden>
             <input id="createTermsAccept" type="checkbox">
-            <span>Concordo com os <a href="/terms.html" target="_blank" rel="noopener noreferrer">Termos de Uso</a> e li a <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span>
+            <span id="abyssRegularTermsText">Concordo com os <a href="/terms.html" target="_blank" rel="noopener noreferrer">Termos de Uso</a> e li a <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span>
+            <span id="abyssGoogleTermsText" hidden>Declaro ter pelo menos 16 anos, aceito os <a href="/terms.html" target="_blank" rel="noopener noreferrer">Termos de Uso</a> e li a <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span>
           </label>
           <div id="loginMessage" class="form-message" role="status" aria-live="polite"></div>
           <button id="loginSubmitBtn" class="primary-btn abyss-entry-main" type="button">ENTRAR NA CONTA</button>
@@ -597,7 +598,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <div class="profile-account-toolbar"><div class="eyebrow"><span class="pulse-dot"></span> IDENTIDADE DO MERGULHADOR</div><button id="profileSessionBtn" type="button" class="secondary-btn profile-session-btn">ENTRAR / CRIAR CONTA</button></div>
         <button id="adPrivacyOptionsBtn" type="button" class="secondary-btn" hidden>PRIVACIDADE DOS ANÚNCIOS</button>
         <div class="profile-google-link">
-          <button id="profileGoogleLinkBtn" class="secondary-btn" type="button" hidden>VINCULAR CONTA GOOGLE</button>
+          <button id="profileGoogleLinkBtn" class="profile-google-brand-btn" type="button" hidden aria-label="Vincular conta Google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.7 1.2 9.2 3.6l6.8-6.8C35.8 2.1 30.4 0 24 0 14.6 0 6.5 5.4 2.5 13.3l8 6.2C12.4 13.7 17.8 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.9 24.5c0-1.6-.2-3.1-.5-4.5H24v9h12.8c-.5 2.8-2.2 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.7 6.6-17Z"/><path fill="#FBBC05" d="M10.5 28.5a14.4 14.4 0 0 1 0-9L2.5 13.3A24 24 0 0 0 0 24c0 3.9.9 7.6 2.5 10.7l8-6.2Z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-6.5L32.2 36c-2.2 1.5-5 2.5-8.2 2.5-6.2 0-11.6-4.2-13.5-10l-8 6.2C6.5 42.6 14.6 48 24 48Z"/></svg><span id="profileGoogleLinkLabel">VINCULAR COM GOOGLE</span></button>
           <p id="profileGoogleLinkStatus" role="status" aria-live="polite"></p>
         </div>
         <div class="profile-hero">
@@ -758,7 +759,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.142"></script>
+<script src="client-build.js?v=3.6.143"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=3.6.130"></script>
 <script src="abyssal-keyboard-focus.js?v=3.6.130"></script>
@@ -822,7 +823,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
  <script src="game.js?v=3.6.135"></script>
  <script src="abyssal-mobile-multitouch.js?v=3.6.129"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=3.6.142"></script>
+<script src="online.js?v=3.6.143"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.14.playable-v220"></script>
 <script src="abyssal-rebuild.js?v=2026.11.13.playable-v216"></script>

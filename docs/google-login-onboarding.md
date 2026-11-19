@@ -82,3 +82,11 @@ Acesso como **Nekko** ou **GameMaster** no Abyssal é independente do teste de f
 - O sistema não associa contas apenas por e-mail, não permite vincular o mesmo Google a duas contas e mantém senha existente, estatísticas, inventário, energia e histórico.
 - Para a janela branca `accounts.google.com/gsi/transform`, o servidor aplica `Cross-Origin-Opener-Policy: same-origin-allow-popups` aos documentos HTML, permitindo resposta do popup do Google sem enfraquecer a regra das rotas de API. Ativa FedCM no botão compatível.
 - A vinculação tem verificação de sessão, mas não disponibiliza funções de desvincular Google (evita perda acidental de acesso).
+
+## Simplificação do cadastro Google, 3.6.143
+- O ID Token padrão Google OpenID Connect não fornece data de nascimento nem idade verificada; não se deve presumir isso pelo e-mail ou pelo perfil Google.
+- No primeiro acesso Google, só há um campo pessoal: **nickname**, além de uma caixa única de aceite dos Termos e declaração de idade mínima 16+. Não há senha, campo e-mail ou data de nascimento nessa etapa.
+- O servidor verifica essa declaração e cria a conta com `ageBand:'unknown'`, preservando tratamentos conservadores de privacidade e anúncios para idade desconhecida, sem alegar idade comprovada.
+- A recuperação de conta tradicional por Google permanece vinculada ao `googleSub`, protegendo inventários e sessões.
+- O botão Perfil > Vincular com Google usa o símbolo 'G' colorido do Google, fundo branco, texto escuro e uma aparência discreta para conta já vinculada.
+- Correção adicional: após popup GSI, o envio da credencial aguarda o carregamento de Socket.IO antes de tentar criar a conta; sem cliente carregado, o fluxo anterior falhava prematuramente.
