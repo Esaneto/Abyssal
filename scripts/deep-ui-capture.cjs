@@ -122,6 +122,18 @@ async function capture(root,label){
    await snap(device+'-pesquisa');
    if(label==='after')assert.ok(await ev("Boolean(document.querySelector('#submarineWorkshop .abyss-tree-map [data-research-id=pulse] svg')&&document.querySelector('#submarineWorkshop .abyss-tree-map [data-research-id=dash] svg'))"),'Q/E research nodes missing');
    if(label==='after'){await ev("window.AbyssalDeepMenu.overview();document.querySelector('[data-deep-target=ecos]').click()");await wait("!document.getElementById('shopScreen').hidden&&document.getElementById('submarineWorkshop').classList.contains('abyss-deep-detail')");await wait("document.querySelectorAll('#skinGrid .skin-card').length>0");assert.ok(await ev("!document.getElementById('marineSearch')&&!!document.getElementById('shopHabitatFilter')&&document.querySelectorAll('#skinGrid .skin-card[data-skin-id]').length===document.querySelectorAll('#skinGrid .skin-card').length"),'Unified shop filters and stable specimen IDs missing');await snap(device+'-loja');}
+
+   if(label==='after'){
+    await ev("window.AbyssalCockpitNavigation.select('cabine');window.AbyssalDeepMenu.overview();document.querySelector('[data-deep-target=hatch]').click()");
+    await wait("!document.getElementById('deepHatchChoice').hidden");
+    await ev("document.getElementById('deepSoloDive').click()");
+    await wait("document.querySelectorAll('.deep-dive-transition .deep-dive-bubbles i').length>=25");
+    await snap(device+'-escotilha-cinematica');
+    await wait("document.body.classList.contains('game-active')");
+    const run=await ev("(()=>{const shell=document.getElementById('gameShell'),h=document.getElementById('hud');return {game:document.body.classList.contains('game-active'),gameVisible:shell&&!shell.hidden,hudVisible:h&&!h.hidden,choiceHidden:document.getElementById('deepHatchChoice').hidden}})()");
+    assert.ok(run.game&&run.gameVisible&&run.choiceHidden,'The Solo cinematic must actually enter the original gameplay, not display a fake success: '+JSON.stringify(run));
+    reports.push({device,screen:'hatch-to-solo',...run});
+   }
   }
   fs.writeFileSync(path.join(OUT,'deep-ui-'+label+'-metrics.json'),JSON.stringify(reports,null,2));
   console.log('[deep-ui] metrics '+JSON.stringify(reports));
