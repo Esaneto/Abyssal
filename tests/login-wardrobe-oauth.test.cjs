@@ -5,18 +5,19 @@ const fs=require('node:fs');
 const path=require('node:path');
 const read=f=>fs.readFileSync(path.resolve(__dirname,'..',f),'utf8');
 const oauth=require('../public/google-oauth-config.js');
-test('OAuth accepts provided client ID, rejects retired ID and keeps server override/fallback',()=>{
+test('Google OAuth fails closed without explicit Web client configuration',()=>{
  const server=read('server.js');
- assert.equal(oauth.isWebClientId(oauth.USER_PROVIDED_CLIENT_ID),true);
  assert.equal(oauth.normalizeWebClientId(oauth.RETIRED_CLIENT_ID),'');
  assert.equal(oauth.normalizeWebClientId(''),'');
  assert.equal(oauth.isWebClientId('not-a-client-id'),false);
  assert.equal(oauth.isWebClientId('356475666791-actualwebclient.apps.googleusercontent.com'),true);
  assert.match(server,/process\.env\.ABYSSAL_GOOGLE_WEB_CLIENT_ID/);
- assert.match(server,/GOOGLE_OAUTH_CONFIGURED_ID===RETIRED_CLIENT_ID/);
- assert.match(server,/normalizeWebClientId\(candidateGoogleClientId\)/);
+ assert.match(server,/normalizeWebClientId\(GOOGLE_OAUTH_CONFIGURED_ID\)/);
+ assert.match(server,/source:GOOGLE_OAUTH_WEB_CLIENT_ID\?'environment':'unconfigured'/);
+ assert.doesNotMatch(server,/USER_PROVIDED_CLIENT_ID|GOOGLE_OAUTH_FALLBACK_USED/);
  assert.match(server,/verifyGoogleIdToken\(payload\.idToken,clientId\)/);
 });
+
 test('login animates real diver outfits/accessories without changing owned profile',()=>{
  const html=read('public/index.html'),css=read('public/abyssal-login-v2.css');
  const js=read('public/login-wardrobe-preview.js'),sw=read('public/offline-sw.js');
@@ -47,11 +48,13 @@ test('Google web client initialization validates server config and Android reuse
  assert.doesNotMatch(online,/!\s*\/\^\\\\w/);
 });
 
-test('OAuth endpoint indicates when client ID is an unverified fallback instead of claiming registration',()=>{
- const server=read('server.js');
+test('OAuth warning is outside GIS iframe container and adapts to panel width',()=>{
+ const html=read('public/index.html'),css=read('public/abyssal-login-v2.css');
  const online=read('public/online.js');
- assert.match(server,/GOOGLE_OAUTH_FALLBACK_USED/);
- assert.match(server,/source:GOOGLE_OAUTH_FALLBACK_USED\?'fallback':'environment'/);
- assert.match(online,/cfg\.source==='fallback'/);
- assert.match(online,/cliente ainda não confirmado na Google Cloud/);
+ assert.match(html,/<p id="loginGoogleStatus"/);
+ assert.match(css,/#loginScreen #loginGoogleHost\{[\s\S]*?flex-direction:column/);
+ assert.match(css,/#loginScreen #loginGoogleStatus\[hidden\]\{display:none!important\}/);
+ assert.match(online,/const status=\$\('loginGoogleStatus'\)/);
+ assert.doesNotMatch(online,/host\.appendChild\(note\)/);
+ assert.doesNotMatch(online,/cfg\.source==='fallback'/);
 });

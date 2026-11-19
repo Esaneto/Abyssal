@@ -364,16 +364,22 @@ async function setupGoogleSignIn(){
     text:'signin_with',locale:'pt-BR',
     width:Math.max(200,Math.min(360,Math.floor(host.getBoundingClientRect().width||280)))
    });
-   if(cfg.source==='fallback'){
-    const note=document.createElement('p');
-    note.className='abyss-entry-google-notice';
-    note.textContent='Google OAuth: cliente ainda não confirmado na Google Cloud. Erro 401? Verifique se este ID é de Aplicativo da Web e autoriza o domínio do Abyssal.';
-    host.appendChild(note);
-   }
+   // The Google SDK owns this button. Never append diagnostic text beside
+   // its iframe: that used to shrink the button and break the login layout.
+   const status=$('loginGoogleStatus');
+   if(status){status.textContent='';status.hidden=true;}
    googleSdkReady=true;googleSignInFailure='';
    return true;
   }catch(error){
    googleSignInFailure=String(error?.message||'google_unavailable');
+   googleOAuthClientId=googleSignInFailure==='web_client_id_not_configured'?'':googleOAuthClientId;
+   const status=$('loginGoogleStatus');
+   if(status){
+    status.textContent=googleSignInFailure==='web_client_id_not_configured'
+     ?'Login Google indisponível: o servidor precisa de um cliente OAuth Web válido, cadastrado no Google Cloud. Use nickname e senha por enquanto.'
+     :'Não foi possível inicializar o Google. Verifique a conexão e tente novamente.';
+    status.hidden=false;
+   }
    console.warn('[login] Login Google indisponível:',googleSignInFailure);
    return false;
   }
@@ -672,7 +678,7 @@ $('loginGoogleBtn').addEventListener('click',async()=>{
   await setupGoogleSignIn();
  }
  if(!googleOAuthClientId){
-  setMessage('O servidor ainda não disponibilizou o Client ID Web OAuth. Verifique a configuração de produção.',true);
+  setMessage('Login Google indisponível: falta cadastrar um cliente OAuth Web válido no Google Cloud e configurá-lo no servidor.',true);
   return;
  }
  if(window.Capacitor?.isNativePlatform?.()){

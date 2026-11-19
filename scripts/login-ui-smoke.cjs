@@ -32,16 +32,22 @@ const probe=String.raw`<script>
    const brand=root.querySelector('.abyss-entry-brand strong');
    const candidates=['loginModeSignIn','registerBtn','loginSubmitBtn','loginGuestBtn','nicknameInput','passwordInput','emailInput','birthDateInput'].map(id=>document.getElementById(id)).filter(Boolean);
    const controls=candidates.filter(e=>e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden'&&!e.closest('[hidden]'));
+   // Simulate a full-length OAuth diagnostic; it must not push the Google
+   // button sideways or clip text on compact desktop/mobile screens.
+   const googleStatus=document.getElementById('loginGoogleStatus');
+   if(googleStatus){googleStatus.hidden=false;googleStatus.textContent='Acesso Google temporariamente indisponível: o servidor precisa de um cliente OAuth Web cadastrado e autorizado. Entre com nickname e senha ou como visitante.';}
    const width=innerWidth;
    const within=(e)=>{const r=e.getBoundingClientRect();return r.left>=-2&&r.right<=width+2&&r.width>0;};
    const hitTargets=['loginModeSignIn','registerBtn','loginSubmitBtn','loginGuestBtn'].map(id=>document.getElementById(id)).filter(Boolean).every(e=>e.getBoundingClientRect().height>=42);
    const shellFits=within(shell)&&shell.getBoundingClientRect().top>=-2;
    const brandFits=within(brand);
    const fieldFits=controls.every(within);
+   const googleHost=document.getElementById('loginGoogleHost');
+   const diagnosticFits=!googleStatus||within(googleStatus)&&(!googleHost||within(googleHost));
    const noOverflow=root.scrollWidth<=root.clientWidth+2&&panel.scrollWidth<=panel.clientWidth+2;
-   const okay=shellFits&&brandFits&&fieldFits&&noOverflow&&hitTargets;
+   const okay=shellFits&&brandFits&&fieldFits&&diagnosticFits&&noOverflow&&hitTargets;
    document.body.dataset.loginQaStatus=okay?'ok':'fail';
-   document.body.dataset.loginQaMetrics=JSON.stringify({width,shellFits,brandFits,fieldFits,noOverflow,hitTargets,controls:controls.length});
+   document.body.dataset.loginQaMetrics=JSON.stringify({width,shellFits,brandFits,fieldFits,diagnosticFits,noOverflow,hitTargets,controls:controls.length});
   }
  };
  run();
@@ -173,7 +179,7 @@ async function main(){
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  try{
   const url='http://127.0.0.1:'+server.address().port+'/__abyss_login__';
-  const cases=[['desktop',1280,720,'login'],['landscape',844,390,'register']];
+  const cases=[['desktop',1280,720,'login'],['desktop-1024',1024,640,'register'],['desktop-900',900,540,'login'],['landscape',844,390,'register']];
   for(const [name,w,h,mode] of cases){
    const profile=fs.mkdtempSync(path.join(os.tmpdir(),'abyssal-login-smoke-'));
    try{

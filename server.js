@@ -103,21 +103,18 @@ app.use((req,res,next)=>/^\/api\/payments\/webhook\/?$/i.test(req.path)?next():j
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
-// Configured Web OAuth client takes precedence. The developer-provided client ID
-// is retained as fallback; client type cannot be inferred from ID syntax alone.
-const {USER_PROVIDED_CLIENT_ID,RETIRED_CLIENT_ID,normalizeWebClientId}=require('./public/google-oauth-config');
+// Fail closed: a public-looking Client ID does NOT establish that Google
+// registered it as a Web OAuth application. A fallback that returns 401 must
+// never be advertised as a working sign-in provider.
+const {normalizeWebClientId}=require('./public/google-oauth-config');
 const GOOGLE_OAUTH_CONFIGURED_ID=String(process.env.ABYSSAL_GOOGLE_WEB_CLIENT_ID||'').trim();
-const GOOGLE_OAUTH_FALLBACK_USED=!GOOGLE_OAUTH_CONFIGURED_ID||GOOGLE_OAUTH_CONFIGURED_ID===RETIRED_CLIENT_ID;
-const candidateGoogleClientId=GOOGLE_OAUTH_FALLBACK_USED?USER_PROVIDED_CLIENT_ID:GOOGLE_OAUTH_CONFIGURED_ID;
-const GOOGLE_OAUTH_WEB_CLIENT_ID=normalizeWebClientId(candidateGoogleClientId);
-if(GOOGLE_OAUTH_CONFIGURED_ID===RETIRED_CLIENT_ID)
- console.warn('[google-oauth] ID legado inválido configurado; usando ID fornecido pelo desenvolvedor.');
+const GOOGLE_OAUTH_WEB_CLIENT_ID=normalizeWebClientId(GOOGLE_OAUTH_CONFIGURED_ID);
 if(!GOOGLE_OAUTH_WEB_CLIENT_ID)
- console.warn('[google-oauth] Configure um Client ID do tipo Aplicativo da Web em ABYSSAL_GOOGLE_WEB_CLIENT_ID.');
+ console.warn('[google-oauth] Google indisponível: configure ABYSSAL_GOOGLE_WEB_CLIENT_ID com cliente Web existente em Google Auth Platform.');
 app.get('/api/auth/google-config',(_req,res)=>{
- res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
+ res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');
  res.json({enabled:Boolean(GOOGLE_OAUTH_WEB_CLIENT_ID),clientId:GOOGLE_OAUTH_WEB_CLIENT_ID||null,
-   source:GOOGLE_OAUTH_FALLBACK_USED?'fallback':'environment',
+   source:GOOGLE_OAUTH_WEB_CLIENT_ID?'environment':'unconfigured',
    reason:GOOGLE_OAUTH_WEB_CLIENT_ID?null:'web_client_id_not_configured'});
 });
 app.get('/api/browser-version',(req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');res.json({ok:true,version:APP_VERSION,channel:'stable',serverTime:Date.now()});});

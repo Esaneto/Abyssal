@@ -423,3 +423,44 @@
  text-align:center;
  overflow-wrap:anywhere;
 }
+
+/* 3.6.139: Google status is OUTSIDE the GIS iframe container so that
+   authorization diagnostics never compete for horizontal panel space. */
+#loginScreen #loginGoogleHost{
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ gap:0;
+ overflow:visible;
+ max-width:100%;
+}
+#loginScreen #loginGoogleHost > div{max-width:100%;min-width:0}
+#loginScreen #loginGoogleStatus.abyss-entry-google-notice{
+ display:block;
+ width:100%;
+ max-width:100%;
+ min-width:0;
+ margin:7px 0 0!important;
+ padding:0 2px;
+ overflow-wrap:anywhere;
+ text-align:left;
+ color:#efc39a;
+ font:500 11px/1.45 Inter,system-ui,sans-serif;
+}
+#loginScreen #loginGoogleStatus[hidden]{display:none!important}
+@media(min-width:801px) and (max-width:1100px){
+ #loginScreen .abyss-entry-shell{grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr)}
+ #loginScreen .abyss-entry-panel{padding:clamp(16px,2.5vw,30px)}
+ #loginScreen .abyss-entry-brand strong{font-size:clamp(30px,4vw,45px)}
+}
+@media(min-width:801px) and (max-height:680px){
+ #loginScreen .abyss-entry-panel{padding-top:15px;padding-bottom:15px}
+ #loginScreen .abyss-entry-copy{margin-bottom:8px!important}
+ #loginScreen .abyss-entry-tabs{margin-bottom:8px}
+ #loginScreen .abyss-entry-divider{margin:7px 0!important}
+}
+@media(max-width:800px){
+ #loginScreen #loginGoogleStatus.abyss-entry-google-notice{
+   font-size:10px;line-height:1.4;
+ }
+}
