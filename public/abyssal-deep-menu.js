@@ -152,7 +152,7 @@ function soloDive(){
    ended=true;cleanup();
    root.AbyssalCockpitNavigation?.open?.();
    overview();
-   $('roomsMessage')?.replaceChildren(document.createTextNode('Não foi possível iniciar o mergulho. Tente novamente.'));
+   $('deepInstruction').textContent='NÃO FOI POSSÍVEL INICIAR O MERGULHO. TENTE NOVAMENTE.';
    return;
   }
   ended=true;cleanup();
