@@ -185,7 +185,7 @@ function startPreview(){if(!raf&&!document.hidden&&isOpen())raf=root.requestAnim
 function stopPreview(){if(raf)root.cancelAnimationFrame(raf);raf=0;lastDraw=0;}
 const observer=new MutationObserver(()=>{
  if(isOpen()&&!workshop.classList.contains('abyss-deep-active'))activate();
- if(!isOpen()){stopPreview();if(launching)return;workshop.classList.remove('abyss-deep-active','abyss-deep-detail','abyss-deep-approaching','abyss-deep-hatch-opening');}
+ if(!isOpen()){stopPreview();workshop.classList.remove('abyss-deep-active','abyss-deep-detail','abyss-deep-approaching','abyss-deep-hatch-opening');focus='overview';deep.dataset.focus='overview';choices.hidden=true;back.hidden=true;}
 });
 observer.observe(workshop,{attributes:true,attributeFilter:['hidden']});
 const grid=$('submarineWorkshopGrid');
