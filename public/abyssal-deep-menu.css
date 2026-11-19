@@ -75,12 +75,14 @@
 .deep-hatch-choice p{margin:0 0 2px;color:#a5d6cf;letter-spacing:.16em;font-size:10px}
 .deep-hatch-choice button{background:linear-gradient(#254a54,#0b2935);border:1px solid #6caaa6;border-radius:5px;min-height:49px;color:#f0f9f1;font:700 13px Inter,system-ui,sans-serif;cursor:pointer}
 .deep-hatch-choice button:hover{border-color:#f1d59c;color:#ffeba7}
-body:not(.game-active) #submarineWorkshop.abyss-deep-active:not(.abyss-deep-detail) .abyss-cockpit-console{display:none!important}
+body:not(.game-active) #submarineWorkshop.abyss-deep-active:not(.abyss-deep-detail):not(:has(.abyss-cockpit-embedded:not([hidden]))) .abyss-cockpit-console{display:none!important}
+body:not(.game-active) #submarineWorkshop.abyss-deep-active:has(.abyss-cockpit-embedded:not([hidden])) .abyss-cockpit-console,
 body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .abyss-cockpit-console{
  display:flex!important;position:absolute!important;z-index:29!important;left:50%!important;top:13%!important;bottom:auto!important;
  transform:translateX(-50%)!important;width:min(1000px,91vw)!important;height:min(76dvh,700px)!important;max-height:calc(100dvh - 96px)!important;
  padding:10px!important;border:5px ridge #536c72!important;border-radius:9px!important;
  background:linear-gradient(140deg,rgba(12,37,48,.96),rgba(4,18,28,.97))!important;box-shadow:0 0 0 3px #091923,0 25px 60px #02070c!important;pointer-events:auto!important}
+#submarineWorkshop.abyss-deep-active:has(.abyss-cockpit-embedded:not([hidden])) .abyss-cockpit-console .submarine-workshop-grid,
 #submarineWorkshop.abyss-deep-detail .abyss-cockpit-console .submarine-workshop-grid{grid-template-rows:minmax(0,1fr)!important}
 #submarineWorkshop.abyss-deep-detail .abyss-station-deck{display:none!important}
 #submarineWorkshop.abyss-deep-detail .abyss-cockpit-visor{height:100%;min-height:0}
@@ -118,7 +120,8 @@ body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .a
  .deep-operations strong{font-size:8px}.deep-research small{display:none}
  .deep-capsule>strong{font-size:10px}
  .deep-capsule>small{font-size:7px}
- body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .abyss-cockpit-console{
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active:has(.abyss-cockpit-embedded:not([hidden])) .abyss-cockpit-console,
+body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .abyss-cockpit-console{
   top:max(58px,calc(env(safe-area-inset-top) + 42px))!important;
   width:calc(100vw - 12px)!important;height:calc(100dvh - max(112px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 90px))!important;
   min-height:0!important;max-height:none!important;padding:5px!important}
@@ -131,7 +134,8 @@ body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .a
  .deep-capsule{height:42%;top:32%}.deep-hatch{height:27%;bottom:1%}.deep-operations{top:14%;height:34%}
  .deep-hatch-choice{bottom:2%;padding:7px;grid-template-columns:1fr 1fr;width:min(500px,94%)}.deep-hatch-choice p{grid-column:1/-1}
  .deep-hatch-choice button{min-height:43px}
- body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .abyss-cockpit-console{top:48px!important;height:calc(100dvh - 90px)!important}
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active:has(.abyss-cockpit-embedded:not([hidden])) .abyss-cockpit-console,
+body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .abyss-cockpit-console{top:48px!important;height:calc(100dvh - 90px)!important}
 }
 @media(prefers-reduced-motion:reduce){
  .deep-world,.deep-hatch-lid,.deep-dive-transition,.deep-dive-tunnel{transition:none!important}
