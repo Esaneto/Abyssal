@@ -108,7 +108,16 @@ body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .a
 @keyframes deepScan{0%{transform:translateY(-110%)}100%{transform:translateY(110%)}}
 @keyframes deepBubble{0%{opacity:0;transform:translate3d(0,45vh,0) scale(.5)}22%{opacity:.85}85%{opacity:.55}100%{opacity:0;transform:translate3d(15px,-70vh,0) scale(1.45)}}
 @media(max-width:700px){
- .deep-world{inset:0 -41%;width:182%;height:100%}
+ .deep-world{inset:0;width:100%;height:100%}
+ .deep-leftwall,.deep-rightwall{width:29%}
+ .deep-backwall{left:13%;width:74%}
+ .deep-operations{left:15%;top:19%;width:70%;height:24%;gap:2%}
+ .deep-sonar{flex-basis:26%}
+ .deep-suits{left:1%;width:33%;transform:perspective(480px) rotateY(6deg)}
+ .deep-ecos{right:1%;width:33%;transform:perspective(480px) rotateY(-6deg)}
+ .deep-capsule-rim{border-width:7px}
+ .deep-capsule-glass{inset:7% 12% 23%}
+ .deep-hatch{left:26.5%;width:47%;bottom:7%;height:23%}
  .deep-topline{left:max(9px,env(safe-area-inset-left));right:max(9px,env(safe-area-inset-right))}
  .deep-brand{font-size:14px;letter-spacing:.08em}.deep-brand small{font-size:7px}
  .deep-utilities{gap:3px}.deep-utilities button{padding:4px 6px;min-height:36px;font-size:9px}
