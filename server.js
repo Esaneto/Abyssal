@@ -1874,18 +1874,20 @@ io.on('connection', socket => {
    if(Object.values(users).some(u=>String(u?.email||'').toLowerCase()===google.email))
     return socket.emit('auth-result',{ok:false,code:'google_link_required',message:'Este e-mail já pertence a uma conta Abyssal. Entre com seu nickname e senha e depois escolha VINCULAR GOOGLE no perfil para manter todo o progresso.'});
    const nickname=String(payload.nickname||'').trim();
-   const birth=birthBand(String(payload.birthDate||''));
-   if(!nickname||!birth||payload.termsAccepted!==true)
-    return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'Para criar sua conta Google, informe nickname, data de nascimento e aceite dos Termos.'});
+   // Google OpenID Connect does not return date of birth or an age band.
+   // A single terms/16+ declaration is required, while age remains unknown
+   // so restricted-age protections cannot be bypassed by signing in with Google.
+   if(!nickname||payload.termsAccepted!==true||payload.age16Confirmed!==true)
+    return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,
+     message:'Escolha um nickname e confirme os Termos de Uso e que possui pelo menos 16 anos.'});
    if(!/^[a-zA-Z0-9_]{3,18}$/.test(nickname))
     return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'Nickname: 3 a 18 caracteres, letras, números ou _.'});
-   if(birth.age<16)return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'O cadastro é destinado a jogadores a partir de 16 anos.'});
    key=nickname.toLowerCase();
    if(key==='gamemaster'||key==='nekko'||REVIEW_ACCOUNTS.some(([reserved])=>reserved===key)||Object.hasOwn(users,key))
     return socket.emit('auth-result',{ok:false,code:'google_signup_required',email:google.email,message:'Nickname indisponível. Escolha outro.'});
    mode='google-register';
-   user=users[key]={accountId:crypto.randomUUID(),nickname,email:google.email,googleSub:google.sub,ageBand:birth.band,
-     termsAcceptedAt:new Date().toISOString(),termsVersion:'2026-11-18-dob-v3',
+   user=users[key]={accountId:crypto.randomUUID(),nickname,email:google.email,googleSub:google.sub,ageBand:'unknown',age16DeclaredAt:new Date().toISOString(),
+     termsAcceptedAt:new Date().toISOString(),termsVersion:'2026-11-19-google-nickname-v1',
      createdAt:new Date().toISOString(),energy:0,ownedSkins:['default'],equippedSkin:'default',metaUpgrades:{},lastWheelAt:0};
   }
   if(GMAdmin.blocked(user))return socket.emit('auth-result',{ok:false,message:GMAdmin.accessMessage(user)});

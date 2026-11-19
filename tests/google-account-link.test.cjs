@@ -55,3 +55,28 @@ test('popup COOP permits Google callback but maintains strict API isolation',()=
  assert.match(server,/req\.path==='\/'\|\|\/\\\.html\$\/i\.test\(req\.path\)/);
  assert.match(server,/:'same-origin'\)/);
 });
+
+test('Google-only signup requires only nickname and 16+ terms declaration',()=>{
+ const server=read('server.js'),online=read('public/online.js'),html=read('public/index.html');
+ const googleHandler=server.slice(server.indexOf("socket.on('authenticate-google'"),server.indexOf("socket.on('link-google-account'"));
+ const googleSubmit=online.slice(online.indexOf('async function sendGoogleAuth('),online.indexOf('function acceptGoogleCredential('));
+ assert.match(googleHandler,/payload\.age16Confirmed!==true/);
+ assert.match(googleHandler,/payload\.termsAccepted!==true/);
+ assert.match(googleHandler,/ageBand:'unknown'/);
+ assert.doesNotMatch(googleHandler,/birthBand\(/);
+ assert.doesNotMatch(googleHandler,/payload\.birthDate/);
+ assert.match(googleSubmit,/payload\.nickname=/);
+ assert.match(googleSubmit,/payload\.age16Confirmed=payload\.termsAccepted/);
+ assert.doesNotMatch(googleSubmit,/payload\.birthDate/);
+ assert.match(online,/\('abyssRegisterFields'\)\.hidden=!register\|\|googleLinkIntent\|\|googleSignup/);
+ assert.match(html,/id="abyssGoogleTermsText"/);
+ assert.match(html,/id="abyssRegularTermsText"/);
+});
+test('Google profile button keeps multicolor icon and visible state label',()=>{
+ const html=read('public/index.html'),online=read('public/online.js'),css=read('public/abyssal-login-v2.css');
+ assert.match(html,/id="profileGoogleLinkBtn" class="profile-google-brand-btn"/);
+ assert.match(html,/id="profileGoogleLinkLabel"/);
+ for(const color of ['#EA4335','#4285F4','#FBBC05','#34A853'])assert.ok(html.includes(color));
+ assert.match(online,/label\.textContent=serverAccount\?\.googleLinked/);
+ assert.match(css,/button\.profile-google-brand-btn/);
+});

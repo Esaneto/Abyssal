@@ -278,7 +278,7 @@ function loadSocketClient(){
  });
  return socketClientLoading;
 }
-function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');const profileBtn=$('profileSessionBtn');const googleLinkBtn=$('profileGoogleLinkBtn');if(googleLinkBtn){googleLinkBtn.hidden=!authenticated||Boolean(viewedPublicProfile);googleLinkBtn.textContent=serverAccount?.googleLinked?'GOOGLE VINCULADO':'VINCULAR CONTA GOOGLE';googleLinkBtn.disabled=Boolean(serverAccount?.googleLinked);}if(profileBtn){profileBtn.textContent=authenticated?'SAIR DA CONTA':sessionToken?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA';profileBtn.hidden=Boolean(viewedPublicProfile);profileBtn.disabled=false;}let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status){status.textContent=authenticated&&account?(serverAccount?.isDeveloper?`DEV · ${account.nickname}`:`CONECTADO COMO ${account.nickname.toUpperCase()}`):sessionToken&&account?.nickname?(connected?'RESTAURANDO CONTA':'RECONEXÃO PENDENTE'):`VISITANTE #${guest}`;status.classList.toggle('developer-nickname',Boolean(authenticated&&serverAccount?.isDeveloper));}if(btn){btn.textContent=authenticated?'CONTA CONECTADA':sessionToken&&account?.nickname?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA';btn.classList.toggle('abyss-attention',!authenticated);btn.classList.toggle('abyss-account-linked',authenticated);window.AbyssalAttention?.ensure(btn);btn.setAttribute('aria-label',authenticated?'Conta conectada':'Entrar ou criar conta para salvar seu progresso');}}
+function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');const profileBtn=$('profileSessionBtn');const googleLinkBtn=$('profileGoogleLinkBtn');if(googleLinkBtn){googleLinkBtn.hidden=!authenticated||Boolean(viewedPublicProfile);const label=$('profileGoogleLinkLabel');if(label)label.textContent=serverAccount?.googleLinked?'GOOGLE VINCULADO':'VINCULAR COM GOOGLE';googleLinkBtn.disabled=Boolean(serverAccount?.googleLinked);googleLinkBtn.classList.toggle('is-google-linked',Boolean(serverAccount?.googleLinked));}if(profileBtn){profileBtn.textContent=authenticated?'SAIR DA CONTA':sessionToken?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA';profileBtn.hidden=Boolean(viewedPublicProfile);profileBtn.disabled=false;}let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status){status.textContent=authenticated&&account?(serverAccount?.isDeveloper?`DEV · ${account.nickname}`:`CONECTADO COMO ${account.nickname.toUpperCase()}`):sessionToken&&account?.nickname?(connected?'RESTAURANDO CONTA':'RECONEXÃO PENDENTE'):`VISITANTE #${guest}`;status.classList.toggle('developer-nickname',Boolean(authenticated&&serverAccount?.isDeveloper));}if(btn){btn.textContent=authenticated?'CONTA CONECTADA':sessionToken&&account?.nickname?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA';btn.classList.toggle('abyss-attention',!authenticated);btn.classList.toggle('abyss-account-linked',authenticated);window.AbyssalAttention?.ensure(btn);btn.setAttribute('aria-label',authenticated?'Conta conectada':'Entrar ou criar conta para salvar seu progresso');}}
 // Account-scoped cache must never survive an explicit sign-out.
 const ACCOUNT_CACHE_KEYS=['abyssalAccount','abyssalSessionToken','abyssalCoins','abyssalAccountEnergy','abyssalSkin','abyssalOwnedSkins','abyssalMetaUpgrades','abyssalSpecimenProficiency','abyssalDiscoveredSpecimens','abyssalDiverGender','abyssalResonancePresets','abyssalEquippedActiveSkills','abyssalKnownOnlineTitles','abyssalTitles','abyssalRedeemedCodes','abyssalNotifications','abyssalNotificationsLastSeen','abyssalCodex','abyssalBestScore','abyssalBestTime'];
 function clearAccountCache(){for(const key of ACCOUNT_CACHE_KEYS)localStorage.removeItem(key);window.AbyssalAvatarBase?.setOwned([]);window.AbyssalAvatarBase?.apply(null);}
@@ -297,17 +297,26 @@ function logoutAccount(){
  if(activeSocket?.connected&&token){activeSocket.timeout(5000).emit('logout-session',{token},(error,result)=>finish(error||!result?.ok?'Sessão local encerrada. Não foi possível confirmar a revogação no servidor.':''));}else finish(token?'Sessão local encerrada sem confirmação do servidor.':'');
 }
 let entryMode='login',entryGuestChosen=false,googlePendingToken='',googleOAuthClientId='',googleLinkIntent=false;
-function sendGoogleAuth(token=googlePendingToken){
- const s=connect();
- if(!s){setMessage('Conecte-se à internet para entrar com Google.',true);return;}
- googlePendingToken=String(token||'');
- const payload={idToken:googlePendingToken};
- if(entryMode==='register'){
+async function sendGoogleAuth(token=googlePendingToken){
+ const idToken=String(token||'');
+ if(!idToken){setMessage('Selecione uma conta Google novamente.',true);return;}
+ googlePendingToken=idToken;
+ const signup=entryMode==='register';
+ const payload={idToken};
+ if(signup){
   payload.nickname=String($('nicknameInput')?.value||'').trim();
-  payload.birthDate=String($('birthDateInput')?.value||'');
   payload.termsAccepted=Boolean($('createTermsAccept')?.checked);
+  payload.age16Confirmed=payload.termsAccepted;
+  if(!/^[a-zA-Z0-9_]{3,18}$/.test(payload.nickname)){
+   setMessage('Escolha um nickname de 3 a 18 caracteres, com letras, números ou _.',true);return;
+  }
+  if(!payload.termsAccepted){setMessage('Confirme os Termos de Uso e a idade mínima de 16 anos.',true);return;}
  }
- setMessage('Validando sua conta Google…');
+ setMessage(signup?'Criando seu perfil Google…':'Validando sua conta Google…');
+ // The socket client may still be loading when Google's popup finishes.
+ let s=connect();
+ if(!s){const ready=await loadSocketClient();if(ready)s=connect();}
+ if(!s){setMessage('Não foi possível conectar ao servidor. Verifique a conexão e tente novamente.',true);return;}
  const send=()=>s.emit('authenticate-google',payload);
  if(s.connected)send();else s.once('connect',send);
 }
@@ -420,7 +429,7 @@ function setEntryMode(mode){
  if(context){
   context.hidden=!(googleLinkIntent||googleSignup);
   $('googleAccountContextHeading').textContent=googleLinkIntent?'VINCULAR CONTA GOOGLE':'CRIAR PERFIL GOOGLE';
-  $('googleAccountContextText').textContent=googleLinkIntent?'Selecione sua conta Google abaixo. O login tradicional continuará funcionando.':'Escolha um nickname, informe sua data de nascimento e aceite os Termos de Uso.';
+  $('googleAccountContextText').textContent=googleLinkIntent?'Selecione sua conta Google abaixo. O login tradicional continuará funcionando.':'Sua conta Google já está identificada. Falta apenas escolher seu nickname no Abyssal.';
  }
  $('abyssEntryHeading').textContent=googleLinkIntent?'VINCULAR GOOGLE':googleSignup?'CRIAR PERFIL GOOGLE':register?'CRIAR CONTA':'ENTRAR NO ABYSSAL';
  $('loginSubmitBtn').textContent=googleSignup?'CONCLUIR COM GOOGLE':register?'CRIAR MINHA CONTA':'ENTRAR NA CONTA';
@@ -428,8 +437,11 @@ function setEntryMode(mode){
  $('abyssEntryTabs').hidden=googleLinkIntent;
  $('abyssLoginFields').hidden=googleLinkIntent;
  $('abyssPasswordFields').hidden=googleLinkIntent||googleSignup;
- $('abyssRegisterFields').hidden=!register||googleLinkIntent;
+ $('abyssRegisterFields').hidden=!register||googleLinkIntent||googleSignup;
  $('abyssEntryTerms').hidden=!register||googleLinkIntent;
+ const regularTerms=$('abyssRegularTermsText'),googleTerms=$('abyssGoogleTermsText');
+ if(regularTerms)regularTerms.hidden=googleSignup;
+ if(googleTerms)googleTerms.hidden=!googleSignup;
  $('forgotPasswordBtn').hidden=register||googleLinkIntent;
  $('loginGuestBtn').hidden=googleLinkIntent;
  setMessage('');
@@ -524,7 +536,7 @@ socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeou
   if(!result.ok&&result.code==='google_signup_required'&&googlePendingToken){
    googleLinkIntent=false;setEntryMode('register');
    $('emailInput').value=String(result.email||'');$('emailInput').readOnly=true;
-   setMessage(result.message||'Escolha nickname, data de nascimento e aceite os Termos.',true);
+   setMessage(result.message||'Escolha um nickname e confirme os Termos para criar seu perfil.',true);
    $('nicknameInput')?.focus();return;
   }
   if(!result.ok&&result.code==='google_link_required'){
