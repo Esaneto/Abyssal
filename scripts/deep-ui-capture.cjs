@@ -131,7 +131,8 @@ async function capture(root,label){
     await snap(device+'-escotilha-cinematica');
     await wait("document.body.classList.contains('game-active')");
     const run=await ev("(()=>{const shell=document.getElementById('gameShell'),h=document.getElementById('hud');return {game:document.body.classList.contains('game-active'),gameVisible:shell&&!shell.hidden,hudVisible:h&&!h.hidden,choiceHidden:document.getElementById('deepHatchChoice').hidden}})()");
-    assert.ok(run.game&&run.gameVisible&&run.choiceHidden,'The Solo cinematic must actually enter the original gameplay, not display a fake success: '+JSON.stringify(run));
+    assert.ok(run.game&&run.gameVisible&&run.hudVisible&&run.choiceHidden,'The Solo cinematic must actually enter playable gameplay and show its HUD: '+JSON.stringify(run));
+    await wait("document.querySelector('.deep-dive-transition')===null");
     reports.push({device,screen:'hatch-to-solo',...run});
    }
   }
