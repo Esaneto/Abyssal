@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-19-cockpit-stations-v293';
+const VERSION = '2026-11-19-cockpit-stations-v294';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -10,7 +10,7 @@ const GAME_FILES = [
   'abyssal-icon.svg',
   'style.css','abyssal-ocean-design.css','abyssal-deep-systems.css','abyssal-research-tree.js','abyssal-resonance-balance.js',
   'abyssal-rebuild.css','abyssal-release-polish.css','abyssal-menu-tour.js',
-  'abyssal-menu-v2.css','abyssal-cockpit-stations.css','abyssal-cockpit-navigation.js',
+  'abyssal-menu-v2.css','abyssal-cockpit-stations.css',
   'abyssal-discord-community.css','abyssal-discord-community.js',
   'abyssal-review.js','abyssal-review.css',
   'abyssal-attention.js','abyssal-state-signals.css','abyssal-ranking-rewards.css',
