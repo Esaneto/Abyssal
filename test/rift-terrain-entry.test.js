@@ -80,7 +80,9 @@ test('slow offline network cannot delay individual game scripts during cave entr
  assert.match(sw,/const VERSION = '[^']+'/);
  assert.match(sw,/abyssal-tutorial-art\.js/);
  assert.match(sw,/abyssal-rift-hardcore\.js/);
- assert.match(sw,/if\(inShell && !isNavigation\)/);
+ assert.match(sw,/if\(inShell&&!hasVersion\)/);
+ assert.match(sw,/const hasVersion=url\.searchParams\.has\('v'\)/);
+ assert.match(sw,/if\(isNavigation\)/);
  assert.match(sw,/if\(canonical\)return canonical/);
  assert.match(sw,/return cached;/);
  assert.match(sw,/url\.pathname\.startsWith\('\/api\/'\)/);
