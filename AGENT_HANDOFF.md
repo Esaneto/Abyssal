@@ -1,3 +1,26 @@
+# PASSAGEM DO AGENTE | 2026-11-19 | MENU PROFUNDO 2.5D
+**Branch:** feat/deep-menu-cinematic-20261119. **Estado:** implementação em PR, NÃO integrada na main. **Aprovação visual:** pendente. **Validação de navegador/Android:** pendente.
+
+### Implementado nesta branch
+- Menu único com cenário submarino em profundidade, cinco hotspots físicos: escotilha, cápsulas de trajes e Ecos, Sonar Social (menor) e terminal de Pesquisa (maior). Aproximação de câmera com suporte a motion reduzido.
+- Previews de trajes e criaturas usando os renderizadores reais, com loop limitado e pausa quando invisível. Nenhum salvamento, crédito ou compra é executado pelo menu.
+- Seleção de mergulho Solo/Online e primeira animação procedural 2.5D de escotilha, bolhas e descida. Solo preserva playBtn; Online preserva conexão real e observa room-joined.
+- Inicialização e retorno passam para o cockpit, mantendo IDs da navegação exterior por compatibilidade. Service worker atualizado para novos assets.
+- AGENT_FRAMEWORK.md, docs/DEEP_MENU_ARCHITECTURE.md, testes e referências nos arquivos de regras.
+
+### NÃO concluído / riscos conhecidos
+- A arte da escotilha e do submarino ainda é CSS procedural, sem texturas de alta fidelidade; NÃO declarar ultrarrealismo concluído.
+- Ressonância, HUD e acabamento dos instrumentos existentes não foram redesenhados; preservados os sistemas funcionais atuais.
+- É obrigatório executar QA visual real PC e Android, especialmente CSS !important de arquivos legados e tap targets.
+- Rever Android offline, login Google e sincronização de sala real antes da promoção à main.
+- A antiga infraestrutura de menu exterior não foi eliminada, pois serve de compatibilidade a eventos de inicialização, login e testes. Rastrear dependências antes de retirá-la.
+- Nenhum deploy, pacote AAB ou integração na main foi efetuado.
+
+### Próximo agente
+Leia AGENTS.md, AGENT_FRAMEWORK.md, docs/DEEP_MENU_ARCHITECTURE.md e .agent/rules/GEMINI.md. Não mude a direção para cartões genéricos. Rode npm test e browser smoke, compare prints desktop/Android e avalie se os controles reais continuam operando. Só depois avance para acabamento gráfico e Ressonância orgânica. Apresente diffs e evidências antes do merge.
+
+---
+
 # ABYSSAL - CONTINUIDADE PARA O PROXIMO AGENTE
 
 Atualizado em: 2026-11-05
