@@ -475,17 +475,26 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    return;
   }
   if(mode==='mobile-hub'){
-   for(const [w,h] of [[360,640],[844,390],[360,640],[320,568]]){await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:2,mobile:true,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});await sleep(600);
-    const m=await evaluate(`(()=>{const menu=document.getElementById('menuScreen'),hub=menu.querySelector('.hub-shell'),stage=document.getElementById('menuOceanStage'),r=menu.getBoundingClientRect(),s=stage.getBoundingClientRect(),u=hub.getBoundingClientRect(),launch=document.getElementById('divePortalBtn').getBoundingClientRect();return {w:innerWidth,h:innerHeight,hidden:menu.hidden,menu:r.toJSON(),stage:s.toJSON(),hub:u.toJSON(),launch:launch.toJSON(),scrollWidth:hub.scrollWidth,clientWidth:hub.clientWidth,landscape:document.documentElement.classList.contains('abyssal-handheld-landscape'),canvas:document.getElementById('menuOceanScenery').width};})()`);console.log('[mobile-hub-rotation] '+JSON.stringify(m));assert.ok(!m.hidden&&m.landscape===(w>h)&&Math.abs(m.menu.width-w)<2&&Math.abs(m.menu.height-h)<2&&Math.abs(m.menu.left)<2&&Math.abs(m.menu.top)<2&&m.scrollWidth<=m.clientWidth+2&&m.launch.width>100&&m.launch.left>=0&&m.launch.right<=w+1&&m.canvas>0,'Initial hub clipped after rotation: '+JSON.stringify(m));await screenshot('mobile-hub-'+w+'x'+h);
-    // The community shortcut can be disabled by server feature gates; only test its modal when visible.
-    if(await evaluate("(()=>{const b=document.getElementById('discordCommunityBtn');return Boolean(b&&!b.hidden&&getComputedStyle(b).display!=='none')})()")){
-    const discord=await evaluate(`(()=>{const b=document.getElementById('discordCommunityBtn'),d=document.getElementById('discordCommunityDialog');b.scrollIntoView({block:'nearest'});const r=b.getBoundingClientRect(),hit=b.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));b.click();const q=d.getBoundingClientRect();return {visible:!b.hidden,hit,button:r.toJSON(),open:d.open,dialog:q.toJSON(),cancelFocused:document.activeElement===document.getElementById('discordCommunityCancel')};})()`);
-    console.log('[discord-menu] '+JSON.stringify(discord));assert.ok(discord.visible&&discord.hit&&discord.open&&discord.cancelFocused&&discord.button.left>=0&&discord.button.right<=w+1&&discord.dialog.left>=0&&discord.dialog.right<=w+1&&discord.dialog.top>=0&&discord.dialog.bottom<=h+1,'Discord button/confirmation must fit and be clickable: '+JSON.stringify(discord));await screenshot('discord-community-'+w+'x'+h);
-    assert.equal(await evaluate(`(()=>{document.getElementById('discordCommunityCancel').click();const d=document.getElementById('discordCommunityDialog'),b=document.getElementById('discordCommunityBtn');const before=localStorage.getItem('abyssalAgeProfile');localStorage.setItem('abyssalAgeProfile',JSON.stringify({band:'under16',termsVersion:'2026-11-03-v2'}));window.dispatchEvent(new Event('storage'));const hidden=b.hidden;localStorage.setItem('abyssalAgeProfile',before);window.dispatchEvent(new Event('storage'));document.querySelector('#menuScreen .hub-shell').scrollTop=0;return !d.open&&hidden&&!b.hidden;})()`),true,'Cancel and age restriction must work');
-    }
-
-
-   }return;
+   // The approved startup is the physical cabin, not the former exterior hub.
+   await evaluate("(()=>{const login=document.getElementById('loginScreen');if(login&&!login.hidden)document.getElementById('loginGuestBtn')?.click();window.AbyssalCockpitNavigation?.open?.();})()");
+   for(const [w,h] of [[360,640],[844,390],[360,640],[320,568]]){
+    await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:2,mobile:true,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});
+    await sleep(650);
+    const m=await evaluate("(()=>{const c=document.getElementById('submarineWorkshop'),d=document.getElementById('abyssDeepMenu'),r=c.getBoundingClientRect(),links=[...d.querySelectorAll('[data-deep-target]')].map(el=>{const q=el.getBoundingClientRect(),hit=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);return {id:el.dataset.deepTarget,left:q.left,right:q.right,top:q.top,bottom:q.bottom,w:q.width,h:q.height,hit:hit===el||el.contains(hit)}});return {w:innerWidth,h:innerHeight,cabinHidden:c.hidden,active:c.classList.contains('abyss-deep-active'),cabin:r.toJSON(),landscape:document.documentElement.classList.contains('abyssal-handheld-landscape'),links,overflow:document.documentElement.scrollWidth-innerWidth};})()");
+    console.log('[mobile-deep-cabin-rotation] '+JSON.stringify(m));
+    assert.ok(m.active&&!m.cabinHidden&&m.landscape===(w>h)&&m.cabin.width>=w-2&&m.cabin.height>=h-2&&m.overflow<=2,'Deep cabin viewport or orientation regression: '+JSON.stringify(m));
+    assert.deepEqual(m.links.map(x=>x.id),['social','research','wardrobe','ecos','hatch']);
+    assert.ok(m.links.every(x=>x.w>=32&&x.h>=36&&x.left>=-1&&x.right<=w+1&&x.top>=-1&&x.bottom<=h+1&&x.hit),'Deep cabin lost a touch hotspot: '+JSON.stringify(m));
+    await screenshot('mobile-deep-cabin-'+w+'x'+h);
+   }
+   // The old page remains only as a compatibility route; verify its age gate.
+   await evaluate("window.AbyssalCockpitNavigation.showExterior()");
+   if(await evaluate("(()=>{const b=document.getElementById('discordCommunityBtn');return Boolean(b&&!b.hidden&&getComputedStyle(b).display!=='none')})()")){
+    const ok=await evaluate("(()=>{const b=document.getElementById('discordCommunityBtn'),d=document.getElementById('discordCommunityDialog');b.click();const opened=d.open;document.getElementById('discordCommunityCancel').click();return opened&&!d.open;})()");
+    assert.ok(ok,'Community dialog must remain accessible and cancelable');
+   }
+   await evaluate("window.AbyssalCockpitNavigation.open()");
+   return;
   }
   if(mode==='mobile-wardrobe'){
    for(let attempt=0;attempt<10;attempt++){if(await evaluate('document.body.dataset.cockpitStatus==="ok"'))break;await sleep(500);}
