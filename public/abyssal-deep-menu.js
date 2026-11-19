@@ -202,17 +202,19 @@ const observer=new MutationObserver(()=>{
 });
 observer.observe(workshop,{attributes:true,attributeFilter:['hidden']});
 const grid=$('submarineWorkshopGrid');
+let observedEmbedded=false;
 const embeddedObserver=new MutationObserver(()=>{
- if(!isOpen()||!workshop.classList.contains('abyss-deep-active'))return;
- // Legacy routes such as public-profile links must remain visible even when
- // invoked outside the new cabin hotspots.
+ if(!isOpen()||!workshop.classList.contains('abyss-deep-active')){observedEmbedded=false;return;}
+ // Only return automatically if an actual embedded modal was previously open.
+ // Built-in settings, wardrobe and research render without an embedded modal.
  const visibleEmbedded=grid?.querySelector('.abyss-cockpit-embedded:not([hidden])');
  if(visibleEmbedded){
+  observedEmbedded=true;
   if(focus==='overview'){focus='quick';deep.dataset.focus='research';back.hidden=false;}
   workshop.classList.add('abyss-deep-detail');
- }else if(focus==='quick'&&workshop.classList.contains('abyss-deep-detail')){
-  // Closing a legacy profile or notification must restore the cabin overview.
-  overview();
+ }else if(observedEmbedded){
+  observedEmbedded=false;
+  if(focus==='quick'&&workshop.classList.contains('abyss-deep-detail'))overview();
  }
 });
 if(grid)embeddedObserver.observe(grid,{subtree:true,childList:true});
