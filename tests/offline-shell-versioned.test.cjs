@@ -39,3 +39,34 @@ test('offline install precaches the exact versioned assets referenced by the cur
   assert.ok(cachedURLs.some(url=>new URL(url).pathname.endsWith('/'+name)),name+' is absent from offline install');
  }
 });
+
+test('online navigation fetches fresh shell; offline navigation uses installed shell',async()=>{
+ const sw=fs.readFileSync(path.join(__dirname,'../public/offline-sw.js'),'utf8');
+ const events={};
+ const cached={source:'installed-html'},fresh={ok:true,source:'current-html'};
+ const cache={match:async()=>cached};
+ let requestCount=0,online=true;
+ const self={registration:{scope:'https://abyssal.example/'},location:{origin:'https://abyssal.example'},addEventListener:(key,cb)=>events[key]=cb};
+ vm.runInNewContext(sw,{self,URL,Request,Response,caches:{open:async()=>cache},fetch:async()=>{requestCount++;if(!online)throw Error('offline');return fresh;}});
+ const request={method:'GET',url:'https://abyssal.example/',mode:'navigate',headers:new Headers()};
+ let response;
+ events.fetch({request,respondWith:p=>response=p});
+ assert.equal(await response,fresh);
+ assert.equal(requestCount,1);
+ online=false;events.fetch({request,respondWith:p=>response=p});
+ assert.equal(await response,cached);
+});
+test('new versioned JavaScript never silently loads obsolete unversioned cache alias',async()=>{
+ const sw=fs.readFileSync(path.join(__dirname,'../public/offline-sw.js'),'utf8');
+ const events={};let source='';const fresh={version:'fresh'};
+ const cache={match:async req=>{source=String(req.url||req);return source.endsWith('/online.js')?{version:'obsolete'}:null;}};
+ const self={registration:{scope:'https://abyssal.example/'},location:{origin:'https://abyssal.example'},addEventListener:(key,cb)=>events[key]=cb};
+ let requestCount=0;
+ vm.runInNewContext(sw,{self,URL,Request,Response,caches:{open:async()=>cache},fetch:async()=>{requestCount++;return fresh;}});
+ const request={method:'GET',url:'https://abyssal.example/online.js?v=3.6.999',mode:'same-origin',headers:new Headers()};
+ let response;
+ events.fetch({request,respondWith:p=>response=p});
+ assert.equal(await response,fresh);
+ assert.equal(requestCount,1);
+ assert.match(source,/online[.]js[?]v=3[.]6[.]999/);
+});

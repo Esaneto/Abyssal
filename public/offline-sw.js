@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-18-desktop-cosmetics-oauth-v287';
+const VERSION = '2026-11-19-login-oauth-responsive-v288';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -181,21 +181,32 @@ self.addEventListener('fetch', event => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     const cachePath = isNavigation && (url.pathname==='/'||url.pathname.endsWith('/index.html')) ? 'index.html' : shellPath.slice(1);
-    const cacheRequest = new Request(new URL(cachePath + (!isNavigation && url.searchParams.has('v') ? url.search : ''), self.registration.scope));
+    const originalAsset = new URL(cachePath,self.registration.scope).href;
+    if(isNavigation){
+      // Online navigation must see the latest HTML instead of a stale app-shell
+      // document. On network failure, still launch the coherent cached Solo build.
+      try{
+        const live = await fetch(request,{cache:'no-store'});
+        if(live.ok)return live;
+      }catch(_){}
+      const offline = await cache.match(originalAsset);
+      if(offline)return offline;
+      const index = await cache.match(new URL('index.html',self.registration.scope).href);
+      return index||new Response('Offline shell unavailable',{status:503,headers:{'Content-Type':'text/plain'}});
+    }
+    const hasVersion=url.searchParams.has('v');
+    const cacheRequest = new Request(new URL(cachePath + (hasVersion ? url.search : ''), self.registration.scope));
     const cached = await cache.match(cacheRequest);
-    // A controlled installation always uses one coherent release. New releases
-    // are installed atomically by the next worker, never mixed into old HTML.
-    if (cached) return cached;
-    if(inShell && !isNavigation){
-      const canonical=await cache.match(new URL(cachePath,self.registration.scope).href);
+    if(cached)return cached;
+    // A NEW ?v= URL must never silently receive an OLD JS/CSS alias.
+    // An unversioned dynamic asset may still use the offline canonical alias.
+    if(inShell&&!hasVersion){
+      const canonical=await cache.match(originalAsset);
       if(canonical)return canonical;
     }
-    try {
-      const response=await fetch(request);
-      if(!response.ok&&isNavigation){const index=await cache.match(new URL('index.html',self.registration.scope).href);if(index)return index;}
-      return response;
-    } catch(error) {
-      if(isNavigation){const index=await cache.match(new URL('index.html',self.registration.scope).href);if(index)return index;}
+    try{
+      return await fetch(request,{cache:'no-store'});
+    }catch(_){
       return new Response('Offline asset unavailable',{status:503,headers:{'Content-Type':'text/plain'}});
     }
   })());
