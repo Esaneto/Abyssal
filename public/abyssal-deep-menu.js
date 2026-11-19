@@ -21,14 +21,14 @@ deep.innerHTML=
   '<button type="button" class="deep-capsule deep-ecos deep-hotspot" data-deep-target="ecos" aria-label="Abrir Loja de Ecos"><span class="deep-capsule-rim"></span><span class="deep-capsule-glass"><canvas id="deepEchoPreview" width="240" height="300" aria-hidden="true"></canvas><span class="deep-capsule-scan"></span></span><span class="deep-capsule-base"></span><strong>ECOS</strong><small>ORGANISMOS ABISSAIS</small></button>'+
   '<button type="button" class="deep-hatch deep-hotspot" data-deep-target="hatch" aria-label="Abrir escotilha e escolher mergulho"><span class="deep-hatch-outer"><span class="deep-hatch-bolts"></span><span class="deep-hatch-inner"><span class="deep-hatch-lid"><i class="deep-hatch-wheel"></i><i class="deep-hatch-cross"></i></span></span></span><strong>MERGULHAR</strong></button>'+
  '</div>'+
- '<div class="deep-topline"><span class="deep-brand">ABYSSAL <small>ESTAÇÃO DE OPERAÇÕES</small></span><div class="deep-utilities"><button type="button" data-deep-quick="account">CONTA</button><button type="button" data-deep-quick="settings">AJUSTES</button><button type="button" data-deep-quick="guide">AJUDA</button></div></div>'+
+ '<div class="deep-topline"><span class="deep-brand">ABYSSAL <small>ESTAÇÃO DE OPERAÇÕES</small></span><div class="deep-utilities"><button type="button" data-deep-quick="account">CONTA</button><button type="button" data-deep-quick="settings" aria-expanded="false" aria-controls="deepSettings">AJUSTES</button><button type="button" data-deep-quick="guide">AJUDA</button></div><div id="deepSettings" class="deep-settings-popover" hidden role="group" aria-label="Ajustes da cabine"><button type="button" data-deep-setting="controls">CONTROLES</button><button type="button" data-deep-setting="volume">VOLUME / ÁUDIO</button><button type="button" data-deep-setting="filter">GRÁFICOS</button><button type="button" data-deep-setting="language">IDIOMA</button><button type="button" data-deep-setting="fullscreen">TELA CHEIA</button><button type="button" data-deep-setting="download">BAIXAR ABYSSAL</button></div></div>'+
  '<div class="deep-hatch-choice" id="deepHatchChoice" hidden role="group" aria-label="Escolher modo de mergulho"><p>ESCOTILHA / EXPEDIÇÃO</p><button type="button" id="deepSoloDive">01 · MERGULHO SOLO</button><button type="button" id="deepOnlineDive">02 · MERGULHO ONLINE</button></div>'+
  '<div class="deep-bottomline"><span id="deepInstruction">SELECIONE UM EQUIPAMENTO PARA APROXIMAR A CÂMERA</span><button type="button" id="deepReturn" hidden>‹ VOLTAR À CABINE</button></div>';
 workshop.append(deep);
 const visor=workshop.querySelector('.abyss-cockpit-console');
 let focus='overview',pendingOnline=false,launching=false,raf=0,lastDraw=0,seenWorkshop=false;
 const suit=$('deepSuitPreview'),echo=$('deepEchoPreview'),suitC=suit.getContext('2d'),echoC=echo.getContext('2d');
-const deck=$('deepWorld'),back=$('deepReturn'),choices=$('deepHatchChoice');
+const deck=$('deepWorld'),back=$('deepReturn'),choices=$('deepHatchChoice'),settings=$('deepSettings'),settingsToggle=deep.querySelector('[data-deep-quick="settings"]');
 const body=document.body;
 function isOpen(){return !workshop.hidden&&!body.classList.contains('game-active');}
 function activate(){
@@ -38,7 +38,9 @@ function activate(){
  if(!launching)overview();
  startPreview();
 }
+function closeSettings(){settings.hidden=true;settingsToggle.setAttribute('aria-expanded','false');}
 function overview(){
+ closeSettings();
  if(launching)return;
  focus='overview';deep.dataset.focus='overview';
  workshop.classList.remove('abyss-deep-detail','abyss-deep-approaching');
@@ -50,6 +52,7 @@ function overview(){
 }
 function view(target){
  if(!isOpen()||launching)return;
+ closeSettings();
  if(!['hatch','wardrobe','ecos','research','social'].includes(target))return;
  focus=target;deep.dataset.focus=target;
  choices.hidden=true;back.hidden=false;workshop.classList.add('abyss-deep-approaching');
@@ -73,18 +76,27 @@ function view(target){
  };
  if(reduce())route();else root.setTimeout(route,490);
 }
+function openSetting(name){
+ if(!['controls','volume','filter','language','fullscreen','download'].includes(name))return;
+ const nav=root.AbyssalCockpitNavigation;if(!nav)return;
+ closeSettings();focus='quick';deep.dataset.focus='research';
+ workshop.classList.add('abyss-deep-detail');workshop.classList.remove('abyss-deep-approaching');
+ back.hidden=false;choices.hidden=true;
+ nav.select('cabine');
+ if(name==='download')nav.routeScreen('downloadScreen');else nav.routeCommand(name);
+}
 function showQuick(target){
  if(target==='guide'){root.AbyssalTutorials?.openManual?.('solo');return;}
- const nav=root.AbyssalCockpitNavigation;
- if(!nav)return;
- focus='quick';deep.dataset.focus='research';
- workshop.classList.add('abyss-deep-detail');
- workshop.classList.remove('abyss-deep-approaching');
+ if(target==='settings'){const next=settings.hidden;settings.hidden=!next;settingsToggle.setAttribute('aria-expanded',String(next));return;}
+ const nav=root.AbyssalCockpitNavigation;if(!nav)return;
+ closeSettings();focus='quick';deep.dataset.focus='research';
+ workshop.classList.add('abyss-deep-detail');workshop.classList.remove('abyss-deep-approaching');
  back.hidden=false;choices.hidden=true;
  if(target==='account'){nav.select('perfil');nav.routeScreen(root.AbyssalOnline?.isAuthenticated?.()?'profileScreen':'loginScreen');}
- else {nav.select('cabine');nav.routeCommand('controls');}
 }
+
 deep.addEventListener('click',event=>{
+ const setting=event.target.closest('[data-deep-setting]');if(setting){openSetting(setting.dataset.deepSetting);return;}
  const target=event.target.closest('[data-deep-target]');
  if(target){view(target.dataset.deepTarget);return;}
  const quick=event.target.closest('[data-deep-quick]');
@@ -93,6 +105,7 @@ deep.addEventListener('click',event=>{
 back.addEventListener('click',()=>{root.AbyssalCockpitNavigation?.select?.('cabine');overview();deep.querySelector('.deep-hatch')?.focus({preventScroll:true});});
 workshop.addEventListener('keydown',event=>{
  if(!isOpen()||!workshop.classList.contains('abyss-deep-active')||event.key!=='Escape'||launching)return;
+ if(!settings.hidden){closeSettings();event.preventDefault();event.stopImmediatePropagation();return;}
  if(focus==='overview')return;
  if(workshop.classList.contains('abyss-deep-detail')&&workshop.querySelector('.abyss-cockpit-embedded:not([hidden])')){
   root.AbyssalCockpitNavigation?.back?.();event.preventDefault();event.stopImmediatePropagation();return;
@@ -185,7 +198,7 @@ function startPreview(){if(!raf&&!document.hidden&&isOpen())raf=root.requestAnim
 function stopPreview(){if(raf)root.cancelAnimationFrame(raf);raf=0;lastDraw=0;}
 const observer=new MutationObserver(()=>{
  if(isOpen()&&!workshop.classList.contains('abyss-deep-active'))activate();
- if(!isOpen()){stopPreview();workshop.classList.remove('abyss-deep-active','abyss-deep-detail','abyss-deep-approaching','abyss-deep-hatch-opening');focus='overview';deep.dataset.focus='overview';choices.hidden=true;back.hidden=true;}
+ if(!isOpen()){stopPreview();workshop.classList.remove('abyss-deep-active','abyss-deep-detail','abyss-deep-approaching','abyss-deep-hatch-opening');focus='overview';deep.dataset.focus='overview';choices.hidden=true;back.hidden=true;closeSettings();}
 });
 observer.observe(workshop,{attributes:true,attributeFilter:['hidden']});
 const grid=$('submarineWorkshopGrid');
