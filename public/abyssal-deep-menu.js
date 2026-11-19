@@ -40,6 +40,7 @@ function activate(){
 }
 function closeSettings(){settings.hidden=true;settingsToggle.setAttribute('aria-expanded','false');}
 function overview(){
+ observedEmbedded=false;
  closeSettings();
  if(launching)return;
  focus='overview';deep.dataset.focus='overview';
@@ -77,6 +78,7 @@ function view(target){
  if(reduce())route();else root.setTimeout(route,490);
 }
 function openSetting(name){
+ observedEmbedded=false;
  if(!['controls','hudEditor','volume','filter','language','fullscreen','download'].includes(name))return;
  const nav=root.AbyssalCockpitNavigation;if(!nav)return;
  closeSettings();focus='quick';deep.dataset.focus='research';
