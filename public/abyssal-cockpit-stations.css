@@ -171,3 +171,17 @@
  #submarineWorkshop .abyss-control-key.abyss-station-key{transition:none!important;transform:none!important}
  #submarineWorkshop .abyss-station-rail{scroll-behavior:auto!important}
 }
+/* Camera parallax applies to the environmental canvas only. Controls never shrink. */
+#submarineWorkshop .abyss-cockpit-canvas{
+ transform-origin:50% 45%;
+ transition:transform .44s cubic-bezier(.18,.67,.2,1);
+ will-change:transform;
+}
+#submarineWorkshop[data-station="social"] .abyss-cockpit-canvas{transform:translate3d(1.8%,0,0) scale(1.035)}
+#submarineWorkshop[data-station="cabine"] .abyss-cockpit-canvas{transform:translate3d(0,0,0) scale(1)}
+#submarineWorkshop[data-station="laboratorio"] .abyss-cockpit-canvas{transform:translate3d(-1%,0,0) scale(1.025)}
+#submarineWorkshop[data-station="arsenal"] .abyss-cockpit-canvas{transform:translate3d(-2%,0,0) scale(1.04)}
+#submarineWorkshop[data-station="perfil"] .abyss-cockpit-canvas{transform:translate3d(-2.5%,0,0) scale(1.025)}
+@media(prefers-reduced-motion:reduce){
+ #submarineWorkshop .abyss-cockpit-canvas{transition:none!important;transform:none!important;will-change:auto!important}
+}
