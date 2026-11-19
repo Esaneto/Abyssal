@@ -543,8 +543,11 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    await screenshot('android-installed-cockpit');
    for(const [w,h] of [[320,568],[640,360],[844,390],[360,640]]){
     await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:2,mobile:true,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});
-    await sleep(420);
-    const m=await evaluate("(()=>{window.AbyssalDeepMenu?.overview();const c=document.getElementById('submarineWorkshop'),d=document.getElementById('abyssDeepMenu'),r=c.getBoundingClientRect(),links=[...d.querySelectorAll('[data-deep-target]')].map(el=>{const v=el.getBoundingClientRect(),hit=document.elementFromPoint(v.left+v.width/2,v.top+v.height/2);return {id:el.dataset.deepTarget,left:v.left,right:v.right,top:v.top,bottom:v.bottom,w:v.width,h:v.height,hit:hit===el||el.contains(hit)}});return {w:innerWidth,h:innerHeight,cabin:r.toJSON(),scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,landscape:document.documentElement.classList.contains('abyssal-handheld-landscape'),links};})()");
+    await evaluate("window.AbyssalDeepMenu?.overview()");
+    // Let the real 700ms camera easing reach its target before measuring
+    // settled clickable geometry. Mid-transition objects may cross the edge.
+    await sleep(820);
+    const m=await evaluate("(()=>{const c=document.getElementById('submarineWorkshop'),d=document.getElementById('abyssDeepMenu'),r=c.getBoundingClientRect(),links=[...d.querySelectorAll('[data-deep-target]')].map(el=>{const v=el.getBoundingClientRect(),hit=document.elementFromPoint(v.left+v.width/2,v.top+v.height/2);return {id:el.dataset.deepTarget,left:v.left,right:v.right,top:v.top,bottom:v.bottom,w:v.width,h:v.height,hit:hit===el||el.contains(hit)}});return {w:innerWidth,h:innerHeight,cabin:r.toJSON(),scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,landscape:document.documentElement.classList.contains('abyssal-handheld-landscape'),links};})()");
     console.log('[compact-deep-cabin] '+JSON.stringify(m));
     assert.ok(m.w===w&&m.h===h&&Math.abs(m.cabin.width-w)<2&&Math.abs(m.cabin.height-h)<2&&m.scrollWidth<=w+1&&m.scrollHeight<=h+1&&m.landscape===(w>h),'Deep cabin must occupy the whole viewport after rotation: '+JSON.stringify(m));
     assert.ok(m.links.length===5&&m.links.every(x=>x.hit&&x.w>=32&&x.h>=36&&x.left>=-2&&x.right<=w+2&&x.top>=-2&&x.bottom<=h+2),'Physical console, sonar, hatch or capsule clipped/blocked: '+JSON.stringify(m));
