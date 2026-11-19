@@ -197,6 +197,9 @@ const embeddedObserver=new MutationObserver(()=>{
  if(visibleEmbedded){
   if(focus==='overview'){focus='quick';deep.dataset.focus='research';back.hidden=false;}
   workshop.classList.add('abyss-deep-detail');
+ }else if(focus==='quick'&&workshop.classList.contains('abyss-deep-detail')){
+  // Closing a legacy profile or notification must restore the cabin overview.
+  overview();
  }
 });
 if(grid)embeddedObserver.observe(grid,{subtree:true,childList:true});
