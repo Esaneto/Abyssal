@@ -89,7 +89,9 @@ body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .a
 #submarineWorkshop.abyss-deep-detail .deep-hatch-choice{display:none!important}
 #submarineWorkshop.abyss-deep-detail .deep-hotspot{pointer-events:none}
 #submarineWorkshop.abyss-deep-detail .deep-topline{z-index:31}
-#submarineWorkshop.abyss-deep-detail .deep-bottomline{z-index:31}
+#submarineWorkshop.abyss-deep-detail .deep-bottomline{z-index:31;left:25%;right:auto;top:max(9px,env(safe-area-inset-top));bottom:auto;justify-content:flex-start;pointer-events:none}
+#submarineWorkshop.abyss-deep-detail .deep-bottomline span{display:none}
+#submarineWorkshop.abyss-deep-detail .deep-bottomline button{pointer-events:auto;min-height:36px}
 .deep-menu[data-focus="hatch"] .deep-world{transform:translate3d(0,-18%,0) scale(1.8)}
 .deep-menu[data-focus="wardrobe"] .deep-world{transform:translate3d(21%,6%,0) scale(1.8)}
 .deep-menu[data-focus="ecos"] .deep-world{transform:translate3d(-21%,6%,0) scale(1.8)}
