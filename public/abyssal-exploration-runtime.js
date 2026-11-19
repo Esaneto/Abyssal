@@ -39,6 +39,10 @@
   const filter=$('shopOwnershipFilter');if(filter){filter.value=filterValue;filter.dispatchEvent(new Event('change',{bubbles:true}));}
   return true;
  }
+ function openEchoRedeem(){
+  if(!openEchoCatalog('all'))return;
+  $('openRedeemCodeBtn')?.click();
+ }
  function navigateCommand(page){if(!workshop||workshop.hidden)return false;if(page==='notices'||page==='download')return navigateEmbedded(embeddedPages[page]);if(!commandPages.has(page))return false;activeConsoleSection=page;renderWorkshop();return true;}
  function backEmbedded(){const from=activeConsoleSection,landing=selectedStation==='arsenal'?'arsenalHub':selectedStation==='social'?'socialHub':selectedStation==='perfil'?'profileHub':selectedStation==='laboratorio'?'solo':'solo',page=childPages.has(from)?(embeddedReturns.get(from)||(['redeem','purchase'].includes(from)?'shop':'profile')):from==='login'?loginReturn:from==='recovery'?'login':(embeddedReturns.get(from)||(from==='profile'&&publicProfileReturn==='cardumes'?'cardumes':landing));embeddedReturns.delete(from);activeConsoleSection=page;renderWorkshop();}
  function restoreEmbeddedCatalog(){
@@ -299,12 +303,12 @@
     ['MEUS ECOS','Visualize e equipe os Ecos já adquiridos.',()=>openEchoCatalog('owned')],
     ['ADQUIRIR ECOS','Explore raridades e habilidades.',()=>openEchoCatalog('all')],
     ['ABYSSÁRIO','Consulte as criaturas registradas.',()=>navigateEmbedded('catalogScreen')],
-    ['RESGATAR CÓDIGO','Acesse a área de resgate e recompensas.',()=>navigateEmbedded('redeemCodeScreen')]
+    ['RESGATAR CÓDIGO','Acesse a área de resgate e recompensas.',openEchoRedeem]
    ]:[
     ['MEU PERFIL','Conquistas, títulos e conta.',()=>navigateEmbedded('profileScreen')],
     ['ARMÁRIO','Personalize seu mergulhador.',()=>navigateCommand('wardrobe')],
     ['EDITAR HUD','Ajuste a interface da partida.',()=>navigateCommand('hudEditor')],
-    ['HISTÓRICO','Consulte suas últimas expedições.',()=>navigateEmbedded('matchHistoryScreen')]
+    ['HISTÓRICO','Consulte suas últimas expedições.',()=>$('matchHistoryBtn')?.click()]
    ];
    const panel=document.createElement('section');panel.className='abyss-station-cards';panel.setAttribute('aria-label',hub==='arsenalHub'?'Arsenal de Ecos':hub==='socialHub'?'Central Social':'Meu Mergulhador');
    for(const [name,description,action] of entries){
