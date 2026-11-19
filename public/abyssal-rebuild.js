@@ -150,7 +150,7 @@ function createExpeditionUI(){
       '<p id="abyssCheckpointLore">A pressão abaixo deste ponto está aumentando.</p>'+
       '<div class="abyss-checkpoint-stats">'+
         '<div><small>PROFUNDIDADE</small><strong id="abyssCheckpointDepth">1.000 m</strong></div>'+
-        '<div><small>BÔNUS DO ESPÉCIME</small><strong id="abyssCheckpointBonus">+0%</strong></div>'+
+        '<div><small>BÔNUS DO ECO</small><strong id="abyssCheckpointBonus">+0%</strong></div>'+
         '<div><small>ENERGIA COLETADA</small><strong>100% GARANTIDA</strong></div>'+
       '</div>'+
       '<div class="abyss-checkpoint-actions">'+
