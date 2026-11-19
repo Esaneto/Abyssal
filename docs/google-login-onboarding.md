@@ -74,3 +74,11 @@ Acesso como **Nekko** ou **GameMaster** no Abyssal é independente do teste de f
 - O proprietário copiou o ID **diretamente do campo de texto** do Google Cloud: `356475666791-t5tfa24kg31qad3r1b5h4ecusvachjv6.apps.googleusercontent.com`.
 - No código anterior estava `356475666791-t5tfa24kg3lqad3r1b5h4ecusvachjv6.apps.googleusercontent.com`, com **letra minúscula l** na sequência `kg3lqad`, mas no Google Cloud o caractere correto é **número 1**, resultando em `kg31qad`. Isso é suficiente para o erro `401 invalid_client` / `The OAuth client was not found`.
 - Atualizado o cliente Web padrão e acrescentado o ID incorreto anterior à lista de IDs rejeitados. Se a variável da VPS ainda contiver o ID incorreto, o servidor a substitui pelo correto, mantendo o cliente Android separado e verificando a audiência JWT com o Web ID.
+
+## Vinculação de contas e primeiro acesso (3.6.142)
+- Google novo: o servidor exige nickname único (3–18 caracteres), data de nascimento e aceite dos termos, sem gerar conta silenciosamente. A interface mostra a etapa explicitamente.
+- Google já vinculado: o backend busca por `googleSub` (identificador imutável) e retorna os dados da conta, preservando progresso.
+- Conta tradicional existente: depois de autenticar com nickname e senha, o jogador entra no Perfil e escolhe **Vincular conta Google**. A sessão ativa autenticada é exigida; o backend confere hash do token de sessão e o ID token assinado do Google antes de gravar `googleSub`.
+- O sistema não associa contas apenas por e-mail, não permite vincular o mesmo Google a duas contas e mantém senha existente, estatísticas, inventário, energia e histórico.
+- Para a janela branca `accounts.google.com/gsi/transform`, o servidor aplica `Cross-Origin-Opener-Policy: same-origin-allow-popups` aos documentos HTML, permitindo resposta do popup do Google sem enfraquecer a regra das rotas de API. Ativa FedCM no botão compatível.
+- A vinculação tem verificação de sessão, mas não disponibiliza funções de desvincular Google (evita perda acidental de acesso).

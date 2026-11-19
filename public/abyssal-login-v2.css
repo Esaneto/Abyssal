@@ -464,3 +464,21 @@
    font-size:10px;line-height:1.4;
  }
 }
+
+/* Google account onboarding, same panel on mobile and desktop. */
+#loginScreen #googleAccountContext.abyss-google-context{
+ display:block;min-width:0;max-width:100%;padding:11px 13px;margin:7px 0;
+ background:linear-gradient(110deg,rgba(21,92,109,.37),rgba(7,23,37,.46));
+ border:1px solid rgba(92,206,222,.32);border-radius:10px;
+ color:#c5e6e9;font:500 11px/1.5 Inter,system-ui,sans-serif;
+ overflow-wrap:anywhere;
+}
+#loginScreen #googleAccountContext[hidden]{display:none!important}
+#loginScreen #googleAccountContext strong{display:block;color:#89f2ee;font-size:11px;letter-spacing:.07em}
+#loginScreen #googleAccountContext p{margin:5px 0 0}
+#profileScreen .profile-google-link{
+ display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:8px 0 12px;min-width:0;
+}
+#profileScreen .profile-google-link button{max-width:100%;min-width:0;white-space:normal}
+#profileScreen #profileGoogleLinkStatus{font-size:11px;color:#9edfe2;margin:0;overflow-wrap:anywhere}
+#profileScreen #profileGoogleLinkBtn[hidden]{display:none!important}
