@@ -98,8 +98,7 @@ function openLegacy(sourceId,targetId,after){
  if(!source)return;
  source.click();
  const target=$(targetId);
- if(target&&!target.classList.contains('abyss-cockpit-embedded'))routeScreen(targetId);
- if(target)target.hidden=false;
+ if(target&&!target.hidden&&!target.classList.contains('abyss-cockpit-embedded'))routeScreen(targetId);
  if(typeof after==='function')after();
 }
 function researchPage(mode){
@@ -219,7 +218,7 @@ function updateStationNav(){
 }
 function select(id){
  if(!STATIONS.some(x=>x.id===id))return;
- station=id;drawStation();updateStationNav();
+ station=id;screen.dataset.station=id;drawStation();updateStationNav();
 }
 function selectRelative(step){const index=STATIONS.findIndex(s=>s.id===station);select(STATIONS[Math.min(STATIONS.length-1,Math.max(0,index+step))].id);}
 function routeScreen(id){
@@ -229,7 +228,8 @@ function routeScreen(id){
  const old=current;
  if(old)history.push(old);
  else history.push({type:'station',station});
- if(old?.node)old.node.hidden=true;
+ if(old?.type==='custom')old.node.remove();
+ if(old?.type==='embedded')old.node.hidden=true;
  if(!origin.has(node))origin.set(node,{parent:node.parentNode,next:node.nextSibling});
  body.append(node);node.classList.add('abyss-cockpit-embedded');node.hidden=false;
  current={type:'embedded',id,node};
@@ -307,8 +307,16 @@ rail.addEventListener('keydown',event=>{
 });
 rail.addEventListener('pointerdown',event=>{
  if(event.button!==0||event.target.closest('input'))return;
- drag={x:event.clientX,y:event.clientY,id:event.pointerId};
+ drag={x:event.clientX,y:event.clientY,lastX:event.clientX,id:event.pointerId};
  dragged=false;
+});
+rail.addEventListener('pointermove',event=>{
+ if(!drag||event.pointerId!==drag.id)return;
+ if(Math.abs(event.clientX-drag.x)>7&&Math.abs(event.clientX-drag.x)>Math.abs(event.clientY-drag.y)){
+  try{rail.setPointerCapture?.(event.pointerId);}catch(_){}
+  rail.scrollLeft+=drag.lastX-event.clientX;
+ }
+ drag.lastX=event.clientX;
 });
 rail.addEventListener('pointerup',event=>{
  if(!drag||event.pointerId!==drag.id)return;
