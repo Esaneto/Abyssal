@@ -23,7 +23,7 @@ const editable=node=>!!node?.closest?.('textarea,input:not([type=button],[type=s
 document.addEventListener('dragstart',e=>{if(!editable(e.target)&&e.target?.closest?.('img,a,svg,canvas')&&!e.target?.closest?.('[draggable=true]'))e.preventDefault();},true);
 function visible(n){if(!n||n.closest('[hidden]')||!n.getClientRects().length)return false;const style=getComputedStyle(n);return style.display!=='none'&&style.visibility!=='hidden';}
 function seen(){try{return localStorage.getItem(KEY)==='1';}catch{return false;}}
-function markSeen(){autoOff=true;try{localStorage.setItem(KEY,'1');}catch{}autoObserver?.disconnect();}
+function markSeen(){autoOff=true;try{localStorage.setItem(KEY,'1');localStorage.setItem('abyssalMenuTourV1','1');}catch{}autoObserver?.disconnect();}
 function create(){
  if(overlay)return;
  overlay=document.createElement('section');overlay.id='abyssalMenuTour';overlay.hidden=true;overlay.setAttribute('role','presentation');
@@ -41,6 +41,8 @@ function prepare(step){
  const target={cabin:'cabine',research:'laboratorio',resonance:'laboratorio',
   wardrobe:'perfil',shop:'arsenal',social:'social'}[step.area]||'cabine';
  nav.select(target);
+ if(step.area==='wardrobe')nav.routeCommand('wardrobe');
+ else if(step.area==='resonance')nav.routeScreen('resonanceScreen');
 }
 function rectFor(target){const w=innerWidth,h=innerHeight;if(!target||!visible(target))return {left:w/2-12,right:w/2+12,top:h/2-12,bottom:h/2+12};const r=target.getBoundingClientRect(),clamp=(v,max)=>Math.max(4,Math.min(max-4,v));return {left:clamp(r.left-5,w),right:clamp(r.right+5,w),top:clamp(r.top-5,h),bottom:clamp(r.bottom+5,h)};}
 function place(){
