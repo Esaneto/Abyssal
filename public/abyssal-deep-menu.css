@@ -123,9 +123,9 @@ body:not(.game-active) #submarineWorkshop.abyss-deep-active.abyss-deep-detail .a
  .deep-utilities{gap:3px}.deep-utilities button{padding:4px 6px;min-height:36px;font-size:9px}
  .deep-bottomline{left:9px;right:9px;font-size:8px}
  .deep-bottomline span{max-width:53%;line-height:1.3}
- .deep-hatch{bottom:8%;height:25%;width:32%}
- .deep-capsule{top:34%;height:40%}
- .deep-operations{top:23%;height:27%}
+ .deep-hatch{left:27%;bottom:7%;width:46%;height:22%}
+ .deep-capsule{top:46%;height:33%}
+ .deep-operations{top:17%;height:25%}
  .deep-operations strong{font-size:8px}.deep-research small{display:none}
  .deep-capsule>strong{font-size:10px}
  .deep-capsule>small{font-size:7px}
