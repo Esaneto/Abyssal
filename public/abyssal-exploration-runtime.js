@@ -265,6 +265,11 @@
   rail.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();selectRelativeStation(e.key==='ArrowLeft'?-1:1);}});
   keys.append(prev,rail,next);
   workshop.dataset.station=selectedStation;
+  requestAnimationFrame(()=>{
+   if(!rail.isConnected)return;
+   const active=rail.querySelector('.abyss-station-key.is-active');if(!active)return;
+   rail.scrollLeft=Math.max(0,active.offsetLeft-rail.offsetLeft-(rail.clientWidth-active.clientWidth)/2);
+  });
   // Show scrolling guidance only when the actual monitor contains hidden rows.
   const hint=document.createElement('span');
   hint.className='abyss-visor-scroll-hint';
