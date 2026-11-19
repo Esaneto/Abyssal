@@ -18,7 +18,7 @@ test('deep menu keeps the original gameplay, account, shop and art authority',()
  for(const id of ['deepSoloDive','deepOnlineDive','deepSuitPreview','deepEchoPreview','deepHatchChoice','deepReturn'])assert.match(s,new RegExp(id));
  for(const name of ['AbyssalCockpitNavigation','AbyssalDiverArt','AbyssalMarineArt','AbyssalCuratedSkins','AbyssalOnline','abyssal-room-joined','playBtn'])assert.match(s,new RegExp(name));
  assert.doesNotMatch(s,/stripe|localStorage\.setItem|\/api\/payments/i);
- for(const setting of ['controls','volume','filter','language','fullscreen','download'])assert.match(s,new RegExp('data-deep-setting="'+setting+'"'));
+ for(const setting of ['controls','hudEditor','volume','filter','language','fullscreen','download'])assert.match(s,new RegExp('data-deep-setting="'+setting+'"'));
  assert.match(s,/nav\.routeCommand\(name\)/);
  assert.match(s,/nav\.routeScreen\('downloadScreen'\)/);
 });
