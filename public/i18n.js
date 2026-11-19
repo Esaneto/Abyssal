@@ -632,7 +632,7 @@ function translate(value,language=current){
  const armament=key.match(/^ARMAMENTO DO SUBMARINO · (.+)$/);if(!out&&armament)out=(language==='es'?'ARMAMENTO DEL SUBMARINO · ':'SUBMARINE ARMAMENT · ')+armament[1];
  const cost=key.match(/^CUSTO ATUAL DA BASE: (\d+) ENERGIA \/ 5 MIN · (\d+) ARMA\(S\) INSTALADA\(S\)$/);if(!out&&cost)out=language==='es'?'COSTE ACTUAL DE LA BASE: '+cost[1]+' ENERGÍA / 5 MIN · '+cost[2]+' ARMA(S) INSTALADA(S)':'CURRENT BASE COST: '+cost[1]+' ENERGY / 5 MIN · '+cost[2]+' INSTALLED WEAPON(S)';
  const lamp=key.match(/^Cone de luz · alcance (\d+) · (equipamento inicial|\d+% de alcance adicional)$/);if(!out&&lamp){const n=lamp[2].match(/^\d+%/)?.[0];out=(language==='es'?'Cono de luz · alcance ':'Light cone · range ')+lamp[1]+' · '+(n?(language==='es'?n+' de alcance adicional':n+' extra range'):(language==='es'?'equipo inicial':'starting equipment'));}
- const respawn=key.match(/^ESPÉCIME ABATIDO · RETORNO EM (.+)$/);if(!out&&respawn)out=(language==='es'?'ESPÉCIMEN DERROTADO · REGRESA EN ':'SPECIMEN DEFEATED · RETURNS IN ')+respawn[1];
+ const respawn=key.match(/^ECO ABATIDO · RETORNO EM (.+)$/);if(!out&&respawn)out=(language==='es'?'ECO DERROTADO · REGRESA EN ':'ECHO DEFEATED · RETURNS IN ')+respawn[1];
  if(!out){
   const rules=[
    [/^(\d+) de (\d+) disponíveis$/, '$1 of $2 available','$1 de $2 disponibles'],
