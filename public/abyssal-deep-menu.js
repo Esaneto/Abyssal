@@ -154,21 +154,23 @@ function drawSamples(t){
   const products=avatar?.slots?.outfit||[];
   const choice=products.length?products[Math.floor(t/11000)%products.length]:null;
   const appearance=avatar?.normalize?.({...avatar.get(),outfit:choice?.id||'navy'})||undefined;
-  sc.save();sc.translate(suit.width/2,suit.height*.54);
-  art.draw(sc,0,0,38,-Math.PI/2,-Math.PI/2,t,{gender:root.AbyssalDiverGender||'male',appearance,moving:false,heldItem:'none'});
+  sc.save();sc.translate(suit.width/2,suit.height*.54+Math.sin(t*.0011)*3);
+  art.draw(sc,0,0,46,-Math.PI/2,-Math.PI/2,t,{gender:root.AbyssalDiverGender||'male',appearance,moving:true,heldItem:'none'});
   sc.restore();
  }else{
   sc.strokeStyle='#b7e7e4';sc.lineWidth=9;sc.beginPath();sc.arc(110,86,24,0,Math.PI*2);sc.moveTo(110,112);sc.lineTo(110,213);sc.moveTo(110,144);sc.lineTo(71,184);sc.moveTo(110,144);sc.lineTo(150,184);sc.stroke();
  }
  ec.clearRect(0,0,echo.width,echo.height);
- const species=root.AbyssalCuratedSkins?.items?.filter(item=>item.renderer==='marine'&&item.family)||[];
+ const catalog=root.AbyssalCuratedSkins;
+ const species=['eagleray','dumbo','nautilus','ribbonmoray'].map(id=>catalog?.byId?.[id]).filter(Boolean);
  if(root.AbyssalMarineArt?.draw&&species.length){
-  for(let i=0;i<3;i++){
-   const selected=species[(Math.floor(t/13500)+i*7)%species.length];
-   const x=45+((t*.010*(i%2===0?1:-1)+i*82+1200)%320+320)%320-60;
-   const y=70+i*72+Math.sin(t*.0008+i)*12;
-   ec.save();ec.globalAlpha=i===1?1:.52;
-   try{root.AbyssalMarineArt.draw(ec,x,y,i===1?29:18,Math.sin(t*.0007+i)*.2,selected,t,false);}catch(_){}
+  const step=Math.floor(t/12000);
+  for(let i=0;i<2;i++){
+   const selected=species[(step+i+species.length)%species.length];
+   const x=echo.width*(i===0?.51:.38)+Math.sin(t*.00055+i*2)*echo.width*.14;
+   const y=echo.height*(i===0?.42:.76)+Math.sin(t*.00094+i*2)*10;
+   ec.save();ec.globalAlpha=i===0?1:.48;
+   try{root.AbyssalMarineArt.draw(ec,x,y,i===0?50:25,Math.sin(t*.0007+i)*.25,selected,t,false);}catch(_){}
    ec.restore();
   }
  }
