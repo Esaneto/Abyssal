@@ -196,19 +196,26 @@ const injected=`<script>
      setTimeout(enterCabin,250);
     };
     setTimeout(enterCabin,950);
-    setTimeout(()=>{
+    setTimeout(async()=>{
      try{
       const box=document.getElementById('submarineWorkshop');
       if(!box||box.hidden||document.body.classList.contains('abyssal-menu-tour-open'))throw Error('Hatch did not open cockpit '+JSON.stringify({menuHidden:document.getElementById('menuScreen')?.hidden,menuClass:document.getElementById('menuScreen')?.className,stageTransit:document.getElementById('menuOceanStage')?.dataset.abyssTransit,btn:Boolean(document.getElementById('submarineWorkshopBtn')),btnDisabled:document.getElementById('submarineWorkshopBtn')?.disabled,body:document.body.className,guideHidden:document.getElementById('abyssalGuide')?.hidden,workshopAPI:Boolean(window.AbyssalSubmarineCockpit),blockers:[...document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel,#abyssalDiveChoicePanel')].filter(el=>!el.hidden&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).visibility!=='hidden').slice(0,8).map(el=>el.id)}));
-      const canvas=document.getElementById('abyssCockpitCanvas');
-      if(!canvas||canvas.width<300||canvas.height<250)throw Error('Cockpit canvas not painted');
-      const art=window.AbyssalSubmarineCockpit?.visualStatus?.();
-      if(!art?.rendered||!art.original||!art.liveOcean||art.bitmapBackdrop)throw Error('Original animated bridge did not render');
-      document.body.dataset.cockpitArt=art.original+','+art.liveOcean+','+art.mode;
+      const deepMode=Boolean(window.AbyssalDeepMenu?.isEnabled?.());
+      if(deepMode){
+       if(!box.classList.contains('abyss-deep-active')||box.querySelectorAll('#abyssDeepMenu [data-deep-target]').length!==5)throw Error('Deep cabin did not open with five real stations');
+       document.body.dataset.cockpitArt='deep-cabin,real-diver,real-ecos';
+      }else{
+       const canvas=document.getElementById('abyssCockpitCanvas');
+       if(!canvas||canvas.width<300||canvas.height<250)throw Error('Cockpit canvas not painted');
+       const art=window.AbyssalSubmarineCockpit?.visualStatus?.();
+       if(!art?.rendered||!art.original||!art.liveOcean||art.bitmapBackdrop)throw Error('Original animated bridge did not render');
+       document.body.dataset.cockpitArt=art.original+','+art.liveOcean+','+art.mode;
+      }
       const keys=[...box.querySelectorAll('.abyss-station-key')];
       if(keys.length!==5)throw Error('Expected five cockpit stations, found '+keys.length);
       for(const id of ['social','cabine','laboratorio','arsenal','perfil'])if(!box.querySelector('[data-station="'+id+'"]'))throw Error('Missing cockpit station '+id);
-      box.querySelector('[data-station="laboratorio"]').click();
+      if(deepMode){window.AbyssalDeepMenu.view('research');await new Promise(resolve=>setTimeout(resolve,570));}
+      else box.querySelector('[data-station="laboratorio"]').click();
       const research=box.querySelector('.abyss-tree-map'),nodes=research?.querySelectorAll('.abyss-tree-node')||[];
       if(nodes.length<5||!research.querySelector('[data-research-id="pulse"]')||!research.querySelector('[data-research-id="dash"]'))throw Error('Diver research Q/E or lamp nodes missing');
       const cards=nodes.length,icons=research.querySelectorAll('.abyss-tree-node-icon').length;
@@ -220,7 +227,8 @@ const injected=`<script>
       const monitorRect=monitor?.getBoundingClientRect(),deckRect=deck?.getBoundingClientRect();
       const currentKeys=[...box.querySelectorAll('.abyss-station-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
       const handheld=document.documentElement.classList.contains('abyssal-handheld');
-      if(handheld){const back=box.querySelector('.mobile-cockpit-back'),r=back?.getBoundingClientRect();if(!r||r.width<40||r.height<40||monitorRect.height<150)throw Error('Mobile expanded visor or back action missing');}
+      if(deepMode){const researchHotspot=box.querySelector('#abyssDeepMenu [data-deep-target="research"]'),r=researchHotspot?.getBoundingClientRect();if(!r||r.width<35||!box.classList.contains('abyss-deep-detail')||monitorRect.width<100)throw Error('Deep research viewport or station missing');}
+      else if(handheld){const back=box.querySelector('.mobile-cockpit-back'),r=back?.getBoundingClientRect();if(!r||r.width<40||r.height<40||monitorRect.height<150)throw Error('Mobile expanded visor or back action missing');}
       else{
       if(currentKeys.length!==5||keyRects.some(r=>r.width<25||r.height<25))throw Error('Cockpit hardware buttons are hidden or detached');
       if(!monitorRect||!deckRect)throw Error('Cockpit monitor/deck missing');
@@ -230,12 +238,12 @@ const injected=`<script>
       if(monitorRect.height<deckRect.height*1.5)throw Error('The central monitor must dominate the physical key deck');
       if(monitorRect.width<210||monitorRect.height<(innerWidth>700?180:150))throw Error('Central cockpit display is too small');
       }
-      document.body.dataset.cockpitLayout=JSON.stringify({visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],keys:[Math.round(deckRect.width),Math.round(deckRect.height)],keyHeight:Math.round(keyRects[0].height)});
+      document.body.dataset.cockpitLayout=JSON.stringify(deepMode?{deep:true,visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],hotspots:5}:{visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],keys:[Math.round(deckRect.width),Math.round(deckRect.height)],keyHeight:Math.round(keyRects[0].height)});
       const view=new URLSearchParams(location.search).get('view')||'solo';
       if(view==='wardrobe'){
        if(!handheld)throw Error('Wardrobe mobile smoke must use handheld UA');
-       box.querySelector('.mobile-cockpit-back').click();
-       box.querySelector('[data-cockpit-setting="wardrobe"]').click();
+       if(deepMode){window.AbyssalDeepMenu.view('wardrobe');await new Promise(resolve=>setTimeout(resolve,570));}
+       else {box.querySelector('.mobile-cockpit-back').click();box.querySelector('[data-cockpit-setting="wardrobe"]').click();}
        const wardrobe=box.querySelector('.abyss-wardrobe'),stage=wardrobe?.querySelector('.aw-canvas'),panel=wardrobe?.querySelector('.aw-panel'),save=wardrobe?.querySelector('.aw-primary'),choice=wardrobe?.querySelector('.aw-option');
        if(!wardrobe||!stage||!panel||!save||!choice)throw Error('Wardrobe controls missing');
        const a=stage.getBoundingClientRect(),b=panel.getBoundingClientRect(),c=save.getBoundingClientRect();
