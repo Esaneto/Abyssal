@@ -116,7 +116,7 @@ function watchShop(){
 
 function retitleMenu(){
   var shopLabel=document.querySelector('#shopBtn .menu-action-label');
-  if(shopLabel)shopLabel.textContent='CATÁLOGO DE ESPÉCIMES';
+  if(shopLabel)shopLabel.textContent='ARSENAL DE ECOS';
 
   var catalogLabel=document.querySelector('#catalogBtn .menu-action-label');
   if(catalogLabel)catalogLabel.textContent='ABYSSÁRIO';
