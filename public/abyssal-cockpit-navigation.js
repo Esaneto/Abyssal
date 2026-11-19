@@ -172,7 +172,7 @@ function drawStation(){
   },'abyss-station-primary'),button('MERGULHAR ONLINE',()=>{
    root.AbyssalPreferredRoomMode='coop';
    const mode=$('roomModeInput');if(mode)mode.value='coop';
-   root.AbyssalOnline?.showRooms?.();
+   root.AbyssalOnline?.connectAndJoin?.('MERGULHO-ONLINE');
   },'abyss-station-secondary'));
   callout.append(actions);body.append(callout);
   gridCards([['Configurações','Áudio, gráficos, idioma e controles.',()=>routeCommand('volume'),'AJUSTAR'],
@@ -325,6 +325,18 @@ rail.addEventListener('pointerup',event=>{
  dragged=true;selectRelative(dx<0?1:-1);
 });
 rail.addEventListener('pointercancel',()=>{drag=null;});
+let visorDrag=null;
+heading.addEventListener('pointerdown',event=>{
+ if(event.button!==0||event.target.closest('button,a,input,select'))return;
+ visorDrag={x:event.clientX,y:event.clientY,id:event.pointerId};
+});
+heading.addEventListener('pointerup',event=>{
+ if(!visorDrag||event.pointerId!==visorDrag.id)return;
+ const dx=event.clientX-visorDrag.x,dy=event.clientY-visorDrag.y;
+ visorDrag=null;
+ if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.3)selectRelative(dx<0?1:-1);
+});
+heading.addEventListener('pointercancel',()=>{visorDrag=null;});
 rail.addEventListener('click',event=>{if(dragged){event.preventDefault();event.stopImmediatePropagation();dragged=false;}},true);
 root.addEventListener('abyssal-room-joined',()=>close(false));
 root.AbyssalCockpitNavigation=Object.freeze({open,close,showExterior,routeScreen,routeCommand,back,isEmbedded,select,stations:STATIONS});
