@@ -54,6 +54,7 @@ const { registerChatModerationRoutes } = require('./chat-moderation');
 const GMAdmin=require('./gamemaster-admin');
 const {birthBand}=require('./auth-birthdate');
 const {verifyGoogleIdToken}=require('./google-login');
+const {findByGoogleSub,googleLinkDecision}=require('./google-account-link');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const APP_VERSION=require('./package.json').version;
 const CardumeInvites=require('./cardume-invites');
@@ -412,7 +413,7 @@ const TITLE_DEFINITIONS=[
  }
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
  function migrateEnergy(u){if(!u)return;if(!Number.isFinite(Number(u.energy)))u.energy=Math.max(0,Math.floor((Number(u.coins)||0)/10));else u.energy=Math.max(0,Math.floor(Number(u.energy)));delete u.coins;}
- function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return { adminNotices:GMAdmin.notices(u), cardumeInvites:CardumeInvites.publicInvites(u,users,cardumes,{blocked:GMAdmin.blocked}), likedProfiles:u.likedProfiles.slice(), canInviteCardume:Boolean(cardumes[u.cardumeId]?.open&&cardumes[u.cardumeId]?.leader===u.nickname&&!GMAdmin.blocked(u)&&!u.chatBanned&&!(Number(u.chatMutedUntil)>Date.now())), wheel:wheelDailyStatus(u), nickname: u.nickname, ageBand:['teen','adult'].includes(u.ageBand)?u.ageBand:'unknown', role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), hudLayout:HudLayout.normalize(u.hudLayout),hudLayoutRevision:Math.max(0,Number(u.hudLayoutRevision)||0), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), alphaFinCredits:Math.max(0,Math.min(1,Number(u.alphaFinCredits)||0)), metaUpgrades: ResearchSystem.sanitizeLegacyActives(u.metaUpgrades), researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return {googleLinked:Boolean(u.googleSub),adminNotices:GMAdmin.notices(u), cardumeInvites:CardumeInvites.publicInvites(u,users,cardumes,{blocked:GMAdmin.blocked}), likedProfiles:u.likedProfiles.slice(), canInviteCardume:Boolean(cardumes[u.cardumeId]?.open&&cardumes[u.cardumeId]?.leader===u.nickname&&!GMAdmin.blocked(u)&&!u.chatBanned&&!(Number(u.chatMutedUntil)>Date.now())), wheel:wheelDailyStatus(u), nickname: u.nickname, ageBand:['teen','adult'].includes(u.ageBand)?u.ageBand:'unknown', role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), hudLayout:HudLayout.normalize(u.hudLayout),hudLayoutRevision:Math.max(0,Number(u.hudLayoutRevision)||0), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), alphaFinCredits:Math.max(0,Math.min(1,Number(u.alphaFinCredits)||0)), metaUpgrades: ResearchSystem.sanitizeLegacyActives(u.metaUpgrades), researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];normalizeHallTitle(u);return {nickname:u.nickname,isDeveloper:isDeveloperUser(u),hallPosition:hallPosition(u),equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)),hudLayout:viewerKey&&(viewer?.blockedUsers.includes(key)||u.blockedUsers.includes(viewerKey))?null:HudLayout.normalize(u.hudLayout),specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
@@ -445,7 +446,10 @@ app.use((req, res, next) => {
  res.set('X-Frame-Options','DENY');
  res.set('Referrer-Policy','strict-origin-when-cross-origin');
  res.set('Permissions-Policy','camera=(), microphone=(), geolocation=(), payment=(self "https://checkout.stripe.com"), fullscreen=(self)');
- res.set('Cross-Origin-Opener-Policy','same-origin');
+ // Google Identity Services popup must be able to communicate its ID token
+ // with the originating Abyssal document. Keep API routes isolated.
+ res.set('Cross-Origin-Opener-Policy',req.path==='/'||/\.html$/i.test(req.path)
+  ?'same-origin-allow-popups':'same-origin');
  if(req.secure||String(req.headers['x-forwarded-proto']||'').split(',')[0].trim()==='https')res.set('Strict-Transport-Security','max-age=31536000');
  // Report-only while legacy inline scripts are migrated to nonces/hashes.
  res.set('Content-Security-Policy-Report-Only',"default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.socket.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://checkout.stripe.com");
@@ -1862,13 +1866,13 @@ io.on('connection', socket => {
    attempts.push(now);authAttempts.set(ip,attempts);
    return socket.emit('auth-result',{ok:false,message:'Não foi possível validar sua conta Google. Tente novamente.'});
   }
-  let found=Object.entries(users).find(([,u])=>u?.googleSub===google.sub);
+  let found=findByGoogleSub(users,google.sub);
   let user,key,mode='google-login';
   if(found){[key,user]=found;}
   else{
    // Never link to an existing password account based on email alone.
    if(Object.values(users).some(u=>String(u?.email||'').toLowerCase()===google.email))
-    return socket.emit('auth-result',{ok:false,message:'Este e-mail já tem uma conta Abyssal. Entre com nickname e senha para preservar seu progresso.'});
+    return socket.emit('auth-result',{ok:false,code:'google_link_required',message:'Este e-mail já pertence a uma conta Abyssal. Entre com seu nickname e senha e depois escolha VINCULAR GOOGLE no perfil para manter todo o progresso.'});
    const nickname=String(payload.nickname||'').trim();
    const birth=birthBand(String(payload.birthDate||''));
    if(!nickname||!birth||payload.termsAccepted!==true)
@@ -1891,6 +1895,45 @@ io.on('connection', socket => {
   socket.data.nickname=user.nickname;socket.data.userKey=key;socket.data.isDeveloper=isDeveloperUser(user);
   const sessionToken=issueSessionToken(user);saveUsers();await flushPersistence();
   socket.emit('auth-result',{ok:true,mode,...publicUser(user),sessionToken});broadcastCardumeRosters();
+ });
+ socket.on('link-google-account',async(payload={},ack)=>{
+  const reply=result=>{if(typeof ack==='function')ack(result);else socket.emit('google-link-result',result);};
+  const key=String(socket.data.userKey||''),user=users[key];
+  const token=String(payload.sessionToken||'');
+  if(!user||!/^[a-f0-9]{64}$/i.test(token))
+   return reply({ok:false,message:'Entre primeiro com nickname e senha para vincular sua conta.'});
+  const now=Date.now(),digest=hashSessionToken(token);
+  const verified=(Array.isArray(user.sessionTokens)?user.sessionTokens:[]).some(
+   item=>item&&Number(item.expiresAt)>now&&safeEqual(item.hash,digest));
+  if(!verified)return reply({ok:false,message:'Sua sessão expirou. Entre novamente para vincular o Google.'});
+  if(GMAdmin.blocked(user))return reply({ok:false,message:GMAdmin.accessMessage(user)});
+  const ip=socket.handshake.address||'unknown';
+  pruneAuthAttempts(now);
+  const attempts=(authAttempts.get(ip)||[]).filter(t=>now-t<60000);
+  if(attempts.length>=12)return reply({ok:false,message:'Muitas tentativas. Tente novamente mais tarde.'});
+  let google;
+  try{google=await verifyGoogleIdToken(payload.idToken,GOOGLE_OAUTH_WEB_CLIENT_ID);}
+  catch(_){
+   attempts.push(now);authAttempts.set(ip,attempts);
+   return reply({ok:false,message:'Não foi possível validar essa conta Google. Tente novamente.'});
+  }
+  const decision=googleLinkDecision(users,key,google.sub);
+  if(!decision.ok)return reply({ok:false,message:decision.reason==='google_already_linked'
+   ?'Essa conta Google já está vinculada a outra conta Abyssal.'
+   :'Sua conta Abyssal já está vinculada a outra conta Google.'});
+  if(!decision.alreadyLinked){
+   user.googleSub=google.sub;
+   user.googleLinkedAt=new Date().toISOString();
+   saveUsers();
+   try{await flushPersistence();}catch(error){
+    console.error('[google-link] Falha ao persistir vínculo:',error?.message);
+    return reply({ok:false,message:'Não foi possível salvar o vínculo. Tente novamente.'});
+   }
+  }
+  authAttempts.delete(ip);
+  const result={ok:true,message:decision.alreadyLinked?'Esta conta Google já estava vinculada.':'Conta Google vinculada! Você pode entrar com Google ou nickname e senha.',account:publicUser(user)};
+  reply(result);
+  socket.emit('account-data',result.account);
  });
  socket.on('logout-session',async(payload={},ack)=>{
   const key=socket.data.userKey,user=users[key],token=String(payload?.token||'');
