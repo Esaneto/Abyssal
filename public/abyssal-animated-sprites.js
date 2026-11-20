@@ -22,6 +22,9 @@
  });
  const sourceName='abyssal-eco-sprites.png?v=2026.11.20.1';
  const hdSourceName='abyssal-sharks-2.5d.webp?v=2026.11.20.2';
+ const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.4';
+ const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.4';
+ let whiteSharkSwim=null,whiteSharkAttack=null,whiteSharkReady=false;
  const palettes=Object.create(null);
  let source=null,ready=false,hdSource=null,hdReady=false,hdCell=0;
  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
@@ -49,6 +52,14 @@
   c.putImageData(pixels,0,0);return canvas;
  }
  function preload(){
+  if(!whiteSharkSwim&&typeof root.Image==='function'){
+   let loaded=0;
+   const onload=()=>{if(++loaded===2)whiteSharkReady=whiteSharkSwim.naturalWidth===672&&whiteSharkSwim.naturalHeight===504&&whiteSharkAttack.naturalWidth===672&&whiteSharkAttack.naturalHeight===504;};
+   whiteSharkSwim=new root.Image();whiteSharkAttack=new root.Image();
+   for(const [img,url] of [[whiteSharkSwim,whiteSharkSwimName],[whiteSharkAttack,whiteSharkAttackName]]){
+    img.decoding='async';img.onload=onload;img.onerror=()=>{whiteSharkReady=false;};img.src=url;
+   }
+  }
   if(!source&&typeof root.Image==='function'){
    const image=new root.Image();source=image;image.decoding='async';
    image.onload=()=>{ready=image.naturalWidth===576&&image.naturalHeight===512;
@@ -71,6 +82,8 @@
  // A bite is a short, event-triggered pose, never an AI alert/chase animation.
  function isBiting(state,clock){
   if(!state)return false;
+  if(state.whiteSharkBiteWindup&&clock>=state.whiteSharkBiteWindup.startedAt)return true;
+  if(state.whiteSharkBiteCancel&&clock<state.whiteSharkBiteCancel.startedAt+state.whiteSharkBiteCancel.duration)return true;
   for(const event of [state.hostileBite,state.biteAnimation]){
    if(!event)continue;
    const start=Number(event.startedAt),duration=Math.max(1,Number(event.duration)||380);
@@ -82,11 +95,16 @@
  // The entity's swim-phase offset is separate from the real attack clock.
  function biteProgress(state,t,attack,clock=t){
   if(!attack)return -1;
+  const warming=state?.whiteSharkBiteWindup;
+  if(warming&&clock>=warming.startedAt)return clamp((clock-warming.startedAt)/Math.max(1,warming.duration),0,1)*.44;
+  const cancelled=state?.whiteSharkBiteCancel;
+  if(cancelled&&clock<cancelled.startedAt+cancelled.duration)return clamp((Number(cancelled.progress)||0)*(1-(clock-cancelled.startedAt)/Math.max(1,cancelled.duration)),0,.44);
   const started=Number(state?.hostileBite?.startedAt??state?.biteAnimation?.startedAt??state?.visualBiteStartedAt);
   const duration=Math.max(1,Number(state?.hostileBite?.duration??state?.biteAnimation?.duration)||380);
   if(Number.isFinite(started)&&started>=0){
    const elapsed=clock-started;
-   return elapsed>=0&&elapsed<duration?clamp(elapsed/duration,0,.999999):-1;
+   const phaseStart=Number(state?.hostileBite?.phaseStart)||0;
+   return elapsed>=0&&elapsed<duration?clamp(phaseStart+(1-phaseStart)*elapsed/duration,0,.999999):-1;
   }
   const until=Number(state?.visualBiteUntil);
   if(Number.isFinite(until)&&until>0)return clock<until?clamp(1-(until-clock)/380,0,.999999):-1;
@@ -105,14 +123,24 @@
  function drawAtOrigin(c,id,r,t,attack,hit=0,state=null){
   const cfg=SPECIES[String(id||'')];
   if(!cfg||!c||!(Number(r)>0))return false;
-  const useHd=hdReady&&cfg.art!==undefined;
-  if(!ready&&!useHd)return false;
-  const sheet=useHd?hdSource:(cfg.palette?palettes[cfg.palette]:source);
-  if(!sheet)return false;
+  const useWhiteShark=String(id)==='whiteShark'&&whiteSharkReady;
+  const useHd=!useWhiteShark&&hdReady&&cfg.art!==undefined;
+  if(!ready&&!useHd&&!useWhiteShark)return false;
   const time=Number(t)||0,phase=time*(cfg.octopus?.0037:.0059);
   const eventClock=typeof root.performance?.now==='function'?root.performance.now():time;
-  const frame=selectFrame(String(id),time,attack,state,useHd,eventClock);
+  const progress=biteProgress(state,time,attack,eventClock);
+  const frame=useWhiteShark?(progress>=0?Math.min(11,Math.floor(progress*11)):Math.floor(Math.max(0,time)/95)%11):selectFrame(String(id),time,attack,state,useHd,eventClock);
   const side=cfg.span*r;
+  if(useWhiteShark){
+   const sheet=progress>=0?whiteSharkAttack:whiteSharkSwim;
+   c.save();c.imageSmoothingEnabled=true;
+   if('imageSmoothingQuality' in c)c.imageSmoothingQuality='high';
+   if(Number(hit)>0){c.shadowColor='#fff';c.shadowBlur=Math.min(14,r*.35);}
+   c.drawImage(sheet,(frame%4)*168,Math.floor(frame/4)*168,168,168,-side/2,-side/2,side,side);
+   c.restore();return true;
+  }
+  const sheet=useHd?hdSource:(cfg.palette?palettes[cfg.palette]:source);
+  if(!sheet)return false;
   let srcX,srcY,cell;
   if(useHd){cell=hdCell;srcX=(frame%3)*cell;srcY=(cfg.art*3+Math.floor(frame/3))*cell;}
   else{cell=cfg.cell;srcX=frame*cell;srcY=(cfg.palette?(biteProgress(state,time,attack,eventClock)>=0?64:0):cfg.octopus?384:(biteProgress(state,time,attack,eventClock)>=0?cfg.attackRow:cfg.moveRow)*64);}
@@ -140,7 +168,7 @@
   }
   c.restore();return true;
  }
- function status(){return {ready:ready||hdReady,legacyReady:ready,hdReady,atlas:hdReady?hdSourceName:sourceName,species:Object.keys(SPECIES),octopusBlue:true};}
+ function status(){return {ready:ready||hdReady||whiteSharkReady,legacyReady:ready,hdReady,whiteSharkReady,atlas:hdReady?hdSourceName:sourceName,species:Object.keys(SPECIES),octopusBlue:true};}
  preload();
  return Object.freeze({SPECIES,has,drawAtOrigin,preload,status,selectFrame,biteProgress,isBiting});
 });
