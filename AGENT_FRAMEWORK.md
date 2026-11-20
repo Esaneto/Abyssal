@@ -42,3 +42,19 @@ Não duplicar login, comércio, habilidades, economia, matchmaking ou persistên
 
 ## Regra de continuidade
 Todo novo agente começa lendo este documento e deve responder primeiro: estado de branch; funções atuais; riscos; arquivos que alterará; testes previstos. Nenhuma nova camada genérica de CSS ou redesign amplo sem uma referência aprovada.
+
+
+## Arte aprovada: hub fotográfico e painéis animados (20/11/2026)
+A **imagem fornecida pelo usuário**, com escotilha central iluminada, cápsula de trajes à esquerda, cápsula de Ecos à direita, Pesquisa e Social ao fundo, é a referência visual vinculante do menu. NÃO reproduzir a cabine por blocos CSS geométricos se as imagens reais já estiverem disponíveis.
+
+Implementação a preservar:
+- \`public/abyssal-hub-room.webp\`: fotografia de fundo sem os cinco painéis; a arte mantém perspectivas, iluminação e equipamentos
+- \`public/abyssal-hub-panel-{dive,research,social,wardrobe,ecos}.webp\`: cinco painéis independentes, com imagens e texto originais, clicáveis por hit targets da cabine
+- \`public/abyssal-deep-menu-reference.css\`: layout fiel da imagem para desktop e paisagem; usa \`deep-art-ready\` somente após carregamento de TODOS os assets
+- \`public/abyssal-deep-menu-fidelity.css\` e \`public/abyssal-hub-room-plate.avif\`: fallback fotográfico e composição própria de tela vertical sem distorcer os personagens
+- \`public/abyssal-deep-menu-cinematic.css\`: animações, materiais/efeitos procedurais de fallback
+- \`public/abyssal-deep-menu.js\`: ações reais de jogo; não reimplementar economia, perfil, loja, autenticação ou sessão
+
+Os painéis devem flutuar suavemente, **cada um com duração e fase diferentes**, com \`transform:translate3d\`, e não animação de \`top/left\`; em reduced motion não devem animar. A animação da escotilha/cutscene deve iniciar Solo real ou Online real, nunca simular uma partida.
+
+**Aceitação visual:** comparar capturas reais de \`deep-ui-after-desktop-cabine.png\` e \`deep-ui-after-mobile-cabine.png\` com a imagem do usuário; conferir sobreposição, corte, vídeo/canvas, botões Solo e Online, ajustes, perfil e navegação. Se não for tão fiel quanto o cenário aprovado, a implementação ainda não está pronta.
