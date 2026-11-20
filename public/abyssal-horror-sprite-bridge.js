@@ -6,7 +6,8 @@
  'use strict';
  const previous=root.AbyssalAnimatedSprites;if(!previous)return;
  const IDS=["drifter","stinger","brute","lurker","whiteShark","boss","angler","maw","leviathan","whiteSharkBoss","kraken","devourer","riftSmile"];
- const aliases=Object.freeze({violet:'drifter',abyssaleye:'stinger',deepwarden:'brute',reefshark:'whiteShark',aberration:'boss',riftSmileRelic:'riftSmile'});
+ // Never substitute one equipped Eco species for another (e.g. Reef Shark for White Shark).
+ const aliases=Object.freeze({});
  const spans=Object.freeze({whiteShark:3.5,whiteSharkBoss:3.6,leviathan:4.0,kraken:4.4,boss:3.7,devourer:4.2,riftSmile:3.5,maw:3.7});
  const canonical=id=>aliases[String(id||'')]||String(id||'');
  const loaded=new Map(),failed=new Set(),loading=new Map();
@@ -52,25 +53,36 @@
   if(!c||!(Number(r)>0))return false;
   const clock=now(),p=previous.biteProgress?.(state,t,Boolean(attack),clock);
   const biting=Boolean(attack)&&Number.isFinite(p)&&p>=0;
-  const sheet=biting?art.attack:art.swim;
-  const current=biting?Math.min(15,Math.max(0,p*15)):(Math.max(0,Number(t)||0)/83.333333)%15;
-  const first=Math.floor(current),next=biting?Math.min(15,first+1):(first+1)%15,blend=current-first;
+  const swimPhase=(Math.max(0,Number(t)||0)/83.333333)%15;
+  const attackPhase=biting?Math.min(15,Math.max(0,p*15)):0;
+  const smoothstep=v=>{const x=Math.min(1,Math.max(0,v));return x*x*(3-2*x);};
+  // A 72 ms crossfade at each edge of a 480 ms contact attack prevents
+  // a visible teleport between two different illustrated poses.
+  const attackWeight=biting?smoothstep(p/.15)*smoothstep((1-p)/.15):0;
   const w=(spans[k]||3.25)*r,h=w*320/420;
   const eel=k==='lurker'||k==='maw';
-  const draw=(frame,opacity)=>{
-   if(opacity<=0)return;
+  const draw=(sheet,frame,opacity)=>{
+   if(opacity<=.003)return;
    c.globalAlpha=opacity;
    const sx=(frame%4)*420,sy=Math.floor(frame/4)*320;
    if(!eel){c.drawImage(sheet,sx,sy,420,320,-w/2,-h/2,w,h);return;}
-   // Eels propel with a head-to-tail lateral wave: the head remains stable;
-   // rear body strips have increasingly strong oscillation. No rigid U-shape slide.
-   const steps=20,phase=clock*.0046;
+   // Anatomical head-to-tail flexion. The head stays anchored while the
+   // rear half undulates; this is not a rigid curled sprite translating forward.
+   const steps=12,phase=clock*.0046;
    for(let i=0;i<steps;i++){
     const q=i/steps,tail=Math.pow(1-q,1.6),sourceW=420/steps;
     const offset=Math.sin(phase-q*5.9)*tail*r*.19;
-    c.drawImage(sheet,sx+i*sourceW,sy,sourceW+.15,320,
-      -w/2+q*w,-h/2+offset,w/steps+.25,h);
+    c.drawImage(sheet,sx+i*sourceW,sy,sourceW+.18,320,
+      -w/2+q*w,-h/2+offset,w/steps+.3,h);
    }
+  };
+  const paint=(sheet,phase,weight,loop)=>{
+   if(weight<=.003)return;
+   const first=Math.floor(phase);
+   const second=loop?(first+1)%15:Math.min(15,first+1);
+   const f=phase-first;
+   draw(sheet,first,weight*(1-f));
+   if(f>.003)draw(sheet,second,weight*f);
   };
   art.lastUsed=clock;
   if(clock-lastSweep>10000){
@@ -80,7 +92,8 @@
   c.save();c.imageSmoothingEnabled=true;
   if('imageSmoothingQuality' in c)c.imageSmoothingQuality='high';
   if(Number(hit)>0){c.shadowColor='#ffffff';c.shadowBlur=Math.min(14,r*.3);}
-  draw(first,1-blend);if(blend>.004)draw(next,blend);
+  paint(art.swim,swimPhase,1-attackWeight,true);
+  paint(art.attack,attackPhase,attackWeight,false);
   c.restore();return true;
  }
  function status(){return {...(previous.status?.()||{}),horrorEnabled:active,horrorAvailable:[...available],horrorReady:[...loaded.keys()],horrorFailed:[...failed]};}
