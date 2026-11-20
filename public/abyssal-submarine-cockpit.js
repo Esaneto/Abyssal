@@ -18,7 +18,15 @@
  function note(parent,text){const p=document.createElement('p');p.className='cockpit-setting-note';p.textContent=text;parent.append(p);}
  function createPage(name){
   const page=document.createElement('section');page.className='abyss-console-info cockpit-settings-page';page.dataset.settingPage=name;
-  if(name==='language'){
+  if(name==='settings'){
+   // Keep advanced options together in the visor instead of duplicating top controls.
+   for(const [label,key] of [['IDIOMA','language'],['CONTROLES','controls'],['ÁUDIO','volume'],['GRÁFICOS','filter'],['TELA CHEIA','fullscreen']]){
+    const details=document.createElement('details');details.className='cockpit-setting-accordion';
+    const summary=document.createElement('summary');summary.textContent=label;
+    details.append(summary,createPage(key));page.append(details);
+   }
+   note(page,'Preferências do dispositivo. Armário e HUD estão na estação Perfil.');
+  }else if(name==='language'){
    page.append(field('Idioma do jogo',[['pt','Português'],['en','English'],['es','Español']],read('abyssalLanguage','pt'),value=>{const original=document.getElementById('cockpitLanguageSelect');if(original){original.value=value;original.dispatchEvent(new Event('change',{bubbles:true}));}}));
    note(page,'Escolha o idioma da interface.');
   }else if(name==='controls'){

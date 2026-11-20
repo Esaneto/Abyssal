@@ -51,10 +51,10 @@ test('restored panoramic cockpit is the only menu implementation and offline cac
  const html=read('public/index.html');
  const sw=read('public/offline-sw.js');
  const css=read('public/abyssal-cockpit-stations.css');
- assert.match(html,/abyssal-cockpit-stations\.css\?v=3\.6\.149/);
+ assert.match(html,/abyssal-cockpit-stations\.css\?v=3\.6\.150/);
  assert.doesNotMatch(html,/abyssal-deep-menu(?:-cinematic|-native)?\.(?:js|css)/);
  assert.doesNotMatch(sw,/abyssal-deep-menu/);
- assert.match(sw,/2026-11-20-cockpit-polish-v298/);
+ assert.match(sw,/2026-11-20-consolidated-navigation-v299/);
  assert.match(css,/Refinamento discreto da cabine panorâmica/);
  assert.match(css,/prefers-reduced-motion/);
 });

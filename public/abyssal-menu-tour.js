@@ -6,7 +6,7 @@ const KEY='abyssalMenuTourV2', $=id=>document.getElementById(id);
 const STEPS=Object.freeze([
  {area:'exterior',target:'#divePortalBtn',title:'Escolha seu mergulho',copy:'A opção Mergulhar apresenta os modos Solo e Online. Na cabine, os dois modos também possuem atalhos próprios.'},
  {area:'exterior',target:'#submarineWorkshopBtn',title:'Entre na cabine',copy:'A cabine reúne as estações de preparação, progressão e comunidade.'},
- {area:'exterior',target:'#profileBtn',title:'Sua conta e progresso',copy:'Entre na sua conta para sincronizar progresso e acompanhar suas conquistas.'},
+ {area:'exterior',target:'#loginBtn',title:'Sua conta e progresso',copy:'Entre na sua conta para sincronizar progresso e acompanhar suas conquistas.'},
  {area:'exterior',target:'#hubMore',title:'Opções adicionais',copy:'Suporte, idioma e downloads continuam disponíveis no menu.'},
  {area:'cabin',target:'[data-station="cabine"]',title:'Cabine central',copy:'Esta é sua estação inicial. Use os botões para iniciar o modo Solo ou Online.'},
  {area:'research',target:'[data-station="laboratorio"]',title:'Laboratório',copy:'Pesquise habilidades do mergulhador, armas do submarino e abra a Ressonância.'},
