@@ -32,8 +32,8 @@ test('animated atlas supports all shark Ecos, hostile sharks and boss octopus',(
  assert.equal(api.SPECIES.abysscroc.palette,'red');
  assert.equal(api.SPECIES.greenland.palette,'green');
  assert.match(sprite,/imageSmoothingEnabled=true/);
- assert.match(sprite,/image\.naturalWidth!==576\|\|image\.naturalHeight!==512/);
- assert.match(sprite,/const frame=\(Math\.floor/);
+ assert.match(sprite,/ready=image\.naturalWidth===576&&image\.naturalHeight===512/);
+ assert.match(sprite,/const frame=selectFrame/);
  assert.match(sprite,/const side=cfg\.span\*r/);
 });
 test('existing active abilities and attack/collision systems remain preserved',()=>{
@@ -49,7 +49,7 @@ test('existing active abilities and attack/collision systems remain preserved',(
  const game=read('public/game.js');
  assert.match(game,/const atlas=window\.AbyssalAnimatedSprites/);
  assert.match(game,/const spriteId=playerCreature\?skin\?\.id/);
- assert.match(game,/atlas\.drawAtOrigin\(c,spriteId,r,animationTime,attacking,hit\)/);
+ assert.match(game,/atlas\.drawAtOrigin\(c,spriteId,r,animationTime,attacking,hit,enemyState\)/);
  assert.match(game,/drawRiftShopSpecimen\(e,specimenSkin,t\)/);
  const scale=require('../public/creature-scale.js');
  assert.ok(scale.companionCollisionRadius('tigershark')>0);
@@ -63,7 +63,7 @@ test('tiger-shark metadata and palette integrate into existing Echo catalog and 
  assert.match(game,/id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#bb4651'/);
  assert.match(curated,/"id": "greenland"[\s\S]*?"color": "#36ac70"/);
  assert.match(fauna,/tigershark/);
- assert.match(html,/abyssal-animated-sprites\.js\?v=2026\.11\.20\.1/);
+ assert.match(html,/abyssal-animated-sprites\.js\?v=2026\.11\.20\.2/);
  assert.match(sw,/'abyssal-eco-sprites\.png'/);
  assert.match(sw,/'abyssal-animated-sprites\.js'/);
  assert.match(sw,/2026-11-20-animated-ecos-v305/);
@@ -95,7 +95,7 @@ test('sprite renderer advances nado and ataque frames for hammerhead, tiger and 
  assert.deepEqual(render('tigershark',110,false),[64,256,64,64]);
  assert.deepEqual(render('tigershark',54,true),[64,320,64,64]);
  assert.deepEqual(render('aberration',175,false),[128,384,128,128]);
- assert.deepEqual(render('boss',350,true),[256,384,128,128]);
+ assert.deepEqual(render('boss',350,true),[384,384,128,128]);
  assert.deepEqual(render('abysscroc',110,false),[64,0,64,64]);
  assert.deepEqual(render('greenland',54,true),[64,64,64,64]);
 });
