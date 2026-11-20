@@ -297,3 +297,37 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>.shop-filter-bar{padding:3px!important;gap:4px!important}
 
 }
+
+/* Persistent escape hatch for every cockpit window. It is a sibling of the
+   scrollable viewport, not a descendant, and never scrolls out of reach. */
+#submarineWorkshop .abyss-cockpit-visor{position:relative!important}
+#submarineWorkshop .abyss-window-floating-close{display:none}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-visor-heading{
+ position:relative!important;z-index:16!important;isolation:isolate;
+ padding-right:calc(56px + env(safe-area-inset-right,0px))!important;
+}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-window-floating-close{
+ position:absolute!important;display:grid!important;place-items:center!important;
+ top:50%!important;right:max(4px,env(safe-area-inset-right,0px))!important;
+ bottom:auto!important;left:auto!important;transform:translateY(-50%)!important;
+ width:44px!important;min-width:44px!important;max-width:44px!important;
+ height:44px!important;min-height:44px!important;max-height:44px!important;
+ border:1px solid #9bc1c5!important;border-radius:50%!important;
+ background:rgba(8,31,45,.96)!important;color:#f4f8f6!important;
+ box-shadow:0 4px 14px rgba(0,0,0,.52),0 0 0 2px rgba(9,29,39,.8)!important;
+ font:500 29px/1 system-ui,sans-serif!important;cursor:pointer!important;
+ touch-action:manipulation!important;pointer-events:auto!important;z-index:18!important;
+ opacity:1!important;visibility:visible!important;
+}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-window-floating-close:focus-visible{
+ outline:3px solid #b5f5ff!important;outline-offset:2px!important;
+}
+@media(orientation:landscape) and (max-height:540px){
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-visor-heading{
+  padding-right:52px!important;
+ }
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-window-floating-close{
+  width:40px!important;min-width:40px!important;max-width:40px!important;
+  height:40px!important;min-height:40px!important;max-height:40px!important;
+ }
+}
