@@ -45,7 +45,7 @@ test('existing active abilities and attack/collision systems remain preserved',(
  assert.equal(skin.profile('aberration').active,'trail');
  assert.equal(skin.profile('tigershark').active,'slowShot');
  assert.equal(skin.activeSpec('tigershark').name,'Projétil Hipotérmico');
- assert.equal(skin.tierFor('tigershark'),'coins');
+ assert.equal(skin.profile('tigershark').tier,'coins');
  const game=read('public/game.js');
  assert.match(game,/const atlas=window\.AbyssalAnimatedSprites/);
  assert.match(game,/const spriteId=playerCreature\?skin\?\.id/);
