@@ -1637,6 +1637,11 @@ function tickRoom(room, now) {
  const spawnedBosses = (result.spawnedBosses || []).filter(boss => isBossKind(boss.kind));
  const spawnedXpRewards = Array.isArray(result.spawnedXpRewards) ? result.spawnedXpRewards : [];
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
+ // Send the server-authoritative start/cancel/impact to all clients, without exposing damage authority.
+ for(const cue of result.whiteSharkBiteCues||[]){
+  if(cue&&cue.enemyId!=null&&['start','cancel','impact'].includes(cue.action))
+   io.to(channelFor(room)).emit('world-shark-bite-cue',cue);
+ }
  const bossAbilityHits = Array.isArray(result.bossAbilityHits) ? result.bossAbilityHits : [];
  const bossAbilityEvents = Array.isArray(result.bossAbilityEvents) ? result.bossAbilityEvents : [];
  const riftAims=Array.isArray(result.riftAims)?result.riftAims:[];
