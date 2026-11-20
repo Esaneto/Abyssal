@@ -99,6 +99,7 @@
   if(warming&&clock>=warming.startedAt)return clamp((clock-warming.startedAt)/Math.max(1,warming.duration),0,1)*.44;
   const cancelled=state?.whiteSharkBiteCancel;
   if(cancelled&&clock<cancelled.startedAt+cancelled.duration)return clamp((Number(cancelled.progress)||0)*(1-(clock-cancelled.startedAt)/Math.max(1,cancelled.duration)),0,.44);
+  if(cancelled)return -1; // A cancelled bite returns to the closed-mouth swim instead of looping open.
   const started=Number(state?.hostileBite?.startedAt??state?.biteAnimation?.startedAt??state?.visualBiteStartedAt);
   const duration=Math.max(1,Number(state?.hostileBite?.duration??state?.biteAnimation?.duration)||380);
   if(Number.isFinite(started)&&started>=0){
