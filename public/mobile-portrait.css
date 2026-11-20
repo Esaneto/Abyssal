@@ -298,20 +298,22 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
 
 }
 
-/* Persistent escape hatch for every cockpit window. It is a sibling of the
-   scrollable viewport, not a descendant, and never scrolls out of reach. */
+/* A single floating X at the top-left of an inner cockpit window.
+   The header stays outside the scrollable content. All original close/back
+   buttons remain in the DOM for existing game listeners but are not shown
+   alongside the cockpit's own navigation on Android. */
 #submarineWorkshop .abyss-cockpit-visor{position:relative!important}
-#submarineWorkshop .abyss-window-floating-close{display:none}
+#submarineWorkshop .abyss-window-floating-close{display:none!important}
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-visor-heading{
  position:relative!important;z-index:16!important;isolation:isolate;
- padding-right:calc(56px + env(safe-area-inset-right,0px))!important;
+ padding-right:8px!important;
 }
-html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-window-floating-close{
- position:absolute!important;display:grid!important;place-items:center!important;
- top:50%!important;right:max(4px,env(safe-area-inset-right,0px))!important;
- bottom:auto!important;left:auto!important;transform:translateY(-50%)!important;
- width:44px!important;min-width:44px!important;max-width:44px!important;
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-window-floating-close:not([hidden]){
+ position:relative!important;display:grid!important;place-items:center!important;
+ inset:auto!important;transform:none!important;
+ flex:0 0 44px!important;width:44px!important;min-width:44px!important;max-width:44px!important;
  height:44px!important;min-height:44px!important;max-height:44px!important;
+ margin:0 5px 0 0!important;
  border:1px solid #9bc1c5!important;border-radius:50%!important;
  background:rgba(8,31,45,.96)!important;color:#f4f8f6!important;
  box-shadow:0 4px 14px rgba(0,0,0,.52),0 0 0 2px rgba(9,29,39,.8)!important;
@@ -322,12 +324,23 @@ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-window-fl
 html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-window-floating-close:focus-visible{
  outline:3px solid #b5f5ff!important;outline-offset:2px!important;
 }
+/* No extra arrows or close X inside live pages mounted in the visor.
+   Preserve buttons for gameplay workflows, e.g. Save, Cancel purchase, etc. */
+html.abyssal-handheld #submarineWorkshop :is(.mobile-cockpit-back,.abyss-station-back){display:none!important}
+html.abyssal-handheld #submarineWorkshop .abyss-visor-body .abyss-cockpit-embedded :is(
+ .modal-top-close,.redeem-close-btn,#shopTopCloseBtn,#shopCloseBtn,#catalogCloseBtn,
+ #rankingsCloseBtn,#profileCloseBtn,#cardumesCloseBtn,#roomsCloseBtn,
+ #wheelTopCloseBtn,#wheelCloseBtn,#notifPanelClose,#downloadCloseBtn,
+ #redeemCodeCloseBtn,#redeemCodeBackBtn,#ugcReportCloseBtn,
+ #skinPurchaseTopCloseBtn,#loginCancelBtn,#recoveryCancelBtn,
+ [data-close-screen]
+){display:none!important}
+/* Embedded card screens sometimes place their close buttons in scrollable
+   children instead of the modal root; the fixed visor X is the only exit. */
+html.abyssal-handheld #submarineWorkshop .abyss-visor-body .abyss-cockpit-embedded :is(.secondary-btn,.primary-btn)[data-close-screen]{display:none!important}
 @media(orientation:landscape) and (max-height:540px){
- html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-visor-heading{
-  padding-right:52px!important;
- }
- html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-window-floating-close{
-  width:40px!important;min-width:40px!important;max-width:40px!important;
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-window-floating-close:not([hidden]){
+  flex-basis:40px!important;width:40px!important;min-width:40px!important;max-width:40px!important;
   height:40px!important;min-height:40px!important;max-height:40px!important;
  }
 }
