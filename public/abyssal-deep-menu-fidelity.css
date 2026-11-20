@@ -326,54 +326,93 @@
 }
 
 
-/* Android short-landscape: preserve every shop action while exposing the
- * first Echo card without a blind first scroll (844x390 -> 844x303 content).
- * Reduces redundant header spacing instead of hiding the catalogue or relaxing
- * the viewport smoke assertion. Kept after older shop CSS for cascade safety. */
-@media (max-height:520px) and (orientation:landscape){
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal{
-  row-gap:0!important;
-  padding:0!important;
+/* Embedded shop is PORTALED to document.body by
+ * abyssal-exploration-runtime.js. It is NOT a descendant of #submarineWorkshop.
+ * Scoping to #submarineWorkshop #shopScreen silently made earlier fixes inert.
+ * Preserve full shop semantics, all filters, the boss bundle, redemption and
+ * purchases while bringing the first specimen above the fold on 844x303. */
+@media(max-height:520px) and (orientation:landscape){
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-modal{
+  display:flex!important;flex-direction:column!important;row-gap:0!important;
+  padding:0!important;min-width:0!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-heading{
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-modal>.eyebrow,
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .payment-settings,
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-filter-summary{
+  display:none!important
+ }
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-heading{
   display:flex!important;flex-wrap:nowrap!important;
   align-items:center!important;gap:6px!important;
-  padding:0!important;margin:0 0 2px!important
+  padding:0!important;margin:0 0 3px!important;
+  flex:0 0 auto!important;order:1!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-heading-copy{
-  min-width:0!important;flex:1 1 auto!important
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-heading-copy{
+  flex:1 1 auto!important;min-width:0!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-title-actions{
-  flex-wrap:nowrap!important;gap:5px!important;
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-heading-copy p{display:none!important}
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-title-actions{
+  display:flex!important;flex-wrap:nowrap!important;gap:5px!important;
   align-items:center!important;padding:0!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen #shopRedeemShortcut{
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-title-actions h2{
+  margin:0!important;font-size:15px!important;line-height:1.1!important;
+  white-space:nowrap!important
+ }
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded #shopRedeemShortcut{
   min-height:26px!important;height:26px!important;
-  padding:3px 7px!important;margin:0!important;
+  padding:3px 6px!important;margin:0!important;
   font-size:9px!important;letter-spacing:0!important;
   white-space:nowrap!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .wallet{
-  padding:2px 6px!important;gap:3px!important;
-  font-size:11px!important;border-radius:5px!important
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .wallet{
+  flex:0 0 auto!important;padding:2px 6px!important;
+  gap:3px!important;font-size:11px!important;
+  border-radius:5px!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .wallet small{
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .wallet small{
   font-size:8px!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-filter-bar{
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-filter-bar{
   display:grid!important;
   grid-template-columns:minmax(105px,1.5fr) repeat(3,minmax(85px,1fr))!important;
   gap:4px!important;padding:3px 4px!important;
-  margin:0 0 2px!important
+  margin:0 0 3px!important;min-height:0!important;
+  flex:0 0 auto!important;order:2!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-filter-bar .text-field{
-  min-height:30px!important;height:30px!important;
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-filter-bar .text-field{
+  min-height:31px!important;height:31px!important;
   padding:4px 6px!important;font-size:11px!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-filter-search{
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-filter-search{
   grid-column:auto!important
  }
- body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen #skinGrid{
-  padding:0!important;margin:0!important
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded #skinGrid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:7px!important;padding:0!important;margin:0!important;
+  flex:0 0 auto!important;order:3!important
  }
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded #skinGrid .skin-card{
+  display:grid!important;
+  grid-template-columns:minmax(105px,.87fr) minmax(0,1.13fr)!important;
+  grid-template-rows:auto auto!important;
+  gap:7px!important;align-items:start!important;
+  padding:8px!important
+ }
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded #skinGrid .skin-card .skin-preview{
+  grid-column:1!important;grid-row:1!important;
+  min-width:0!important;width:100%!important
+ }
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded #skinGrid .skin-card .specimen-card-information{
+  grid-column:2!important;grid-row:1!important;min-width:0!important
+ }
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded #skinGrid .skin-card>button{
+  grid-column:1/-1!important;grid-row:2!important
+ }
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded .shop-catalog-intro{
+  margin:8px 0!important;order:4!important
+ }
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded #openRedeemCodeBtn{order:5!important}
+ body:not(.game-active) #shopScreen.abyss-cockpit-embedded #shopCloseBtn{order:6!important}
 }
