@@ -218,8 +218,10 @@
   renderWorkshop();return true;
  }
  function selectRelativeStation(offset){
-  const i=stationIndex(selectedStation);
-  return selectStation(CONSOLE_BUTTONS[Math.max(0,Math.min(CONSOLE_BUTTONS.length-1,i+offset))].station);
+  const count=CONSOLE_BUTTONS.length;
+  const i=Math.max(0,stationIndex(selectedStation));
+  // Circular navigation: PERFIL -> SOCIAL and SOCIAL -> PERFIL.
+  return selectStation(CONSOLE_BUTTONS[((i+offset)%count+count)%count].station);
  }
  function mountCockpitConsole(utility){
   const old=utility?[utility]:Array.from(workshopGrid.children);
@@ -255,33 +257,58 @@
   const step=(n,text,name)=>{
    const b=document.createElement('button');b.type='button';b.className='abyss-station-arrow';
    b.textContent=text;b.setAttribute('aria-label',name);
-   b.disabled=stationIndex(selectedStation)+n<0||stationIndex(selectedStation)+n>=CONSOLE_BUTTONS.length;
+   // Never disable the ends: navigation wraps around all five stations.
    b.addEventListener('click',()=>selectRelativeStation(n));return b;
   };
   const prev=step(-1,'‹','Estação anterior'),next=step(1,'›','Próxima estação');
-  for(const option of CONSOLE_BUTTONS){
+  const mobileLoop=document.documentElement.classList.contains('abyssal-handheld');
+  const createStationKey=(option,copy=false)=>{
    const key=document.createElement('button');key.type='button';
    const selected=option.station===selectedStation;
-   key.className='abyss-control-key abyss-station-key abyss-control-'+option.id+(selected?' is-active':'');
+   key.className='abyss-control-key '+(copy?'abyss-station-loop-copy':'abyss-station-key')+' abyss-control-'+option.id+(!copy&&selected?' is-active':'');
    key.dataset.station=option.station;
-   key.setAttribute('aria-label',option.title);
-   key.setAttribute('aria-pressed',String(selected));
+   if(copy){
+    // Carousel copies are visual and tappable, but do not duplicate tab stops.
+    key.setAttribute('aria-hidden','true');key.tabIndex=-1;
+   }else{
+    key.setAttribute('aria-label',option.title);
+    key.setAttribute('aria-pressed',String(selected));
+   }
    const symbol=document.createElement('span');symbol.className='abyss-control-icon';symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
    const name=document.createElement('span');name.className='abyss-station-key-name';name.textContent=option.name;
-   key.append(symbol,name);key.addEventListener('click',()=>selectStation(option.station));rail.append(key);
+   key.append(symbol,name);key.addEventListener('click',()=>selectStation(option.station));
+   return key;
+  };
+  // Native horizontal touch-scrolling, with matching visual copies on either
+  // side. Recenter seamlessly after crossing the first or last station.
+  if(mobileLoop)for(const option of CONSOLE_BUTTONS)rail.append(createStationKey(option,true));
+  for(const option of CONSOLE_BUTTONS)rail.append(createStationKey(option));
+  if(mobileLoop)for(const option of CONSOLE_BUTTONS)rail.append(createStationKey(option,true));
+  if(mobileLoop){
+   rail.dataset.infinite='true';
+   let adjusting=false;
+   rail.addEventListener('scroll',()=>{
+    if(adjusting||!rail.isConnected||rail.clientWidth<=0)return;
+    const firstReal=rail.children[CONSOLE_BUTTONS.length];
+    const firstCopy=rail.children[0];
+    const rightCopy=rail.children[CONSOLE_BUTTONS.length*2];
+    if(!firstReal||!firstCopy||!rightCopy)return;
+    const period=firstReal.offsetLeft-firstCopy.offsetLeft;
+    const left=firstReal.offsetLeft-rail.offsetLeft;
+    const right=rightCopy.offsetLeft-rail.offsetLeft;
+    const center=rail.scrollLeft+rail.clientWidth/2;
+    if(period<=0||(center>=left&&center<right))return;
+    adjusting=true;
+    rail.scrollLeft+=center<left?period:-period;
+    adjusting=false;
+   },{passive:true});
   }
-  let pointer=null,dragged=false;
-  rail.addEventListener('pointerdown',e=>{if(e.button!==0)return;pointer={x:e.clientX,y:e.clientY,lastX:e.clientX,id:e.pointerId};dragged=false;});
-  rail.addEventListener('pointermove',e=>{if(!pointer||e.pointerId!==pointer.id)return;const dx=e.clientX-pointer.x;
-   if(Math.abs(dx)>8&&Math.abs(dx)>Math.abs(e.clientY-pointer.y)){try{rail.setPointerCapture(e.pointerId);}catch(_){}
-    rail.scrollLeft+=pointer.lastX-e.clientX;}pointer.lastX=e.clientX;
+  // Touch/trackpad scrolling stays native. Keyboard controls select a station.
+  rail.addEventListener('keydown',e=>{
+   if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
+    e.preventDefault();selectRelativeStation(e.key==='ArrowLeft'?-1:1);
+   }
   });
-  rail.addEventListener('pointerup',e=>{if(!pointer||e.pointerId!==pointer.id)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer=null;
-   if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3){dragged=true;selectRelativeStation(dx<0?1:-1);}
-  });
-  rail.addEventListener('pointercancel',()=>{pointer=null;});
-  rail.addEventListener('click',e=>{if(dragged){e.preventDefault();e.stopImmediatePropagation();dragged=false;}},true);
-  rail.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();selectRelativeStation(e.key==='ArrowLeft'?-1:1);}});
   keys.append(prev,rail,next);
   workshop.dataset.station=selectedStation;
   requestAnimationFrame(()=>{
