@@ -1395,8 +1395,10 @@ function renderHostileContactAbility(data){
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
  if(!playCombatAbilitySound(skill,{x,y},{owner:'enemy:'+String(d.enemyId||kind)}))playWorldSound('bite',{x,y},700,.85,{owner:'enemy:'+String(d.enemyId||kind)});
  const px=Number.isFinite(Number(d.playerX))?Number(d.playerX):Number(player?.x)||x,py=Number.isFinite(Number(d.playerY))?Number(d.playerY):Number(player?.y)||y;
+ const visualEnemy=d.enemy||(d.enemyId!=null?enemies.find(e=>String(e.id)===String(d.enemyId)):null);
+ if(visualEnemy){const visualNow=performance.now();visualEnemy.visualBiteStartedAt=visualNow;visualEnemy.visualBiteUntil=visualNow+480;}
  if(skill!=='tentacle-strike'){
-  const enemy=d.enemy||(d.enemyId!=null?enemies.find(e=>String(e.id)===String(d.enemyId)):null);
+  const enemy=visualEnemy;
   const angle=Math.atan2(py-y,px-x);
   if(enemy)enemy.hostileBite={startedAt:performance.now(),duration:480,angle};
   queueEffect({type:'bite-jaws',x:px,y:py,angle,max:Math.max(21/GAME_WORLD_ZOOM,Math.min(48/GAME_WORLD_ZOOM,(Number(d.enemyRadius)||player?.r||20)*.85)),life:.48,maxLife:.48,color:'#ffddd4'});
