@@ -315,7 +315,7 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
   order:1!important;min-height:0!important;margin:0!important
  }
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>.shop-filter-bar{
-  order:2!important;margin:0!important;min-height:0!important
+  order:2!important;margin:0!important;min-height:0!important;padding:0!important
  }
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>.shop-filter-summary{
   order:3!important;margin:0!important
