@@ -32,6 +32,7 @@ def install(archive, root):
             raise ValueError("Unexpected or missing atlas files")
         payloads = {}
         hashes = {}
+        seen_visuals = {}
         for name in sorted(REQUIRED):
             info = zf.getinfo(name)
             if info.file_size < 2000 or info.file_size > 3000000:
@@ -41,7 +42,11 @@ def install(archive, root):
             blob = zf.read(name)
             check_webp(blob)
             payloads[name] = blob
-            hashes[name[len(PREFIX):]] = hashlib.sha256(blob).hexdigest()
+            digest = hashlib.sha256(blob).hexdigest()
+            if digest in seen_visuals:
+                raise ValueError(f"Duplicate creature animation: {name} matches {seen_visuals[digest]}")
+            seen_visuals[digest] = name
+            hashes[name[len(PREFIX):]] = digest
         # Write only when every single file has passed validation.
         for name, blob in payloads.items():
             dest = root / name
