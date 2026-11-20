@@ -33,7 +33,8 @@ test('animated atlas supports all shark Ecos, hostile sharks and boss octopus',(
  assert.equal(api.SPECIES.greenland.palette,'green');
  assert.match(sprite,/imageSmoothingEnabled=true/);
  assert.match(sprite,/ready=image\.naturalWidth===576&&image\.naturalHeight===512/);
- assert.match(sprite,/const frame=selectFrame/);
+ assert.match(sprite,/const frame=useWhiteShark/);
+ assert.match(sprite,/selectFrame\(String\(id\),time,attack,state,useHd,eventClock\)/);
  assert.match(sprite,/const side=cfg\.span\*r/);
 });
 test('existing active abilities and attack/collision systems remain preserved',()=>{
@@ -63,7 +64,7 @@ test('tiger-shark metadata and palette integrate into existing Echo catalog and 
  assert.match(game,/id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#bb4651'/);
  assert.match(curated,/"id": "greenland"[\s\S]*?"color": "#36ac70"/);
  assert.match(fauna,/tigershark/);
- assert.match(html,/abyssal-animated-sprites\.js\?v=2026\.11\.20\.2/);
+ assert.match(html,/abyssal-animated-sprites\.js\?v=2026\.11\.20\.5/);
  assert.match(sw,/'abyssal-eco-sprites\.png'/);
  assert.ok(sw.includes("'abyssal-sharks-2.5d.webp'"));
  assert.match(sw,/'abyssal-animated-sprites\.js'/);
