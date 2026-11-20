@@ -68,3 +68,34 @@ test('tiger-shark metadata and palette integrate into existing Echo catalog and 
  assert.match(sw,/'abyssal-animated-sprites\.js'/);
  assert.match(sw,/2026-11-20-animated-ecos-v304/);
 });
+
+test('sprite renderer advances nado and ataque frames for hammerhead, tiger and octopus',()=>{
+ const recorded=[];
+ const painter={save(){},restore(){},drawImage(...args){recorded.push(args);},imageSmoothingEnabled:true};
+ const base={drawImage(){},getImageData(){return {data:new Uint8ClampedArray(576*128*4)};},putImageData(){}};
+ class SpriteImage{
+  constructor(){this.naturalWidth=576;this.naturalHeight=512;}
+  set src(value){this.path=value;if(this.onload)this.onload();}
+ }
+ const win={
+  Image:SpriteImage,
+  document:{createElement(tag){assert.equal(tag,'canvas');return {width:0,height:0,getContext(){return base;}};}}
+ };
+ vm.runInNewContext(read('public/abyssal-animated-sprites.js'),win);
+ const sprites=win.AbyssalAnimatedSprites;
+ assert.ok(sprites.status().ready);
+ const render=(id,t,attack)=>{
+  recorded.length=0;assert.equal(sprites.drawAtOrigin(painter,id,18,t,attack),true,id);
+  assert.equal(recorded.length,1);return recorded[0].slice(1,5);
+ };
+ assert.deepEqual(render('reefshark',110,false),[64,0,64,64]);
+ assert.deepEqual(render('reefshark',54,true),[64,64,64,64]);
+ assert.deepEqual(render('hammerhead',110,false),[64,128,64,64]);
+ assert.deepEqual(render('hammerhead',54,true),[64,192,64,64]);
+ assert.deepEqual(render('tigershark',110,false),[64,256,64,64]);
+ assert.deepEqual(render('tigershark',54,true),[64,320,64,64]);
+ assert.deepEqual(render('aberration',175,false),[128,384,128,128]);
+ assert.deepEqual(render('boss',350,true),[256,384,128,128]);
+ assert.deepEqual(render('abysscroc',110,false),[64,0,64,64]);
+ assert.deepEqual(render('greenland',54,true),[64,64,64,64]);
+});
