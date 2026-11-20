@@ -1,6 +1,14 @@
 # ABYSSAL | AGENT FRAMEWORK (CONTRATO PERMANENTE)
 Atualizado em 19/11/2026. Este arquivo define a direção artística e os critérios de integração para todos os próximos agentes.
 
+## Política anticolagem: identidade Abyssal (atualização 20/11/2026)
+- PROIBIDO usar o print de referência, recortes de botões, falsos espécimes, HUDs ou hologramas rasterizados como produto final. É guia de COMPOSIÇÃO, não material de produção.
+- Fundo da cabine pode utilizar somente assets de ambiente próprios do repositório, sem HUD fictício. Todos os objetos interativos são elementos independentes com arte/iluminação/colisão de toque, animações e rotas reais.
+- Cápsula esquerda: usar `AbyssalDiverArt.draw` e aparências do `AbyssalAvatarBase`. Cápsula direita: usar `AbyssalMarineArt.draw` e `AbyssalCuratedSkins.byId`. Nenhuma espécie ou traje inventado.
+- Escotilha possui tampa, aro, travas, luz e descida em camadas 2.5D; escolhas Solo/Online e início de partida funcionam de verdade.
+- Janelas e painel de Pesquisa/Social flutuam levemente com tempos e fases distintos; respeitar `prefers-reduced-motion`.
+- Testes devem confirmar que `abyssal-deep-menu-reference.css`, `abyssal-deep-menu-fidelity.css` e os recortes `abyssal-hub-panel-*` não voltam a ser importados. Exigir screenshots reais desktop/mobile antes do merge.
+
 ## Visão aprovada
 - Um único menu principal: interior de submarino 2.5D em perspectiva profunda com aproximação de câmera ao selecionar equipamentos. Não criar um segundo menu exterior, menu lateral ou cinco páginas com a mesma janela central.
 - Escotilha no piso e primeiro plano: estrutura industrial com textura, travas, abertura mecânica e transição contínua de câmera, bolhas e passagem para a partida. Escolher Solo/Online antes da cutscene. Online depende de ingresso real na sala.
