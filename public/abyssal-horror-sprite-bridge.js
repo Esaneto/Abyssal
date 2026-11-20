@@ -45,13 +45,34 @@
   return (active&&available.has(k)&&!failed.has(k))||Boolean(previous.has(id));
  }
  function isBiting(state,clock){return previous.isBiting?.(state,clock)===true;}
+ // Prefer the most recent *active* attack event. An expired bite must not
+ // override a fresh tentacle or electricity visual cue.
+ function attackProgress(state,t,attack,clock){
+  if(!attack)return -1;
+  if(!state)return previous.biteProgress?.(state,t,true,clock)??-1;
+  const events=[];
+  for(const item of [state.hostileBite,state.biteAnimation]){
+   const started=Number(item?.startedAt),duration=Math.max(1,Number(item?.duration)||380);
+   if(item&&Number.isFinite(started)&&started>=0&&clock>=started&&clock<started+duration)
+    events.push({started,duration});
+  }
+  const until=Number(state.visualBiteUntil),visualStart=Number(state.visualBiteStartedAt);
+  if(Number.isFinite(until)&&until>clock){
+   const started=Number.isFinite(visualStart)&&visualStart>0?visualStart:until-380;
+   if(clock>=started)events.push({started,duration:Math.max(1,until-started)});
+  }
+  if(!events.length)return -1;
+  events.sort((a,b)=>b.started-a.started);
+  const event=events[0];
+  return Math.min(.999999,Math.max(0,(clock-event.started)/event.duration));
+ }
  function drawAtOrigin(c,id,r,t,attack,hit=0,state=null){
   const k=canonical(id);
   if(active&&available.has(k))loadSpecies(k);
   const art=loaded.get(k);
   if(!art)return previous.drawAtOrigin(c,id,r,t,attack,hit,state);
   if(!c||!(Number(r)>0))return false;
-  const clock=now(),p=previous.biteProgress?.(state,t,Boolean(attack),clock);
+  const clock=now(),p=attackProgress(state,t,Boolean(attack),clock);
   const biting=Boolean(attack)&&Number.isFinite(p)&&p>=0;
   const swimPhase=(Math.max(0,Number(t)||0)/83.333333)%15;
   const attackPhase=biting?Math.min(15,Math.max(0,p*15)):0;
