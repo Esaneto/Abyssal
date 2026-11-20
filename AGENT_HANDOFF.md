@@ -1,3 +1,15 @@
+# Atualização de handoff: cabine fiel à referência, painel flutuante e Android (20/11/2026)
+
+**Branch:** \`feat/deep-menu-cinematic-20261119\`. **PR:** #322. **Main:** preservar até concluir os testes e a integração.
+
+O menu recebeu uma composição fotográfica baseada na imagem fornecida pelo usuário, com cinco painéis WebP isolados animados dessincronizadamente, arte do submarino para fundo, câmera/escotilha e hub único. Fontes: \`public/abyssal-hub-room.webp\`, \`public/abyssal-hub-panel-*.webp\`; layout \`public/abyssal-deep-menu-reference.css\`. Para retrato Android, usar a composição adaptativa e o recorte da cápsula de trajes/Ecos em \`public/abyssal-deep-menu-fidelity.css\`, sem achatamento de toda a fotografia. A cache offline inclui todos os recursos.
+
+**Testes:** consultar as execuções do GitHub Actions do commit HEAD do PR. Captura real desktop comparada visualmente; a imagem não deve ser representada como um modelo 3D renderizado em tempo real. Testes automatizados de Solo/Online, Node e fauna anteriormente verdes; release depende da última CI completa e da verificação da Loja em celular paisagem, que apresentava catálogo abaixo da primeira dobra. Nenhum deploy externo autorizado sem estes resultados.
+
+**Não regredir:** não trocar a arte fotográfica por cartões ou por um CSS desenhado; não criar segundo menu. Não usar valores fictícios do mockup como dados reais, nem substituir links/botões por imagens sem acesso por teclado. \`AGENT_FRAMEWORK.md\` e \`.agent/workflows/agent-framework.md\` estabelecem controles para todos os próximos agentes.
+
+---
+
 # PASSAGEM DO AGENTE | 2026-11-19 | MENU PROFUNDO 2.5D
 **Branch:** feat/deep-menu-cinematic-20261119. **Estado:** implementação em PR, NÃO integrada na main. **Aprovação visual:** pendente. **Validação de navegador/Android:** pendente.
 
