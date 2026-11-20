@@ -272,7 +272,7 @@ const injected=`<script>
          return {queryHeight:innerHeight,media:matchMedia('(max-height:520px) and (orientation:landscape)').matches,embedded:shop.className,linkedStyles:[...document.querySelectorAll('link[rel=stylesheet]')].filter(e=>/deep-menu/.test(e.href)).map(e=>e.href),modal:select('.shop-modal'),header:select('.shop-heading'),wallet:select('.wallet'),intro:select('.shop-catalog-intro'),filters:select('.shop-filter-bar'),summary:select('.shop-filter-summary'),grid:select('#skinGrid'),card:select('#skinGrid .skin-card'),ancestor:shop.parentElement?.className};
         })();
         console.log('[shop-layout-debug]',JSON.stringify(layoutDiag));
-        if(!rect||rect.top>=innerHeight-46)throw Error('Landscape catalogue starts below first viewport '+JSON.stringify({card:rect?.toJSON(),height:innerHeight}));
+        if(!rect||rect.top>=innerHeight-46)throw Error('Landscape catalogue starts below first viewport '+JSON.stringify({card:rect?.toJSON(),height:innerHeight,layout:layoutDiag}));
         if(Math.max(...tops)-Math.min(...tops)>5)throw Error('Landscape filters wrap into multiple rows '+JSON.stringify(tops));
         if(!preview||!information||preview.right>information.left+2)throw Error('Landscape specimen art and attributes must occupy horizontal columns');
        }
