@@ -103,8 +103,8 @@ test('sprite renderer advances nado and ataque frames for hammerhead, tiger and 
 
 test('attack-only frames do not trigger for pursuing, charging or merely aggressive fauna',()=>{
  const src=read('public/game.js');
- assert.match(src,/const attacking=Boolean\(enemyState\?\.hostileBite\|\|enemyState\?\.biteAnimation\)/);
- const pos=src.indexOf('const attacking=Boolean(enemyState?.hostileBite');
+ assert.match(src,/const attacking=atlas\.isBiting\?\.\(enemyState,performance\.now\(\)\)===true/);
+ const pos=src.indexOf('const attacking=atlas.isBiting?.(enemyState,performance.now())');
  assert.ok(pos>=0);
  const detector=src.slice(pos,src.indexOf('c.save();c.translate(x,y);',pos));
  assert.doesNotMatch(detector,/openSeaWantsAttack|sharkCharging|attackCd/);
@@ -133,4 +133,22 @@ test('refined 2.5D atlas contains five distinct 3x3 sheets in verified WebP cont
  for(const [id,art] of [['reefshark',0],['tigershark',1],['abysscroc',2],['greenland',3],['hammerhead',4]]){
   assert.equal(require('../public/abyssal-animated-sprites.js').SPECIES[id].art,art,id);
  }
+});
+
+test('monotonic bite event clock ignores per-entity swimming offset',()=>{
+ const api=require('../public/abyssal-animated-sprites.js'),event={hostileBite:{startedAt:1000,duration:400}};
+ assert.equal(api.isBiting(event,1100),true);
+ assert.equal(api.isBiting(event,1401),false);
+ assert.equal(api.selectFrame('reefshark',6200,true,event,true,1100),4);
+ assert.equal(api.selectFrame('reefshark',6200,true,event,true,1401),0);
+ assert.equal(api.selectFrame('reefshark',6200,false,event,true,1100),0);
+});
+test('wild 2.5D species use individual animated rendering before shared cache',()=>{
+ const src=read('public/game.js'),p=src.indexOf('function drawRiftShopSpecimen(');
+ const block=src.slice(p,src.indexOf('function drawSpecimenBite(',p));
+ assert.match(block,/if\(atlas\?\.has\(skin\.id\)\)/);
+ assert.match(block,/atlas\.isBiting\?\.\(enemy,performance\.now\(\)\)/);
+ assert.match(block,/atlas\.drawAtOrigin\(ctx,skin\.id,radius,/);
+ assert.ok(block.indexOf('if(painted)return;')<block.indexOf('const key=skin.id+'));
+ assert.match(block,/Number\.isFinite\(motion\?\.heading\)/);
 });

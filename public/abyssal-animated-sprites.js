@@ -69,22 +69,37 @@
  }
  function has(id){return Boolean(SPECIES[String(id||'')]);}
  // A bite is a short, event-triggered pose, never an AI alert/chase animation.
- function biteProgress(state,t,attack){
+ function isBiting(state,clock){
+  if(!state)return false;
+  for(const event of [state.hostileBite,state.biteAnimation]){
+   if(!event)continue;
+   const start=Number(event.startedAt),duration=Math.max(1,Number(event.duration)||380);
+   if(Number.isFinite(start)&&clock>=start&&clock<start+duration)return true;
+  }
+  const start=Number(state.visualBiteStartedAt),until=Number(state.visualBiteUntil);
+  return Number.isFinite(until)&&until>clock&&(!Number.isFinite(start)||clock>=start);
+ }
+ // The entity's swim-phase offset is separate from the real attack clock.
+ function biteProgress(state,t,attack,clock=t){
   if(!attack)return -1;
   const started=Number(state?.hostileBite?.startedAt??state?.biteAnimation?.startedAt??state?.visualBiteStartedAt);
-  const duration=Number(state?.hostileBite?.duration??state?.biteAnimation?.duration)||380;
-  if(Number.isFinite(started)&&started>=0)return clamp((t-started)/duration,0,1);
-  return clamp((t%380)/380,0,1);
+  const duration=Math.max(1,Number(state?.hostileBite?.duration??state?.biteAnimation?.duration)||380);
+  if(Number.isFinite(started)&&started>=0){
+   const elapsed=clock-started;
+   return elapsed>=0&&elapsed<duration?clamp(elapsed/duration,0,.999999):-1;
+  }
+  const until=Number(state?.visualBiteUntil);
+  if(Number.isFinite(until)&&until>0)return clock<until?clamp(1-(until-clock)/380,0,.999999):-1;
+  return clamp((t%380)/380,0,.999999);
  }
- function selectFrame(id,t,attack,state,hd=false){
+ function selectFrame(id,t,attack,state,hd=false,clock=t){
   const cfg=SPECIES[id];
-  const p=biteProgress(state,t,attack);
+  const p=biteProgress(state,t,attack,clock);
   if(cfg?.octopus)return p>=0?Math.min(3,Math.floor(p*4)):Math.floor(Math.max(0,t)/175)%4;
   if(hd){
    if(p>=0)return [3,4,5,6,7,8][Math.min(5,Math.floor(p*6))];
    return [0,1,2,1,0][Math.floor(Math.max(0,t)/165)%5];
   }
-  // Legacy atlas has separate horizontal swim and attack strips.
   return Math.floor(Math.max(0,t)/(p>=0?54:110))%9;
  }
  function drawAtOrigin(c,id,r,t,attack,hit=0,state=null){
@@ -95,11 +110,12 @@
   const sheet=useHd?hdSource:(cfg.palette?palettes[cfg.palette]:source);
   if(!sheet)return false;
   const time=Number(t)||0,phase=time*(cfg.octopus?.0037:.0059);
-  const frame=selectFrame(String(id),time,attack,state,useHd);
+  const eventClock=typeof root.performance?.now==='function'?root.performance.now():time;
+  const frame=selectFrame(String(id),time,attack,state,useHd,eventClock);
   const side=cfg.span*r;
   let srcX,srcY,cell;
   if(useHd){cell=hdCell;srcX=(frame%3)*cell;srcY=(cfg.art*3+Math.floor(frame/3))*cell;}
-  else{cell=cfg.cell;srcX=frame*cell;srcY=(cfg.palette?(biteProgress(state,time,attack)>=0?64:0):cfg.octopus?384:(biteProgress(state,time,attack)>=0?cfg.attackRow:cfg.moveRow)*64);}
+  else{cell=cfg.cell;srcX=frame*cell;srcY=(cfg.palette?(biteProgress(state,time,attack,eventClock)>=0?64:0):cfg.octopus?384:(biteProgress(state,time,attack,eventClock)>=0?cfg.attackRow:cfg.moveRow)*64);}
   c.save();c.imageSmoothingEnabled=true;
   if('imageSmoothingQuality' in c)c.imageSmoothingQuality='high';
   if(Number(hit)>0){c.shadowColor='#ffffff';c.shadowBlur=Math.min(14,r*.35);}
@@ -126,5 +142,5 @@
  }
  function status(){return {ready:ready||hdReady,legacyReady:ready,hdReady,atlas:hdReady?hdSourceName:sourceName,species:Object.keys(SPECIES),octopusBlue:true};}
  preload();
- return Object.freeze({SPECIES,has,drawAtOrigin,preload,status,selectFrame,biteProgress});
+ return Object.freeze({SPECIES,has,drawAtOrigin,preload,status,selectFrame,biteProgress,isBiting});
 });

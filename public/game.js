@@ -3964,9 +3964,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  const spriteId=playerCreature?skin?.id:kind==='whiteShark'||kind==='whiteSharkBoss'||kind==='boss'?kind:null;
  const atlas=window.AbyssalAnimatedSprites;
  if(spriteId&&atlas?.has(spriteId)){
-  const attacking=Boolean(enemyState?.hostileBite||enemyState?.biteAnimation)||
-   Number(enemyState?.visualBiteUntil)>performance.now()||
-   (playerCreature&&Number(enemyState?.visualAttackUntil)>performance.now());
+  const attacking=atlas.isBiting?.(enemyState,performance.now())===true;
   c.save();c.translate(x,y);
   if(!enemyState?.__sprite)applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading??movingEnemyHeading);
   const painted=atlas.drawAtOrigin(c,spriteId,r,animationTime,attacking,hit,enemyState);
@@ -4606,6 +4604,20 @@ function drawRiftShopSpecimen(enemy,skin,time){
  const normalRadius=CREATURE_SCALE?.riftVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||Math.max(4,Number(enemy.r)||8);
  // Preserve shop skin identity and a species-specific 3 m maximum visual body envelope.
  const radius=normalRadius;
+ // Animated species must draw individually: a species-wide sprite cache leaks
+ // one creature's attack frame into all other creatures of the same species.
+ const atlas=window.AbyssalAnimatedSprites;
+ if(atlas?.has(skin.id)){
+  const motion=creatureVisualMotion(skin,'player',enemy,enemy.x,enemy.y,Number(enemy.angle)||0,time,false);
+  const biting=atlas.isBiting?.(enemy,performance.now())===true;
+  const heading=biting&&Number.isFinite(enemy.hostileBite?.angle)?enemy.hostileBite.angle:
+   Number.isFinite(motion?.heading)?motion.heading:(Number(enemy.angle)||0);
+  ctx.save();ctx.translate(enemy.x,enemy.y);
+  applyCreatureVisualTransform(ctx,motion,radius,heading);
+  const painted=atlas.drawAtOrigin(ctx,skin.id,radius,Number(motion?.phaseTime)||time,biting,enemy.hit||0,enemy);
+  ctx.restore();
+  if(painted)return;
+ }
  // Render at the actual display density; oversized creatures use the vector fallback.
  const bucket=Math.max(4,Math.round(radius*2)/2);
  const renderScale=radius/bucket;
