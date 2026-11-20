@@ -1,3 +1,6 @@
+# REVISÃO: 20/11/2026, A CABINE NÃO PODE SER UM PRINT
+A referência fornecida pelo usuário é SOMENTE guia de composição, luz, proporções e linguagem visual. A camada fotográfica anterior reutilizava recortes da própria referência e ocultava renderizadores ativos, contrariando a exigência de uma interface verdadeira. O código agora carrega `public/abyssal-deep-menu-native.css` após a base/cinematic e não importa as camadas `reference.css` e `fidelity.css`. Cápsulas, visor de pesquisa, sonar e escotilha são objetos independentes, com câmera transform, CSS 2.5D, animações dessincronizadas e os sprites reais das bibliotecas do Abyssal. Não reintroduzir UI como plano de fundo.
+
 # DEEP MENU 2.5D | ARQUITETURA, CONTINUIDADE E LIMITES
 
 ## Natureza da entrega
