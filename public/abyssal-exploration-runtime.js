@@ -220,8 +220,25 @@
   const column=document.createElement('div'),small=document.createElement('small'),title=document.createElement('strong');
   small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage==='home'?'PREPARAR EXPEDIÇÃO':activeConsoleSection==='solo'&&soloConsolePage!=='home'?(soloConsolePage==='diver'?'PESQUISA · MERGULHADOR':'PESQUISA · SUBMARINO'):embeddedTitles[activeConsoleSection]||chosen.title;column.append(small,title);
   const status=document.createElement('span');const localMode=localResearchMode();status.dataset.dsStatus=localMode?'solo':'online';status.textContent=localMode?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
-  const mobileBack=document.createElement('button');mobileBack.type='button';mobileBack.className='mobile-cockpit-back';mobileBack.textContent='‹';mobileBack.setAttribute('aria-label','Voltar à cabine');mobileBack.addEventListener('click',()=>{if(activeConsoleSection==='solo'){soloConsolePage='home';renderWorkshop();}else backEmbedded();});
-  heading.append(mobileBack,column,status);visor.append(heading);
+  // Closing lives outside the scrolling body, so it remains reachable even at
+  // the bottom of long mobile screens (shop, wardrobe, rankings, dialogs).
+  const exitCurrentWindow=()=>{
+   if(activeConsoleSection==='solo'){
+    if(soloConsolePage==='home'){showExterior();return;}
+    soloConsolePage='home';renderWorkshop();return;
+   }
+   backEmbedded();
+  };
+  const atHome=activeConsoleSection==='solo'&&soloConsolePage==='home';
+  const mobileBack=document.createElement('button');mobileBack.type='button';mobileBack.className='mobile-cockpit-back';
+  mobileBack.textContent='‹';mobileBack.setAttribute('aria-label',atHome?'Voltar ao menu principal':'Voltar à estação anterior');
+  mobileBack.addEventListener('click',exitCurrentWindow);
+  const floatingClose=document.createElement('button');floatingClose.type='button';
+  floatingClose.className='abyss-window-floating-close';
+  floatingClose.textContent='×';floatingClose.setAttribute('aria-label',atHome?'Fechar cabine e voltar ao menu':'Fechar janela e voltar');
+  floatingClose.title=atHome?'Voltar ao menu':'Fechar janela';
+  floatingClose.addEventListener('click',exitCurrentWindow);
+  heading.append(mobileBack,column,status,floatingClose);visor.append(heading);
   const body=document.createElement('div');body.className='abyss-visor-body';if(activeConsoleSection==='resonance')body.classList.add('abyss-visor-resonance');body.tabIndex=0;body.dataset.pageKey=activeConsoleSection+':'+(activeConsoleSection==='solo'?soloConsolePage:activeConsoleSection==='laboratory'?activeLabSection:'main');
   for(const node of old){
    if(node.classList.contains('submarine-console-overview'))continue;
