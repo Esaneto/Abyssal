@@ -24,8 +24,33 @@
     const nose=Math.max(Number(enemyRadius)||1,1.32*(Number(visualRadius)||46.17));
     return nose+Math.max(1,Number(playerRadius)||1)+5/WORLD_ZOOM;
   }
-  function sharkBiteReach(enemyRadius,playerRadius,visualRadius=0){return sharkBiteStop(enemyRadius,playerRadius,visualRadius)+9/WORLD_ZOOM;}
+  function sharkBiteReach(enemyRadius,playerRadius,visualRadius=0){return sharkBiteStop(enemyRadius,playerRadius,visualRadius)+5/WORLD_ZOOM;}
   function biteReach(enemyRadius,playerRadius){return biteDistance(enemyRadius,playerRadius)+10/WORLD_ZOOM;}
+  const WHITE_SHARK_BITE_WINDUP_MS=180;
+  // A bite is applied only after uninterrupted close contact.
+  function whiteSharkBiteWindow(enemy,targetId,near,now){
+    if(!enemy||enemy.kind!=='whiteShark')return {ready:Boolean(near),started:false,cancelled:false};
+    const clock=Number(now)||0,prior=enemy.whiteSharkBiteWindup;
+    if(!near||targetId==null||targetId===''){
+      let cancelled=false;
+      if(prior){
+        const progress=Math.min(.44,Math.max(0,(clock-prior.startedAt)/WHITE_SHARK_BITE_WINDUP_MS)*.44);
+        enemy.whiteSharkBiteCancel={startedAt:clock,duration:145,progress};
+        cancelled=true;
+      }
+      enemy.whiteSharkBiteWindup=null;
+      return {ready:false,started:false,cancelled};
+    }
+    const id=String(targetId);
+    if(!prior||prior.targetId!==id||clock<prior.startedAt){
+      enemy.whiteSharkBiteWindup={startedAt:clock,duration:WHITE_SHARK_BITE_WINDUP_MS,targetId:id};
+      enemy.whiteSharkBiteCancel=null;
+      return {ready:false,started:true,cancelled:Boolean(prior)};
+    }
+    if(clock-prior.startedAt<WHITE_SHARK_BITE_WINDUP_MS)return {ready:false,started:false,cancelled:false};
+    enemy.whiteSharkBiteWindup=null;enemy.whiteSharkBiteCancel=null;
+    return {ready:true,started:false,cancelled:false};
+  }
 
   function sharkVisionState(enemy,target,now=Date.now()){
     if(!enemy||!target)return {visible:false,distance:Infinity,delta:Math.PI,range:sharkVisionRange(enemy),halfAngle:SHARK_VISION.halfAngle};
@@ -451,5 +476,5 @@
     // envelope until each species has a dedicated anatomical curve.
     return d<=r*(enemy.kind==='devourer'?2.05:1.8)+tr;
   }
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionRange, sharkVisionState, isChargeAttack, sharkBiteStop, sharkBiteReach, biteDistance, biteReach, tentacleAttacker, tentacleStopDistance, tentacleContact, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionRange, sharkVisionState, isChargeAttack, sharkBiteStop, sharkBiteReach, biteDistance, biteReach, WHITE_SHARK_BITE_WINDUP_MS, whiteSharkBiteWindow, tentacleAttacker, tentacleStopDistance, tentacleContact, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
 });
