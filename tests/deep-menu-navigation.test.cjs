@@ -37,7 +37,7 @@ test('deep cabin keeps reduced motion and responsive hit targets',()=>{
  const native=read('public/abyssal-deep-menu-native.css');
  for(const name of ['deep-hull-ribs','deep-rail-left','deep-tank-reflections','deep-operations','deep-hatch-gantry','deepOrganicFloatWardrobe','deepOrganicFloatEcos'])assert.match(native,new RegExp(name));
  for(const name of ['deepFloatLeft','deepFloatRight','deepCenterHover'])assert.match(cinematic,new RegExp(name));
- assert.match(reference,/prefers-reduced-motion:reduce/);
+ assert.match(native,/prefers-reduced-motion:reduce/);
 });
 test('entry and return route through the new single cockpit',()=>{
  const runtime=read('public/abyssal-exploration-runtime.js'),game=read('public/game.js');
