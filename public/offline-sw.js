@@ -118,7 +118,7 @@ const GAME_FILES = [
   'game.js',
   'abyssal-mobile-multitouch.js',
   'skin-motion.js',
-  'abyssal-eco-sprites-data.js','abyssal-animated-sprites.js','marine-art.js',
+  'abyssal-eco-sprites.png','abyssal-animated-sprites.js','marine-art.js',
   'net-codec.js',
   'online.js','cardume-comms.css',
   'abyssal-rebuild.js',
