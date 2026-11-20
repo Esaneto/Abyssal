@@ -12,7 +12,9 @@ test('deep menu is loaded after live cockpit and cached offline',()=>{
  assert.match(sw,/'abyssal-deep-menu\.js'/);
  assert.match(sw,/'abyssal-deep-menu\.css'/);
  assert.match(sw,/'abyssal-deep-menu-cinematic\.css'/);
- assert.match(sw,/'abyssal-deep-menu-reference\\.css'/);
+ assert.match(sw,/'abyssal-deep-menu-fidelity\.css'/);
+ assert.match(sw,/'abyssal-hub-room-plate\.avif'/);
+ assert.match(sw,/'abyssal-deep-menu-reference\.css'/);
  for(const name of ['abyssal-hub-room.webp','abyssal-hub-panel-dive.webp','abyssal-hub-panel-ecos.webp','abyssal-hub-panel-research.webp','abyssal-hub-panel-social.webp','abyssal-hub-panel-wardrobe.webp'])assert.ok(sw.includes("'"+name+"'"));
  assert.match(sw,/'abyssal-cabin-deck\.webp'/);
  assert.match(sw,/'abyssal-cabin-ocean-hq\.webp'/);
