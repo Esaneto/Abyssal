@@ -180,6 +180,24 @@
  background:radial-gradient(circle,#b6ffff,#45e5fb 17%,rgba(4,133,157,.45) 38%,transparent 72%);
  box-shadow:0 0 33px rgba(22,223,239,.3);animation:deepCommandPulse 7.5s ease-in-out infinite alternate
 }
+
+/* Surface-mounted warning sconces, not amorphous orange glows. Each lamp has
+ * a mechanical casing, warm tube and reflected pool of light. */
+#submarineWorkshop .deep-sconce{
+ position:absolute;z-index:10;top:15%;width:5.8%;height:4%;pointer-events:none;
+ border:4px ridge #53636b;border-radius:22% 10% 10% 22%;
+ transform:perspective(260px) rotateY(17deg) rotate(-8deg);
+ background:linear-gradient(90deg,#091824 0%,#f3bd55 22%,#ffa02e 52%,#d56915 70%,#142d39 88%,#07121b);
+ box-shadow:inset 0 0 7px #fff1c2,0 0 12px rgba(255,154,25,.8),0 4px 9px #010911
+}
+#submarineWorkshop .deep-sconce-left{left:8%}
+#submarineWorkshop .deep-sconce-right{right:8%;transform:perspective(260px) rotateY(-17deg) rotate(8deg)}
+#submarineWorkshop .deep-sconce::after{
+ content:"";position:absolute;inset:40% -60% -250% -40%;pointer-events:none;
+ background:radial-gradient(ellipse at 40% 0%,rgba(255,168,47,.21),transparent 70%);
+ transform:rotate(12deg);filter:blur(5px)
+}
+
 /* Interactive research terminal: real panel, not screenshot-crop. */
 #submarineWorkshop.abyss-deep-active .deep-operations{
  z-index:14;top:21%;left:28%;width:44%;height:11%;
@@ -456,7 +474,7 @@
  #submarineWorkshop.abyss-deep-active .deep-operations small{font-size:7px!important}
  #submarineWorkshop.abyss-deep-active .deep-operations strong::before{font-size:13px}
  #submarineWorkshop.abyss-deep-active .deep-capsule{
-  top:43%;height:30%;width:32%
+  top:40%;height:25%;width:32%
  }
  #submarineWorkshop.abyss-deep-active .deep-suits{left:0;width:32%}
  #submarineWorkshop.abyss-deep-active .deep-ecos{right:0;width:32%}
