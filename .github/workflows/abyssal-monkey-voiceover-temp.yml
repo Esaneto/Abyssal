@@ -1,0 +1,67 @@
+name: Abyssal voiceover demo (temporary)
+on:
+  push:
+    branches:
+      - media/abyssal-monkey-narration-20261120
+permissions:
+  contents: read
+jobs:
+  voiceover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Install text-to-speech
+        run: python -m pip install -q edge-tts gTTS
+      - name: Synthesize original female Brazilian-Portuguese voices
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os,json,asyncio,random,time
+          from pathlib import Path
+          import edge_tts
+          from gtts import gTTS
+          output=Path("narration");output.mkdir(exist_ok=True)
+          lines=[
+            {"who":"burro","text":"Macaco! Entrei na água, apanhei de tudo... e cadê minhas habilidades?","title":"CADÊ MINHAS HABILIDADES?","source":128},
+            {"who":"ideia","text":"Macaco, presta atenção! Entra na cabine e abre Pesquisa.","title":"PASSO 1: PESQUISA","source":36},
+            {"who":"ideia","text":"Macaco, clica em Mergulhador e escolhe a habilidade que quer liberar.","title":"PASSO 2: MERGULHADOR","source":38},
+            {"who":"ideia","text":"Macaco, olha o custo. Se tiver Energia suficiente, pesquisa!","title":"PASSO 3: USE ENERGIA","source":42},
+            {"who":"ideia","text":"Macaco, tem pesquisa do Submarino também. Melhora a nave para durar mais.","title":"EXTRA: SUBMARINO","source":50},
+            {"who":"burro","text":"Macaco! Mas como equipa? Eu jogo a habilidade na mochila?","title":"E PARA EQUIPAR?","source":56},
+            {"who":"ideia","text":"Macaco, Q e E ficam disponíveis depois da pesquisa. No celular, é só apertar os botões!","title":"Q E E: AUTOMÁTICAS","source":43},
+            {"who":"ideia","text":"Macaco, quer combinar habilidades? Abre Ressonância, escolhe e salva a combinação.","title":"PASSO 4: RESSONÂNCIA","source":73},
+            {"who":"ideia","text":"Macaco, algumas fusões pedem habilidades e níveis específicos. Confere os requisitos!","title":"CONFIRA OS REQUISITOS","source":80},
+            {"who":"ideia","text":"Macaco, fechou! Agora mergulha e testa tudo no abismo.","title":"PRONTO PARA MERGULHAR","source":121},
+            {"who":"burro","text":"Aaaah! Macaco evoluiu!","title":"MACACO EVOLUIU!","source":134}
+          ]
+          async def speak(i,line):
+            role=line["who"]
+            options=[("pt-BR-BrendaNeural","+8%","+7Hz"),("pt-BR-FranciscaNeural","-3%","+1Hz")] if role=="burro" else [("pt-BR-FranciscaNeural","-5%","+2Hz"),("pt-BR-ThalitaMultilingualNeural","-6%","+1Hz")]
+            errors=[]
+            for voice,rate,pitch in options:
+              for attempt in range(2):
+                try:
+                  await asyncio.wait_for(edge_tts.Communicate(line["text"],voice=voice,rate=rate,pitch=pitch,volume="+0%").save(str(output/f"voice{i:02d}.mp3")),timeout=50)
+                  if (output/f"voice{i:02d}.mp3").stat().st_size>5000:
+                    line["voice"]=voice;line["synth"]="edge";return
+                except Exception as ex:
+                  errors.append(str(ex)[:130]);await asyncio.sleep(1)
+            try:
+              gTTS(text=line["text"],lang="pt",tld="com.br",slow=False).save(str(output/f"voice{i:02d}.mp3"))
+              line["voice"]="gTTS-fallback";line["synth"]="gTTS";return
+            except Exception as e:
+              raise RuntimeError(f"Could not synthesize line {i}: {errors}; fallback={e}")
+          async def main():
+            for i,line in enumerate(lines):
+              print("Generating",i,line["who"],flush=True)
+              await speak(i,line)
+            with open(output/"lines.json","w",encoding="utf-8") as f:json.dump(lines,f,ensure_ascii=False,indent=2)
+            print("Voices produced:",[l["voice"] for l in lines])
+          asyncio.run(main())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: abyssal-monkey-natural-narration
+          path: narration/
+          retention-days: 1
+          if-no-files-found: error
