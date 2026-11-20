@@ -208,6 +208,15 @@ const injected=`<script>
       const keys=[...box.querySelectorAll('.abyss-station-key')];
       if(keys.length!==5)throw Error('Expected five cockpit stations, found '+keys.length);
       for(const id of ['social','cabine','laboratorio','arsenal','perfil'])if(!box.querySelector('[data-station="'+id+'"]'))throw Error('Missing cockpit station '+id);
+      // Route redemption from Social without opening the Echo store.
+      box.querySelector('[data-station="social"]').click();
+      const socialCode=[...box.querySelectorAll('.abyss-station-card')].find(card=>card.querySelector('strong')?.textContent==='RESGATAR CÓDIGO');
+      if(!socialCode)throw Error('Social code redemption entry is missing');
+      socialCode.querySelector('button')?.click();
+      const redemption=document.getElementById('redeemCodeScreen');
+      if(!redemption||redemption.hidden||!redemption.classList.contains('abyss-cockpit-embedded'))throw Error('Code redemption did not open inside Social cockpit');
+      document.getElementById('redeemCodeBackBtn')?.click();
+      if(box.dataset.station!=='social'||!box.querySelector('.abyss-station-card'))throw Error('Code redemption did not return to Social');
       box.querySelector('[data-station="laboratorio"]').click();
       const research=box.querySelector('.abyss-tree-map'),nodes=research?.querySelectorAll('.abyss-tree-node')||[];
       if(nodes.length<5||!research.querySelector('[data-research-id="pulse"]')||!research.querySelector('[data-research-id="dash"]'))throw Error('Diver research Q/E or lamp nodes missing');
