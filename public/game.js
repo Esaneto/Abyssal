@@ -614,7 +614,10 @@ function soloHullContact(e,now){
  const hit=soloHullInReach(e,e.submarineHoldSection?4:0);if(!hit)return false;
  e.submarineAttackAt=now+1000;
  const impact=soloHullImpactPoint(e,hit),angle=Math.atan2(impact.y-e.y,impact.x-e.x);
- e.hostileBite=hostileUsesJaws(e.kind,'')?{startedAt:now,duration:480,angle}:null;
+ // Keep hull contact independent of late-loaded visual helpers. Certain
+ // enemies do not have jaws, but their contact damage remains unchanged.
+ e.hostileBite=['drifter','stinger','brute','boss','kraken','devourer'].includes(e.kind)
+  ?null:{startedAt:now,duration:480,angle};
  if(typeof renderHostileContactAbility==='function')renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,enemyX:e.x,enemyY:e.y,enemyRadius:e.r,angle,enemyColor:e.color,playerX:impact.x,playerY:impact.y,submarine:true});
  damageSoloHull(hit,Math.max(5,Number(e.damage)||8));return true;
 }
