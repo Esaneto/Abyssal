@@ -14,10 +14,10 @@
   tigershark:{moveRow:4,attackRow:5,count:9,cell:64,span:3.2},
   abysscroc:{moveRow:0,attackRow:1,count:9,cell:64,span:3.3,palette:'red'},
   greenland:{moveRow:0,attackRow:1,count:9,cell:64,span:3.2,palette:'green'},
-  aberration:{moveRow:6,attackRow:6,count:4,cell:128,span:5.5},
+  aberration:{moveRow:6,attackRow:6,count:4,cell:128,span:10.5},
   whiteShark:{moveRow:0,attackRow:1,count:9,cell:64,span:3.1},
   whiteSharkBoss:{moveRow:0,attackRow:1,count:9,cell:64,span:3.1,palette:'boss'},
-  boss:{moveRow:6,attackRow:6,count:4,cell:128,span:5.5}
+  boss:{moveRow:6,attackRow:6,count:4,cell:128,span:10.5}
  });
  const palettes=Object.create(null);
  let source=null,ready=false;
@@ -57,7 +57,7 @@
    for(const mode of ['red','green','boss'])palettes[mode]=recolorShark(mode);
   };
   image.onerror=()=>{ready=false;};
-  image.src=sourceName;
+  image.src=root.AbyssalSpriteAtlasB64?'data:image/png;base64,'+root.AbyssalSpriteAtlasB64:sourceName;
  }
  function has(id){return Boolean(SPECIES[String(id||'')]);}
  function drawAtOrigin(c,id,r,t,attack,hit=0){
@@ -68,7 +68,7 @@
   const isAttack=Boolean(attack),rate=cfg.count===4?175:(isAttack?54:110);
   const frame=(Math.floor(Math.max(0,Number(t)||0)/rate)%cfg.count+cfg.count)%cfg.count;
   const srcY=cfg.palette?(isAttack?64:0):((isAttack?cfg.attackRow:cfg.moveRow)*64);
-  const side=cfg.cell*cfg.span/64*r;
+  const side=cfg.span*r;
   c.save();
   c.imageSmoothingEnabled=false;
   if(Number(hit)>0){c.shadowColor='#ffffff';c.shadowBlur=Math.min(14,r*.35);}
@@ -76,7 +76,7 @@
   c.restore();
   return true;
  }
- function status(){return {ready,atlas:sourceName,species:Object.keys(SPECIES),octopusBlue:true};}
+ function status(){return {ready,atlas:root.AbyssalSpriteAtlasB64?'inline-asset':sourceName,species:Object.keys(SPECIES),octopusBlue:true};}
  preload();
  return Object.freeze({SPECIES,has,drawAtOrigin,preload,status});
 });
