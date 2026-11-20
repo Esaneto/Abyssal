@@ -1981,7 +1981,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  const openSeaSkin=!map&&isOpenSeaRun()&&!isBossType?(options.species||OPEN_SEA_ECOLOGY?.speciesAt?.(point.x,point.y,Math.random)):null;
  if(openSeaSkin){
   const nature=OPEN_SEA_ECOLOGY.temperament(openSeaSkin);
-  kind=['reefshark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
+  kind=['reefshark','tigershark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
  }
  let data=ai?.statsForKind(kind)||({
   boss:{r:40,hp:5640,speed:52,damage:25,color:'#338cff',value:55},
