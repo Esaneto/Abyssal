@@ -43,7 +43,7 @@ test('each station owns distinct destinations without duplicating quick actions'
  assert.doesNotMatch(social,/'AVISOS'/);
  assert.match(arsenal,/'CATÁLOGO DE ECOS'/);assert.match(arsenal,/'ABYSSÁRIO'/);
  assert.doesNotMatch(arsenal,/'ADQUIRIR ECOS'|'MEUS ECOS'|'RESGATAR CÓDIGO'/);
- const home=src.split("if(activeConsoleSection==='solo'){")[1].split("}else utility.append(heading,body,action)")[0];
+ const marker="body.textContent='Escolha como deseja explorar as profundezas.'";const start=src.indexOf(marker);assert.ok(start>0);const home=src.slice(start,src.indexOf("}else utility.append(heading,body,action)",start));
  assert.match(home,/cockpitSoloDiveBtn/);assert.match(home,/cockpitOnlineDiveBtn/);
  assert.doesNotMatch(home,/abyss-wardrobe-entry|createSoloResearchNav\(\)/);
  assert.match(src,/\['ARMÁRIO','Personalize seu mergulhador.'/);
