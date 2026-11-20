@@ -229,7 +229,18 @@ const injected=`<script>
       const monitorRect=monitor?.getBoundingClientRect(),deckRect=deck?.getBoundingClientRect();
       const currentKeys=[...box.querySelectorAll('.abyss-station-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
       const handheld=document.documentElement.classList.contains('abyssal-handheld');
-      if(handheld){const back=box.querySelector('.mobile-cockpit-back'),r=back?.getBoundingClientRect();if(!r||r.width<40||r.height<40||monitorRect.height<150)throw Error('Mobile expanded visor or back action missing');}
+      if(handheld){
+       const back=box.querySelector('.mobile-cockpit-back'),r=back?.getBoundingClientRect();
+       const close=box.querySelector('.abyss-window-floating-close'),c=close?.getBoundingClientRect();
+       if(!r||r.width<40||r.height<40||monitorRect.height<150)throw Error('Mobile expanded visor or back action missing');
+       if(!c||c.width<39||c.height<39||c.right>innerWidth+1||c.top<0||c.bottom>innerHeight+1)throw Error('Floating mobile X is not reachable '+JSON.stringify(c?.toJSON()));
+       const viewport=box.querySelector('.abyss-visor-body');
+       const initialTop=c.top;
+       viewport.scrollTop=viewport.scrollHeight;
+       const scrolledTop=close.getBoundingClientRect().top;
+       if(Math.abs(initialTop-scrolledTop)>2)throw Error('Floating close button moved with scrolled content');
+       viewport.scrollTop=0;
+      }
       else{
       if(currentKeys.length!==5||keyRects.some(r=>r.width<25||r.height<25))throw Error('Cockpit hardware buttons are hidden or detached');
       if(!monitorRect||!deckRect)throw Error('Cockpit monitor/deck missing');
@@ -264,6 +275,12 @@ const injected=`<script>
        const filter=shop.querySelector('#shopFamilyFilter');filter.value='legendary';filter.dispatchEvent(new Event('change'));
        if([...grid.querySelectorAll('.skin-card')].some(card=>card.dataset.rarity!=='legendary'))throw Error('Rarity filter did not match actual rarity');
        filter.value='all';filter.dispatchEvent(new Event('change'));
+       if(handheld){
+        box.querySelector('.abyss-window-floating-close').click();
+        if(box.dataset.station!=='arsenal'||!shop.hidden)throw Error('Floating X did not return from Echo shop to Arsenal');
+        [...box.querySelectorAll('.abyss-station-card')].find(c=>c.textContent.includes('CATÁLOGO DE ECOS'))?.querySelector('button')?.click();
+        if(shop.hidden)throw Error('Echo shop did not reopen after closing');
+       }
        if(document.documentElement.classList.contains('abyssal-handheld-landscape')){
         const card=grid.querySelector('.skin-card'),rect=card?.getBoundingClientRect(),preview=card?.querySelector('.skin-preview')?.getBoundingClientRect(),information=card?.querySelector('.specimen-card-information')?.getBoundingClientRect();
         const fields=[...shop.querySelectorAll('#shopFilterSummary ~ input,#shopSearchInput,#shopFamilyFilter,#shopOwnershipFilter,#shopHabitatFilter')].filter(e=>e.matches('input,select'));
@@ -303,6 +320,14 @@ const injected=`<script>
       }else{
        box.querySelector('.abyss-control-solo').click();
        if(!box.querySelector('#cockpitSoloDiveBtn')||!box.querySelector('#cockpitOnlineDiveBtn'))throw Error('Default cockpit launch action is missing');
+       if(handheld){
+        const x=box.querySelector('.abyss-window-floating-close');
+        if(!x)throw Error('Main cockpit close X missing');
+        x.click();
+        if(!box.hidden||document.getElementById('menuScreen').hidden)throw Error('Main mobile cockpit cannot return to exterior menu');
+        window.AbyssalCockpitNavigation?.open();
+        if(box.hidden||!box.querySelector('#cockpitSoloDiveBtn'))throw Error('Reopen cockpit after X failed');
+       }
       }
       document.body.dataset.cockpitStatus='ok';
       document.body.dataset.cockpitCards=cards;
