@@ -156,6 +156,9 @@
   background:rgba(2,13,22,.985)!important;
  }
  #submarineWorkshop.abyss-deep-active .deep-menu.deep-art-ready .deep-bottomline{display:none!important}
+ #submarineWorkshop.abyss-deep-active .deep-menu.deep-art-ready[data-focus="hatch"] .deep-bottomline{display:flex!important;z-index:40;bottom:max(10px,env(safe-area-inset-bottom));top:auto;left:3%;right:3%}
+ #submarineWorkshop.abyss-deep-active .deep-menu.deep-art-ready[data-focus="hatch"] .deep-bottomline span{display:none}
+ #submarineWorkshop.abyss-deep-active .deep-menu.deep-art-ready[data-focus="hatch"] .deep-bottomline button{display:block;pointer-events:auto;background:rgba(2,23,33,.9);border-color:#66dce2}
  #submarineWorkshop.abyss-deep-active.abyss-deep-detail .deep-menu.deep-art-ready .deep-bottomline{
   display:flex!important;z-index:35!important
  }
