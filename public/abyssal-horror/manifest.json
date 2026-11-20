@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "enabled": false,
+  "enabled": true,
   "columns": 4,
   "rows": 4,
   "frameWidth": 420,
@@ -20,5 +20,35 @@
     "devourer",
     "riftSmile"
   ],
-  "comment": "Activate only after uploading and validating all 26 matching WebP atlases."
+  "formats": [
+    "webp"
+  ],
+  "sha256": {
+    "drifter/swim.webp": "3b5b62ed49a302912f1a3d578cd03d5a201d604d17f740e7aa770fde88ddac0c",
+    "drifter/attack.webp": "449f6e9e821063e87ff7ecafb6e8d1d6c67fc9f5e3e41b058365f12ac76171a8",
+    "stinger/swim.webp": "e113638b8333a3a10c77d384740ba9e3783a9707a4ed77c8641644b51dc82ddd",
+    "stinger/attack.webp": "cfd13d6643d2fa806ed5fd4db0ad718d10559b20c56258cd80833713e254b215",
+    "brute/swim.webp": "f4a5063ce99268cc3f6dd6abf774ec97d6b107d4c732096a6f2524d6ef428911",
+    "brute/attack.webp": "9f527b610392bd0d3da58bccd216ba610a91e07ed26d3881ff388bb1f94ed9d8",
+    "lurker/swim.webp": "5826161c7a63d80875d52889d9533820f6292b10f2f8c9321e122244b2e94225",
+    "lurker/attack.webp": "161a53a68864ec3b91690c847cae55a77b68634ae3a3178245c75974af56c12d",
+    "whiteShark/swim.webp": "e3c68e6ae2acd963d10bc111dbbce8cd8d449656f8339d3ce4d42c820235dec7",
+    "whiteShark/attack.webp": "87526000c9660152941aee598bab1c8a319c0d9386b450e133f9555e850d1f75",
+    "boss/swim.webp": "0ee63064e8e3afc57ab00747050805a641f982b1a1482578b46dad6380383d9c",
+    "boss/attack.webp": "59fa8f35f7fc049e3ab5606e5bc9eda533eef5d9e12aab0381dcdc7a9f2a3776",
+    "angler/swim.webp": "45143c8c7ca56a49544fee125d8374da4ac9d7949d605836229bd346487f1230",
+    "angler/attack.webp": "3454a43be0f2f392199a052f659a7883124cb4fa55caca9da264fab22a65c3a9",
+    "maw/swim.webp": "6a9f4fe7849e7b810f2f6ef9c3aa5becca91be0734e5abddbc9f25b26192c1a8",
+    "maw/attack.webp": "0a58d2850fcc80def96baad4d0c51dac0d330b8af7d6de003aae5cd89506884d",
+    "leviathan/swim.webp": "bf6816867ee024e01275a96519d61c598e1c326b77c67730cec14c1ad277e82c",
+    "leviathan/attack.webp": "6fed30809a2a5d5c517e4561a0f56b1bfbd789a8e2131651c76863ee0cf2ee59",
+    "whiteSharkBoss/swim.webp": "3c89883078a8cf88f353088ee3a9bc10aec4c0028136c0f387f21d9cc6a109d7",
+    "whiteSharkBoss/attack.webp": "fd2fbcf0e5889d4f5c5ba722e9326aff58b78c555725eaa43b038f787bc9c919",
+    "kraken/swim.webp": "09e2f82270d816c239411d2eed339ea1596982cfc37b7b05f5c65ceaaf4829e8",
+    "kraken/attack.webp": "ba0b6f480d698a173ca945f18bc436ab0c4fdb03c76bf45af8ce56ee96f87b8c",
+    "devourer/swim.webp": "ffc6bb2a5f2f14a5fe9e77c9bbd6061db3666640c32b09cce0132840a96db0c5",
+    "devourer/attack.webp": "c415c9f1aaee55dc0106dc22fe7f84c1e229ec818985eee70701735de258e79c",
+    "riftSmile/swim.webp": "7295e4a68fc4e609e67c791cb05e8126fcf5541d24d8d5b47b391e896c61ed9a",
+    "riftSmile/attack.webp": "82cf9407fd4170aaa429cff3395d60e052288724260c5e453b37f4cbbe09a4ac"
+  }
 }
