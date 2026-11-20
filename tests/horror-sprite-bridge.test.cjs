@@ -18,7 +18,7 @@ test('Enabled manifest advertises species but falls back while images are loadin
   const original={has:()=>false,drawAtOrigin:()=>false,isBiting:()=>false,biteProgress:()=>-1,status:()=>({})};
   const host={AbyssalAnimatedSprites:original,fetch:async()=>({ok:true,json:async()=>({enabled:true,columns:4,rows:4,frameWidth:420,frameHeight:320,creatures:['lurker']})})};
   vm.runInNewContext(source,{globalThis:host,Promise,Map,Set,Date,Object,Math});
-  for(let i=0;i<4;i++)await Promise.resolve();
+  await host.AbyssalAnimatedSprites.preloadHorror();
   assert.equal(host.AbyssalAnimatedSprites.has('lurker'),true);
   assert.equal(host.AbyssalAnimatedSprites.drawAtOrigin({},'lurker',25,0,false),false);
 });
