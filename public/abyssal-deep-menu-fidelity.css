@@ -1,0 +1,206 @@
+/* FINAL FIDELITY LAYER. Real source: user-provided Abyssal expedition hub
+ * composition, optimized as the 35KB AVIF room plate. The plate is a
+ * decorative background only; EVERY control is live DOM and retains current
+ * account / gameplay authority. Crop position is intentionally art-directed.
+ * Keep after abyssal-deep-menu-cinematic.css. */
+#submarineWorkshop.abyss-deep-active .deep-chamber{
+ background: #051725 url('abyssal-hub-room-plate.avif') center center / 100% 100% no-repeat!important;
+}
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-backwall,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-leftwall,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-rightwall,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-ceiling,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-floor,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-floor-lines,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-ceiling-ribs,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-ocean-window,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-bridge-art,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-stage-lights,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-floor-plate,
+#submarineWorkshop.abyss-deep-active .deep-chamber>.deep-bridge-reflection{display:none!important}
+#submarineWorkshop.abyss-deep-active .deep-room-dust{opacity:.2}
+#submarineWorkshop.abyss-deep-active .deep-light-beams{opacity:.3}
+#submarineWorkshop.abyss-deep-active .deep-topline{
+ min-height:72px;background:linear-gradient(to bottom,rgba(0,8,16,.98),rgba(0,13,23,.96));
+ border-color:rgba(0,181,214,.2);
+}
+#submarineWorkshop.abyss-deep-active .deep-operations{
+ left:30%;width:43%;top:18.6%;height:7.8%;
+ z-index:8;display:flex;flex-direction:row-reverse;gap:4%;
+ padding:0;
+ border:0!important;background:transparent!important;box-shadow:none!important;
+ transform:none!important;overflow:visible
+}
+#submarineWorkshop.abyss-deep-active .deep-operations::before{display:none}
+#submarineWorkshop.abyss-deep-active .deep-operations>button{
+ position:relative;height:100%;min-height:44px;
+ background:linear-gradient(140deg,rgba(0,37,51,.96),rgba(0,14,26,.92))!important;
+ border:1px solid #26cbd6!important;
+ border-radius:16px!important;
+ padding:4px 9px!important;
+ overflow:hidden;
+ display:flex;align-items:center;justify-content:center;flex-direction:column;
+ box-shadow:0 0 14px rgba(13,227,240,.4),inset 0 0 18px rgba(5,135,160,.28)!important;
+ transition:border-color .2s ease,box-shadow .2s ease,filter .2s ease
+}
+#submarineWorkshop.abyss-deep-active .deep-research{flex:0 0 57%}
+#submarineWorkshop.abyss-deep-active .deep-sonar{flex:1}
+#submarineWorkshop.abyss-deep-active .deep-research-display,
+#submarineWorkshop.abyss-deep-active .deep-sonar-face{display:none!important}
+#submarineWorkshop.abyss-deep-active .deep-operations>button strong,
+#submarineWorkshop.abyss-deep-active .deep-operations .deep-research strong,
+#submarineWorkshop.abyss-deep-active .deep-operations .deep-sonar strong{
+ position:static!important;top:auto!important;left:auto!important;right:auto!important;
+ min-width:0!important;width:100%;height:auto!important;
+ padding:0!important;margin:0!important;
+ transform:none!important;animation:none!important;
+ display:flex;gap:6px;align-items:center;justify-content:center;
+ border:none!important;border-radius:0!important;box-shadow:none!important;
+ color:#f3ffff;font:850 clamp(11px,1.12vw,18px)/1.13 Inter,system-ui,sans-serif!important;
+ letter-spacing:.025em;white-space:nowrap;background:transparent!important
+}
+#submarineWorkshop.abyss-deep-active .deep-operations>button small,
+#submarineWorkshop.abyss-deep-active .deep-operations .deep-research small{
+ display:block!important;position:static!important;
+ width:100%!important;top:auto!important;left:auto!important;
+ color:#b7d4d9;font:500 clamp(7px,.59vw,10px)/1.2 Inter,system-ui,sans-serif!important;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;
+ margin-top:4px;letter-spacing:0
+}
+#submarineWorkshop.abyss-deep-active .deep-operations>button strong::before{
+ width:23px;height:23px;flex:0 0 23px;
+ display:grid;place-items:center;margin:0;
+ font-size:16px;color:#40ffff;border:1px solid #30d7df;border-radius:50%
+}
+#submarineWorkshop.abyss-deep-active .deep-operations .deep-research{animation:hubFloatResearch 8.7s ease-in-out -2.1s infinite alternate}
+#submarineWorkshop.abyss-deep-active .deep-operations .deep-sonar{animation:hubFloatSocial 10.3s ease-in-out -6s infinite alternate}
+#submarineWorkshop.abyss-deep-active .deep-capsule{
+ top:23%;height:43%;width:24%;z-index:8;
+ transform:none!important;filter:none!important;background:transparent!important
+}
+#submarineWorkshop.abyss-deep-active .deep-suits{left:1%;width:24%}
+#submarineWorkshop.abyss-deep-active .deep-ecos{right:0;width:25%}
+#submarineWorkshop.abyss-deep-active .deep-capsule-rim,
+#submarineWorkshop.abyss-deep-active .deep-capsule-base{display:none!important}
+#submarineWorkshop.abyss-deep-active .deep-capsule-glass{
+ inset:14% 10% 19%;border:0!important;border-radius:48% 48% 8% 8%;
+ background:transparent!important;box-shadow:none!important;
+ overflow:hidden;filter:none
+}
+#submarineWorkshop.abyss-deep-active .deep-capsule-glass::before{display:none!important}
+#submarineWorkshop.abyss-deep-active .deep-capsule-glass canvas{
+ opacity:.24;mix-blend-mode:screen;filter:drop-shadow(0 0 4px #13eeff);transform:scale(1.1)
+}
+#submarineWorkshop.abyss-deep-active .deep-capsule-float{
+ left:-1%;right:-2%;bottom:-1%;height:17%;
+ border:1px solid rgba(8,221,236,.85);
+ border-radius:24px;
+ background:linear-gradient(120deg,rgba(1,24,34,.94),rgba(0,14,25,.92));
+ box-shadow:0 0 14px rgba(15,234,249,.55),inset 0 0 13px rgba(0,188,229,.22);
+ animation:hubFloatWardrobe 9.3s ease-in-out -1.8s infinite alternate
+}
+#submarineWorkshop.abyss-deep-active .deep-ecos .deep-capsule-float{
+ animation:hubFloatEcos 10.6s ease-in-out -6.6s infinite alternate
+}
+#submarineWorkshop.abyss-deep-active .deep-capsule-icon{
+ font-size:clamp(15px,2vw,31px);color:#24f5ff
+}
+#submarineWorkshop.abyss-deep-active .deep-capsule-copy strong{
+ font-size:clamp(10px,1.28vw,21px);font-weight:900
+}
+#submarineWorkshop.abyss-deep-active .deep-capsule-copy small{
+ font-size:clamp(8px,.8vw,12px);color:#c2e8eb
+}
+#submarineWorkshop.abyss-deep-active .deep-hatch-choice{
+ top:49.8%;left:50%;width:min(422px,27vw);padding:12px 15px 14px;
+ z-index:20;
+ border:2px solid #16e4ef;border-radius:24px;
+ background:linear-gradient(140deg,rgba(0,42,59,.98),rgba(0,18,32,.94));
+ box-shadow:0 0 24px rgba(4,234,249,.44),0 8px 20px rgba(0,3,9,.65),inset 0 0 27px rgba(1,120,154,.34);
+ animation:hubFloatDive 9.8s ease-in-out -4.2s infinite alternate
+}
+#submarineWorkshop.abyss-deep-active .deep-hatch-choice p{
+ font-size:clamp(16px,1.8vw,27px);letter-spacing:.026em
+}
+#submarineWorkshop.abyss-deep-active .deep-hatch-choice button{
+ min-height:clamp(43px,5.4vh,64px);font-size:clamp(12px,1.12vw,17px)
+}
+#submarineWorkshop.abyss-deep-active .deep-hatch{
+ top:68.1%;bottom:auto;left:31%;width:38%;height:22.5%;
+ z-index:9;transform:none!important;border:0!important;
+ filter:none!important;background:transparent!important
+}
+#submarineWorkshop.abyss-deep-active .deep-hatch>.deep-hatch-outer{display:none!important}
+#submarineWorkshop.abyss-deep-active .deep-hatch>strong{display:none!important}
+#submarineWorkshop.abyss-deep-active .deep-hatch:hover,
+#submarineWorkshop.abyss-deep-active .deep-hatch:focus-visible{
+ outline:2px solid rgba(64,236,246,.7);
+ outline-offset:-6px;border-radius:50%;box-shadow:0 0 31px rgba(2,237,255,.17)
+}
+#submarineWorkshop.abyss-deep-active .deep-hatch-choice[hidden]{display:none!important}
+#submarineWorkshop.abyss-deep-active.abyss-deep-hatch-opening .deep-hatch{
+ animation:hubHatchOpening .8s ease-out both
+}
+#submarineWorkshop.abyss-deep-active .deep-bottomline>span{display:none}
+#submarineWorkshop.abyss-deep-active .deep-bottomline{bottom:max(5px,env(safe-area-inset-bottom));z-index:25}
+#submarineWorkshop.abyss-deep-active .deep-topline{
+ background:linear-gradient(to bottom,rgba(0,9,17,.99),rgba(0,12,22,.97))!important
+}
+#submarineWorkshop.abyss-deep-active .deep-utilities{position:relative}
+#submarineWorkshop.abyss-deep-active .deep-utilities button{
+ border-color:rgba(9,155,178,.33)
+}
+#submarineWorkshop.abyss-deep-active .deep-capsule:hover .deep-capsule-float,
+#submarineWorkshop.abyss-deep-active .deep-operations>button:hover{filter:brightness(1.2)}
+@keyframes hubFloatResearch{from{transform:translate3d(0,7px,0)}to{transform:translate3d(0,-5px,0)}}
+@keyframes hubFloatSocial{from{transform:translate3d(0,-5px,0)}to{transform:translate3d(0,7px,0)}}
+@keyframes hubFloatWardrobe{from{transform:translate3d(0,5px,0)}to{transform:translate3d(0,-7px,0)}}
+@keyframes hubFloatEcos{from{transform:translate3d(0,-6px,0)}to{transform:translate3d(0,6px,0)}}
+@keyframes hubFloatDive{from{transform:translate3d(-50%,6px,0)}to{transform:translate3d(-50%,-7px,0)}}
+@keyframes hubHatchOpening{from{filter:brightness(1)}to{filter:brightness(2.3)}}
+@media(max-width:920px){
+ #submarineWorkshop.abyss-deep-active .deep-operations{left:25%;width:50%;top:19.5%;height:8%}
+ #submarineWorkshop.abyss-deep-active .deep-capsule{height:43%;width:26%}
+ #submarineWorkshop.abyss-deep-active .deep-suits{left:0}
+ #submarineWorkshop.abyss-deep-active .deep-ecos{right:0;width:26%}
+ #submarineWorkshop.abyss-deep-active .deep-hatch-choice{width:min(360px,43vw);top:50%}
+ #submarineWorkshop.abyss-deep-active .deep-hatch{left:28%;width:44%;top:68%;height:23%}
+}
+@media(max-width:700px){
+ #submarineWorkshop.abyss-deep-active .deep-chamber{
+  background-size:100% 100%!important;
+ }
+ #submarineWorkshop.abyss-deep-active .deep-operations{left:16%;width:68%;top:26%;height:7%}
+ #submarineWorkshop.abyss-deep-active .deep-operations>button strong{font-size:9px!important}
+ #submarineWorkshop.abyss-deep-active .deep-operations>button small{font-size:7px!important}
+ #submarineWorkshop.abyss-deep-active .deep-capsule{top:41%;height:31%;width:31%}
+ #submarineWorkshop.abyss-deep-active .deep-suits{left:1%}
+ #submarineWorkshop.abyss-deep-active .deep-ecos{right:1%;width:31%}
+ #submarineWorkshop.abyss-deep-active .deep-capsule-float{height:22%;border-radius:10px}
+ #submarineWorkshop.abyss-deep-active .deep-capsule-copy strong{font-size:10px}
+ #submarineWorkshop.abyss-deep-active .deep-capsule-copy small{font-size:6px}
+ #submarineWorkshop.abyss-deep-active .deep-hatch-choice{top:66%;width:77vw;padding:7px 9px 9px;border-radius:13px}
+ #submarineWorkshop.abyss-deep-active .deep-hatch-choice p{font-size:15px}
+ #submarineWorkshop.abyss-deep-active .deep-hatch-choice button{min-height:42px;font-size:11px;padding:4px}
+ #submarineWorkshop.abyss-deep-active .deep-hatch{left:28%;width:44%;top:77%;height:14%}
+ #submarineWorkshop.abyss-deep-active .deep-capsule-glass canvas{opacity:.45}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #submarineWorkshop.abyss-deep-active .deep-operations{left:28%;width:44%;top:18%;height:10.5%}
+ #submarineWorkshop.abyss-deep-active .deep-capsule{top:25%;height:43%;width:25%}
+ #submarineWorkshop.abyss-deep-active .deep-ecos{right:0;width:25%}
+ #submarineWorkshop.abyss-deep-active .deep-suits{left:0}
+ #submarineWorkshop.abyss-deep-active .deep-hatch-choice{top:50%;width:38vw;padding:5px 8px 7px;gap:4px}
+ #submarineWorkshop.abyss-deep-active .deep-hatch-choice p{font-size:12px}
+ #submarineWorkshop.abyss-deep-active .deep-hatch-choice button{min-height:32px;font-size:10px}
+ #submarineWorkshop.abyss-deep-active .deep-hatch{top:69%;left:31%;width:38%;height:24%}
+}
+@media(prefers-reduced-motion:reduce){
+ #submarineWorkshop.abyss-deep-active .deep-research,
+ #submarineWorkshop.abyss-deep-active .deep-sonar,
+ #submarineWorkshop.abyss-deep-active .deep-capsule-float,
+ #submarineWorkshop.abyss-deep-active .deep-hatch-choice{
+  animation:none!important;transform:translate3d(0,0,0)!important
+ }
+ #submarineWorkshop.abyss-deep-active .deep-hatch-choice{transform:translateX(-50%)!important}
+}
