@@ -31,7 +31,7 @@ test('animated atlas supports all shark Ecos, hostile sharks and boss octopus',(
  assert.equal(api.SPECIES.aberration.count,4);
  assert.equal(api.SPECIES.abysscroc.palette,'red');
  assert.equal(api.SPECIES.greenland.palette,'green');
- assert.match(sprite,/imageSmoothingEnabled=false/);
+ assert.match(sprite,/imageSmoothingEnabled=true/);
  assert.match(sprite,/image\.naturalWidth!==576\|\|image\.naturalHeight!==512/);
  assert.match(sprite,/const frame=\(Math\.floor/);
  assert.match(sprite,/const side=cfg\.span\*r/);
@@ -66,12 +66,12 @@ test('tiger-shark metadata and palette integrate into existing Echo catalog and 
  assert.match(html,/abyssal-animated-sprites\.js\?v=2026\.11\.20\.1/);
  assert.match(sw,/'abyssal-eco-sprites\.png'/);
  assert.match(sw,/'abyssal-animated-sprites\.js'/);
- assert.match(sw,/2026-11-20-animated-ecos-v304/);
+ assert.match(sw,/2026-11-20-animated-ecos-v305/);
 });
 
 test('sprite renderer advances nado and ataque frames for hammerhead, tiger and octopus',()=>{
  const recorded=[];
- const painter={save(){},restore(){},drawImage(...args){recorded.push(args);},imageSmoothingEnabled:true};
+ const painter={save(){},restore(){},drawImage(...args){recorded.push(args);},transform(){},translate(){},rotate(){},beginPath(){},rect(){},clip(){},imageSmoothingEnabled:true};
  const base={drawImage(){},getImageData(){return {data:new Uint8ClampedArray(576*128*4)};},putImageData(){}};
  class SpriteImage{
   constructor(){this.naturalWidth=576;this.naturalHeight=512;}
@@ -86,7 +86,7 @@ test('sprite renderer advances nado and ataque frames for hammerhead, tiger and 
  assert.ok(sprites.status().ready);
  const render=(id,t,attack)=>{
   recorded.length=0;assert.equal(sprites.drawAtOrigin(painter,id,18,t,attack),true,id);
-  assert.equal(recorded.length,1);return recorded[0].slice(1,5);
+  assert.equal(recorded.length,2);return recorded[0].slice(1,5);
  };
  assert.deepEqual(render('reefshark',110,false),[64,0,64,64]);
  assert.deepEqual(render('reefshark',54,true),[64,64,64,64]);
@@ -98,4 +98,21 @@ test('sprite renderer advances nado and ataque frames for hammerhead, tiger and 
  assert.deepEqual(render('boss',350,true),[256,384,128,128]);
  assert.deepEqual(render('abysscroc',110,false),[64,0,64,64]);
  assert.deepEqual(render('greenland',54,true),[64,64,64,64]);
+});
+
+test('attack-only frames do not trigger for pursuing, charging or merely aggressive fauna',()=>{
+ const src=read('public/game.js');
+ assert.match(src,/const attacking=Boolean\(enemyState\?\.hostileBite\|\|enemyState\?\.biteAnimation\)/);
+ const pos=src.indexOf('const attacking=Boolean(enemyState?.hostileBite');
+ assert.ok(pos>=0);
+ const detector=src.slice(pos,src.indexOf('c.save();c.translate(x,y);',pos));
+ assert.doesNotMatch(detector,/openSeaWantsAttack|sharkCharging|attackCd/);
+ assert.match(src,/e\.visualBiteStartedAt=performance\.now\(\)/);
+ const sprites=require('../public/abyssal-animated-sprites.js');
+ assert.equal(sprites.biteProgress(null,100,false),-1);
+ assert.equal(sprites.selectFrame('reefshark',330,false,null,true),2);
+ assert.ok(sprites.selectFrame('reefshark',100,true,{biteAnimation:{startedAt:0,duration:350}},true)>=3);
+ assert.equal(sprites.selectFrame('reefshark',100,true,{biteAnimation:{startedAt:0,duration:350}},true)<=8,true);
+ assert.match(read('public/abyssal-animated-sprites.js'),/c\.transform\(/);
+ assert.match(read('public/game.js'),/const swimHeading=Number\.isFinite/);
 });
