@@ -140,7 +140,8 @@
    c.save();c.imageSmoothingEnabled=true;
    if('imageSmoothingQuality' in c)c.imageSmoothingQuality='high';
    if(Number(hit)>0){c.shadowColor='#fff';c.shadowBlur=Math.min(14,r*.35);}
-   const paint=(index,alpha)=>{if(alpha>.004){c.globalAlpha=alpha;c.drawImage(sheet,(index%4)*168,Math.floor(index/4)*168,168,168,-side/2,-side/2,side,side);}};
+   const baseAlpha=c.globalAlpha;
+   const paint=(index,alpha)=>{if(alpha>.004){c.globalAlpha=baseAlpha*alpha;c.drawImage(sheet,(index%4)*168,Math.floor(index/4)*168,168,168,-side/2,-side/2,side,side);}};
    paint(first,1-weight);paint(next,weight);
    c.restore();return true;
   }
