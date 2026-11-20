@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "enabled": false,
+  "columns": 4,
+  "rows": 4,
+  "frameWidth": 420,
+  "frameHeight": 320,
+  "creatures": [
+    "drifter",
+    "stinger",
+    "brute",
+    "lurker",
+    "whiteShark",
+    "boss",
+    "angler",
+    "maw",
+    "leviathan",
+    "whiteSharkBoss",
+    "kraken",
+    "devourer",
+    "riftSmile"
+  ],
+  "comment": "Activate only after uploading and validating all 26 matching WebP atlases."
+}

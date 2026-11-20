@@ -3961,7 +3961,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  // All animated shark and octopus artwork goes through the same drawing path:
  // player Eco, other players' Ecos, shop preview, wild specimen and boss.
  // This changes pixels only. AI/collision/damage/ability ownership stays intact.
- const spriteId=playerCreature?skin?.id:kind==='whiteShark'||kind==='whiteSharkBoss'||kind==='boss'?kind:null;
+ const spriteId=playerCreature?skin?.id:(window.AbyssalAnimatedSprites?.has(kind)?kind:null);
  const atlas=window.AbyssalAnimatedSprites;
  if(spriteId&&atlas?.has(spriteId)){
   const attacking=atlas.isBiting?.(enemyState,performance.now())===true;
