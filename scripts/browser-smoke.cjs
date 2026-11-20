@@ -230,10 +230,9 @@ const injected=`<script>
       const currentKeys=[...box.querySelectorAll('.abyss-station-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
       const handheld=document.documentElement.classList.contains('abyssal-handheld');
       if(handheld){
-       const back=box.querySelector('.mobile-cockpit-back'),r=back?.getBoundingClientRect();
-       const close=box.querySelector('.abyss-window-floating-close'),c=close?.getBoundingClientRect();
-       if(!r||r.width<40||r.height<40||monitorRect.height<150)throw Error('Mobile expanded visor or back action missing');
-       if(!c||c.width<39||c.height<39||c.right>innerWidth+1||c.top<0||c.bottom>innerHeight+1)throw Error('Floating mobile X is not reachable '+JSON.stringify(c?.toJSON()));
+       const close=box.querySelector('.abyss-window-floating-close:not([hidden])'),c=close?.getBoundingClientRect();
+       if(box.querySelector('.mobile-cockpit-back'))throw Error('Duplicate mobile back arrow remains');
+       if(!c||c.width<39||c.height<39||c.right>innerWidth+1||c.left<0||c.top<0||c.bottom>innerHeight+1||monitorRect.height<150)throw Error('Single mobile X is not reachable '+JSON.stringify(c?.toJSON()));
        const viewport=box.querySelector('.abyss-visor-body');
        const initialTop=c.top;
        viewport.scrollTop=viewport.scrollHeight;
@@ -254,7 +253,9 @@ const injected=`<script>
       const view=new URLSearchParams(location.search).get('view')||'solo';
       if(view==='wardrobe'){
        if(!handheld)throw Error('Wardrobe mobile smoke must use handheld UA');
-       box.querySelector('.mobile-cockpit-back').click();
+       box.querySelector('.abyss-window-floating-close').click();
+       if(box.dataset.station!=='cabine'||box.classList.contains('abyss-visor-expanded'))throw Error('X did not return to cabin selector');
+       box.querySelector('[data-station="perfil"]').click();
        box.querySelector('[data-cockpit-setting="wardrobe"]').click();
        const wardrobe=box.querySelector('.abyss-wardrobe'),stage=wardrobe?.querySelector('.aw-canvas'),panel=wardrobe?.querySelector('.aw-panel'),save=wardrobe?.querySelector('.aw-primary'),choice=wardrobe?.querySelector('.aw-option');
        if(!wardrobe||!stage||!panel||!save||!choice)throw Error('Wardrobe controls missing');
@@ -277,7 +278,8 @@ const injected=`<script>
        filter.value='all';filter.dispatchEvent(new Event('change'));
        if(handheld){
         box.querySelector('.abyss-window-floating-close').click();
-        if(box.dataset.station!=='arsenal'||!shop.hidden)throw Error('Floating X did not return from Echo shop to Arsenal');
+        if(box.dataset.station!=='cabine'||!shop.hidden||box.classList.contains('abyss-visor-expanded'))throw Error('Floating X did not return from Echo shop to cabin');
+        box.querySelector('[data-station="arsenal"]').click();
         [...box.querySelectorAll('.abyss-station-card')].find(c=>c.textContent.includes('CATÁLOGO DE ECOS'))?.querySelector('button')?.click();
         if(shop.hidden)throw Error('Echo shop did not reopen after closing');
        }
@@ -322,11 +324,12 @@ const injected=`<script>
        if(!box.querySelector('#cockpitSoloDiveBtn')||!box.querySelector('#cockpitOnlineDiveBtn'))throw Error('Default cockpit launch action is missing');
        if(handheld){
         const x=box.querySelector('.abyss-window-floating-close');
-        if(!x)throw Error('Main cockpit close X missing');
-        x.click();
-        if(!box.hidden||document.getElementById('menuScreen').hidden)throw Error('Main mobile cockpit cannot return to exterior menu');
-        window.AbyssalCockpitNavigation?.open();
-        if(box.hidden||!box.querySelector('#cockpitSoloDiveBtn'))throw Error('Reopen cockpit after X failed');
+        if(!x?.hidden||!box.querySelector('[data-station="perfil"]'))throw Error('Main cabin should expose station choices without X');
+        box.querySelector('[data-station="perfil"]').click();
+        if(!box.querySelector('.abyss-station-card'))throw Error('Profile station inaccessible');
+        box.querySelector('.abyss-window-floating-close').click();
+        if(box.hidden||box.dataset.station!=='cabine'||box.classList.contains('abyss-visor-expanded'))throw Error('Closing a window must return to cabin menu');
+        if(!box.querySelector('[data-station="social"]'))throw Error('Station selector unavailable after closing');
        }
       }
       document.body.dataset.cockpitStatus='ok';
