@@ -22,8 +22,8 @@
  });
  const sourceName='abyssal-eco-sprites.png?v=2026.11.20.1';
  const hdSourceName='abyssal-sharks-2.5d.webp?v=2026.11.20.2';
- const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.4';
- const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.4';
+ const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.5';
+ const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.5';
  let whiteSharkSwim=null,whiteSharkAttack=null,whiteSharkReady=false;
  const palettes=Object.create(null);
  let source=null,ready=false,hdSource=null,hdReady=false,hdCell=0;
@@ -134,10 +134,14 @@
   const side=cfg.span*r;
   if(useWhiteShark){
    const sheet=progress>=0?whiteSharkAttack:whiteSharkSwim;
+   // Frame blending keeps the tail and jaw continuous on 60/90/120 Hz displays.
+   const position=progress>=0?Math.min(11,progress*11):(Math.max(0,time)/95)%12;
+   const first=Math.floor(position),next=progress>=0?Math.min(11,first+1):(first+1)%12,weight=position-first;
    c.save();c.imageSmoothingEnabled=true;
    if('imageSmoothingQuality' in c)c.imageSmoothingQuality='high';
    if(Number(hit)>0){c.shadowColor='#fff';c.shadowBlur=Math.min(14,r*.35);}
-   c.drawImage(sheet,(frame%4)*168,Math.floor(frame/4)*168,168,168,-side/2,-side/2,side,side);
+   const paint=(index,alpha)=>{if(alpha>.004){c.globalAlpha=alpha;c.drawImage(sheet,(index%4)*168,Math.floor(index/4)*168,168,168,-side/2,-side/2,side,side);}};
+   paint(first,1-weight);paint(next,weight);
    c.restore();return true;
   }
   const sheet=useHd?hdSource:(cfg.palette?palettes[cfg.palette]:source);
