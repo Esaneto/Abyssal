@@ -61,7 +61,7 @@
    const started=Number.isFinite(visualStart)&&visualStart>0?visualStart:until-380;
    if(clock>=started)events.push({started,duration:Math.max(1,until-started)});
   }
-  if(!events.length)return -1;
+  if(!events.length)return previous.biteProgress?.(state,t,true,clock)??-1;
   events.sort((a,b)=>b.started-a.started);
   const event=events[0];
   return Math.min(.999999,Math.max(0,(clock-event.started)/event.duration));
