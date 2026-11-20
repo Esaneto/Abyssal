@@ -79,7 +79,7 @@
  function selectFrame(id,t,attack,state,hd=false){
   const cfg=SPECIES[id];
   const p=biteProgress(state,t,attack);
-  if(cfg?.octopus)return p>=0?Math.min(3,Math.floor(p*4)):Math.floor(Math.max(0,t)/240)%4;
+  if(cfg?.octopus)return p>=0?Math.min(3,Math.floor(p*4)):Math.floor(Math.max(0,t)/175)%4;
   if(hd){
    if(p>=0)return [3,4,5,6,7,8][Math.min(5,Math.floor(p*6))];
    return [0,1,2,1,0][Math.floor(Math.max(0,t)/165)%5];
