@@ -33,7 +33,7 @@ test('closing an internal window restores the cabin station selector rather than
 
 test('mobile versions and offline cache refresh after navigation correction',()=>{
  const html=read('public/index.html'),sw=read('public/offline-sw.js');
- assert.match(html,/mobile-portrait\.css\?v=3\.6\.153\.singleclose/);
- assert.match(html,/abyssal-exploration-runtime\.js\?v=3\.6\.153\.singleclose/);
- assert.match(sw,/2026-11-20-mobile-single-close-v302/);
+ assert.match(html,/mobile-portrait\.css\?v=3\.6\.154\.loop/);
+ assert.match(html,/abyssal-exploration-runtime\.js\?v=3\.6\.154\.loop/);
+ assert.match(sw,/2026-11-20-mobile-cabin-loop-v303/);
 });

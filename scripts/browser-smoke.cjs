@@ -208,6 +208,25 @@ const injected=`<script>
       const keys=[...box.querySelectorAll('.abyss-station-key')];
       if(keys.length!==5)throw Error('Expected five cockpit stations, found '+keys.length);
       for(const id of ['social','cabine','laboratorio','arsenal','perfil'])if(!box.querySelector('[data-station="'+id+'"]'))throw Error('Missing cockpit station '+id);
+      const isHandheld=document.documentElement.classList.contains('abyssal-handheld');
+      const carousel=box.querySelector('.abyss-station-rail');
+      if(isHandheld){
+       const copies=carousel.querySelectorAll('.abyss-station-loop-copy');
+       const railStyle=getComputedStyle(carousel),railRect=carousel.getBoundingClientRect();
+       const deckStyle=getComputedStyle(carousel.parentElement);
+       if(copies.length!==10||carousel.children.length!==15||carousel.dataset.infinite!=='true')throw Error('Five accessible stations require ten loop-only carousel copies');
+       if(railStyle.touchAction!=='pan-x'||railStyle.overflowX!=='auto'||carousel.scrollWidth<=carousel.clientWidth)throw Error('Mobile station rail cannot scroll natively to the side');
+       if(railRect.left<0||railRect.right>innerWidth+1||railRect.width<85)throw Error('Mobile station rail is clipped by viewport');
+       if(deckStyle.gridTemplateColumns.split(' ').length!==3)throw Error('Landscape four-key grid override broke three-track station carousel');
+       if([...copies].some(k=>k.tabIndex!==-1||k.getAttribute('aria-hidden')!=='true'))throw Error('Carousel copies create duplicate keyboard navigation');
+       box.querySelector('.abyss-station-key[data-station="perfil"]').click();
+       box.querySelector('.abyss-station-arrow:last-child').click();
+       if(box.dataset.station!=='social')throw Error('Next arrow failed to wrap PERFIL to SOCIAL');
+       box.querySelector('.abyss-station-arrow:first-child').click();
+       if(box.dataset.station!=='perfil')throw Error('Previous arrow failed to wrap SOCIAL to PERFIL');
+       window.AbyssalCockpitNavigation.returnToCabinMenu();
+       if(box.dataset.station!=='cabine'||box.classList.contains('abyss-visor-expanded'))throw Error('Carousel navigation cannot return to cabin home');
+      }
       // Route redemption from Social without opening the Echo store.
       box.querySelector('[data-station="social"]').click();
       const socialCode=[...box.querySelectorAll('.abyss-station-card')].find(card=>card.querySelector('strong')?.textContent==='RESGATAR CÓDIGO');
