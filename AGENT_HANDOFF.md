@@ -1,3 +1,9 @@
+# 20/11/2026 | CORREÇÃO DE DIREÇÃO: ARTE NATIVA SEM COLAGEM
+O usuário confirmou que a foto aprovada NÃO deve ser colada como menu e não pode exibir trajes, criaturas ou recursos inexistentes. Foram removidas as referências CSS à UI fotográfica no index e interrompido o pré-carregamento de painéis WebP. O novo arquivo `public/abyssal-deep-menu-native.css` constrói ambiente em camadas 2.5D, cápsulas de vidro físico, painéis reais flutuantes, piso e escotilha mecânica. Amostras de trajes/Ecos usam renderizadores do próprio jogo, sem alteração de conta/saldo.
+**Pendências verificáveis:** confirmar CI no HEAD, olhar capturas desktop e Android para fidelidade/oclusão, validar transição Solo/Online e somente então merge na main. Não declarar arte ultrarrealista final sem evidências. Nunca reverter para painéis fotografados ou UI sobre screenshot.
+
+---
+
 # Atualização de handoff: cabine fiel à referência, painel flutuante e Android (20/11/2026)
 
 **Branch:** \`feat/deep-menu-cinematic-20261119\`. **PR:** #322. **Main:** preservar até concluir os testes e a integração.
