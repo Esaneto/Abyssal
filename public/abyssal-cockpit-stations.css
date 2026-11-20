@@ -48,7 +48,7 @@
  display:flex;align-items:center;gap:8px;min-width:0;min-height:78px;
  overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;
  padding:6px 4px 9px;scrollbar-width:none;scroll-snap-type:x mandatory;
- touch-action:pan-y;-webkit-overflow-scrolling:touch;
+ touch-action:pan-x;-webkit-overflow-scrolling:touch;
 }
 #submarineWorkshop .abyss-station-rail::-webkit-scrollbar{display:none}
 #submarineWorkshop .abyss-control-key.abyss-station-key{
@@ -200,7 +200,7 @@
   max-height:calc(100dvh - 60px)!important;
  }
 }
-#submarineWorkshop .abyss-station-rail{touch-action:pan-y}
+#submarineWorkshop .abyss-station-rail{touch-action:pan-x}
 #submarineWorkshop .abyss-station-key-name{display:block;font-weight:700;line-height:1.25}
 #submarineWorkshop .abyss-station-key[aria-pressed="true"]{outline-offset:1px}
 #submarineWorkshop .abyss-visor-body>.abyss-station-cards{width:100%;box-sizing:border-box}
