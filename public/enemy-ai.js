@@ -45,7 +45,7 @@
     if(!prior||prior.targetId!==id||clock<prior.startedAt){
       enemy.whiteSharkBiteWindup={startedAt:clock,duration:WHITE_SHARK_BITE_WINDUP_MS,targetId:id};
       enemy.whiteSharkBiteCancel=null;
-      return {ready:false,started:true,cancelled:Boolean(prior)};
+      return {ready:false,started:true,cancelled:false};
     }
     if(clock-prior.startedAt<WHITE_SHARK_BITE_WINDUP_MS)return {ready:false,started:false,cancelled:false};
     enemy.whiteSharkBiteWindup=null;enemy.whiteSharkBiteCancel=null;
