@@ -230,10 +230,9 @@ const injected=`<script>
       const currentKeys=[...box.querySelectorAll('.abyss-station-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
       const handheld=document.documentElement.classList.contains('abyssal-handheld');
       if(handheld){
-       const back=box.querySelector('.mobile-cockpit-back'),r=back?.getBoundingClientRect();
-       const close=box.querySelector('.abyss-window-floating-close'),c=close?.getBoundingClientRect();
-       if(!r||r.width<40||r.height<40||monitorRect.height<150)throw Error('Mobile expanded visor or back action missing');
-       if(!c||c.width<39||c.height<39||c.right>innerWidth+1||c.top<0||c.bottom>innerHeight+1)throw Error('Floating mobile X is not reachable '+JSON.stringify(c?.toJSON()));
+       const close=box.querySelector('.abyss-window-floating-close:not([hidden])'),c=close?.getBoundingClientRect();
+       if(box.querySelector('.mobile-cockpit-back'))throw Error('Duplicate mobile back arrow remains');
+       if(!c||c.width<39||c.height<39||c.right>innerWidth+1||c.left<0||c.top<0||c.bottom>innerHeight+1||monitorRect.height<150)throw Error('Single mobile X is not reachable '+JSON.stringify(c?.toJSON()));
        const viewport=box.querySelector('.abyss-visor-body');
        const initialTop=c.top;
        viewport.scrollTop=viewport.scrollHeight;
@@ -254,7 +253,9 @@ const injected=`<script>
       const view=new URLSearchParams(location.search).get('view')||'solo';
       if(view==='wardrobe'){
        if(!handheld)throw Error('Wardrobe mobile smoke must use handheld UA');
-       box.querySelector('.mobile-cockpit-back').click();
+       box.querySelector('.abyss-window-floating-close').click();
+       if(box.dataset.station!=='cabine'||box.classList.contains('abyss-visor-expanded'))throw Error('X did not return to cabin selector');
+       box.querySelector('[data-station="perfil"]').click();
        box.querySelector('[data-cockpit-setting="wardrobe"]').click();
        const wardrobe=box.querySelector('.abyss-wardrobe'),stage=wardrobe?.querySelector('.aw-canvas'),panel=wardrobe?.querySelector('.aw-panel'),save=wardrobe?.querySelector('.aw-primary'),choice=wardrobe?.querySelector('.aw-option');
        if(!wardrobe||!stage||!panel||!save||!choice)throw Error('Wardrobe controls missing');
@@ -277,7 +278,8 @@ const injected=`<script>
        filter.value='all';filter.dispatchEvent(new Event('change'));
        if(handheld){
         box.querySelector('.abyss-window-floating-close').click();
-        if(box.dataset.station!=='arsenal'||!shop.hidden)throw Error('Floating X did not return from Echo shop to Arsenal');
+        if(box.dataset.station!=='cabine'||!shop.hidden||box.classList.contains('abyss-visor-expanded'))throw Error('Floating X did not return from Echo shop to cabin');
+        box.querySelector('[data-station="arsenal"]').click();
         [...box.querySelectorAll('.abyss-station-card')].find(c=>c.textContent.includes('CATÁLOGO DE ECOS'))?.querySelector('button')?.click();
         if(shop.hidden)throw Error('Echo shop did not reopen after closing');
        }
@@ -322,11 +324,12 @@ const injected=`<script>
        if(!box.querySelector('#cockpitSoloDiveBtn')||!box.querySelector('#cockpitOnlineDiveBtn'))throw Error('Default cockpit launch action is missing');
        if(handheld){
         const x=box.querySelector('.abyss-window-floating-close');
-        if(!x)throw Error('Main cockpit close X missing');
-        x.click();
-        if(!box.hidden||document.getElementById('menuScreen').hidden)throw Error('Main mobile cockpit cannot return to exterior menu');
-        window.AbyssalCockpitNavigation?.open();
-        if(box.hidden||!box.querySelector('#cockpitSoloDiveBtn'))throw Error('Reopen cockpit after X failed');
+        if(!x?.hidden||!box.querySelector('[data-station="perfil"]'))throw Error('Main cabin should expose station choices without X');
+        box.querySelector('[data-station="perfil"]').click();
+        if(!box.querySelector('.abyss-station-card'))throw Error('Profile station inaccessible');
+        box.querySelector('.abyss-window-floating-close').click();
+        if(box.hidden||box.dataset.station!=='cabine'||box.classList.contains('abyss-visor-expanded'))throw Error('Closing a window must return to cabin menu');
+        if(!box.querySelector('[data-station="social"]'))throw Error('Station selector unavailable after closing');
        }
       }
       document.body.dataset.cockpitStatus='ok';
@@ -553,7 +556,7 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    for(const [w,h] of [[320,568],[390,844],[844,390],[360,640]]){await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:2,mobile:true,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});await sleep(350);for(let i=0;i<25;i++){if(await evaluate(`(()=>{const s=document.querySelector('.hud-editor-stage'),r=s?.querySelector('iframe')?.getBoundingClientRect();return s?.dataset.measured==='true'&&Math.abs(r?.width-innerWidth)<1&&Math.abs(r?.height-innerHeight)<1})()`))break;await sleep(100);}const a=await evaluate(`(()=>{const p=document.querySelector('.hud-editor'),s=p.querySelector('.hud-editor-stage'),r=s.getBoundingClientRect(),f=s.querySelector('iframe').getBoundingClientRect();return {w:innerWidth,h:innerHeight,stage:r.toJSON(),frame:f.toJSON(),scale:Number(s.dataset.scale),profile:s.dataset.profile}})()`);console.log('[hud-viewport-rotation] '+JSON.stringify(a));assert.ok(Math.abs(a.stage.width-w)<1&&Math.abs(a.stage.height-h)<1&&Math.abs(a.frame.width-w)<1&&Math.abs(a.frame.height-h)<1&&Math.abs(a.stage.left)<1&&Math.abs(a.stage.top)<1&&Math.abs(a.scale-1)<.001&&a.profile===(w>h?'landscape':'portrait'),'HUD matches rotated device: '+JSON.stringify(a));await screenshot('hud-fullscreen-'+w+'x'+h);}
    await evaluate(`(()=>{const m=document.querySelector('.hud-editor [aria-label="Modo de jogo"]');m.value='solo';m.dispatchEvent(new Event('change'));})()`);
    assert.equal(await evaluate(`(()=>{const page=document.querySelector('.hud-editor');page.querySelector('.hud-editor-settings button').click();page.querySelector('.hud-editor-dock .primary-btn').click();return Object.keys(window.AbyssalHudLayout.get().portrait).length===0&&window.AbyssalHudLayout.getEffective('solo','portrait').health.s===.65;})()`),true,'HUD restore must restore default layout');
-   await evaluate(`(()=>{window.AbyssalCockpitNavigation.back();window.AbyssalApplyInstalledAndroid();})()`);await sleep(400);
+   await evaluate(`(()=>{window.AbyssalCockpitNavigation.returnToCabinMenu();window.AbyssalApplyInstalledAndroid();})()`);await sleep(400);
    const nativeAudit=await evaluate(`(()=>{const strip=document.querySelector('#submarineWorkshop .abyss-cockpit-top-actions'),selectors=['#mobileDownloadTopBtn','#fullscreenBtn','#downloadBtn','#hubFullscreenBtn','[data-cockpit-proxy="mobileDownloadTopBtn"]','[data-cockpit-proxy="fullscreenBtn"]'];const hidden=selectors.map(s=>[s,getComputedStyle(document.querySelector(s)).display]);const r=strip.getBoundingClientRect(),p=strip.closest('.abyss-cockpit-chrome').getBoundingClientRect();return {hidden,centerError:Math.abs((r.left+r.right-p.left-p.right)/2),rect:[r.left,r.right],chrome:[p.left,p.right],expanded:strip.closest('#submarineWorkshop').classList.contains('abyss-visor-expanded'),visible:getComputedStyle(strip).visibility};})()`);console.log('[installed-android] '+JSON.stringify(nativeAudit));assert.ok(nativeAudit.hidden.every(v=>v[1]==='none')&&nativeAudit.centerError<3&&!nativeAudit.expanded&&nativeAudit.visible!=='hidden','Installed Android utilities hidden and cockpit strip centered: '+JSON.stringify(nativeAudit));await screenshot('android-installed-cockpit');
    for(const [w,h] of [[320,568],[640,360],[844,390],[360,640]]){
     await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:2,mobile:true,screenOrientation:{type:w>h?'landscapePrimary':'portraitPrimary',angle:w>h?90:0}});await sleep(400);

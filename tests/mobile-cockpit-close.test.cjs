@@ -5,32 +5,35 @@ const fs=require('node:fs');
 const path=require('node:path');
 const read=filename=>fs.readFileSync(path.join(__dirname,'..',filename),'utf8');
 
-test('all cockpit windows receive a persistent labelled close button outside the scrolling body',()=>{
+test('only one mobile X exists outside scrolling body and it is on the left',()=>{
  const js=read('public/abyssal-exploration-runtime.js');
  const css=read('public/mobile-portrait.css');
  assert.match(js,/const floatingClose=document\.createElement\('button'\)/);
  assert.match(js,/floatingClose\.className='abyss-window-floating-close'/);
- assert.match(js,/heading\.append\(mobileBack,column,status,floatingClose\);visor\.append\(heading\)/);
- assert.match(js,/const body=document\.createElement\('div'\);body\.className='abyss-visor-body'/);
- assert.match(js,/floatingClose\.addEventListener\('click',exitCurrentWindow\)/);
- assert.match(css,/#submarineWorkshop \.abyss-window-floating-close/);
- assert.match(css,/position:absolute!important;display:grid!important/);
- assert.match(css,/min-width:44px!important/);
- assert.match(css,/env\(safe-area-inset-right/);
+ assert.match(js,/heading\.append\(floatingClose,column,status\);visor\.append\(heading\)/);
+ assert.match(js,/floatingClose\.addEventListener\('click',returnToCabinMenu\)/);
+ assert.doesNotMatch(js,/document\.createElement\('button'\);mobileBack\./);
+ assert.match(js,/floatingClose\.hidden=atHome/);
+ assert.match(css,/#submarineWorkshop \.abyss-window-floating-close:not\(\[hidden\]\)/);
+ assert.match(css,/flex:0 0 44px!important/);
+ assert.match(css,/\.abyss-visor-body \.abyss-cockpit-embedded :is\(/);
+ assert.match(css,/\.mobile-cockpit-back,\.abyss-station-back/);
 });
 
-test('back from home exits to the exterior and back from an inner window navigates one level',()=>{
+test('closing an internal window restores the cabin station selector rather than exiting submarine',()=>{
  const js=read('public/abyssal-exploration-runtime.js');
- assert.match(js,/if\(soloConsolePage==='home'\)\{showExterior\(\);return;\}/);
- assert.match(js,/soloConsolePage='home';renderWorkshop\(\);return;/);
- assert.match(js,/backEmbedded\(\);\s*\};/);
- assert.match(js,/mobileBack\.addEventListener\('click',exitCurrentWindow\)/);
- assert.match(js,/showExterior=\(\)=>/);
+ assert.match(js,/function returnToCabinMenu\(\)\{/);
+ assert.match(js,/selectedStation='cabine';workshop\.dataset\.station='cabine'/);
+ assert.match(js,/activeConsoleSection='solo';soloConsolePage='home'/);
+ assert.match(js,/renderWorkshop\(\);\s*return true;/);
+ assert.match(js,/back:backEmbedded,returnToCabinMenu,select:selectStation/);
+ assert.match(js,/if\(document\.documentElement\.classList\.contains\('abyssal-handheld'\)\)returnToCabinMenu\(\)/);
+ assert.match(js,/const showExterior=\(\)=>/);
 });
 
-test('mobile assets are refreshed for installed Android offline cache',()=>{
+test('mobile versions and offline cache refresh after navigation correction',()=>{
  const html=read('public/index.html'),sw=read('public/offline-sw.js');
- assert.match(html,/mobile-portrait\.css\?v=3\.6\.152\.close/);
- assert.match(html,/abyssal-exploration-runtime\.js\?v=3\.6\.152\.stickyclose/);
- assert.match(sw,/2026-11-20-mobile-cockpit-close-v301/);
+ assert.match(html,/mobile-portrait\.css\?v=3\.6\.153\.singleclose/);
+ assert.match(html,/abyssal-exploration-runtime\.js\?v=3\.6\.153\.singleclose/);
+ assert.match(sw,/2026-11-20-mobile-single-close-v302/);
 });
