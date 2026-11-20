@@ -95,7 +95,7 @@
   blackcaiman:['shield','movement'],
   reefshark:['trail','movement'],
   hammerhead:['pulse','energy'],
-  tigershark:['slowShot','movement'],
+  tigershark:['slowShot','range'],
   abysscroc:['dash','defense'],
   armoredgator:['push','defense'],
   greensnake:['poison','damage'],
