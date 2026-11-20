@@ -57,7 +57,7 @@
    for(const mode of ['red','green','boss'])palettes[mode]=recolorShark(mode);
   };
   image.onerror=()=>{ready=false;};
-  image.src=root.AbyssalSpriteAtlasB64?'data:image/png;base64,'+root.AbyssalSpriteAtlasB64:sourceName;
+  image.src=sourceName;
  }
  function has(id){return Boolean(SPECIES[String(id||'')]);}
  function drawAtOrigin(c,id,r,t,attack,hit=0){
@@ -76,7 +76,7 @@
   c.restore();
   return true;
  }
- function status(){return {ready,atlas:root.AbyssalSpriteAtlasB64?'inline-asset':sourceName,species:Object.keys(SPECIES),octopusBlue:true};}
+ function status(){return {ready,atlas:sourceName,species:Object.keys(SPECIES),octopusBlue:true};}
  preload();
  return Object.freeze({SPECIES,has,drawAtOrigin,preload,status});
 });
