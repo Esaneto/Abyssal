@@ -201,7 +201,7 @@ function drawSamples(t){
   const choice=products.length?products[Math.floor(t/11000)%products.length]:null;
   const appearance=avatar?.normalize?.({...avatar.get(),outfit:choice?.id||'navy'})||undefined;
   sc.save();sc.translate(suit.width/2,suit.height*.54+Math.sin(t*.0011)*3);
-  art.draw(sc,0,0,46,-Math.PI/2,-Math.PI/2,t,{gender:root.AbyssalDiverGender||'male',appearance,moving:true,heldItem:'none'});
+  art.draw(sc,0,0,67,-Math.PI/2,-Math.PI/2,t,{gender:root.AbyssalDiverGender||'male',appearance,moving:true,heldItem:'none'});
   sc.restore();
  }else{
   sc.strokeStyle='#b7e7e4';sc.lineWidth=9;sc.beginPath();sc.arc(110,86,24,0,Math.PI*2);sc.moveTo(110,112);sc.lineTo(110,213);sc.moveTo(110,144);sc.lineTo(71,184);sc.moveTo(110,144);sc.lineTo(150,184);sc.stroke();
