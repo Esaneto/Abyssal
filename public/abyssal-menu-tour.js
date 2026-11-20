@@ -72,7 +72,7 @@ function close(){
 }
 function blocked(){if(document.documentElement.classList.contains('abyssal-startup')||document.body.classList.contains('game-active')||document.hidden)return true;const loading=$('abyssalStartupLoading');if(loading&&!loading.classList.contains('is-hidden'))return true;for(const n of document.querySelectorAll('.modal-screen:not(#submarineWorkshop),.modal-overlay,#abyssalTutorialOverlay,#abyssalProgressionChoice,#abyssalDiveChoicePanel'))if(visible(n))return true;return false;}
 function autoCheck(){
- autoScheduled=false;if(autoOff||active||seen()){autoObserver?.disconnect();return;}if(blocked())return;
+ autoScheduled=false;if(root.AbyssalDeepMenu?.isEnabled?.()){autoObserver?.disconnect();return;}if(autoOff||active||seen()){autoObserver?.disconnect();return;}if(blocked())return;
  const menu=$('menuScreen'),cabin=$('submarineWorkshop');if(visible(cabin))open('cabin',true);else if(visible(menu))open('exterior',true);
 }
 function scheduleAuto(){if(!autoOff&&!autoScheduled){autoScheduled=true;requestAnimationFrame(autoCheck);}}

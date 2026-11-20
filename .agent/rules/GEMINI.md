@@ -54,3 +54,6 @@
 - UI responsiva e controles acessíveis.
 - Solo/online não divergem indevidamente.
 - Deploy verificado ou estado pendente comunicado com honestidade.
+
+## Visual continuity: mandatory agent framework
+Read AGENT_FRAMEWORK.md and docs/DEEP_MENU_ARCHITECTURE.md before touching the menu, Ressonância, cápsulas, HUD or camera. Do not replace the approved single 2.5D cabin with generic cards or another exterior menu. Preserve real gameplay/account/commerce routes and require screenshot QA before main.
