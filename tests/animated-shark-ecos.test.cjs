@@ -65,6 +65,7 @@ test('tiger-shark metadata and palette integrate into existing Echo catalog and 
  assert.match(fauna,/tigershark/);
  assert.match(html,/abyssal-animated-sprites\.js\?v=2026\.11\.20\.2/);
  assert.match(sw,/'abyssal-eco-sprites\.png'/);
+ assert.ok(sw.includes("'abyssal-sharks-2.5d.webp'"));
  assert.match(sw,/'abyssal-animated-sprites\.js'/);
  assert.match(sw,/2026-11-20-animated-ecos-v306/);
 });
@@ -128,7 +129,7 @@ test('refined 2.5D atlas contains five distinct 3x3 sheets in verified WebP cont
  assert.equal(height,2880);
  assert.equal(crypto.createHash('sha256').update(b).digest('hex'),'c743dc557c86c40ab646956b724ca71cfd52e12da217a8d6c1bf687a48880951');
  const src=read('public/abyssal-animated-sprites.js');
- assert.match(src,/hdSourceName='abyssal-sharks-2\\.5d\\.webp/);
+ assert.ok(src.includes("hdSourceName='abyssal-sharks-2.5d.webp"));
  for(const [id,art] of [['reefshark',0],['tigershark',1],['abysscroc',2],['greenland',3],['hammerhead',4]]){
   assert.equal(require('../public/abyssal-animated-sprites.js').SPECIES[id].art,art,id);
  }
