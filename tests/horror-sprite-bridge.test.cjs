@@ -63,3 +63,31 @@ test('New atlas never replaces an unrelated Eco species, and attacks crossfade s
   atlas.drawAtOrigin(canvas,'whiteShark',20,150,false,0,{progress:.8});
   assert.ok(calls.length>0&&calls.every(x=>x.endsWith('/swim.webp')),'Return to swim with no phantom bite');
 });
+
+test('Enabled atlas manifest hashes match all 26 committed WebP assets',()=>{
+  const path=require('node:path');
+  const crypto=require('node:crypto');
+  const root=path.join(__dirname,'../public/abyssal-horror');
+  const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
+  assert.equal(manifest.enabled,true);
+  assert.equal(manifest.creatures.length,13);
+  const shaSet=new Set();
+  for(const id of manifest.creatures){
+    for(const action of ['swim','attack']){
+      const name=id+'/'+action+'.webp';
+      const data=fs.readFileSync(path.join(root,name));
+      assert.ok(data.length>2000,'Empty atlas: '+name);
+      assert.equal(data.toString('ascii',0,4),'RIFF');
+      assert.equal(data.toString('ascii',8,16),'WEBPVP8X');
+      assert.equal(data.readUInt32LE(4)+8,data.length);
+      assert.equal((data[20]&16),16,'Missing alpha: '+name);
+      assert.equal(data.readUIntLE(24,3)+1,1680);
+      assert.equal(data.readUIntLE(27,3)+1,1280);
+      const hash=crypto.createHash('sha256').update(data).digest('hex');
+      assert.equal(hash,manifest.sha256[name],'Incorrect atlas bytes: '+name);
+      assert.ok(!shaSet.has(hash),'Duplicate creature artwork: '+name);
+      shaSet.add(hash);
+    }
+  }
+  assert.equal(shaSet.size,26);
+});
