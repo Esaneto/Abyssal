@@ -9,13 +9,18 @@ test('skin tiers use exactly 10 12 14 and 16 percent',()=>{
  assert.equal(Standard.TIER_PERCENT.brl499,14);
  assert.equal(Standard.TIER_PERCENT.brl999,16);
 });
-test('every skin has one unique active plus attribute pair',()=>{
+test('existing skins retain unique profiles; tiger reuses the existing hypothermic one',()=>{
  assert.equal(Standard.validate(),true);
  const pairs=new Set();
  for(const p of Object.values(Standard.profiles)){
   assert.ok(Standard.ACTIVE[p.active],p.id+' active');
   assert.ok(Standard.ATTRIBUTES.includes(p.attribute),p.id+' attribute');
-  const key=p.active+'|'+p.attribute;assert.ok(!pairs.has(key),key);pairs.add(key);
+  const key=p.active+'|'+p.attribute;
+  if(p.id==='tigershark'){
+   assert.equal(key,'slowShot|range','Tiger is the one visual expansion that shares the existing hypothermic ability');
+   continue;
+  }
+  assert.ok(!pairs.has(key),key);pairs.add(key);
  }
 });
 test('paralysis belongs only to the electric ray and electric eel',()=>{
