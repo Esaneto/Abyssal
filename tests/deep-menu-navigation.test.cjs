@@ -11,6 +11,9 @@ test('deep menu is loaded after live cockpit and cached offline',()=>{
  assert.ok(html.indexOf('abyssal-exploration-runtime.js')<html.indexOf('abyssal-deep-menu.js'));
  assert.match(sw,/'abyssal-deep-menu\.js'/);
  assert.match(sw,/'abyssal-deep-menu\.css'/);
+ assert.match(sw,/'abyssal-deep-menu-cinematic\.css'/);
+ assert.match(sw,/'abyssal-cabin-deck\.webp'/);
+ assert.match(sw,/'abyssal-cabin-ocean-hq\.webp'/);
 });
 test('deep menu keeps the original gameplay, account, shop and art authority',()=>{
  const s=read('public/abyssal-deep-menu.js');
