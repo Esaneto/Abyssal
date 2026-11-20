@@ -59,6 +59,6 @@ test('settings consolidate advanced groups without changing original selectors o
   assert.match(page,new RegExp("'"+name+"'"));
  assert.match(page,/cockpit-setting-accordion/);
  assert.match(html,/abyssal-cockpit-stations\.css\?v=3\.6\.150/);
- assert.match(read('public/offline-sw.js'),/2026-11-20-mobile-single-close-v302/);
+ assert.match(read('public/offline-sw.js'),/2026-11-20-mobile-cabin-loop-v303/);
  assert.match(css,/\.cockpit-setting-accordion/);
 });
