@@ -67,7 +67,7 @@ async function capture(root,label){
     for(const name of ['suits','ecos','hatch','sonar','research'])assert.ok(report[name].inside&&report[name].hit&&report[name].w>=34&&report[name].h>=36,name+' interactive station must fit the viewport');
     assert.ok(report.suits.x<report.hatch.x&&report.hatch.x<report.ecos.x,'Physical layout of capsule/hatch stations changed');
     assert.ok(report.sonar.w<report.research.w,'Sonar must be visibly smaller than the research terminal');
-    await ev("document.getElementById('deepHatchChoice').hidden&&document.querySelector('[data-deep-target=hatch]').click()");
+    await ev("document.querySelector('[data-deep-target=hatch]').click()");
     await wait("!document.getElementById('deepHatchChoice').hidden");
     assert.ok(await ev("Boolean(document.getElementById('deepSoloDive')&&document.getElementById('deepOnlineDive'))"),'Hatch must preserve both game modes');
     await snap(device+'-escotilha');
@@ -75,7 +75,7 @@ async function capture(root,label){
     await wait("document.getElementById('abyssDeepMenu').dataset.focus==='overview'");
     await ev("document.querySelector('[data-deep-quick=settings]').click()");
     await wait("!document.getElementById('deepSettings').hidden");
-    assert.ok(await ev("document.querySelectorAll('#deepSettings [data-deep-setting]').length===7"),'All original technical settings and download must remain reachable');
+    assert.ok(await ev("document.querySelectorAll('#deepSettings [data-deep-setting]').length===8"),'All original technical settings and download must remain reachable');
     await snap(device+'-ajustes');
     await ev("document.querySelector('[data-deep-setting=volume]').click()");
     await wait("document.getElementById('submarineWorkshop').classList.contains('abyss-deep-detail')&&Boolean(document.querySelector('#submarineWorkshop .cockpit-settings-page[data-setting-page=volume]'))");
