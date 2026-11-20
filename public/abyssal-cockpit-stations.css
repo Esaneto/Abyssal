@@ -328,3 +328,42 @@ body:not(.game-active) #submarineWorkshop .abyss-station-deck>.abyss-station-rai
     transform:none!important;transition:none!important;
   }
 }
+
+/* Navigation cleanup. Existing visual identity and cockpit artwork are unchanged. */
+#menuScreen.expedition-hub .hub-nav{grid-template-columns:minmax(0,1fr)!important}
+#menuScreen.expedition-hub .hub-nav #submarineWorkshopBtn{width:100%!important;max-width:none!important}
+#menuScreen.expedition-hub .hub-secondary{justify-content:flex-start!important}
+#menuScreen.expedition-hub #hubMore>summary{min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:7px}
+#menuScreen.expedition-hub .hub-more-help{display:flex;flex-wrap:wrap;gap:7px}
+#menuScreen.expedition-hub .hub-more-help h3{flex-basis:100%;margin:0 0 3px}
+#menuScreen.expedition-hub .hub-more-help button{min-height:42px}
+body:not(.game-active) #submarineWorkshop .abyss-cockpit-top-actions{
+ width:clamp(160px,22vw,266px)!important;
+ min-height:40px!important;align-items:stretch!important;gap:6px!important
+}
+body:not(.game-active) #submarineWorkshop .abyss-cockpit-top-actions>.cockpit-command{
+ flex:1 1 0!important;min-width:0!important;
+ display:flex!important;justify-content:center;align-items:center;gap:6px!important
+}
+#submarineWorkshop .abyss-cockpit-top-actions>.cockpit-command svg{flex-shrink:0;width:16px;height:16px}
+#submarineWorkshop .cockpit-command-bridges{display:none!important;visibility:hidden!important}
+#submarineWorkshop .cockpit-setting-accordion{
+ display:block;min-width:0;border:1px solid #3e7382;border-radius:9px;
+ background:linear-gradient(150deg,#133649,#0b2636);overflow:hidden
+}
+#submarineWorkshop .cockpit-setting-accordion>summary{
+ min-height:46px;display:flex;align-items:center;justify-content:space-between;
+ padding:10px 14px;cursor:pointer;list-style:none;color:#e2f5f7;
+ font:750 12px/1.3 Inter,system-ui,sans-serif;letter-spacing:.045em
+}
+#submarineWorkshop .cockpit-setting-accordion>summary::-webkit-details-marker{display:none}
+#submarineWorkshop .cockpit-setting-accordion>summary::after{content:'+';font-size:19px;color:#95dde4}
+#submarineWorkshop .cockpit-setting-accordion[open]>summary::after{content:'−'}
+#submarineWorkshop .cockpit-setting-accordion>summary:focus-visible{outline:2px solid #a1f0f1;outline-offset:-2px}
+#submarineWorkshop .cockpit-setting-accordion>.cockpit-settings-page{padding:0 10px 12px!important;gap:8px!important}
+@media(max-width:700px){
+ #menuScreen.expedition-hub .hub-more-help button{flex:1 1 135px}
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-cockpit-top-actions{width:clamp(160px,42vw,240px)!important;min-height:34px!important;gap:3px!important}
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-cockpit-top-actions>.cockpit-command{padding:4px!important;min-height:34px!important}
+ #submarineWorkshop .abyss-cockpit-top-actions>.cockpit-command svg{width:15px;height:15px}
+}
