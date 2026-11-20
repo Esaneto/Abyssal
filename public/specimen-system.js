@@ -30,7 +30,7 @@
   abyssaleye:'fish',deepwarden:'crustacean',riftSmileRelic:'octopus',
   kraken:'squid',aberration:'octopus',angler:'fish',maw:'eel',
   leviathan:'fish',devourer:'squid',saltcroc:'reptile',
-  blackcaiman:'reptile',reefshark:'shark',hammerhead:'shark',
+  blackcaiman:'reptile',reefshark:'shark',hammerhead:'shark',tigershark:'shark',
   abysscroc:'shark',armoredgator:'crustacean',greensnake:'eel',
   electriceel:'ray',electriceellegacy:'eel'
  });

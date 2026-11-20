@@ -11,7 +11,7 @@
  'use strict';
  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
  const ZONES=Object.freeze([
-  {id:'reef',label:'RECIFE VIVO',x:560,y:650,rx:790,ry:540,fauna:['reefshark','hammerhead','hawksbill','butterflyray','eagleray'],resources:['coralSample','seaMineral']},
+  {id:'reef',label:'RECIFE VIVO',x:560,y:650,rx:790,ry:540,fauna:['reefshark','hammerhead','tigershark','hawksbill','butterflyray','eagleray'],resources:['coralSample','seaMineral']},
   {id:'kelp',label:'FLORESTA DE ALGAS',x:1810,y:680,rx:850,ry:510,fauna:['leatherback','stingray','zebramoray'],resources:['kelpFiber','seaMineral']},
   {id:'rocks',label:'COSTA ROCHOSA',x:3780,y:710,rx:850,ry:640,fauna:['spidercrab','nautilus','zebramoray','ribbonmoray','greenland'],resources:['salvageMetal','seaMineral']},
   {id:'canyon',label:'CÂNION SUBMARINO',x:820,y:2240,rx:900,ry:670,fauna:['goblin','frilled','bigfin','whiplash'],resources:['deepCrystal','salvageMetal']},
@@ -30,7 +30,7 @@
    deep:['seapig','yeticrab','bigfin']
   }),
   cinematic:Object.freeze({
-   shelf:['eagleray','butterflyray','hawksbill','stingray','reefshark','hammerhead'],
+   shelf:['eagleray','butterflyray','hawksbill','stingray','reefshark','hammerhead','tigershark'],
    twilight:['nautilus','bigfin','whiplash','frilled','goblin'],
    deep:['bigfin','whiplash','angler','viperfish','blackdragon']
   }),
@@ -40,7 +40,7 @@
    deep:['seapig','yeticrab','whiplash','angler','blackdragon','viperfish']
   })
  });
- const PREDATORS=new Set(['reefshark','hammerhead','abysscroc','greenland','goblin','frilled','viperfish','blackdragon','angler','zebramoray']);
+ const PREDATORS=new Set(['reefshark','hammerhead','tigershark','abysscroc','greenland','goblin','frilled','viperfish','blackdragon','angler','zebramoray']);
  // Shallow predators start exclusively east of the safe western entry zone.
  function predatorAllowedAt(id,x,y){
   if(!PREDATORS.has(String(id||'')))return true;
@@ -49,7 +49,7 @@
  }
  const SMART=new Set(['bigfin','whiplash','nautilus','spidercrab']);
  const SCHOOLING=new Set(['butterflyray','eagleray','viperfish','hatchetfish']);
- const PREDATOR_STRENGTH=Object.freeze({reefshark:4,hammerhead:4,abysscroc:4,greenland:5,goblin:5,frilled:4,viperfish:3,blackdragon:5,angler:5,zebramoray:3,whiplash:2,bigfin:2});
+ const PREDATOR_STRENGTH=Object.freeze({reefshark:4,hammerhead:4,tigershark:4,abysscroc:4,greenland:5,goblin:5,frilled:4,viperfish:3,blackdragon:5,angler:5,zebramoray:3,whiplash:2,bigfin:2});
  const HABITAT_DEPTH=Object.freeze({
   reef:[0,200],kelp:[0,200],rocks:[0,800],canyon:[400,1800],
   deep:[850,2200],abyss:[1600,2200],open:[0,850],twilight:[200,1050]

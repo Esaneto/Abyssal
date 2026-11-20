@@ -363,6 +363,7 @@ const SKIN_TAXONOMY=Object.freeze({
   electriceellegacy:{family:'eel',collections:['shop']},
  reefshark:{family:'shark',collections:['shop']},
  hammerhead:{family:'shark',collections:['shop']},
+ tigershark:{family:'shark',collections:['shop']},
  abysscroc:{family:'shark',collections:['shop']},
  armoredgator:{family:'crustacean',collections:['shop']},
  leviathan:{family:'fish',collections:['relic']},
@@ -397,7 +398,8 @@ const skinData=[
 {id:'blackcaiman',name:'Jacaré-Açu',color:'#425b68',price:499,paid:true,shape:'alligator',desc:'Focinho largo em U, crânio robusto e placas negras iluminadas pelas águas profundas.'},
 {id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:199,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.'},
 {id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:199,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.'},
-{id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Tubarão costeiro robusto inspirado no tubarão-touro, adaptado a canais rasos, estuários e água turva.'},
+{id:'tigershark',name:'Tubarão-Tigre',color:'#345f94',price:5000,paid:false,shape:'tigershark',desc:'Predador listrado de águas profundas. Seu Projétil Hipotérmico provoca dano e lentidão; a habilidade conserva os valores originais do sistema.'},
+{id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#bb4651',price:499,paid:true,shape:'alligator',desc:'Tubarão costeiro robusto inspirado no tubarão-touro, adaptado a canais rasos, estuários e água turva.'},
 {id:'armoredgator',name:'Caranguejo-Ferradura Couraçado',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Artrópode marinho blindado inspirado no caranguejo-ferradura, com carapaça mineralizada e télson longo.'},
 {id:'greensnake',name:'Moréia Esmeralda Colossal',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Moréia oceânica colossal de pele verde-jade, corpo sinuoso e mandíbula dupla inspirada nas faringes das moréias.'},
   {id:'electriceel',name:'Raia-Elétrica Abissal',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Raia marinha inspirada nas torpediniformes, com disco muscular e órgãos bioelétricos pulsando em ciano.'},
@@ -1979,7 +1981,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  const openSeaSkin=!map&&isOpenSeaRun()&&!isBossType?(options.species||OPEN_SEA_ECOLOGY?.speciesAt?.(point.x,point.y,Math.random)):null;
  if(openSeaSkin){
   const nature=OPEN_SEA_ECOLOGY.temperament(openSeaSkin);
-  kind=['reefshark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
+  kind=['reefshark','tigershark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
  }
  let data=ai?.statsForKind(kind)||({
   boss:{r:40,hp:5640,speed:52,damage:25,color:'#338cff',value:55},
@@ -3956,6 +3958,20 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  // Do not use attack-aim angle when its movement is in another direction.
  const movingEnemyHeading=!playerCreature&&renderContext===ctx&&kind!==RIFT_HARDCORE?.FINAL_KIND
   ?(Number.isFinite(visualMotion?.heading)?visualMotion.heading:(Number(angle)||0)):null;
+ // All animated shark and octopus artwork goes through the same drawing path:
+ // player Eco, other players' Ecos, shop preview, wild specimen and boss.
+ // This changes pixels only. AI/collision/damage/ability ownership stays intact.
+ const spriteId=playerCreature?skin?.id:kind==='whiteShark'||kind==='whiteSharkBoss'||kind==='boss'?kind:null;
+ const atlas=window.AbyssalAnimatedSprites;
+ if(spriteId&&atlas?.has(spriteId)){
+  const attacking=creatureAttackActivity(kind,enemyState,hit)>.6||
+   Boolean(enemyState?.hostileBite||enemyState?.biteAnimation||enemyState?.sharkCharging||enemyState?.openSeaWantsAttack);
+  c.save();c.translate(x,y);
+  if(!enemyState?.__sprite)applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading??movingEnemyHeading);
+  const painted=atlas.drawAtOrigin(c,spriteId,r,animationTime,attacking,hit);
+  c.restore();
+  if(painted)return;
+ }
  if(kind===RIFT_HARDCORE?.FINAL_KIND){
   c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r);
   finalBossVisualState.r=r;RIFT_HARDCORE.drawFinalBoss(c,finalBossVisualState,animationTime);c.restore();return;
@@ -4604,7 +4620,7 @@ function drawRiftShopSpecimen(enemy,skin,time){
  const stale=time-sprite.lastPaint>=(mobileViewport?125:83);
  if(stale&&(sprite.lastPaint===-Infinity||riftSpecimenSpritePaints<3)){
   sprite.c.clearRect(0,0,sprite.side,sprite.side);
-  drawCreature(sprite.side*.5,sprite.side*.5,bucket,0,skin.color,'player',time,true,0,sprite.c,skin,{__sprite:true,phase:Number(enemy.phase)||0});
+  drawCreature(sprite.side*.5,sprite.side*.5,bucket,0,skin.color,'player',time,true,0,sprite.c,skin,{__sprite:true,phase:Number(enemy.phase)||0,hostileBite:enemy.hostileBite,visualAttackUntil:enemy.visualAttackUntil,attackCd:enemy.attackCd});
   sprite.lastPaint=time;riftSpecimenSpritePaints++;
  }
  ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate(Number(enemy.angle)||0);
