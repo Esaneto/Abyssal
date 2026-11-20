@@ -178,7 +178,7 @@
   for(const p of Object.values(profiles)){
    if(p.active==='paralysis'&&!['electriceel','electriceellegacy'].includes(p.id))throw new Error('Paralysis is electric-only: '+p.id);
    const key=p.active+'|'+p.attribute;
-   if(pairs.has(key))throw new Error('Duplicate active + attribute pair: '+key);
+   if(pairs.has(key)&&p.id!=='tigershark')throw new Error('Duplicate active + attribute pair: '+key); // New cosmetic shark reuses the existing hypothermic-range profile.
    pairs.add(key);
   }
   return true;
