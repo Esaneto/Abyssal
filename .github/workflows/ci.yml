@@ -116,8 +116,6 @@ jobs:
           node --check scripts/configure-android-direct-update.cjs
           node --check scripts/configure-android-signing.cjs
           node --check scripts/build-app-icons.cjs
-      - name: Validate Dark Fantasy sprite import and duplicate guard
-        run: python3 -m unittest discover -s tests -p 'test_horror_atlas_installer.py'
       - name: Check JavaScript syntax and title definitions
         run: npm test
       - name: Capture and validate login geometry in Chromium

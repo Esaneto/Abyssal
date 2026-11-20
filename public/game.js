@@ -614,10 +614,7 @@ function soloHullContact(e,now){
  const hit=soloHullInReach(e,e.submarineHoldSection?4:0);if(!hit)return false;
  e.submarineAttackAt=now+1000;
  const impact=soloHullImpactPoint(e,hit),angle=Math.atan2(impact.y-e.y,impact.x-e.x);
- // Keep hull contact independent of late-loaded visual helpers. Certain
- // enemies do not have jaws, but their contact damage remains unchanged.
- e.hostileBite=['drifter','stinger','brute','boss','kraken','devourer'].includes(e.kind)
-  ?null:{startedAt:now,duration:480,angle};
+ e.hostileBite={startedAt:now,duration:480,angle};
  if(typeof renderHostileContactAbility==='function')renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,enemyX:e.x,enemyY:e.y,enemyRadius:e.r,angle,enemyColor:e.color,playerX:impact.x,playerY:impact.y,submarine:true});
  damageSoloHull(hit,Math.max(5,Number(e.damage)||8));return true;
 }
@@ -1393,21 +1390,13 @@ function renderBossAbilityVisual(data){
   queueEffect({type:'ring',x,y,r:0,max:radius,life:.45,maxLife:.45,color});burst(x,y,color,18,130);
  }
 }
-function hostileUsesJaws(kind,skill){
- // Anatomical attack art. Non-biting creatures strike with energy, spines,
- // claws or tentacles and must never render a detached biting jaw.
- return !(['drifter','stinger','brute','boss','kraken','devourer'].includes(kind)
-   || ['bio-shock','venom-spine','crusher-claw','tentacle-strike'].includes(skill));
-}
 function renderHostileContactAbility(data){
  const d=data||{},kind=String(d.enemyKind||d.kind||''),skill=String(d.skillId||''),x=Number(d.enemyX??d.x),y=Number(d.enemyY??d.y),color=d.enemyColor||d.color||'#ff668d';
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
  if(!playCombatAbilitySound(skill,{x,y},{owner:'enemy:'+String(d.enemyId||kind)}))playWorldSound('bite',{x,y},700,.85,{owner:'enemy:'+String(d.enemyId||kind)});
  const px=Number.isFinite(Number(d.playerX))?Number(d.playerX):Number(player?.x)||x,py=Number.isFinite(Number(d.playerY))?Number(d.playerY):Number(player?.y)||y;
- const visualEnemy=d.enemy||(d.enemyId!=null?enemies.find(e=>String(e.id)===String(d.enemyId)):null);
- if(visualEnemy){const visualNow=performance.now();visualEnemy.visualBiteStartedAt=visualNow;visualEnemy.visualBiteUntil=visualNow+480;}
- if(hostileUsesJaws(kind,skill)){
-  const enemy=visualEnemy;
+ if(skill!=='tentacle-strike'){
+  const enemy=d.enemy||(d.enemyId!=null?enemies.find(e=>String(e.id)===String(d.enemyId)):null);
   const angle=Math.atan2(py-y,px-x);
   if(enemy)enemy.hostileBite={startedAt:performance.now(),duration:480,angle};
   queueEffect({type:'bite-jaws',x:px,y:py,angle,max:Math.max(21/GAME_WORLD_ZOOM,Math.min(48/GAME_WORLD_ZOOM,(Number(d.enemyRadius)||player?.r||20)*.85)),life:.48,maxLife:.48,color:'#ffddd4'});
@@ -1416,13 +1405,6 @@ function renderHostileContactAbility(data){
  if(skill==='tentacle-strike'){
   queueEffect({type:'tentacle-strike',x1:x,y1:y,x2:px,y2:py,life:.32,maxLife:.32,color,width:Math.max(3,Number(d.enemyRadius)*.16||5)});
  }else if(skill==='bio-shock'||kind==='drifter'){
-  // The living electric discharge visibly reaches the attacked target.
-  const shockReach=Math.hypot(px-x,py-y);
-  if(shockReach>1/GAME_WORLD_ZOOM){
-   queueEffect({type:'electric-arc',x1:x,y1:y,x2:px,y2:py,life:.28,maxLife:.28,
-    color:'#71ecff',width:4.4/GAME_WORLD_ZOOM,seed:(Number(d.enemyId)||0)+performance.now()*.01});
-   queueEffect({type:'ring',x:px,y:py,r:0,max:radius*.68,life:.28,maxLife:.28,color:'#a7f8ff'});
-  }
   queueEffect({type:'ring',x,y,r:0,max:radius*2.1,life:.48,maxLife:.48,color:'#74f7ff'});
   for(let i=0;i<6;i++){const a=i*Math.PI/3;queueEffect({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*1.65,y2:y+Math.sin(a)*radius*1.65,life:.3,maxLife:.3,color:i%2?'#ff7caf':'#74f7ff',width:2.6/GAME_WORLD_ZOOM});}
   burst(x,y,'#74f7ff',18,105);
@@ -3979,7 +3961,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  // All animated shark and octopus artwork goes through the same drawing path:
  // player Eco, other players' Ecos, shop preview, wild specimen and boss.
  // This changes pixels only. AI/collision/damage/ability ownership stays intact.
- const spriteId=playerCreature?skin?.id:(window.AbyssalAnimatedSprites?.has(kind)?kind:null);
+ const spriteId=playerCreature?skin?.id:kind==='whiteShark'||kind==='whiteSharkBoss'||kind==='boss'?kind:null;
  const atlas=window.AbyssalAnimatedSprites;
  if(spriteId&&atlas?.has(spriteId)){
   const attacking=atlas.isBiting?.(enemyState,performance.now())===true;

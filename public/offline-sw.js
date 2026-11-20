@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-20-animated-ecos-v306-horror-sprite-bridge-v311';
+const VERSION = '2026-11-20-animated-ecos-v306';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -118,7 +118,7 @@ const GAME_FILES = [
   'game.js',
   'abyssal-mobile-multitouch.js',
   'skin-motion.js',
-  'abyssal-eco-sprites.png','abyssal-sharks-2.5d.webp','abyssal-animated-sprites.js','abyssal-horror-sprite-bridge.js','marine-art.js',
+  'abyssal-eco-sprites.png','abyssal-sharks-2.5d.webp','abyssal-animated-sprites.js','marine-art.js',
   'net-codec.js',
   'online.js','cardume-comms.css',
   'abyssal-rebuild.js',
@@ -175,21 +175,6 @@ self.addEventListener('fetch', event => {
       url.pathname.startsWith('/auth/') || url.pathname.startsWith('/payments/')) return;
   if (request.headers.has('authorization')) return;
   const shellPath = url.pathname === '/' ? '/index.html' : url.pathname;
-  // Lazily cache optional high-resolution Ecos that were actually seen in-game.
-  // Never preload 26 large WebPs on Android. Network-first keeps revised atlases fresh.
-  const horrorAsset=/^\/abyssal-horror\/(?:manifest[.]json|[a-zA-Z]+\/(?:swim|attack)[.]webp)$/.test(url.pathname);
-  if(horrorAsset){
-    event.respondWith((async()=>{
-      const optional=await caches.open('abyssal-horror-runtime-v1');
-      const key=new Request(url.origin+url.pathname);
-      try{
-        const fresh=await fetch(request,{cache:'no-store'});
-        if(fresh.ok){await optional.put(key,fresh.clone());return fresh;}
-      }catch(_){}
-      const fallback=await optional.match(key);
-      return fallback||new Response('Optional atlas unavailable',{status:503});
-    })());return;
-  }
   const inShell = GAME_FILES.some(p => '/' + p === shellPath);
   const isNavigation = request.mode === 'navigate';
   if (!isNavigation && !inShell) return;

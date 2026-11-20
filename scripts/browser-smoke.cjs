@@ -840,21 +840,6 @@ async function main(){
    assert.ok(fs.statSync(screenshot).size>4500,label+' screenshot is blank or missing');
    console.log('[browser-smoke] '+label+' playing, canvas '+canvas+', screenshot '+fs.statSync(screenshot).size+' bytes');
   }
-  // Full end-to-end PNG/WebP decoding in Chromium. Uses the exact atlas
-  // assets shipped to players, not placeholder test drawings.
-  const horrorUrl='http://127.0.0.1:'+server.address().port+'/abyssal-horror/preview.html?smoke=1';
-  const horrorArgs=['--headless=new','--no-sandbox','--disable-dev-shm-usage',
-    '--disable-gpu','--no-first-run','--window-size=1536,1150','--virtual-time-budget=6500'];
-  const horrorDom=await run(browser,[...horrorArgs,'--dump-dom',horrorUrl]);
-  assert.equal(horrorDom.match(/data-atlas-status="([^"]+)"/)?.[1],'ready',
-    'Horror atlases failed to load in actual Chromium');
-  assert.equal(Number(horrorDom.match(/data-atlas-ready="([^"]+)"/)?.[1]),13,
-    'Some Solo/Online monsters did not decode both atlas animations');
-  const horrorShot=path.join(output,'dark-fantasy-enemies.png');
-  await run(browser,[...horrorArgs,'--screenshot='+horrorShot,horrorUrl]);
-  assert.ok(fs.statSync(horrorShot).size>20000,'Dark Fantasy atlas visual capture is blank');
-  console.log('[browser-smoke] 13 Dark Fantasy monsters rendered in Chromium, screenshot '+fs.statSync(horrorShot).size+' bytes');
-
   const artDom=await run(browser,['--headless=new','--no-sandbox','--disable-dev-shm-usage',
     '--disable-gpu','--no-first-run','--window-size=1280,720','--virtual-time-budget=4000','--dump-dom',
     'http://127.0.0.1:'+server.address().port+'/__abyss_art__']);
