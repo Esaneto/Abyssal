@@ -56,37 +56,17 @@ async function capture(root,label){
    }
    await ev(`(()=>{const gate=document.getElementById('ageTermsScreen');if(!gate||gate.hidden)return;const range=document.getElementById('ageYearsRange');if(range){range.value='27';range.dispatchEvent(new Event('input',{bubbles:true}));}else for(const [id,value] of [['ageBirthDay','1'],['ageBirthMonth','1'],['ageBirthYear','1990']]){const input=document.getElementById(id);if(input){input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}}const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;document.getElementById('ageTermsContinue')?.click();})()`);
    await wait("document.getElementById('ageTermsScreen')?.hidden!==false");
-   if(label==='after')await wait("(()=>{const c=document.getElementById('submarineWorkshop'),d=document.getElementById('abyssDeepMenu');if(c?.hidden)window.AbyssalCockpitNavigation?.open?.();return !c?.hidden&&c.classList.contains('abyss-deep-active')&&!!d&&getComputedStyle(d).display!=='none'&&d.querySelectorAll('[data-deep-target]').length===5;})()");
-   if(label==='after'&&device==='desktop')await wait("window.AbyssalDeepMenu?.visualStatus?.().nativeArtReady===true && document.querySelectorAll('#abyssDeepMenu .deep-capsule-glass canvas').length===2");
-   else await wait(`(()=>{const tour=document.getElementById('abyssalMenuTour'),menu=document.getElementById('menuScreen'),cabin=document.getElementById('submarineWorkshop');if(tour&&!tour.hidden){tour.querySelector('.amt-skip')?.click();return false;}if(!menu?.hidden&&window.AbyssalMenuTour&&localStorage.getItem('abyssalMenuTourV1')!=='1'&&window.AbyssalMenuTour.open('exterior',true))return false;const guide=document.getElementById('abyssalTutorialOverlay');if(guide&&!guide.hidden){document.getElementById('abyssalGuideX')?.click();return false;}if(cabin?.hidden||!cabin?.querySelector('.abyss-control-deck'))window.AbyssalCockpitNavigation.open();const e=cabin?.querySelector('.abyss-cockpit-visor');if(!e||cabin.hidden)return false;const r=e.getBoundingClientRect(),p=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !!p&&e.contains(p);})()`);
+   await wait(`(()=>{const tour=document.getElementById('abyssalMenuTour'),menu=document.getElementById('menuScreen'),cabin=document.getElementById('submarineWorkshop');if(tour&&!tour.hidden){tour.querySelector('.amt-skip')?.click();return false;}if(!menu?.hidden&&window.AbyssalMenuTour&&localStorage.getItem('abyssalMenuTourV1')!=='1'&&window.AbyssalMenuTour.open('exterior',true))return false;const guide=document.getElementById('abyssalTutorialOverlay');if(guide&&!guide.hidden){document.getElementById('abyssalGuideX')?.click();return false;}if(cabin?.hidden||!cabin?.querySelector('.abyss-control-deck'))window.AbyssalCockpitNavigation.open();const e=cabin?.querySelector('.abyss-cockpit-visor');if(!e||cabin.hidden)return false;const r=e.getBoundingClientRect(),p=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !!p&&e.contains(p);})()`);
    await ev("document.fonts.ready.then(()=>true)");
    await snap(device+'-cabine');
+   const report=await ev(`(()=>{const box=document.getElementById('submarineWorkshop'),a=box.querySelector('#cockpitSoloDiveBtn')||box.querySelector('.abyss-console-info>button'),b=box.querySelector('#cockpitOnlineDiveBtn'),r=e=>{const q=e?.getBoundingClientRect();return q?{x:Math.round(q.x),y:Math.round(q.y),w:Math.round(q.width),h:Math.round(q.height)}:null;};const v=box.querySelector('.abyss-visor-body');return {solo:r(a),online:r(b),visor:r(v),deck:r(box.querySelector('.abyss-control-deck')),font:getComputedStyle(a).fontFamily,scrollWidth:v.scrollWidth,clientWidth:v.clientWidth,scrollHeight:v.scrollHeight,clientHeight:v.clientHeight,gameActive:document.body.classList.contains('game-active')};})()`);
+   reports.push({device,screen:'cabine',...report});
+   assert.ok(report.solo&&report.online&&!report.gameActive,'Missing menu controls');
    if(label==='after'){
-    const report=await ev("(()=>{const d=document.getElementById('abyssDeepMenu'),w=document.getElementById('submarineWorkshop');const rect=e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {x:r.x,y:r.y,w:r.width,h:r.height,inside:r.left>=-2&&r.right<=innerWidth+2&&r.top>=-2&&r.bottom<=innerHeight+2,hit:hit===e||e.contains(hit)}};const a={suits:rect(d.querySelector('.deep-suits')),ecos:rect(d.querySelector('.deep-ecos')),hatch:rect(d.querySelector('.deep-hatch')),sonar:rect(d.querySelector('.deep-sonar')),research:rect(d.querySelector('.deep-research'))};return {...a,live:!w.hidden,consoleHidden:getComputedStyle(w.querySelector('.abyss-cockpit-console')).display==='none'};})()");
-    reports.push({device,screen:'deep-cabin',...report});console.log('[deep-ui] deep cabin '+JSON.stringify(report));
-    assert.ok(report.live&&report.consoleHidden,'New cockpit must be the unique default menu, not the obsolete five-station visor');
-    for(const name of ['suits','ecos','hatch','sonar','research'])assert.ok(report[name].inside&&report[name].hit&&report[name].w>=34&&report[name].h>=36,name+' interactive station must fit the viewport');
-    assert.ok(report.suits.x<report.hatch.x&&report.hatch.x<report.ecos.x,'Physical layout of capsule/hatch stations changed');
-    assert.ok(report.sonar.w<report.research.w,'Sonar must be visibly smaller than the research terminal');
-    await ev("document.querySelector('[data-deep-target=hatch]').click()");
-    await wait("!document.getElementById('deepHatchChoice').hidden");
-    assert.ok(await ev("Boolean(document.getElementById('deepSoloDive')&&document.getElementById('deepOnlineDive'))"),'Hatch must preserve both game modes');
-    await snap(device+'-escotilha');
-    await ev("document.getElementById('deepReturn').click()");
-    await wait("document.getElementById('abyssDeepMenu').dataset.focus==='overview'");
-    await ev("document.querySelector('[data-deep-quick=settings]').click()");
-    await wait("!document.getElementById('deepSettings').hidden");
-    assert.ok(await ev("document.querySelectorAll('#deepSettings [data-deep-setting]').length===8"),'All original technical settings and download must remain reachable');
-    await snap(device+'-ajustes');
-    await ev("document.querySelector('[data-deep-setting=volume]').click()");
-    await wait("document.getElementById('submarineWorkshop').classList.contains('abyss-deep-detail')&&Boolean(document.querySelector('#submarineWorkshop .cockpit-settings-page[data-setting-page=volume]'))");
-    await snap(device+'-audio');
-    await ev("document.getElementById('deepReturn').click()");
-    await wait("document.getElementById('abyssDeepMenu').dataset.focus==='overview'");
-   }else{
-    const report=await ev("(()=>{const box=document.getElementById('submarineWorkshop'),a=box.querySelector('#cockpitSoloDiveBtn')||box.querySelector('.abyss-console-info>button'),b=box.querySelector('#cockpitOnlineDiveBtn'),r=e=>{const q=e?.getBoundingClientRect();return q?{x:Math.round(q.x),y:Math.round(q.y),w:Math.round(q.width),h:Math.round(q.height)}:null;};const v=box.querySelector('.abyss-visor-body');return {solo:r(a),online:r(b),visor:r(v),deck:r(box.querySelector('.abyss-control-deck')),font:getComputedStyle(a).fontFamily,scrollWidth:v.scrollWidth,clientWidth:v.clientWidth,scrollHeight:v.scrollHeight,clientHeight:v.clientHeight,gameActive:document.body.classList.contains('game-active')};})()");
-    reports.push({device,screen:'cabine',...report});
-    assert.ok(report.solo&&report.online&&!report.gameActive,'Legacy baseline menu missing');
+    assert.ok(Math.abs(report.solo.w-report.online.w)<=2,'Unequal expedition cards');
+    assert.ok(report.scrollWidth<=report.clientWidth+2,'Cabin horizontal overflow');
+    assert.ok(mobile?report.online.y>report.solo.y:Math.abs(report.online.y-report.solo.y)<3,'Wrong card layout');
+    assert.ok(report.online.y+report.online.h<=report.visor.y+report.visor.h+2,'Online card clipped on first view');
    }
    await ev("window.AbyssalCockpitNavigation.showExterior();");
    await wait("!document.getElementById('menuScreen').hidden&&document.body.classList.contains('abyss-hatch-navigation')");
@@ -119,23 +99,10 @@ async function capture(root,label){
     await ev("document.getElementById("+JSON.stringify(id)+").click()");
     await sleep(200);await snap(device+'-'+name);
    }
-   if(label==='after'){await ev("window.AbyssalDeepMenu.overview();document.querySelector('[data-deep-target=research]').click()");await wait("document.getElementById('submarineWorkshop').classList.contains('abyss-deep-detail')&&document.getElementById('submarineWorkshop').dataset.station==='laboratorio'");assert.ok(await ev("(()=>{const b=document.querySelector('#submarineWorkshop .abyss-visor-body'),r=b.getBoundingClientRect();return r.width>100&&r.height>100;})()"),'Physical research display is hidden');}else await ev("document.querySelector('#submarineWorkshop .abyss-control-solo').click();document.querySelector('#submarineWorkshop .solo-research-tabs button').click();");
+   if(label==='after'){await ev("document.querySelector('#submarineWorkshop [data-station=laboratorio]').click()");assert.ok(await ev("document.querySelectorAll('#submarineWorkshop .abyss-station-key').length===5 && document.querySelector('#submarineWorkshop').dataset.station==='laboratorio'"),'Cabin must expose five navigable stations');const stationRail=await ev("(()=>{const r=document.querySelector('#submarineWorkshop .abyss-station-rail'),rect=r.getBoundingClientRect(),visible=[...r.querySelectorAll('.abyss-station-key')].filter(x=>{const v=x.getBoundingClientRect();return Math.min(v.right,rect.right)-Math.max(v.left,rect.left)>=28;});return {visible:visible.length,w:rect.width,inner:innerWidth};})()");assert.ok(stationRail.visible>=(stationRail.inner>700?3:2),'Station rail hides neighboring choices: '+JSON.stringify(stationRail));}else await ev("document.querySelector('#submarineWorkshop .abyss-control-solo').click();document.querySelector('#submarineWorkshop .solo-research-tabs button').click();");
    await snap(device+'-pesquisa');
    if(label==='after')assert.ok(await ev("Boolean(document.querySelector('#submarineWorkshop .abyss-tree-map [data-research-id=pulse] svg')&&document.querySelector('#submarineWorkshop .abyss-tree-map [data-research-id=dash] svg'))"),'Q/E research nodes missing');
-   if(label==='after'){await ev("window.AbyssalDeepMenu.overview();document.querySelector('[data-deep-target=ecos]').click()");await wait("!document.getElementById('shopScreen').hidden&&document.getElementById('submarineWorkshop').classList.contains('abyss-deep-detail')");await wait("document.querySelectorAll('#skinGrid .skin-card').length>0");assert.ok(await ev("!document.getElementById('marineSearch')&&!!document.getElementById('shopHabitatFilter')&&document.querySelectorAll('#skinGrid .skin-card[data-skin-id]').length===document.querySelectorAll('#skinGrid .skin-card').length"),'Unified shop filters and stable specimen IDs missing');await snap(device+'-loja');}
-
-   if(label==='after'){
-    await ev("window.AbyssalCockpitNavigation.select('cabine');window.AbyssalDeepMenu.overview();document.querySelector('[data-deep-target=hatch]').click()");
-    await wait("!document.getElementById('deepHatchChoice').hidden");
-    await ev("document.getElementById('deepSoloDive').click()");
-    await wait("document.querySelectorAll('.deep-dive-transition .deep-dive-bubbles i').length>=25");
-    await snap(device+'-escotilha-cinematica');
-    await wait("document.body.classList.contains('game-active')");
-    const run=await ev("(()=>{const shell=document.getElementById('gameShell'),h=document.getElementById('hud');return {game:document.body.classList.contains('game-active'),gameVisible:shell&&!shell.hidden,hudVisible:h&&!h.hidden,choiceHidden:document.getElementById('deepHatchChoice').hidden}})()");
-    assert.ok(run.game&&run.gameVisible&&run.hudVisible&&run.choiceHidden,'The Solo cinematic must actually enter playable gameplay and show its HUD: '+JSON.stringify(run));
-    await wait("document.querySelector('.deep-dive-transition')===null");
-    reports.push({device,screen:'hatch-to-solo',...run});
-   }
+   if(label==='after'){await ev("document.querySelector('#submarineWorkshop [data-station=arsenal]').click();[...document.querySelectorAll('#submarineWorkshop .abyss-station-card')].find(c=>c.textContent.includes('ADQUIRIR ECOS'))?.querySelector('button')?.click()");await wait("document.querySelectorAll('#skinGrid .skin-card').length>0");assert.ok(await ev("!document.getElementById('marineSearch')&&!!document.getElementById('shopHabitatFilter')&&document.querySelectorAll('#skinGrid .skin-card[data-skin-id]').length===document.querySelectorAll('#skinGrid .skin-card').length"),'Unified shop filters and stable specimen IDs missing');await snap(device+'-loja');}
   }
   fs.writeFileSync(path.join(OUT,'deep-ui-'+label+'-metrics.json'),JSON.stringify(reports,null,2));
   console.log('[deep-ui] metrics '+JSON.stringify(reports));

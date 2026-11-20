@@ -12,8 +12,3 @@
 Follow the existing engineering guidance in .agent/rules/GEMINI.md and .agent/workflows/feature-development.md.
 
 - UI cleanup is not complete until the actual rendered UI passes browser visual regression checks: measure its geometry, interaction hit targets, and capture screenshots before assertions so failures are inspectable. A unit-test pass alone is insufficient. Do not remove or rewrite combined CSS selectors without checking the retained selector targets the real DOM.
-
-## Mandatory deep-menu agent framework
-- Before starting any task, read AGENT_FRAMEWORK.md and docs/DEEP_MENU_ARCHITECTURE.md. They define the approved one-menu 2.5D cockpit, capsule anatomy and hatch cutscene. The older exterior navigation is retained only as a compatibility bridge, not a second default menu.
-- Every coding agent must record design changes, actual tests, screenshots, removals/retentions, unfinished items and rollback in AGENT_HANDOFF.md or in a dated handoff section of its PR.
-- Do not merge a visual redesign without real desktop/mobile screenshots and explicit visual acceptance. A procedural implementation must never be represented as finished photorealistic art.

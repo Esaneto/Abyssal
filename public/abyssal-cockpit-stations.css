@@ -233,3 +233,98 @@ body:not(.game-active) #submarineWorkshop .abyss-station-deck>.abyss-station-rai
   width:32px!important;max-width:32px!important;min-width:32px!important;
  }
 }
+
+/* Refinamento discreto da cabine panorâmica de cinco estações.
+   Reutiliza a interface anterior; não substitui seu cenário, canvas ou handlers. */
+#submarineWorkshop.abyss-cockpit-screen .abyss-cockpit-console{
+  border:3px solid #58748b!important;
+  border-top:6px solid #8daab7!important;
+  border-bottom:6px solid #1a3345!important;
+  border-radius:20px!important;
+  background:linear-gradient(145deg,#34495e 0%,#172e44 16%,#0a1a30 72%,#223b50 100%)!important;
+  box-shadow:0 17px 42px rgba(0,3,14,.8),0 0 27px rgba(21,161,181,.14),inset 0 1px 0 rgba(218,247,251,.3),inset 0 -10px 17px rgba(3,11,24,.55)!important;
+}
+#submarineWorkshop.abyss-cockpit-screen .abyss-cockpit-console::before{
+  height:3px;top:4px;
+  background:linear-gradient(90deg,transparent,#9b8456,#f3d69c,#9b8456,transparent);
+  box-shadow:0 0 9px rgba(240,185,105,.3);
+}
+#submarineWorkshop .abyss-cockpit-visor{
+  border:2px solid #4a8ca3!important;
+  border-top-color:#7fbbc5!important;
+  border-radius:13px!important;
+  background:radial-gradient(ellipse at 75% 0%,#14465e 0%,#092c43 37%,#061a2c 91%)!important;
+  box-shadow:0 0 0 3px rgba(3,17,30,.9),inset 0 0 23px rgba(17,167,187,.14),0 7px 24px rgba(0,0,0,.46)!important;
+}
+#submarineWorkshop .abyss-visor-heading{
+  background:linear-gradient(90deg,#143d50,#0b283e 67%,#103649)!important;
+  border-bottom:1px solid rgba(91,177,193,.36)!important;
+}
+#submarineWorkshop .abyss-station-heading-text strong{letter-spacing:.015em;text-shadow:0 1px 8px rgba(4,19,31,.65)}
+#submarineWorkshop .abyss-visor-body{scrollbar-color:#396d7c #0c2636;scrollbar-width:thin}
+#submarineWorkshop .abyss-control-key.abyss-station-key{
+  opacity:.88;transform:scale(.99);
+  border-color:#407f99!important;border-top-color:#72afc3!important;
+  border-bottom-color:#071b30!important;
+  background:linear-gradient(160deg,#1a4b67,#102f4c 48%,#0c2238)!important;
+  box-shadow:inset 0 1px 0 rgba(185,234,241,.25),0 3px 0 #071a2b,0 6px 11px rgba(0,0,0,.3)!important;
+}
+#submarineWorkshop .abyss-control-key.abyss-station-key.is-active{
+  opacity:1;transform:scale(1.015);
+  border-color:#d2b575!important;border-top-color:#f0dbad!important;
+  border-bottom-color:#654b2b!important;
+  background:linear-gradient(145deg,#635639,#3b443e 55%,#1b3546)!important;
+  box-shadow:inset 0 1px 0 rgba(255,239,197,.42),0 3px 0 #5c4224,0 0 12px rgba(238,174,82,.24)!important;
+}
+#submarineWorkshop .abyss-station-arrow{
+  border-color:#4a8094;background:linear-gradient(165deg,#153c50,#0a283b);color:#d8f5f5;
+}
+#submarineWorkshop .abyss-station-arrow:not(:disabled):hover{border-color:#80c1cd;background:#1b4e60}
+#submarineWorkshop .abyss-station-card,
+#submarineWorkshop .abyss-station-research-item{
+  border-color:#35697a;border-radius:10px;
+  background:linear-gradient(135deg,rgba(18,60,78,.94),rgba(8,31,47,.98));
+  box-shadow:inset 0 1px 0 rgba(173,234,240,.06);
+}
+#submarineWorkshop .abyss-station-card-copy p,
+#submarineWorkshop .abyss-station-card-copy small{color:#b6d1d7!important}
+#submarineWorkshop .abyss-station-action,
+#submarineWorkshop .abyss-station-research-item button{
+  border-color:#5c98a7;background:linear-gradient(150deg,#215064,#123b50);
+}
+#submarineWorkshop .abyss-station-callout{
+  border-color:#417384;
+  background:radial-gradient(ellipse at 50% 0%,#1c4b5b,#0b2c3e 58%,#061d2e);
+  box-shadow:inset 0 1px 0 rgba(174,222,230,.1);
+}
+#submarineWorkshop .abyss-station-primary{
+  background:linear-gradient(155deg,#3c8794,#276379);border-color:#8fced4
+}
+#submarineWorkshop .abyss-station-secondary{
+  background:linear-gradient(155deg,#5a5138,#393b32);border-color:#b6a16d
+}
+@media(hover:hover){
+  #submarineWorkshop .abyss-station-card:hover,
+  #submarineWorkshop .abyss-station-research-item:hover{
+    border-color:#5795a2;background:linear-gradient(135deg,#16475b,#0b2b40);
+  }
+}
+@media(max-width:700px){
+  #submarineWorkshop.abyss-cockpit-screen .abyss-cockpit-console{
+    border-width:2px!important;border-top-width:4px!important;border-bottom-width:4px!important;
+    border-radius:13px!important;
+  }
+  #submarineWorkshop .abyss-station-heading-text strong{font-size:14px!important}
+  #submarineWorkshop .abyss-station-callout{min-height:155px;padding:10px}
+  #submarineWorkshop .abyss-station-key-name{line-height:1.2}
+}
+@media(max-height:550px) and (orientation:landscape){
+  #submarineWorkshop .abyss-station-callout{min-height:92px}
+  #submarineWorkshop .abyss-visor-heading{min-height:42px!important;padding:6px 9px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #submarineWorkshop .abyss-control-key.abyss-station-key,
+  #submarineWorkshop .abyss-control-key.abyss-station-key.is-active{
+    transform:none!important;transition:none!important;
+  }
+}
