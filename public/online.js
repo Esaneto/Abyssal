@@ -351,6 +351,20 @@ async function setupGoogleSignIn(){
     // The native button must work even when the config endpoint is slow/offline.
     const config=window.AbyssalGoogleOauthConfig?.resolveWebClientId?.('');
     googleOAuthClientId=config?.clientId||'';
+    // Prefer the live server audience when reachable. Only fall back to the
+    // project Web ID if the config endpoint is unavailable; never use Android ID.
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),4500);
+    try{
+     const response=await fetch(SERVER_URL+'/api/auth/google-config',{cache:'no-store',signal:controller.signal});
+     if(response.ok){
+      const remote=await response.json();
+      if(remote.enabled&&window.AbyssalGoogleOauthConfig?.isWebClientId?.(remote.clientId))
+       googleOAuthClientId=String(remote.clientId).trim();
+     }
+    }catch(error){
+     console.warn('[google-native] configuração remota indisponível; usando Web ID do projeto',error?.name||'request');
+    }finally{clearTimeout(timeout);}
     if(!window.AbyssalGoogleOauthConfig?.isWebClientId?.(googleOAuthClientId))
      throw Error('web_client_id_not_configured');
     googleSignInFailure='';return true;
