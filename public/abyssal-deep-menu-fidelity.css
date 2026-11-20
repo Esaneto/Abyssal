@@ -324,3 +324,56 @@
  }
  #submarineWorkshop.abyss-deep-active .deep-brand small{font-size:6px!important}
 }
+
+
+/* Android short-landscape: preserve every shop action while exposing the
+ * first Echo card without a blind first scroll (844x390 -> 844x303 content).
+ * Reduces redundant header spacing instead of hiding the catalogue or relaxing
+ * the viewport smoke assertion. Kept after older shop CSS for cascade safety. */
+@media (max-height:520px) and (orientation:landscape){
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal{
+  row-gap:0!important;
+  padding:0!important;
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-heading{
+  display:flex!important;flex-wrap:nowrap!important;
+  align-items:center!important;gap:6px!important;
+  padding:0!important;margin:0 0 2px!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-heading-copy{
+  min-width:0!important;flex:1 1 auto!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-title-actions{
+  flex-wrap:nowrap!important;gap:5px!important;
+  align-items:center!important;padding:0!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen #shopRedeemShortcut{
+  min-height:26px!important;height:26px!important;
+  padding:3px 7px!important;margin:0!important;
+  font-size:9px!important;letter-spacing:0!important;
+  white-space:nowrap!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .wallet{
+  padding:2px 6px!important;gap:3px!important;
+  font-size:11px!important;border-radius:5px!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .wallet small{
+  font-size:8px!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-filter-bar{
+  display:grid!important;
+  grid-template-columns:minmax(105px,1.5fr) repeat(3,minmax(85px,1fr))!important;
+  gap:4px!important;padding:3px 4px!important;
+  margin:0 0 2px!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-filter-bar .text-field{
+  min-height:30px!important;height:30px!important;
+  padding:4px 6px!important;font-size:11px!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-filter-search{
+  grid-column:auto!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen #skinGrid{
+  padding:0!important;margin:0!important
+ }
+}
