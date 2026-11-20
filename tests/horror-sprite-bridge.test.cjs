@@ -91,3 +91,18 @@ test('Enabled atlas manifest hashes match all 26 committed WebP assets',()=>{
   }
   assert.equal(shaSet.size,26);
 });
+
+test('Biological enemy attacks use bite only for creatures with jaws',()=>{
+ const game=fs.readFileSync(require('node:path').join(__dirname,'../public/game.js'),'utf8');
+ const helper=game.match(/function hostileUsesJaws\(kind,skill\)\{[\s\S]*?\n\}/)?.[0];
+ assert.ok(helper,'Anatomical attack classifier missing');
+ const usesJaws=new Function(helper+';return hostileUsesJaws;')();
+ for(const kind of ['drifter','stinger','brute','boss','kraken','devourer'])
+   assert.equal(usesJaws(kind,''),false,kind+' must not bite');
+ for(const kind of ['whiteShark','whiteSharkBoss','maw','lurker','angler'])
+   assert.equal(usesJaws(kind,''),true,kind+' must animate a bite');
+ for(const skill of ['bio-shock','venom-spine','crusher-claw','tentacle-strike'])
+   assert.equal(usesJaws('whiteShark',skill),false,skill+' never renders a generic jaw');
+ assert.match(game,/if\(hostileUsesJaws\(kind,skill\)\)/);
+ assert.match(game,/type:'electric-arc',x1:x,y1:y,x2:px,y2:py/);
+});
