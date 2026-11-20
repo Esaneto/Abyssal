@@ -610,6 +610,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   let movedEnemyCount = 0;
   const playerHits = [];
+  const whiteSharkBiteCues = [];
   const playerSuctionPulls = [];
   const bossAbilityHits = [];
   const bossAbilityEvents = [];
@@ -982,12 +983,18 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     classicHullContact(world,enemy,now);
     if(target?.submarine)continue;
     if (riftMode && !actualTarget) continue;
-    if (!target || target.alive === false || enemy.attackCd > 0 || (EnemyAI.isChargeAttack(enemy)&&(!enemy.sharkCharging||(enemy.kind==='whiteSharkBoss'&&enemy.sharkChargeHit)))) continue;
+    if (!target || target.alive === false || enemy.attackCd > 0 || (EnemyAI.isChargeAttack(enemy)&&(!enemy.sharkCharging||(enemy.kind==='whiteSharkBoss'&&enemy.sharkChargeHit)))){
+      if(enemy.kind==='whiteShark'&&EnemyAI.whiteSharkBiteWindow(enemy,null,false,now).cancelled)
+        whiteSharkBiteCues.push({enemyId:enemy.id,action:'cancel'});
+      continue;
+    }
     const lastPositionAt = Number(target.lastPositionAt) || 0;
     const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
     const resumeGraceUntil = Number(target.positionResumeGraceUntil) || 0;
     if (target.clientHidden !== true && (lastPositionAt <= 0 || positionAge > 180 || resumeGraceUntil > now)) {
       world.stalePositionAttackSkips = (world.stalePositionAttackSkips || 0) + 1;
+      if(enemy.kind==='whiteShark'&&EnemyAI.whiteSharkBiteWindow(enemy,null,false,now).cancelled)
+        whiteSharkBiteCues.push({enemyId:enemy.id,action:'cancel'});
       continue;
     }
     const predictionSeconds = target.clientHidden === true ? 0 : Math.min(0.12, Math.max(0, positionAge) / 1000);
@@ -1029,6 +1036,13 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const tentacleHit=contact.tentacleAttacker===true&&contact.tentacleContact===true;
     const biteHit=!contact.tentacleAttacker&&!charge&&biteClear&&contactDistance<=contactRadius;
     const sharkBiteHit=enemy.kind==='whiteShark'&&contactDistance<=EnemyAI.sharkBiteReach(contact.enemyRadiusWorld,Math.max(20,contact.playerRadiusWorld),movementOptions.sharkVisualRadius);
+    if(enemy.kind==='whiteShark'){
+      const near=biteClear&&sharkBiteHit&&target.alive!==false&&Number(target.invulnerableUntil||0)<=now;
+      const phase=EnemyAI.whiteSharkBiteWindow(enemy,target.id,near,now);
+      if(phase.started)whiteSharkBiteCues.push({enemyId:enemy.id,action:'start',duration:EnemyAI.WHITE_SHARK_BITE_WINDUP_MS});
+      if(phase.cancelled)whiteSharkBiteCues.push({enemyId:enemy.id,action:'cancel'});
+      if(!phase.ready)continue;
+    }
     if(!biteClear||(contact.tentacleAttacker?!tentacleHit:(!biteHit&&!(charge&&(enemy.kind==='whiteShark'?sharkBiteHit:contactZone)))))continue;
 
     // Contact attacks now expose a species identity without widening hitboxes.
@@ -1068,6 +1082,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       }
     }
     world.playerDamageCount = (world.playerDamageCount || 0) + 1;
+    if(enemy.kind==='whiteShark')whiteSharkBiteCues.push({enemyId:enemy.id,action:'impact',duration:300});
     playerHits.push({
       playerId: target.id, enemyId: enemy.id, enemyKind: enemy.kind,
       enemyX: Number(enemy.x), enemyY: Number(enemy.y), enemyColor: enemy.color,
@@ -1113,7 +1128,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerSuctionPulls, bossAbilityHits, bossAbilityEvents, riftAims,environmentDamages,environmentKills, playerHeals, defeatedPlayers, spawnedXpRewards, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers,
+    playerHits, whiteSharkBiteCues, playerSuctionPulls, bossAbilityHits, bossAbilityEvents, riftAims,environmentDamages,environmentKills, playerHeals, defeatedPlayers, spawnedXpRewards, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }
