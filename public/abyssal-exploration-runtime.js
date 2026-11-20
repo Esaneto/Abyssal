@@ -40,7 +40,7 @@
   return true;
  }
  function openEchoRedeem(){
-  if(!openEchoCatalog('all'))return;
+  // Route original redemption handler directly from Social, without opening the shop.
   $('openRedeemCodeBtn')?.click();
  }
  function navigateCommand(page){if(!workshop||workshop.hidden)return false;if(page==='notices'||page==='download')return navigateEmbedded(embeddedPages[page]);if(!commandPages.has(page))return false;activeConsoleSection=page;renderWorkshop();return true;}
@@ -192,7 +192,7 @@
  // Five accessible stations, keeping the original live pages, research and purchase handlers.
  const CONSOLE_BUTTONS=Object.freeze([
   {id:'socialHub',station:'social',name:'SOCIAL',symbol:'◈',title:'CENTRAL SOCIAL'},
-  {id:'solo',station:'cabine',name:'CABINE',symbol:'⌂',title:'CABINE CENTRAL'},
+  {id:'solo',station:'cabine',name:'MERGULHAR',symbol:'⌂',title:'PREPARAR MERGULHO'},
   {id:'research',station:'laboratorio',name:'PESQUISA',symbol:'⚗',title:'LABORATÓRIO'},
   {id:'arsenalHub',station:'arsenal',name:'ARSENAL',symbol:'✧',title:'ARSENAL DE ECOS'},
   {id:'profileHub',station:'perfil',name:'PERFIL',symbol:'♙',title:'MEU MERGULHADOR'}
@@ -303,6 +303,7 @@
     ['CARDUMES','Convites, chat e gestão de cardumes.',()=>navigateEmbedded('cardumesScreen')],
     ['RANKING','Classificações e energia de recompensa.',()=>navigateEmbedded('rankingsScreen')],
     ['ROLETA','Giros disponíveis e recompensas.',()=>navigateEmbedded('wheelScreen')],
+    ['RESGATAR CÓDIGO','Troque códigos promocionais por recompensas.',openEchoRedeem],
    ]:hub==='arsenalHub'?[
     ['CATÁLOGO DE ECOS','Explore, filtre, adquira e equipe seus Ecos.',()=>openEchoCatalog('all')],
     ['ABYSSÁRIO','Consulte as criaturas registradas.',()=>navigateEmbedded('catalogScreen')],

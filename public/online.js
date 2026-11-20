@@ -346,6 +346,29 @@ async function setupGoogleSignIn(){
  if(googleSetupPromise)return googleSetupPromise;
  googleSetupPromise=(async()=>{
   try{
+   if(window.Capacitor?.getPlatform?.()==='android'){
+    // Android credentials use the same registered Web audience as the server.
+    // The native button must work even when the config endpoint is slow/offline.
+    const config=window.AbyssalGoogleOauthConfig?.resolveWebClientId?.('');
+    googleOAuthClientId=config?.clientId||'';
+    // Prefer the live server audience when reachable. Only fall back to the
+    // project Web ID if the config endpoint is unavailable; never use Android ID.
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),4500);
+    try{
+     const response=await fetch(SERVER_URL+'/api/auth/google-config',{cache:'no-store',signal:controller.signal});
+     if(response.ok){
+      const remote=await response.json();
+      if(remote.enabled&&window.AbyssalGoogleOauthConfig?.isWebClientId?.(remote.clientId))
+       googleOAuthClientId=String(remote.clientId).trim();
+     }
+    }catch(error){
+     console.warn('[google-native] configuração remota indisponível; usando Web ID do projeto',error?.name||'request');
+    }finally{clearTimeout(timeout);}
+    if(!window.AbyssalGoogleOauthConfig?.isWebClientId?.(googleOAuthClientId))
+     throw Error('web_client_id_not_configured');
+    googleSignInFailure='';return true;
+   }
    // navigator.onLine is not a reliable reachability indicator in installed apps.
    const controller=new AbortController();
    const timeout=setTimeout(()=>controller.abort(),10000);
@@ -733,7 +756,17 @@ $('loginGoogleBtn').addEventListener('click',async()=>{
    const plugin=window.Capacitor?.Plugins?.AbyssalGoogle;
    if(!plugin){setMessage('O aplicativo Android precisa de uma versão com login Google nativo.',true);return;}
    acceptGoogleCredential(await plugin.signIn({clientId:googleOAuthClientId}));
-  }catch(error){setMessage('O login Google Android foi cancelado ou não está autorizado para a assinatura deste app.',true);}
+  }catch(error){
+   const code=String(error?.code||'').toUpperCase();
+   const message=code==='GOOGLE_CANCELLED'?'Seleção de conta Google cancelada.':
+    code==='GOOGLE_NO_CREDENTIAL'?'Nenhuma conta Google disponível. Confira sua conta Google, Google Play Services e o cliente OAuth Android.':
+    code==='GOOGLE_PROVIDER_UNAVAILABLE'?'Login Google indisponível. Atualize o Google Play Services do dispositivo.':
+    code==='GOOGLE_CONFIG_ERROR'?'Login não autorizado. Confira pacote com.esaneto.abyssal e SHA-1 da assinatura do Google Play no OAuth Android.':
+    code==='GOOGLE_INVALID_TOKEN'?'A conta Google não forneceu um token válido. Tente novamente.':
+    'Falha no login Google Android ('+(code||'desconhecido')+'). Confira a conexão e tente novamente.';
+   setMessage(message,true);
+   console.warn('[google-native] Credential Manager',code,error?.message||'');
+  }
   return;
  }
  if(window.location.protocol==='abyssal:'){

@@ -464,11 +464,8 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     <section id="shopScreen" class="screen modal-screen" hidden>
       <div class="modal-card shop-modal"><button id="shopTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar loja">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> MERCADO DAS PROFUNDEZAS</div>
-        <div class="shop-heading"><div class="shop-heading-copy"><div class="shop-title-actions"><h2>ARSENAL DE ECOS</h2><button id="shopRedeemShortcut" class="shop-redeem-shortcut" type="button" aria-label="Ir à seção de resgate de código">✦ RESGATAR CÓDIGO <span aria-hidden="true">↓</span></button></div><p>Escolha seu companheiro. Compare atributos, habilidades e raridades.</p></div><div class="wallet">⚡ <strong id="coinBalance">0</strong><small>ENERGIA ARMAZENADA</small></div></div>
-        <div class="payment-settings"><label for="shopCurrency">Moeda de cobrança</label><div id="shopCurrency" class="text-field" aria-label="Moeda de cobrança">BRL · Real (R$)</div>
-          
-          
-        </div>
+        <div class="shop-heading"><div class="shop-heading-copy"><div class="shop-title-actions"><h2>ARSENAL DE ECOS</h2><button id="shopRedeemShortcut" class="shop-redeem-shortcut" type="button" hidden aria-hidden="true" tabindex="-1" style="display:none!important">Resgate na estação Social</button></div><p>Escolha seu companheiro. Compare atributos, habilidades e raridades.</p></div><div class="wallet">⚡ <strong id="coinBalance">0</strong><small>ENERGIA ARMAZENADA</small></div></div>
+        <input id="shopCurrency" type="hidden" value="brl" aria-hidden="true" tabindex="-1">
         <div class="shop-catalog-intro"><h3 class="shop-section-title">COLEÇÃO DE ECOS</h3><article id="bossBundleBanner" class="boss-bundle-banner" aria-label="Pacote dos Bosses Abissais"></article></div>
         <div class="shop-filter-bar" aria-label="Filtros da loja">
           <input id="shopSearchInput" class="text-field shop-filter-search" type="search" placeholder="Buscar espécie ou habilidade" aria-label="Buscar espécie ou habilidade" autocomplete="off">
@@ -480,7 +477,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         </div>
         <div id="shopFilterSummary" class="shop-filter-summary" aria-live="polite"></div>
         <div id="skinGrid" class="skin-grid"></div>
-        <button id="openRedeemCodeBtn" class="redeem-open-btn" type="button"><span><b>✦ RESGATAR CÓDIGO</b><small>Use um código promocional para receber energia</small></span><strong>↗</strong></button>
+        <button id="openRedeemCodeBtn" class="redeem-open-btn" type="button" hidden aria-hidden="true" tabindex="-1" style="display:none!important">Abrir resgate</button>
         <button id="shopCloseBtn" class="secondary-btn" data-close-screen="shopScreen">VOLTAR AO MENU</button>
       </div>
     </section>
@@ -514,7 +511,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <div class="redeem-code-controls"><label for="redeemCodeInput">CÓDIGO PROMOCIONAL</label><input id="redeemCodeInput" type="text" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="Digite seu código aqui" aria-label="Código promocional"><button id="redeemCodeBtn" class="primary-btn" type="button">RESGATAR CÓDIGO <span>↗</span></button></div>
         <div id="redeemSkinChoice" class="redeem-skin-choice" hidden><label for="redeemSkinSelect">ESCOLHA O ECO DA LOJA</label><select id="redeemSkinSelect" aria-label="Eco gratuito a desbloquear"><option value="">Selecione um Eco</option></select><p>O código libera um Eco permanentemente, inclusive das opções pagas. A escolha é definitiva.</p></div>
         <p id="redeemCodeMessage" class="redeem-code-message" role="status" aria-live="polite"></p>
-        <button id="redeemCodeBackBtn" class="secondary-btn" type="button">VOLTAR À LOJA</button>
+        <button id="redeemCodeBackBtn" class="secondary-btn" type="button">VOLTAR AO SOCIAL</button>
       </div>
     </section>
 
@@ -810,7 +807,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-realistic-body.js?v=21"></script>
 <script src="diver-art.js?v=2026.11.14.directional-v240"></script>
 <script src="login-wardrobe-preview.js?v=3.6.138"></script>
-<script src="avatar-wardrobe.js?v=3.6.135"></script>
+<script src="avatar-wardrobe.js?v=3.6.151.hidpi"></script>
 <script src="diver-hitbox.js?v=2026.11.13.playable-v216"></script>
 <script src="gravity-cone.js?v=2026.11.8.1"></script>
 <script src="specimen-evasion.js?v=2026.11.12.2"></script>
@@ -826,7 +823,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
  <script src="game.js?v=3.6.135"></script>
  <script src="abyssal-mobile-multitouch.js?v=3.6.129"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=3.6.143"></script>
+<script src="online.js?v=3.6.151.native-google"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.14.playable-v220"></script>
 <script src="abyssal-rebuild.js?v=2026.11.13.playable-v216"></script>
@@ -884,7 +881,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-submarine-cockpit.js?v=3.6.150.consolidated"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
-<script src="abyssal-exploration-runtime.js?v=3.6.150.stations"></script>
+<script src="abyssal-exploration-runtime.js?v=3.6.151.stations"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.24"></script>
 <script src="abyssal-sonar-minimap.js?v=3.6.107-ui"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>
