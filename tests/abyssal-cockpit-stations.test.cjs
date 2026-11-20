@@ -46,3 +46,15 @@ test('tour and copy use the renamed Echo identity and old handlers remain stable
  assert.match(tour,/nav\.routeScreen\('resonanceScreen'\)/);
  assert.match(tour,/localStorage\.setItem\(KEY,'1'\)/);
 });
+
+test('restored panoramic cockpit is the only menu implementation and offline cache rotates',()=>{
+ const html=read('public/index.html');
+ const sw=read('public/offline-sw.js');
+ const css=read('public/abyssal-cockpit-stations.css');
+ assert.match(html,/abyssal-cockpit-stations\\.css\\?v=3\\.6\\.149/);
+ assert.doesNotMatch(html,/abyssal-deep-menu(?:-cinematic|-native)?\\.(?:js|css)/);
+ assert.doesNotMatch(sw,/abyssal-deep-menu/);
+ assert.match(sw,/2026-11-20-cockpit-polish-v298/);
+ assert.match(css,/Refinamento discreto da cabine panorâmica/);
+ assert.match(css,/prefers-reduced-motion/);
+});
