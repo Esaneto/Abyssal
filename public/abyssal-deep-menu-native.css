@@ -473,6 +473,7 @@
  }
  #submarineWorkshop.abyss-deep-active .deep-operations small{font-size:7px!important}
  #submarineWorkshop.abyss-deep-active .deep-operations strong::before{font-size:13px}
+ #submarineWorkshop.abyss-deep-active .deep-sonar strong{font-size:8px!important;letter-spacing:0!important}
  #submarineWorkshop.abyss-deep-active .deep-capsule{
   top:40%;height:25%;width:32%
  }
@@ -496,6 +497,7 @@
  #submarineWorkshop.abyss-deep-active .deep-brand small{font-size:6px}
  #submarineWorkshop.abyss-deep-active .deep-utilities button{width:32px;height:34px;font-size:17px}
 }
+#submarineWorkshop.abyss-deep-active .deep-menu[data-focus="overview"] .deep-bottomline>span{display:none!important}
 @media(max-height:520px) and (orientation:landscape){
  #submarineWorkshop .deep-ocean-window{height:34%;left:26%;width:48%}
  #submarineWorkshop .deep-side-consoles{top:35%;height:22%}
