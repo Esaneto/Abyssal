@@ -36,7 +36,7 @@ test('new bridge renders original procedural materials',()=>{
  assert.match(cabin,/background=layer\(hull\);foreground=layer\(foregroundArt\)/);
  assert.match(cabin,/bitmapBackdrop:false/);
  assert.doesNotMatch(cabin,/new Image\(|abyssal-cabin-deck\.webp|abyssal-cabin-ocean/);
- assert.doesNotMatch(read('public/offline-sw.js'),/abyssal-cabin-ocean-hq\.webp|abyssal-cabin-deck\.webp/);
+ assert.match(read('public/offline-sw.js'),/'abyssal-hub-room\.webp'/); // Still preserve original procedural bridge; cached hub art is a separate UI layer.
  assert.ok(!html.includes('abyssal-open-sea-render.js'));
  assert.match(html,/<script src="abyssal-submarine-cockpit\.js\?v=[^"]+"><\/script>/);
 });
