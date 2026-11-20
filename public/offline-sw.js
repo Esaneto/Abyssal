@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-20-native-abyss-cabin-v297';
+const VERSION = '2026-11-20-cockpit-polish-v298';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -10,7 +10,7 @@ const GAME_FILES = [
   'abyssal-icon.svg',
   'style.css','abyssal-ocean-design.css','abyssal-deep-systems.css','abyssal-research-tree.js','abyssal-resonance-balance.js',
   'abyssal-rebuild.css','abyssal-release-polish.css','abyssal-menu-tour.js',
-  'abyssal-menu-v2.css','abyssal-cockpit-stations.css','abyssal-deep-menu.css','abyssal-deep-menu-cinematic.css','abyssal-deep-menu-native.css',
+  'abyssal-menu-v2.css','abyssal-cockpit-stations.css',
   'abyssal-discord-community.css','abyssal-discord-community.js',
   'abyssal-review.js','abyssal-review.css',
   'abyssal-attention.js','abyssal-state-signals.css','abyssal-ranking-rewards.css',
@@ -44,7 +44,7 @@ const GAME_FILES = [
   'abyssal-login-v2.css',
   'login-wardrobe-preview.js',
   'google-oauth-config.js',
-  'abyssal-cabin-ocean.webp','abyssal-cabin-ocean-hq.webp','abyssal-cabin-deck.webp',
+  'abyssal-cabin-ocean.webp',
   'mobile-portrait.js',
   'mobile-portrait.css','abyssal-responsive-v247.css','abyssal-keyboard-focus.css','abyssal-keyboard-focus.js','abyssal-onboarding-spotlight.css',
   'abyssal-ocean-cinema.svg',
@@ -62,7 +62,7 @@ const GAME_FILES = [
   'gravity-cone.js',
   'abyssal-curated-skins.js',
   'abyssal-menu-ocean.js',
-  'abyssal-submarine-cockpit.js','abyssal-deep-menu.js',
+  'abyssal-submarine-cockpit.js',
   'abyssal-ocean-geography.js',
   'abyssal-open-sea-ecology.js',
   'abyssal-ocean-respawn.js',
