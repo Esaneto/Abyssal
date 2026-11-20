@@ -204,3 +204,28 @@
  }
  #submarineWorkshop.abyss-deep-active .deep-hatch-choice{transform:translateX(-50%)!important}
 }
+
+
+/* True short-landscape usability: bring the first Echo into the first screen.
+ * Currency stays BRL, all specimen cards and banner remain in the scrollable panel.
+ * Buttons remain full-size; never hide purchases or remove existing shop functions. */
+@media(max-height:520px) and (orientation:landscape){
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .eyebrow{display:none!important}
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .payment-settings{display:none!important}
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-heading{
+  padding:0!important;margin:0 0 3px!important;min-height:0!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-heading-copy p{display:none!important}
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-title-actions h2{
+  margin:0!important;line-height:1!important;font-size:15px!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-filter-summary{
+  display:none!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen .shop-filter-bar{
+  margin:0 0 3px!important;min-height:0!important
+ }
+ body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen #skinGrid{
+  margin:0!important;padding-top:0!important
+ }
+}
