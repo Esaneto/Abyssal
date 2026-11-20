@@ -25,18 +25,7 @@ deep.innerHTML=
  '<div class="deep-hatch-choice" id="deepHatchChoice" hidden role="group" aria-label="Escolher modo de mergulho"><p><span aria-hidden="true">◉</span> MERGULHAR</p><button type="button" id="deepSoloDive">◉ <span>SOLO</span></button><button type="button" id="deepOnlineDive">◉◉ <span>ONLINE</span></button></div>'+
  '<div class="deep-bottomline"><span id="deepInstruction">SELECIONE UM EQUIPAMENTO PARA APROXIMAR A CÂMERA</span><button type="button" id="deepReturn" hidden>‹ VOLTAR À CABINE</button></div>';
 workshop.append(deep);
-/* Activate faithful photographic compositing only after all approved scene
- * assets load. If any fails (including offline cache), retain functional
- * procedural 2.5D artwork instead of showing empty click targets. */
-const referenceAssets=['abyssal-hub-room.webp','abyssal-hub-panel-dive.webp','abyssal-hub-panel-ecos.webp','abyssal-hub-panel-research.webp','abyssal-hub-panel-social.webp','abyssal-hub-panel-wardrobe.webp'];
-let referenceLoaded=0,referenceFailed=false;
-for(const source of referenceAssets){
- const preview=new Image();preview.decoding='async';
- preview.onload=()=>{if(!referenceFailed&&++referenceLoaded===referenceAssets.length){deep.classList.add('deep-art-ready');}};
- preview.onerror=()=>{referenceFailed=true;deep.classList.remove('deep-art-ready');};
- preview.src=source;
-}
-
+// Native layered geometry and gameplay art: never load screenshot UI crops.
 const visor=workshop.querySelector('.abyss-cockpit-console');
 let focus='overview',pendingOnline=false,launching=false,raf=0,lastDraw=0,seenWorkshop=false;
 const suit=$('deepSuitPreview'),echo=$('deepEchoPreview'),suitC=suit.getContext('2d'),echoC=echo.getContext('2d');
@@ -265,6 +254,6 @@ const embeddedObserver=new MutationObserver(()=>{
 if(grid)embeddedObserver.observe(grid,{subtree:true,childList:true});
 
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPreview();else startPreview();});
-root.AbyssalDeepMenu=Object.freeze({overview,isEnabled:()=>true,focus:()=>focus,view,visualStatus:()=>({active:isOpen(),focus,realDiver:Boolean(root.AbyssalDiverArt),realEcos:Boolean(root.AbyssalMarineArt),referenceArtReady:deep.classList.contains('deep-art-ready')})});
+root.AbyssalDeepMenu=Object.freeze({overview,isEnabled:()=>true,focus:()=>focus,view,visualStatus:()=>({active:isOpen(),focus,realDiver:Boolean(root.AbyssalDiverArt),realEcos:Boolean(root.AbyssalMarineArt),nativeArtReady:Boolean(deep.querySelector('.deep-capsule-glass canvas')),gameArtReady:Boolean(root.AbyssalDiverArt?.draw&&root.AbyssalMarineArt?.draw)})});
 if(isOpen())activate();
 })(window);
