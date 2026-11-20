@@ -299,3 +299,33 @@ html.abyssal-handheld body.game-active.mobile-game-active #selectedSkillsPanel .
  html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded #shopScreen .shop-modal>.shop-filter-bar{padding:3px!important;gap:4px!important}
 
 }
+
+/* Cockpit/Ecos: narrow landscape viewport regression. Keep the catalogue first.
+   Scope tightly to embedded shop in handset landscape; leave original art,
+   desktop layouts, purchasing controls and all other stations untouched. */
+@media (orientation:landscape) and (max-height:520px){
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  gap:3px!important;grid-template-columns:none!important
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>.shop-heading{
+  order:0!important;min-height:0!important;margin:0!important
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>.payment-settings{
+  order:1!important;min-height:0!important;margin:0!important
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>.shop-filter-bar{
+  order:2!important;margin:0!important;min-height:0!important
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>.shop-filter-summary{
+  order:3!important;margin:0!important
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>#skinGrid{
+  order:4!important;margin:0!important
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>.shop-catalog-intro{
+  order:5!important;margin:5px 0!important
+ }
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>#openRedeemCodeBtn{order:6!important}
+ html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-deep-active #shopScreen.abyss-cockpit-embedded .shop-modal>#shopCloseBtn{order:7!important}
+}
