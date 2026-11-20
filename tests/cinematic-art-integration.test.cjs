@@ -36,7 +36,12 @@ test('new bridge renders original procedural materials',()=>{
  assert.match(cabin,/background=layer\(hull\);foreground=layer\(foregroundArt\)/);
  assert.match(cabin,/bitmapBackdrop:false/);
  assert.doesNotMatch(cabin,/new Image\(|abyssal-cabin-deck\.webp|abyssal-cabin-ocean/);
- assert.match(read('public/offline-sw.js'),/'abyssal-hub-room\.webp'/); // Still preserve original procedural bridge; cached hub art is a separate UI layer.
+ const sw=read('public/offline-sw.js'),native=read('public/abyssal-deep-menu-native.css'),deep=read('public/abyssal-deep-menu.js');
+ assert.match(sw,/'abyssal-deep-menu-native\.css'/);
+ assert.match(sw,/'abyssal-cabin-deck\.webp'/);
+ assert.match(native,/deep-capsule-glass|deep-rail-left|deep-hatch-gantry/);
+ assert.match(deep,/AbyssalDiverArt|AbyssalMarineArt/);
+ assert.doesNotMatch(html,/abyssal-deep-menu-reference\.css|abyssal-deep-menu-fidelity\.css/);
  assert.ok(!html.includes('abyssal-open-sea-render.js'));
  assert.match(html,/<script src="abyssal-submarine-cockpit\.js\?v=[^"]+"><\/script>/);
 });
