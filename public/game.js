@@ -398,7 +398,7 @@ const skinData=[
 {id:'blackcaiman',name:'Jacaré-Açu',color:'#425b68',price:499,paid:true,shape:'alligator',desc:'Focinho largo em U, crânio robusto e placas negras iluminadas pelas águas profundas.'},
 {id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:199,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.'},
 {id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:199,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.'},
-{id:'tigershark',name:'Tubarão-Tigre',color:'#7c9dae',price:5000,paid:false,shape:'tigershark',desc:'Predador listrado de águas profundas. Seu Projétil Hipotérmico provoca dano e lentidão; a habilidade conserva os valores originais do sistema.'},
+{id:'tigershark',name:'Tubarão-Tigre',color:'#345f94',price:5000,paid:false,shape:'tigershark',desc:'Predador listrado de águas profundas. Seu Projétil Hipotérmico provoca dano e lentidão; a habilidade conserva os valores originais do sistema.'},
 {id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#bb4651',price:499,paid:true,shape:'alligator',desc:'Tubarão costeiro robusto inspirado no tubarão-touro, adaptado a canais rasos, estuários e água turva.'},
 {id:'armoredgator',name:'Caranguejo-Ferradura Couraçado',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Artrópode marinho blindado inspirado no caranguejo-ferradura, com carapaça mineralizada e télson longo.'},
 {id:'greensnake',name:'Moréia Esmeralda Colossal',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Moréia oceânica colossal de pele verde-jade, corpo sinuoso e mandíbula dupla inspirada nas faringes das moréias.'},
