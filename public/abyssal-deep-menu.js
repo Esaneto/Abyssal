@@ -12,17 +12,17 @@ const deep=document.createElement('section');
 deep.id='abyssDeepMenu';deep.className='deep-menu';deep.setAttribute('aria-label','Interior do submarino Abyssal');
 deep.innerHTML=
  '<div class="deep-world" id="deepWorld" aria-hidden="false">'+
-  '<div class="deep-chamber"><div class="deep-ceiling"></div><div class="deep-backwall"></div><div class="deep-leftwall"></div><div class="deep-rightwall"></div><div class="deep-floor"></div><div class="deep-floor-lines"></div><div class="deep-ceiling-ribs"></div></div>'+
+  '<div class="deep-chamber"><div class="deep-ceiling"></div><div class="deep-backwall"></div><div class="deep-leftwall"></div><div class="deep-rightwall"></div><div class="deep-floor"></div><div class="deep-floor-lines"></div><div class="deep-ceiling-ribs"></div><div class="deep-ocean-window" aria-hidden="true"></div><div class="deep-bridge-art" aria-hidden="true"></div><div class="deep-stage-lights" aria-hidden="true"></div><div class="deep-floor-plate" aria-hidden="true"></div><div class="deep-bridge-reflection" aria-hidden="true"></div><div class="deep-light-beams" aria-hidden="true"></div><div class="deep-room-dust" aria-hidden="true"></div></div>'+
   '<div class="deep-operations" aria-label="Central de operações">'+
    '<button type="button" class="deep-sonar deep-hotspot" data-deep-target="social" aria-label="Abrir sonar social, Cardumes, Ranking, Avisos e Roleta"><span class="deep-sonar-face"><i class="deep-sonar-sweep"></i><i class="deep-sonar-ping p1"></i><i class="deep-sonar-ping p2"></i><i class="deep-sonar-ping p3"></i></span><strong>SONAR SOCIAL</strong></button>'+
    '<button type="button" class="deep-research deep-hotspot" data-deep-target="research" aria-label="Abrir terminal de Pesquisa, Submarino e Ressonância"><span class="deep-research-display"><i class="deep-research-core"></i><i class="deep-research-branch b1"></i><i class="deep-research-branch b2"></i><i class="deep-research-branch b3"></i><i class="deep-research-branch b4"></i></span><strong>PESQUISA</strong><small>MERGULHADOR / SUBMARINO / RESSONÂNCIA</small></button>'+
   '</div>'+
-  '<button type="button" class="deep-capsule deep-suits deep-hotspot" data-deep-target="wardrobe" aria-label="Abrir Armário do mergulhador"><span class="deep-capsule-rim"></span><span class="deep-capsule-glass"><canvas id="deepSuitPreview" width="220" height="320" aria-hidden="true"></canvas><span class="deep-capsule-scan"></span></span><span class="deep-capsule-base"></span><strong>ARMÁRIO</strong><small>TRAJES / ACESSÓRIOS</small></button>'+
-  '<button type="button" class="deep-capsule deep-ecos deep-hotspot" data-deep-target="ecos" aria-label="Abrir Loja de Ecos"><span class="deep-capsule-rim"></span><span class="deep-capsule-glass"><canvas id="deepEchoPreview" width="240" height="300" aria-hidden="true"></canvas><span class="deep-capsule-scan"></span></span><span class="deep-capsule-base"></span><strong>ECOS</strong><small>ORGANISMOS ABISSAIS</small></button>'+
-  '<button type="button" class="deep-hatch deep-hotspot" data-deep-target="hatch" aria-label="Abrir escotilha e escolher mergulho"><span class="deep-hatch-outer"><span class="deep-hatch-bolts"></span><span class="deep-hatch-inner"><span class="deep-hatch-lid"><i class="deep-hatch-wheel"></i><i class="deep-hatch-cross"></i></span></span></span><strong>MERGULHAR</strong></button>'+
+  '<button type="button" class="deep-capsule deep-suits deep-hotspot" data-deep-target="wardrobe" aria-label="Abrir Armário do mergulhador"><span class="deep-capsule-rim"></span><span class="deep-capsule-glass"><canvas id="deepSuitPreview" width="220" height="320" aria-hidden="true"></canvas><span class="deep-capsule-scan"></span></span><span class="deep-capsule-base"></span><span class="deep-capsule-float" aria-hidden="true"><span class="deep-capsule-icon">◇</span><span class="deep-capsule-copy"><strong>ARMÁRIO</strong><small>Trajes e personalização</small></span></span></button>'+
+  '<button type="button" class="deep-capsule deep-ecos deep-hotspot" data-deep-target="ecos" aria-label="Abrir Loja de Ecos"><span class="deep-capsule-rim"></span><span class="deep-capsule-glass"><canvas id="deepEchoPreview" width="240" height="300" aria-hidden="true"></canvas><span class="deep-capsule-scan"></span></span><span class="deep-capsule-base"></span><span class="deep-capsule-float" aria-hidden="true"><span class="deep-capsule-icon">✧</span><span class="deep-capsule-copy"><strong>ECOS</strong><small>Aquisição, evolução e fusões</small></span></span></button>'+
+  '<button type="button" class="deep-hatch deep-hotspot" data-deep-target="hatch" aria-label="Abrir escotilha e escolher mergulho"><span class="deep-hatch-outer"><span class="deep-hatch-bolts"></span><span class="deep-hatch-inner"><span class="deep-hatch-lid"><i class="deep-hatch-wheel"></i><i class="deep-hatch-cross"></i></span><span class="deep-hatch-lightwell"></span><span class="deep-hatch-bubble-ring" aria-hidden="true"></span></span></span><strong>MERGULHAR</strong></button>'+
  '</div>'+
- '<div class="deep-topline"><span class="deep-brand">ABYSSAL <small>ESTAÇÃO DE OPERAÇÕES</small></span><div class="deep-utilities"><button type="button" data-deep-quick="account">CONTA</button><button type="button" data-deep-quick="settings" aria-expanded="false" aria-controls="deepSettings">AJUSTES</button><button type="button" data-deep-quick="guide">AJUDA</button></div><div id="deepSettings" class="deep-settings-popover" hidden role="group" aria-label="Ajustes da cabine"><button type="button" data-deep-setting="controls">CONTROLES</button><button type="button" data-deep-setting="hudEditor">EDITAR HUD</button><button type="button" data-deep-setting="volume">VOLUME / ÁUDIO</button><button type="button" data-deep-setting="filter">GRÁFICOS</button><button type="button" data-deep-setting="language">IDIOMA</button><button type="button" data-deep-setting="fullscreen">TELA CHEIA</button><button type="button" data-deep-setting="download">BAIXAR ABYSSAL</button></div></div>'+
- '<div class="deep-hatch-choice" id="deepHatchChoice" hidden role="group" aria-label="Escolher modo de mergulho"><p>ESCOTILHA / EXPEDIÇÃO</p><button type="button" id="deepSoloDive">01 · MERGULHO SOLO</button><button type="button" id="deepOnlineDive">02 · MERGULHO ONLINE</button></div>'+
+ '<div class="deep-topline"><span class="deep-brand"><span class="deep-brand-mark" aria-hidden="true"></span><span>ABYSSAL <small>SUBMARINO DE EXPLORAÇÃO</small></span></span><div class="deep-utilities"><span class="deep-resource" aria-label="Energia armazenada"><span class="deep-energy-symbol">ϟ</span><output id="deepEnergyCount">0</output></span><button type="button" data-deep-quick="account" aria-label="Perfil e conta" title="Perfil e conta">◉</button><button type="button" data-deep-quick="notices" aria-label="Avisos" title="Avisos">♧</button><button type="button" data-deep-quick="messages" aria-label="Cardumes e mensagens" title="Cardumes e mensagens">✉</button><button type="button" data-deep-quick="settings" aria-expanded="false" aria-controls="deepSettings" aria-label="Configurações" title="Configurações">⚙</button></div><div id="deepSettings" class="deep-settings-popover" hidden role="group" aria-label="Ajustes da cabine"><button type="button" data-deep-setting="controls">CONTROLES</button><button type="button" data-deep-setting="hudEditor">EDITAR HUD</button><button type="button" data-deep-setting="volume">VOLUME / ÁUDIO</button><button type="button" data-deep-setting="filter">GRÁFICOS</button><button type="button" data-deep-setting="language">IDIOMA</button><button type="button" data-deep-setting="fullscreen">TELA CHEIA</button><button type="button" data-deep-setting="download">BAIXAR ABYSSAL</button><button type="button" data-deep-setting="guide">AJUDA</button></div></div>'+
+ '<div class="deep-hatch-choice" id="deepHatchChoice" hidden role="group" aria-label="Escolher modo de mergulho"><p><span aria-hidden="true">◉</span> MERGULHAR</p><button type="button" id="deepSoloDive">◉ <span>SOLO</span></button><button type="button" id="deepOnlineDive">◉◉ <span>ONLINE</span></button></div>'+
  '<div class="deep-bottomline"><span id="deepInstruction">SELECIONE UM EQUIPAMENTO PARA APROXIMAR A CÂMERA</span><button type="button" id="deepReturn" hidden>‹ VOLTAR À CABINE</button></div>';
 workshop.append(deep);
 const visor=workshop.querySelector('.abyss-cockpit-console');
@@ -30,10 +30,13 @@ let focus='overview',pendingOnline=false,launching=false,raf=0,lastDraw=0,seenWo
 const suit=$('deepSuitPreview'),echo=$('deepEchoPreview'),suitC=suit.getContext('2d'),echoC=echo.getContext('2d');
 const deck=$('deepWorld'),back=$('deepReturn'),choices=$('deepHatchChoice'),settings=$('deepSettings'),settingsToggle=deep.querySelector('[data-deep-quick="settings"]');
 const body=document.body;
+ const energyCount=$('deepEnergyCount');
+ function refreshEnergy(){const account=root.AbyssalOnline?.getAccount?.();const local=root.AbyssalSoloProgress?.get?.();const amount=Number(account?.energy??local?.energy);energyCount.textContent=Number.isFinite(amount)?Math.max(0,Math.floor(amount)).toLocaleString('pt-BR'):'0';}
 function isOpen(){return !workshop.hidden&&!body.classList.contains('game-active');}
 function activate(){
  if(!isOpen())return;
  seenWorkshop=true;workshop.classList.add('abyss-deep-active');
+ refreshEnergy();
  // Clear any stale page returned from an editor or embedded screen.
  if(!launching)overview();
  startPreview();
@@ -46,7 +49,7 @@ function overview(){
  focus='overview';deep.dataset.focus='overview';
  workshop.classList.remove('abyss-deep-detail','abyss-deep-approaching');
  workshop.classList.remove('abyss-deep-hatch-opening');
- choices.hidden=true;back.hidden=true;
+ choices.hidden=false;back.hidden=true;
  deep.hidden=false;
  $('deepInstruction').textContent='SELECIONE UM EQUIPAMENTO PARA APROXIMAR A CÂMERA';
  const lid=deep.querySelector('.deep-hatch-lid');if(lid)lid.style.transform='';
@@ -79,7 +82,8 @@ function view(target){
 }
 function openSetting(name){
  observedEmbedded=false;
- if(!['controls','hudEditor','volume','filter','language','fullscreen','download'].includes(name))return;
+ if(!['controls','hudEditor','volume','filter','language','fullscreen','download','guide'].includes(name))return;
+ if(name==='guide'){closeSettings();root.AbyssalTutorials?.openManual?.('solo');return;}
  const nav=root.AbyssalCockpitNavigation;if(!nav)return;
  closeSettings();focus='quick';deep.dataset.focus='research';
  workshop.classList.add('abyss-deep-detail');workshop.classList.remove('abyss-deep-approaching');
@@ -89,6 +93,8 @@ function openSetting(name){
 }
 function showQuick(target){
  if(target==='guide'){root.AbyssalTutorials?.openManual?.('solo');return;}
+ if(target==='notices'){$('notifBtn')?.click();return;}
+ if(target==='messages'){view('social');return;}
  if(target==='settings'){const next=settings.hidden;settings.hidden=!next;settingsToggle.setAttribute('aria-expanded',String(next));return;}
  const nav=root.AbyssalCockpitNavigation;if(!nav)return;
  closeSettings();focus='quick';deep.dataset.focus='research';
@@ -182,6 +188,7 @@ root.addEventListener('abyssal-room-joined',()=>{
  root.setTimeout(()=>overlay.remove(),reduce()?500:2550);
 });
 root.addEventListener('abyssal-room-left',()=>{pendingOnline=false;});
+ for(const event of ['abyssal-authenticated','abyssal-account-signed-out','abyssal-wallet-changed','abyssal-wheel-result'])root.addEventListener(event,refreshEnergy);
 root.addEventListener('abyssal-room-join-failed',()=>{pendingOnline=false;});
 // returnToMainMenu already opens the cockpit; reopening here would reset its live controls.
 function drawSamples(t){
@@ -217,7 +224,7 @@ function drawSamples(t){
 function loop(t){
  raf=0;if(!isOpen()||document.hidden||body.classList.contains('game-active'))return;
  const interval=focus==='overview'?100:45;
- if(t-lastDraw>=interval){lastDraw=t;drawSamples(t);}
+ if(t-lastDraw>=interval){if(Math.floor(t/3500)!==Math.floor(lastDraw/3500))refreshEnergy();lastDraw=t;drawSamples(t);}
  raf=root.requestAnimationFrame(loop);
 }
 function startPreview(){if(!raf&&!document.hidden&&isOpen())raf=root.requestAnimationFrame(loop);}
