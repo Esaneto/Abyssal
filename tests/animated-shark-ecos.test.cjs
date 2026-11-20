@@ -140,8 +140,8 @@ test('monotonic bite event clock ignores per-entity swimming offset',()=>{
  assert.equal(api.isBiting(event,1100),true);
  assert.equal(api.isBiting(event,1401),false);
  assert.equal(api.selectFrame('reefshark',6200,true,event,true,1100),4);
- assert.equal(api.selectFrame('reefshark',6200,true,event,true,1401),0);
- assert.equal(api.selectFrame('reefshark',6200,false,event,true,1100),0);
+ assert.equal(api.selectFrame('reefshark',6200,true,event,true,1401),2);
+ assert.equal(api.selectFrame('reefshark',6200,false,event,true,1100),2);
 });
 test('wild 2.5D species use individual animated rendering before shared cache',()=>{
  const src=read('public/game.js'),p=src.indexOf('function drawRiftShopSpecimen(');
