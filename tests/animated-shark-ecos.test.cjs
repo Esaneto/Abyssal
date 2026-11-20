@@ -64,7 +64,7 @@ test('tiger-shark metadata and palette integrate into existing Echo catalog and 
  assert.match(game,/id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#bb4651'/);
  assert.match(curated,/"id": "greenland"[\s\S]*?"color": "#36ac70"/);
  assert.match(fauna,/tigershark/);
- assert.match(html,/abyssal-animated-sprites\.js\?v=2026\.11\.20\.5/);
+ assert.match(html,/abyssal-animated-sprites\.js\?v=2026\.11\.20\.6/);
  assert.match(sw,/'abyssal-eco-sprites\.png'/);
  assert.ok(sw.includes("'abyssal-sharks-2.5d.webp'"));
  assert.match(sw,/'abyssal-animated-sprites\.js'/);
