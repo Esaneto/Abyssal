@@ -4,7 +4,7 @@ O usuário confirmou que a foto aprovada NÃO deve ser colada como menu e não p
 
 ---
 
-# Atualização de handoff: cabine fiel à referência, painel flutuante e Android (20/11/2026)
+# Histórico SUPERADO (20/11/2026): composição fotográfica de referência desativada e REMOVIDA
 
 **Branch:** \`feat/deep-menu-cinematic-20261119\`. **PR:** #322. **Main:** preservar até concluir os testes e a integração.
 
@@ -12,7 +12,7 @@ O menu recebeu uma composição fotográfica baseada na imagem fornecida pelo us
 
 **Testes:** consultar as execuções do GitHub Actions do commit HEAD do PR. Captura real desktop comparada visualmente; a imagem não deve ser representada como um modelo 3D renderizado em tempo real. Testes automatizados de Solo/Online, Node e fauna anteriormente verdes; release depende da última CI completa e da verificação da Loja em celular paisagem, que apresentava catálogo abaixo da primeira dobra. Nenhum deploy externo autorizado sem estes resultados.
 
-**Não regredir:** não trocar a arte fotográfica por cartões ou por um CSS desenhado; não criar segundo menu. Não usar valores fictícios do mockup como dados reais, nem substituir links/botões por imagens sem acesso por teclado. \`AGENT_FRAMEWORK.md\` e \`.agent/workflows/agent-framework.md\` estabelecem controles para todos os próximos agentes.
+**HISTÓRICO SUPERADO:** esta recomendação de manter a arte fotográfica foi REVOGADA. Os arquivos de composição por fotografia e todos os recortes foram excluídos da branch. Não recriá-los; manter construção 2.5D real com objetos separados e artes próprias do jogo. Não criar segundo menu. Não usar valores fictícios do mockup como dados reais, nem substituir links/botões por imagens sem acesso por teclado. \`AGENT_FRAMEWORK.md\` e \`.agent/workflows/agent-framework.md\` estabelecem controles para todos os próximos agentes.
 
 ---
 
