@@ -267,6 +267,11 @@ const injected=`<script>
         const card=grid.querySelector('.skin-card'),rect=card?.getBoundingClientRect(),preview=card?.querySelector('.skin-preview')?.getBoundingClientRect(),information=card?.querySelector('.specimen-card-information')?.getBoundingClientRect();
         const fields=[...shop.querySelectorAll('#shopFilterSummary ~ input,#shopSearchInput,#shopFamilyFilter,#shopOwnershipFilter,#shopHabitatFilter')].filter(e=>e.matches('input,select'));
         const tops=fields.map(e=>e.getBoundingClientRect().top);
+        const layoutDiag=(()=>{
+         const select=q=>{const e=shop.querySelector(q);if(!e)return null;const r=e.getBoundingClientRect(),cs=getComputedStyle(e);return {top:r.top,height:r.height,display:cs.display,order:cs.order,marginTop:cs.marginTop,marginBottom:cs.marginBottom,padding:cs.padding,grid:cs.gridTemplateColumns,flex:cs.flexDirection}};
+         return {queryHeight:innerHeight,media:matchMedia('(max-height:520px) and (orientation:landscape)').matches,embedded:shop.className,linkedStyles:[...document.querySelectorAll('link[rel=stylesheet]')].filter(e=>/deep-menu/.test(e.href)).map(e=>e.href),modal:select('.shop-modal'),header:select('.shop-heading'),wallet:select('.wallet'),intro:select('.shop-catalog-intro'),filters:select('.shop-filter-bar'),summary:select('.shop-filter-summary'),grid:select('#skinGrid'),card:select('#skinGrid .skin-card'),ancestor:shop.parentElement?.className};
+        })();
+        console.log('[shop-layout-debug]',JSON.stringify(layoutDiag));
         if(!rect||rect.top>=innerHeight-46)throw Error('Landscape catalogue starts below first viewport '+JSON.stringify({card:rect?.toJSON(),height:innerHeight}));
         if(Math.max(...tops)-Math.min(...tops)>5)throw Error('Landscape filters wrap into multiple rows '+JSON.stringify(tops));
         if(!preview||!information||preview.right>information.left+2)throw Error('Landscape specimen art and attributes must occupy horizontal columns');
