@@ -53,7 +53,7 @@
   const threats=threatsNear(x,y,enemies,Math.max(150,maxStep*3+radius+clearance),combat?8:14);
   // Following uses a wider arrival radius so tiny player movements do not make
   // the Eco reverse every frame. Combat keeps a tighter endpoint.
-  const goalTolerance=follow?Math.max(4,Math.min(12,radius*.70)):Math.max(1,Math.min(3,radius*.15));
+  const goalTolerance=follow?Math.max(5,Math.min(12,radius*.85)):Math.max(1,Math.min(3,radius*.15));
   let emergency=false,nearestEmergency=null,nearestEmergencyDistance=Infinity;
   for(const e of threats){
    const d=Math.hypot(x-e.x,y-e.y),physical=radius+Math.max(3,Number(e.r)||8)+Math.min(4,clearance*.15);
@@ -75,15 +75,16 @@
   // In combat, local avoidance may bend the approach but cannot turn the Eco
   // around and make it flee from the selected target. Terrain routing already
   // handles large detours before this local steering pass.
-  const angles=combat?[0,-.22,.22,-.45,.45,-.72,.72,-1.02,1.02]:
-   [0,-.3,.3,-.65,.65,-1.05,1.05,-1.57,1.57,-2.25,2.25,Math.PI];
+  const fullAngles=[0,-.3,.3,-.65,.65,-1.05,1.05,-1.57,1.57,-2.25,2.25,Math.PI];
+  const angles=emergency?fullAngles:combat?[0,-.22,.22,-.45,.45,-.72,.72,-1.02,1.02]:
+   follow?[0,-.22,.22,-.48,.48,-.82,.82,-1.05,1.05]:fullAngles;
   let best=null,bestScore=-Infinity;
   const lookahead=combat?.22:.42;
   const advancing=threats.map(e=>({x:e.x+(Number(e.vx)||0)*lookahead,y:e.y+(Number(e.vy)||0)*lookahead,r:e.r,hp:e.hp}));
-  const localClearance=combat?Math.max(4,clearance*.32):clearance;
+  const localClearance=combat?Math.max(4,clearance*.32):follow?Math.max(5,clearance*.55):clearance;
   for(const offset of angles){
    const angle=direct+offset;
-   const localStep=Math.max(step,Math.min(speed*dt,6));
+   const localStep=step;
    const rawX=x+Math.cos(angle)*localStep;
    const rawY=y+Math.sin(angle)*localStep;
    const moved=resolve?resolve(rawX,rawY):{x:rawX,y:rawY};
@@ -101,7 +102,8 @@
    const goalProgress=distance-Math.hypot(gx-nx,gy-ny);
    const turn=Math.abs(Math.atan2(Math.sin(angle-heading),Math.cos(angle-heading)));
    const momentum=Math.cos(angle-heading)*Math.max(.35,step*.18);
-   const progressWeight=combat?7.2:2.3,dangerWeight=combat?.22:1,turnWeight=combat?Math.max(.35,step*.10):Math.max(.8,step*.32);
+   const progressWeight=combat?7.2:follow?3.6:2.3,dangerWeight=combat?.22:follow?.55:1,
+    turnWeight=combat?Math.max(.35,step*.10):follow?Math.max(.9,step*.42):Math.max(.8,step*.32);
    const score=goalProgress*progressWeight-danger*dangerWeight+momentum-turn*turnWeight;
    if(score>bestScore){bestScore=score;best={x:nx,y:ny,angle,evading:Math.abs(offset)>.35||danger>(combat?120:40)};}
   }
