@@ -22,12 +22,13 @@
  });
  const sourceName='abyssal-eco-sprites.png?v=2026.11.20.1';
  const hdSourceName='abyssal-sharks-2.5d.webp?v=2026.11.20.2';
- const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.13';
- const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.13';
+ const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.14';
+ const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.14';
  let whiteSharkSwim=null,whiteSharkAttack=null,whiteSharkReady=false;
  // Pre-rendered tail and jaw interpolation: one texture draw per shark.
  // Never allocate an offscreen canvas or blend multiple images in the render loop.
- const WHITE_SHARK_FRAME_SIZE=320,WHITE_SHARK_COLUMNS=4,WHITE_SHARK_ATTACK_COLUMNS=8;
+ const WHITE_SHARK_FRAME_SIZE=320,WHITE_SHARK_FRAME_HEIGHT=168,WHITE_SHARK_CROP_TOP=80;
+ const WHITE_SHARK_COLUMNS=4,WHITE_SHARK_ATTACK_COLUMNS=8;
  const WHITE_SHARK_FRAMES=22,WHITE_SHARK_TAIL_PHASES=4;
  const WHITE_SHARK_SWIM_FRAME_MS=45;
  function whiteSharkSwimPosition(t){
@@ -70,7 +71,7 @@
  function preload(){
   if(!whiteSharkSwim&&typeof root.Image==='function'){
    let loaded=0;
-   const onload=()=>{if(++loaded===2)whiteSharkReady=whiteSharkSwim.naturalWidth===1280&&whiteSharkSwim.naturalHeight===1920&&whiteSharkAttack.naturalWidth===2560&&whiteSharkAttack.naturalHeight===3520;};
+   const onload=()=>{if(++loaded===2)whiteSharkReady=whiteSharkSwim.naturalWidth===1280&&whiteSharkSwim.naturalHeight===1008&&whiteSharkAttack.naturalWidth===2560&&whiteSharkAttack.naturalHeight===1848;};
    whiteSharkSwim=new root.Image();whiteSharkAttack=new root.Image();
    for(const [img,url] of [[whiteSharkSwim,whiteSharkSwimName],[whiteSharkAttack,whiteSharkAttackName]]){
     img.decoding='async';img.onload=onload;img.onerror=()=>{whiteSharkReady=false;};img.src=url;
@@ -162,8 +163,10 @@
    if(Number(hit)>0){c.shadowColor='#fff';c.shadowBlur=Math.min(14,r*.35);}
    // 1 drawImage per frame: body stays anchored, only tail/jaw changes.
    c.drawImage(sheet,(poseIndex%columns)*WHITE_SHARK_FRAME_SIZE,
-    Math.floor(poseIndex/columns)*WHITE_SHARK_FRAME_SIZE,
-    WHITE_SHARK_FRAME_SIZE,WHITE_SHARK_FRAME_SIZE,-side/2,-side/2,side,side);
+    Math.floor(poseIndex/columns)*WHITE_SHARK_FRAME_HEIGHT,
+    WHITE_SHARK_FRAME_SIZE,WHITE_SHARK_FRAME_HEIGHT,
+    -side/2,-side/2+side*WHITE_SHARK_CROP_TOP/WHITE_SHARK_FRAME_SIZE,
+    side,side*WHITE_SHARK_FRAME_HEIGHT/WHITE_SHARK_FRAME_SIZE);
    c.restore();return true;
   }
   const sheet=useHd?hdSource:(cfg.palette?palettes[cfg.palette]:source);
@@ -195,7 +198,7 @@
   }
   c.restore();return true;
  }
- function status(){return {ready:ready||hdReady||whiteSharkReady,legacyReady:ready,hdReady,whiteSharkReady,atlas:hdReady?hdSourceName:sourceName,species:Object.keys(SPECIES),octopusBlue:true,whiteSharkSmoothBlend:false,whiteSharkAligned:true,whiteSharkDrawCalls:1,whiteSharkFrameCount:WHITE_SHARK_FRAMES,whiteSharkAttackFrames:WHITE_SHARK_FRAMES*WHITE_SHARK_TAIL_PHASES,whiteSharkFrameSize:WHITE_SHARK_FRAME_SIZE};}
+ function status(){return {ready:ready||hdReady||whiteSharkReady,legacyReady:ready,hdReady,whiteSharkReady,atlas:hdReady?hdSourceName:sourceName,species:Object.keys(SPECIES),octopusBlue:true,whiteSharkSmoothBlend:false,whiteSharkAligned:true,whiteSharkDrawCalls:1,whiteSharkFrameCount:WHITE_SHARK_FRAMES,whiteSharkAttackFrames:WHITE_SHARK_FRAMES*WHITE_SHARK_TAIL_PHASES,whiteSharkFrameSize:WHITE_SHARK_FRAME_SIZE,whiteSharkFrameHeight:WHITE_SHARK_FRAME_HEIGHT};}
  preload();
  return Object.freeze({SPECIES,has,drawAtOrigin,preload,status,selectFrame,biteProgress,isBiting,whiteSharkSwimPosition,whiteSharkFrameWeights});
 });

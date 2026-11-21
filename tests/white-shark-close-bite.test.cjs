@@ -47,7 +47,7 @@ test('both required atlas assets are declared for offline use and are present in
   assert.equal(header.subarray(0,4).toString(),'RIFF');
   assert.equal(header.subarray(8,12).toString(),'WEBP');
   assert.equal(header.subarray(12,16).toString(),'VP8X');
-  const expected=mode==='swim'?[1280,1920,500000]:[2560,3520,1500000];
+  const expected=mode==='swim'?[1280,1008,500000]:[2560,1848,1500000];
   assert.equal(1+header[24]+(header[25]<<8)+(header[26]<<16),expected[0]);
   assert.equal(1+header[27]+(header[28]<<8)+(header[29]<<16),expected[1]);
   assert.ok(header.length<expected[2]);
