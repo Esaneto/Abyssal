@@ -48,6 +48,29 @@ test('the same attack stance and per-Eco follow state run in Solo and Online',()
  assert.match(server,/PetTactics\.attackStance\(pos,combatTarget,profile\)/);
  assert.match(game,/intent:combatTarget\?'combat':orb\?'collect':'follow',state:s/);
  assert.match(server,/intent:combatTarget\?'combat':orb\?'collect':'follow',state:peer/);
+ assert.match(server,/if\(room\.mode!=='pvp'\)\{\s*const habit=PetTactics\.normalize\(peer\.petHabit\)/);
+ assert.match(server,/specimenCaveLayout\?AbyssalMap\.segmentWalkable/);
+ assert.match(server,/room\.mode==='open-sea'\?OceanGeography\.segmentClear/);
+ assert.match(server,/room\.mode==='open-sea'\?\(x,y\)=>OceanGeography\.resolveMove/);
+
  assert.match(sw,/2026-11-21-eco-stance-v306/);
  assert.match(client,/revision:'eco-stance-v306'/);
+});
+
+test('Rift and open sea attack checks use their authoritative map geometry',()=>{
+ const Map=require('../public/abyssal-map.js');
+ const Sea=require('../public/abyssal-ocean-geography.js');
+ assert.equal(typeof Map.segmentWalkable,'function');
+ assert.equal(typeof Sea.segmentClear,'function');
+ assert.equal(typeof Sea.resolveMove,'function');
+ const game=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+ const start=game.indexOf('const specimenCaveLayout=room.mode');
+ const end=game.indexOf("if(activePlayers.length)io.to(channelFor(room)).volatile.emit('specimen-motion'",start);
+ assert.ok(start>0&&end>start,'the PvE Eco loop should include both maps');
+ const block=game.slice(start,end);
+ assert.ok(block.indexOf("if(room.mode!=='pvp')")>0,'all PvE modes must evaluate the selected habit');
+ assert.ok(block.includes('PetTactics.choose({mode:habit'),'all PvE modes must choose targets');
+ assert.ok(block.includes('processWorldDamage(owner,Number(live.id)'),'all PvE modes must apply server-authoritative damage');
+ assert.ok(block.includes('OceanGeography.steer('),'open sea needs local obstacle routing');
+ assert.ok(block.includes('AbyssalMap.navigationTarget('),'Rift needs pathfinding through rooms');
 });
