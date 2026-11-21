@@ -38,3 +38,18 @@ test('companion stays still at a reached goal when a non-overlapping threat is m
  const move=Evasion.steer({position:{x:0,y:0},target:{x:0,y:0},enemies:[{x:35,y:0,r:8,hp:100}],speed:80,dt:.1,radius:7,clearance:14,heading:0});
  assert.equal(move.x,0);assert.equal(move.y,0);assert.equal(move.evading,false);
 });
+
+test('combat steering advances into a dense enemy group instead of retreating from the selected target',()=>{
+ let position={x:0,y:0},heading=0;
+ const target={x:180,y:0},enemies=[];
+ for(let i=0;i<12;i++){const a=-1.2+i*(2.4/11),d=58+(i%3)*10;enemies.push({id:i,x:Math.cos(a)*d,y:Math.sin(a)*d,r:10,hp:100});}
+ for(let i=0;i<20;i++){const move=Evasion.steer({position,target,enemies,speed:90,dt:.05,radius:8,clearance:28,heading,intent:'combat'});position={x:move.x,y:move.y};heading=move.angle;}
+ assert.ok(position.x>20,'combat intent must make net forward progress through crowd pressure');
+});
+test('following a nearby player target never overshoots because enemies are in avoidance range',()=>{
+ const threat={x:40,y:0,r:8,hp:100};
+ const first=Evasion.steer({position:{x:0,y:0},target:{x:5,y:0},enemies:[threat],speed:100,dt:.1,radius:7,clearance:14,heading:0,intent:'follow'});
+ assert.ok(first.x>=0&&first.x<=5,'follow step must be capped by remaining distance');
+ const second=Evasion.steer({position:first,target:{x:5,y:0},enemies:[threat],speed:100,dt:.1,radius:7,clearance:14,heading:first.angle,intent:'follow'});
+ assert.equal(second.x,first.x);assert.equal(second.y,first.y);
+});
