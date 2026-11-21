@@ -55,3 +55,11 @@ test('Shark attack position is inside reliable mouth contact and allows stable c
  assert.equal(ai.attackStance(at,enemy,profile),true);
  assert.equal(ai.attackStance({x:0,y:0},enemy,profile),false);
 });
+
+test('Eco bites a target overlapping its frontal body without having to back away first',()=>{
+ const shark=ai.attackProfile('reefshark','shark',41),pet={x:0,y:0};
+ const close={id:'close',x:10,y:0,r:15,kind:'drifter',hp:100};
+ const behind={...close,x:-70};
+ assert.equal(ai.attackContact(pet,close,shark,0,0),true,'immediate frontal contact is a hit');
+ assert.equal(ai.attackContact(pet,behind,shark,0,0),false,'rear target cannot be bitten facing forward');
+});
