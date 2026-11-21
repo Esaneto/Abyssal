@@ -139,59 +139,27 @@ function contactGeometry(enemy, target) {
   return geometry;
 }
 
-function forceAdvanceEnemy(enemy, players, dt, worldWidth=WORLD_WIDTH, worldHeight=WORLD_HEIGHT) {
-  if (!enemy || !players.length || dt <= 0) return false;
-  let target = null, nearest = Infinity;
-  // tickWorld passes the pre-filtered targetable-player array; don't allocate a new
-  // filtered array for every one of up to 400 enemies on every 50 ms server tick.
-  for (const player of players) {
-    const d = Math.hypot(Number(player.x) - Number(enemy.x), Number(player.y) - Number(enemy.y));
-    if (Number.isFinite(d) && d < nearest) { nearest = d; target = player; }
+function forceAdvanceEnemy(enemy,players,dt,worldWidth=WORLD_WIDTH,worldHeight=WORLD_HEIGHT){
+  if(!enemy||!players.length||dt<=0)return false;
+  let target=null,nearest=Infinity;
+  for(const player of players){
+    const d=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
+    if(Number.isFinite(d)&&d<nearest){nearest=d;target=player;}
   }
-  if (!target) return false;
-  const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
-  const baseSpeed = Math.max(20, Number(enemy.speed) || (EnemyAI.statsForKind(enemy.kind).speed / WORLD_ZOOM) || 35);
-  const healthRatio = clamp((Number(enemy.hp) || 0) / Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1), 0, 1);
-  const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
-  const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
-  const speed = (BOSS_KINDS.includes(enemy.kind) ? Math.max(1, playerSpeed - 5) : baseSpeed) * 0.85;
-  const stopDistance = EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,Number(target.r)||13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId));
-  let x = oldX, y = oldY;
-  if (nearest > stopDistance + 1) {
-    const dx = Number(target.x) - oldX, dy = Number(target.y) - oldY;
-    const step = Math.min(speed * dt, nearest - stopDistance);
-    x += dx / (nearest || 1) * step; y += dy / (nearest || 1) * step;
-  } else {
-    const id = Math.abs(Math.floor(Number(enemy.id) || 1));
-    const lane = id % 6;
-    const radius = stopDistance * (1 + lane * 0.025);
-    let angle = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
-    if (!Number.isFinite(angle) || nearest < 0.001) angle = Number(enemy.orbitAngle) || ((id % 2) ? Math.PI : 0);
-    const direction = Number(enemy.orbitDirection) || ((id % 2) ? 1 : -1);
-    enemy.orbitDirection = direction;
-    angle += direction * Math.max(0.025, Math.min(1.8, speed * 0.62 / Math.max(radius, 12))) * dt;
-    enemy.orbitAngle = angle;
-    const desiredX = Number(target.x) + Math.cos(angle) * radius;
-    const desiredY = Number(target.y) + Math.sin(angle) * radius;
-    const dx = desiredX - oldX, dy = desiredY - oldY, d = Math.hypot(dx, dy);
-    const step = Math.min(d, speed * dt);
-    if (d > 1e-8) { x += dx / d * step; y += dy / d * step; }
-  }
-  const margin = 8 / WORLD_ZOOM;
-  x = clamp(x, margin, worldWidth - margin); y = clamp(y, margin, worldHeight - margin);
-  if (Math.hypot(x - oldX, y - oldY) < 0.05) {
-    // Boundary-safe tangential nudge; never leave an active enemy frozen because its
-    // desired orbit point happens to clamp back to its current coordinate.
-    const id = Math.abs(Math.floor(Number(enemy.id) || 1));
-    const dir = (id % 2) ? 1 : -1;
-    const a = Math.atan2(oldY - Number(target.y), oldX - Number(target.x)) + dir * Math.PI / 2;
-    const step = Math.max(0.3, Math.min(speed * dt, 5));
-    x = clamp(oldX + Math.cos(a) * step, margin, worldWidth - margin);
-    y = clamp(oldY + Math.sin(a) * step, margin, worldHeight - margin);
-  }
-  enemy.x = x; enemy.y = y;
-  enemy.vx = (x - oldX) / Math.max(dt, 0.001); enemy.vy = (y - oldY) / Math.max(dt, 0.001);
-  return Math.hypot(x - oldX, y - oldY) >= 0.05;
+  if(!target)return false;
+  const stop=EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,
+    Number(target.r)||13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId));
+  // Recovery is for stuck pursuits, never for a predator already in bite range.
+  if(nearest<=stop+3){enemy.vx=0;enemy.vy=0;return false;}
+  const oldX=Number(enemy.x)||0,oldY=Number(enemy.y)||0;
+  const speed=(BOSS_KINDS.includes(enemy.kind)?Math.max(1,(Number(target.moveSpeed)||150/WORLD_ZOOM)-5):
+    Math.max(20,Number(enemy.speed)||(EnemyAI.statsForKind(enemy.kind).speed/WORLD_ZOOM)||35))*.85;
+  const step=Math.min(speed*dt,nearest-stop);
+  const margin=8/WORLD_ZOOM;
+  enemy.x=clamp(oldX+(Number(target.x)-oldX)/Math.max(nearest,.001)*step,margin,worldWidth-margin);
+  enemy.y=clamp(oldY+(Number(target.y)-oldY)/Math.max(nearest,.001)*step,margin,worldHeight-margin);
+  enemy.vx=(enemy.x-oldX)/Math.max(dt,.001);enemy.vy=(enemy.y-oldY)/Math.max(dt,.001);
+  return Math.hypot(enemy.x-oldX,enemy.y-oldY)>=.05;
 }
 
 function roomPopulation(world, roomId) {
@@ -936,7 +904,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if(resolvedMove.blocked&&EnemyAI.isChargeAttack(enemy))enemy.sharkReplan=true;
     movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
     movement.target=actualTarget;
-    if (!movement.moved && actualTarget && dt > 0) {
+    if (!movement.moved && actualTarget && dt > 0 &&
+      Math.hypot(actualTarget.x-enemy.x,actualTarget.y-enemy.y)>(Number(movementOptions.stopDistance)||0)+4) {
       const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)),includePortal:false});
       if(nav&&Math.hypot(nav.x-enemy.x,nav.y-enemy.y)>1){
         const dx=nav.x-enemy.x,dy=nav.y-enemy.y,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*.5*dt,d);

@@ -50,6 +50,11 @@
   const maxStep=Math.max(0,speed*dt);
   if(maxStep<=0)return {x,y,angle:heading,evading:false};
   const threats=threatsNear(x,y,enemies,Math.max(150,maxStep*3+radius+clearance),14);
+  // Stay calm at a reached goal when enemies merely lie inside the avoidance
+  // buffer. A real overlapping hostile still forces an emergency separation.
+  const goalReached=distance<=Math.max(1,Math.min(3,radius*.15));
+  const overlapping=threats.some(e=>Math.hypot(x-e.x,y-e.y)<radius+Math.max(3,Number(e.r)||8));
+  if(goalReached&&!overlapping)return {x,y,angle:heading,evading:false};
   const step=threats.length?maxStep:Math.min(maxStep,distance);
   if(!threats.length){
    const a=Math.atan2(gy-y,gx-x);

@@ -68,7 +68,7 @@ test('tiger-shark metadata and palette integrate into existing Echo catalog and 
  assert.match(sw,/'abyssal-eco-sprites\.png'/);
  assert.ok(sw.includes("'abyssal-sharks-2.5d.webp'"));
  assert.match(sw,/'abyssal-animated-sprites\.js'/);
- assert.match(sw,/2026-11-20-animated-ecos-v306/);
+ assert.match(sw,/2026-11-21-combat-engagement-v315/);
 });
 
 test('sprite renderer advances nado and ataque frames for hammerhead, tiger and octopus',()=>{
