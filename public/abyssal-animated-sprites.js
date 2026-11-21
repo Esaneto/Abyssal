@@ -22,20 +22,23 @@
  });
  const sourceName='abyssal-eco-sprites.png?v=2026.11.20.1';
  const hdSourceName='abyssal-sharks-2.5d.webp?v=2026.11.20.2';
- const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.11';
- const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.11';
+ const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.13';
+ const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.13';
  let whiteSharkSwim=null,whiteSharkAttack=null,whiteSharkReady=false;
  // Pre-rendered tail and jaw interpolation: one texture draw per shark.
  // Never allocate an offscreen canvas or blend multiple images in the render loop.
- const WHITE_SHARK_FRAME_SIZE=168,WHITE_SHARK_COLUMNS=4,WHITE_SHARK_FRAMES=22;
+ const WHITE_SHARK_FRAME_SIZE=320,WHITE_SHARK_COLUMNS=4,WHITE_SHARK_ATTACK_COLUMNS=8;
+ const WHITE_SHARK_FRAMES=22,WHITE_SHARK_TAIL_PHASES=4;
  const WHITE_SHARK_SWIM_FRAME_MS=45;
  function whiteSharkSwimPosition(t){
   return (Math.max(0,Number(t)||0)/WHITE_SHARK_SWIM_FRAME_MS)%WHITE_SHARK_FRAMES;
  }
  function whiteSharkFrameWeights(t,progress){
   const bite=Number.isFinite(progress)&&progress>=0;
-  const phase=bite?clamp(progress,0,.999999)*WHITE_SHARK_FRAMES:whiteSharkSwimPosition(t);
-  return [{mode:bite?'attack':'swim',index:Math.min(WHITE_SHARK_FRAMES-1,Math.floor(phase)),opacity:1}];
+  const position=whiteSharkSwimPosition(t);
+  const tailPhase=Math.min(WHITE_SHARK_TAIL_PHASES-1,Math.floor(position*WHITE_SHARK_TAIL_PHASES/WHITE_SHARK_FRAMES));
+  const index=bite?Math.min(WHITE_SHARK_FRAMES-1,Math.floor(clamp(progress,0,.999999)*WHITE_SHARK_FRAMES))*WHITE_SHARK_TAIL_PHASES+tailPhase:Math.floor(position);
+  return [{mode:bite?'attack':'swim',index,opacity:1}];
  }
 
  const palettes=Object.create(null);
@@ -67,7 +70,7 @@
  function preload(){
   if(!whiteSharkSwim&&typeof root.Image==='function'){
    let loaded=0;
-   const onload=()=>{if(++loaded===2)whiteSharkReady=whiteSharkSwim.naturalWidth===672&&whiteSharkSwim.naturalHeight===1008&&whiteSharkAttack.naturalWidth===672&&whiteSharkAttack.naturalHeight===1008;};
+   const onload=()=>{if(++loaded===2)whiteSharkReady=whiteSharkSwim.naturalWidth===1280&&whiteSharkSwim.naturalHeight===1920&&whiteSharkAttack.naturalWidth===2560&&whiteSharkAttack.naturalHeight===3520;};
    whiteSharkSwim=new root.Image();whiteSharkAttack=new root.Image();
    for(const [img,url] of [[whiteSharkSwim,whiteSharkSwimName],[whiteSharkAttack,whiteSharkAttackName]]){
     img.decoding='async';img.onload=onload;img.onerror=()=>{whiteSharkReady=false;};img.src=url;
@@ -148,14 +151,18 @@
   if(useWhiteShark){
    // Allocate no objects or arrays in the per-enemy rendering hot path.
    const biting=progress>=0;
-   const poseIndex=biting?Math.min(WHITE_SHARK_FRAMES-1,Math.floor(progress*WHITE_SHARK_FRAMES)):Math.floor(whiteSharkSwimPosition(time));
+   // The tail phase never restarts when the mouth animation begins.
+   const swimPosition=whiteSharkSwimPosition(time);
+   const tailPhase=Math.min(WHITE_SHARK_TAIL_PHASES-1,Math.floor(swimPosition*WHITE_SHARK_TAIL_PHASES/WHITE_SHARK_FRAMES));
+   const poseIndex=biting?Math.min(WHITE_SHARK_FRAMES-1,Math.floor(progress*WHITE_SHARK_FRAMES))*WHITE_SHARK_TAIL_PHASES+tailPhase:Math.floor(swimPosition);
+   const columns=biting?WHITE_SHARK_ATTACK_COLUMNS:WHITE_SHARK_COLUMNS;
    const sheet=biting?whiteSharkAttack:whiteSharkSwim;
    c.save();c.imageSmoothingEnabled=true;
    if('imageSmoothingQuality' in c)c.imageSmoothingQuality='high';
    if(Number(hit)>0){c.shadowColor='#fff';c.shadowBlur=Math.min(14,r*.35);}
    // 1 drawImage per frame: body stays anchored, only tail/jaw changes.
-   c.drawImage(sheet,(poseIndex%WHITE_SHARK_COLUMNS)*WHITE_SHARK_FRAME_SIZE,
-    Math.floor(poseIndex/WHITE_SHARK_COLUMNS)*WHITE_SHARK_FRAME_SIZE,
+   c.drawImage(sheet,(poseIndex%columns)*WHITE_SHARK_FRAME_SIZE,
+    Math.floor(poseIndex/columns)*WHITE_SHARK_FRAME_SIZE,
     WHITE_SHARK_FRAME_SIZE,WHITE_SHARK_FRAME_SIZE,-side/2,-side/2,side,side);
    c.restore();return true;
   }
@@ -188,7 +195,7 @@
   }
   c.restore();return true;
  }
- function status(){return {ready:ready||hdReady||whiteSharkReady,legacyReady:ready,hdReady,whiteSharkReady,atlas:hdReady?hdSourceName:sourceName,species:Object.keys(SPECIES),octopusBlue:true,whiteSharkSmoothBlend:false,whiteSharkAligned:true,whiteSharkDrawCalls:1,whiteSharkFrameCount:WHITE_SHARK_FRAMES};}
+ function status(){return {ready:ready||hdReady||whiteSharkReady,legacyReady:ready,hdReady,whiteSharkReady,atlas:hdReady?hdSourceName:sourceName,species:Object.keys(SPECIES),octopusBlue:true,whiteSharkSmoothBlend:false,whiteSharkAligned:true,whiteSharkDrawCalls:1,whiteSharkFrameCount:WHITE_SHARK_FRAMES,whiteSharkAttackFrames:WHITE_SHARK_FRAMES*WHITE_SHARK_TAIL_PHASES,whiteSharkFrameSize:WHITE_SHARK_FRAME_SIZE};}
  preload();
  return Object.freeze({SPECIES,has,drawAtOrigin,preload,status,selectFrame,biteProgress,isBiting,whiteSharkSwimPosition,whiteSharkFrameWeights});
 });

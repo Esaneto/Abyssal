@@ -7,7 +7,8 @@ test('wild white shark, boss and catalogue Eco share identical atlas URLs',()=>{
  let frames=[];
  class MockImage{constructor(){this.naturalWidth=576;this.naturalHeight=512;}
   set src(url){this.url=url;
-   if(url.includes('abyssal-white-shark-')){this.naturalWidth=672;this.naturalHeight=1008;}
+   if(url.includes('abyssal-white-shark-swim')){this.naturalWidth=1280;this.naturalHeight=1920;}
+   else if(url.includes('abyssal-white-shark-attack')){this.naturalWidth=2560;this.naturalHeight=3520;}
    else if(url.includes('abyssal-sharks-2.5d')){this.naturalWidth=576;this.naturalHeight=2880;}
    this.onload?.();
   }

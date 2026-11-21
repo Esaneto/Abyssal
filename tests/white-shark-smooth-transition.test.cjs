@@ -19,13 +19,13 @@ test('attack uses only its own sprite frames and closes back into swim',()=>{
  for(const p of [0,.03,.07,.14,.44,.75,.9,.999]){
   const f=atlas.whiteSharkFrameWeights(1600,p);
   assert.equal(f.length,1);assert.equal(f[0].mode,'attack');
-  assert.ok(f[0].index>=0&&f[0].index<22);
+  assert.ok(f[0].index>=0&&f[0].index<88);
  }
  assert.equal(atlas.whiteSharkFrameWeights(100,-1)[0].mode,'swim');
 });
 test('one drawImage on the game canvas per shark frame, without render-time buffers',()=>{
  const draws=[],ctx={save(){},restore(){},drawImage(...args){draws.push(args)}};
- class Img{constructor(){this.naturalWidth=672;this.naturalHeight=1008;}set src(v){this.path=v;this.onload?.();}}
+ class Img{constructor(){this.naturalWidth=1280;this.naturalHeight=1920;}set src(v){this.path=v;if(v.includes('attack')){this.naturalWidth=2560;this.naturalHeight=3520;}this.onload?.();}}
  const root={Image:Img,performance:{now:()=>1800}};
  vm.runInNewContext(source,{globalThis:root});
  const api=root.AbyssalAnimatedSprites;
