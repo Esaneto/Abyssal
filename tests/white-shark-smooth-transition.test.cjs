@@ -31,6 +31,8 @@ test('one drawImage on the game canvas per shark frame, without render-time buff
  const api=root.AbyssalAnimatedSprites;
  assert.equal(api.status().whiteSharkReady,true);
  assert.equal(api.status().whiteSharkDrawCalls,1);
+ const hot=source.slice(source.indexOf('  if(useWhiteShark){'),source.indexOf('  const sheet=useHd?hdSource:'));
+ assert.doesNotMatch(hot,/whiteSharkFrameWeights\(/,'rendering must avoid per-frame array allocations');
  assert.equal(api.drawAtOrigin(ctx,'whiteShark',24,400,false),true);
  assert.equal(draws.length,1);
  draws.length=0;

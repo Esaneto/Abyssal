@@ -22,8 +22,8 @@
  });
  const sourceName='abyssal-eco-sprites.png?v=2026.11.20.1';
  const hdSourceName='abyssal-sharks-2.5d.webp?v=2026.11.20.2';
- const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.10';
- const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.10';
+ const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.11';
+ const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.11';
  let whiteSharkSwim=null,whiteSharkAttack=null,whiteSharkReady=false;
  // Pre-rendered tail and jaw interpolation: one texture draw per shark.
  // Never allocate an offscreen canvas or blend multiple images in the render loop.
@@ -146,14 +146,16 @@
   const frame=useWhiteShark?0:selectFrame(String(id),time,attack,state,useHd,eventClock);
   const side=cfg.span*r;
   if(useWhiteShark){
-   const pose=whiteSharkFrameWeights(time,progress)[0];
-   const sheet=pose.mode==='attack'?whiteSharkAttack:whiteSharkSwim;
+   // Allocate no objects or arrays in the per-enemy rendering hot path.
+   const biting=progress>=0;
+   const poseIndex=biting?Math.min(WHITE_SHARK_FRAMES-1,Math.floor(progress*WHITE_SHARK_FRAMES)):Math.floor(whiteSharkSwimPosition(time));
+   const sheet=biting?whiteSharkAttack:whiteSharkSwim;
    c.save();c.imageSmoothingEnabled=true;
    if('imageSmoothingQuality' in c)c.imageSmoothingQuality='high';
    if(Number(hit)>0){c.shadowColor='#fff';c.shadowBlur=Math.min(14,r*.35);}
    // 1 drawImage per frame: body stays anchored, only tail/jaw changes.
-   c.drawImage(sheet,(pose.index%WHITE_SHARK_COLUMNS)*WHITE_SHARK_FRAME_SIZE,
-    Math.floor(pose.index/WHITE_SHARK_COLUMNS)*WHITE_SHARK_FRAME_SIZE,
+   c.drawImage(sheet,(poseIndex%WHITE_SHARK_COLUMNS)*WHITE_SHARK_FRAME_SIZE,
+    Math.floor(poseIndex/WHITE_SHARK_COLUMNS)*WHITE_SHARK_FRAME_SIZE,
     WHITE_SHARK_FRAME_SIZE,WHITE_SHARK_FRAME_SIZE,-side/2,-side/2,side,side);
    c.restore();return true;
   }
