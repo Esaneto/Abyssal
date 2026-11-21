@@ -22,83 +22,20 @@
  });
  const sourceName='abyssal-eco-sprites.png?v=2026.11.20.1';
  const hdSourceName='abyssal-sharks-2.5d.webp?v=2026.11.20.2';
- const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.5';
- const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.5';
+ const whiteSharkSwimName='abyssal-white-shark-swim.webp?v=2026.11.20.10';
+ const whiteSharkAttackName='abyssal-white-shark-attack.webp?v=2026.11.20.10';
  let whiteSharkSwim=null,whiteSharkAttack=null,whiteSharkReady=false;
- // White-shark swim/attack atlases are not anatomically registered. Align the
- // nose and upper head at load time rather than allowing the whole fish to jump.
- const WHITE_SHARK_CELL=168,WHITE_SHARK_CYCLE=22,WHITE_SHARK_FRAME_MS=95;
- const DEFAULT_ANCHOR=Object.freeze({dx:0,dy:0,scale:1});
- let whiteSharkBuffer=null,whiteSharkBufferCtx=null,whiteSharkAnchors=null;
- function inspectWhiteShark(image){
-  if(typeof root.document?.createElement!=='function')return null;
-  const canvas=root.document.createElement('canvas');
-  canvas.width=WHITE_SHARK_CELL;canvas.height=WHITE_SHARK_CELL;
-  const c=canvas.getContext('2d',{willReadFrequently:true});
-  if(!c||typeof c.getImageData!=='function')return null;
-  const result=[];
-  try{
-   for(let frame=0;frame<12;frame++){
-    c.clearRect(0,0,168,168);
-    c.drawImage(image,(frame%4)*168,Math.floor(frame/4)*168,168,168,0,0,168,168);
-    const pixels=c.getImageData(0,0,168,168).data;
-    let left=168,right=-1,top=168,bottom=-1;
-    for(let y=0;y<168;y+=2)for(let x=0;x<168;x+=2){
-     if(pixels[(y*168+x)*4+3]<96)continue;
-     if(x<left)left=x;if(x>right)right=x;if(y<top)top=y;if(y>bottom)bottom=y;
-    }
-    if(right<=left||bottom<=top){result.push(null);continue;}
-    let headSum=0,headWeight=0;
-    for(let y=top;y<Math.min(100,bottom+1);y+=2)
-     for(let x=Math.round(left+(right-left)*.65);x<=right;x+=2){
-      const a=pixels[(y*168+x)*4+3];if(a<96)continue;
-      headSum+=y*a;headWeight+=a;
-     }
-    result.push({right,headY:headWeight?headSum/headWeight:top+(bottom-top)*.34,width:right-left});
-   }
-  }catch(_){return null;}
-  return result;
- }
- function prepareWhiteShark(){
-  whiteSharkAnchors=null;whiteSharkBuffer=null;whiteSharkBufferCtx=null;
-  if(!whiteSharkReady||typeof root.document?.createElement!=='function')return;
-  try{
-   const swim=inspectWhiteShark(whiteSharkSwim),attack=inspectWhiteShark(whiteSharkAttack),reference=swim?.[0];
-   if(reference&&swim&&attack){
-    const align=(set,swimming)=>set.map(item=>{
-     if(!item)return DEFAULT_ANCHOR;
-     const scale=swimming?clamp(reference.width/Math.max(1,item.width),.94,1.06):1;
-     return {dx:clamp(reference.right-item.right*scale,-12,12),
-      dy:clamp(reference.headY-item.headY*scale,-10,10),scale};
-    });
-    whiteSharkAnchors={swim:align(swim,true),attack:align(attack,false)};
-   }
-   const canvas=root.document.createElement('canvas');canvas.width=168;canvas.height=168;
-   const c=canvas.getContext('2d',{alpha:true});
-   if(c&&typeof c.clearRect==='function'&&typeof c.drawImage==='function'){
-    whiteSharkBuffer=canvas;whiteSharkBufferCtx=c;
-   }
-  }catch(_){whiteSharkAnchors=null;whiteSharkBuffer=null;whiteSharkBufferCtx=null;}
- }
- // Reversing the swim cycle makes the last pose connect exactly to the first.
+ // Pre-rendered tail and jaw interpolation: one texture draw per shark.
+ // Never allocate an offscreen canvas or blend multiple images in the render loop.
+ const WHITE_SHARK_FRAME_SIZE=168,WHITE_SHARK_COLUMNS=4,WHITE_SHARK_FRAMES=22;
+ const WHITE_SHARK_SWIM_FRAME_MS=45;
  function whiteSharkSwimPosition(t){
-  const p=(Math.max(0,Number(t)||0)/WHITE_SHARK_FRAME_MS)%WHITE_SHARK_CYCLE;
-  return p<=11?p:WHITE_SHARK_CYCLE-p;
+  return (Math.max(0,Number(t)||0)/WHITE_SHARK_SWIM_FRAME_MS)%WHITE_SHARK_FRAMES;
  }
- // Fade between swim and bite with a constant total alpha, including recovery.
  function whiteSharkFrameWeights(t,progress){
-  const frames=[];
-  function put(mode,p,weight){
-   if(weight<=.00001)return;
-   const i=Math.floor(p),fraction=p-i,j=Math.min(11,i+1);
-   if(weight*(1-fraction)>.00001)frames.push({mode,index:i,opacity:weight*(1-fraction)});
-   if(i!==j&&weight*fraction>.00001)frames.push({mode,index:j,opacity:weight*fraction});
-  }
-  const active=Number.isFinite(progress)&&progress>=0;
-  const attackAmount=active?clamp(Math.min(progress/.14,(1-progress)/.18),0,1):0;
-  put('swim',whiteSharkSwimPosition(t),1-attackAmount);
-  if(attackAmount>0)put('attack',clamp(progress,0,1)*11,attackAmount);
-  return frames;
+  const bite=Number.isFinite(progress)&&progress>=0;
+  const phase=bite?clamp(progress,0,.999999)*WHITE_SHARK_FRAMES:whiteSharkSwimPosition(t);
+  return [{mode:bite?'attack':'swim',index:Math.min(WHITE_SHARK_FRAMES-1,Math.floor(phase)),opacity:1}];
  }
 
  const palettes=Object.create(null);
@@ -130,7 +67,7 @@
  function preload(){
   if(!whiteSharkSwim&&typeof root.Image==='function'){
    let loaded=0;
-   const onload=()=>{if(++loaded===2){whiteSharkReady=whiteSharkSwim.naturalWidth===672&&whiteSharkSwim.naturalHeight===504&&whiteSharkAttack.naturalWidth===672&&whiteSharkAttack.naturalHeight===504;if(whiteSharkReady)prepareWhiteShark();}};
+   const onload=()=>{if(++loaded===2)whiteSharkReady=whiteSharkSwim.naturalWidth===672&&whiteSharkSwim.naturalHeight===1008&&whiteSharkAttack.naturalWidth===672&&whiteSharkAttack.naturalHeight===1008;};
    whiteSharkSwim=new root.Image();whiteSharkAttack=new root.Image();
    for(const [img,url] of [[whiteSharkSwim,whiteSharkSwimName],[whiteSharkAttack,whiteSharkAttackName]]){
     img.decoding='async';img.onload=onload;img.onerror=()=>{whiteSharkReady=false;};img.src=url;
@@ -209,36 +146,15 @@
   const frame=useWhiteShark?0:selectFrame(String(id),time,attack,state,useHd,eventClock);
   const side=cfg.span*r;
   if(useWhiteShark){
-   const frames=whiteSharkFrameWeights(time,progress);
+   const pose=whiteSharkFrameWeights(time,progress)[0];
+   const sheet=pose.mode==='attack'?whiteSharkAttack:whiteSharkSwim;
    c.save();c.imageSmoothingEnabled=true;
    if('imageSmoothingQuality' in c)c.imageSmoothingQuality='high';
-   if(Number(hit)>0){c.shadowColor='#ffffff';c.shadowBlur=Math.min(14,r*.35);}
-   if(whiteSharkBufferCtx&&whiteSharkBuffer){
-    const mix=whiteSharkBufferCtx;
-    mix.save();mix.clearRect(0,0,168,168);
-    // Premultiplied additive blending on a CLEAR alpha surface. Never run
-    // 'lighter' on the ocean/world canvas or it would brighten the backdrop.
-    mix.globalCompositeOperation='lighter';
-    for(const pose of frames){
-     const image=pose.mode==='attack'?whiteSharkAttack:whiteSharkSwim;
-     const anchor=whiteSharkAnchors?.[pose.mode]?.[pose.index]||DEFAULT_ANCHOR;
-     mix.globalAlpha=pose.opacity;
-     mix.drawImage(image,(pose.index%4)*168,Math.floor(pose.index/4)*168,168,168,
-      anchor.dx,anchor.dy,168*anchor.scale,168*anchor.scale);
-    }
-    mix.restore();
-    c.drawImage(whiteSharkBuffer,-side/2,-side/2,side,side);
-   }else{
-    // Canvas-restricted contexts display a single opaque frame, not two
-    // semitransparent copies that produce blinking at midpoint.
-    let chosen=frames[0];for(const f of frames)if(!chosen||f.opacity>chosen.opacity)chosen=f;
-    if(chosen){
-     const image=chosen.mode==='attack'?whiteSharkAttack:whiteSharkSwim;
-     const anchor=whiteSharkAnchors?.[chosen.mode]?.[chosen.index]||DEFAULT_ANCHOR;
-     c.drawImage(image,(chosen.index%4)*168,Math.floor(chosen.index/4)*168,168,168,
-      -side/2+anchor.dx/168*side,-side/2+anchor.dy/168*side,side*anchor.scale,side*anchor.scale);
-    }
-   }
+   if(Number(hit)>0){c.shadowColor='#fff';c.shadowBlur=Math.min(14,r*.35);}
+   // 1 drawImage per frame: body stays anchored, only tail/jaw changes.
+   c.drawImage(sheet,(pose.index%WHITE_SHARK_COLUMNS)*WHITE_SHARK_FRAME_SIZE,
+    Math.floor(pose.index/WHITE_SHARK_COLUMNS)*WHITE_SHARK_FRAME_SIZE,
+    WHITE_SHARK_FRAME_SIZE,WHITE_SHARK_FRAME_SIZE,-side/2,-side/2,side,side);
    c.restore();return true;
   }
   const sheet=useHd?hdSource:(cfg.palette?palettes[cfg.palette]:source);
@@ -270,7 +186,7 @@
   }
   c.restore();return true;
  }
- function status(){return {ready:ready||hdReady||whiteSharkReady,legacyReady:ready,hdReady,whiteSharkReady,atlas:hdReady?hdSourceName:sourceName,species:Object.keys(SPECIES),octopusBlue:true,whiteSharkSmoothBlend:Boolean(whiteSharkBufferCtx),whiteSharkAligned:Boolean(whiteSharkAnchors)};}
+ function status(){return {ready:ready||hdReady||whiteSharkReady,legacyReady:ready,hdReady,whiteSharkReady,atlas:hdReady?hdSourceName:sourceName,species:Object.keys(SPECIES),octopusBlue:true,whiteSharkSmoothBlend:false,whiteSharkAligned:true,whiteSharkDrawCalls:1,whiteSharkFrameCount:WHITE_SHARK_FRAMES};}
  preload();
  return Object.freeze({SPECIES,has,drawAtOrigin,preload,status,selectFrame,biteProgress,isBiting,whiteSharkSwimPosition,whiteSharkFrameWeights});
 });

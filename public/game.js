@@ -3969,7 +3969,10 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  if(spriteId&&atlas?.has(spriteId)){
   const attacking=atlas.isBiting?.(enemyState,performance.now())===true;
   c.save();c.translate(x,y);
-  if(!enemyState?.__sprite)applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading??movingEnemyHeading);
+  if(!enemyState?.__sprite){
+   if(spriteId==='whiteShark'&&!playerCreature)c.rotate(Number(movingEnemyHeading)||0);
+   else applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading??movingEnemyHeading);
+  }
   const painted=atlas.drawAtOrigin(c,spriteId,r,animationTime,attacking,hit,enemyState);
   c.restore();
   if(painted)return;
