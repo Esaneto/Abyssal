@@ -152,7 +152,12 @@
    return (x/rx)**2+(y/ry)**2<=1;
   }
   const mouthX=pet.x+Math.cos(angle)*p.reach,mouthY=pet.y+Math.sin(angle)*p.reach;
-  return Math.hypot(enemy.x-mouthX,enemy.y-mouthY)<=er+p.slack;
+  const jawContact=Math.hypot(enemy.x-mouthX,enemy.y-mouthY)<=er+p.slack;
+  // A target overlapping the Eco's FRONT body is already inside biting range.
+  // Do not let a long visual jaw offset make close face-to-face hits impossible.
+  const facing=dx*Math.cos(angle)+dy*Math.sin(angle);
+  const bodyContact=d<=er+p.core*.85&&facing>=-p.core*.12;
+  return jawContact||bodyContact;
  }
  return Object.freeze({MODES,normalize,choose,orbRisk,attackProfile,attackTargetRadius,limitApproach,attackGoal,attackStance,frontlineTarget,attackContact});
 });
