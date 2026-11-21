@@ -26,3 +26,18 @@ test('Invalid modes fall back to passive behavior',()=>{
  assert.equal(ai.normalize('cheat'),'passive');
  assert.equal(ai.choose({mode:'cheat',pet,player,enemies:[enemy(25,0)]}).type,'follow');
 });
+
+test('Aggressive keeps its engaged enemy across small distance changes instead of indecision',()=>{
+ const a={id:'a',...enemy(70,0)},b={id:'b',...enemy(65,5)},orb={id:'o',x:42,y:0};
+ const target=ai.choose({mode:'aggressive',pet,player,enemies:[a,b],orbs:[orb],collectionRange:300,attackRange:180,preferredEnemyId:'a',preferredType:'enemy'});
+ assert.equal(target.type,'enemy');assert.equal(target.enemy.id,'a');
+});
+test('Guardian retains the protected threat until it actually leaves the defense envelope',()=>{
+ const a={id:'guarded',...enemy(220,0)},b={id:'new',...enemy(210,10)};
+ const target=ai.choose({mode:'guardian',pet,player,enemies:[a,b],guardRange:240,preferredEnemyId:'guarded',preferredType:'enemy'});
+ assert.equal(target.type,'enemy');assert.equal(target.enemy.id,'guarded');
+});
+test('Passive ignores preferred enemy state and never attacks',()=>{
+ const e={id:'old',...enemy(15,0)};
+ assert.notEqual(ai.choose({mode:'passive',pet,player,enemies:[e],preferredEnemyId:'old',preferredType:'enemy'}).type,'enemy');
+});

@@ -50,6 +50,13 @@
   const maxStep=Math.max(0,speed*dt);
   if(maxStep<=0)return {x,y,angle:heading,evading:false};
   const threats=threatsNear(x,y,enemies,Math.max(150,maxStep*3+radius+clearance),14);
+  // Do not invent side-to-side movement while waiting at an already reached goal.
+  // Only a true collision/imminent overlap may force an emergency separation.
+  const goalTolerance=Math.max(1,Math.min(3,radius*.15));
+  if(distance<=goalTolerance){
+   const emergency=threats.some(e=>Math.hypot(x-e.x,y-e.y)<radius+Math.max(3,Number(e.r)||8)+Math.min(6,clearance*.25));
+   if(!emergency)return {x,y,angle:heading,evading:false};
+  }
   const step=threats.length?maxStep:Math.min(maxStep,distance);
   if(!threats.length){
    const a=Math.atan2(gy-y,gx-x);
@@ -76,8 +83,9 @@
    let danger=risk(nx,ny,threats,radius,clearance);
    danger+=risk(projectedX,projectedY,advancing,radius,clearance)*.65;
    const goalProgress=distance-Math.hypot(gx-nx,gy-ny);
-   const momentum=Math.cos(angle-heading)*.35;
-   const score=goalProgress*2.3-danger+momentum;
+   const turn=Math.abs(Math.atan2(Math.sin(angle-heading),Math.cos(angle-heading)));
+   const momentum=Math.cos(angle-heading)*Math.max(.35,step*.18);
+   const score=goalProgress*2.3-danger+momentum-turn*Math.max(.8,step*.32);
    if(score>bestScore){bestScore=score;best={x:nx,y:ny,angle,evading:Math.abs(offset)>.35||danger>40};}
   }
   return best||{x,y,angle:heading,evading:true};
