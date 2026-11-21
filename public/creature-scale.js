@@ -15,7 +15,7 @@
   royal:2.8,glacier:2.3,coral:1.8,bloodmoon:4.2,voidwing:4.6,abyssaleye:2.5,
   deepwarden:3.6,riftSmileRelic:13,kraken:11,aberration:6,angler:3.5,maw:7.5,
   leviathan:13,devourer:14,saltcroc:5,blackcaiman:4.2,reefshark:4.8,
-  hammerhead:4.5,tigershark:4.4,abysscroc:5.2,armoredgator:4.3,greensnake:2.1,
+  hammerhead:4.5,abysscroc:5.2,armoredgator:4.3,greensnake:2.1,
   electriceel:2.0,electriceellegacy:2.0,
   eagleray:2.2,ribbonmoray:1.2,dumbo:.35,blanket:2.0,atolla:.25,
   phantomjelly:6.0,yeticrab:.15,nautilus:.22,gharial:4.6,goblin:3.4,
@@ -41,8 +41,8 @@
  const MONSTER_METERS=Object.freeze({drifter:.9,stinger:.85,brute:1.25,lurker:1.6,whiteShark:4.8,...BOSS_METERS});
  const ART_SPAN=Object.freeze({drifter:2,stinger:3.02,brute:2.45,lurker:3.4,whiteShark:3.1,whiteSharkBoss:3.1,boss:5.5,angler:3.1,maw:4.5,leviathan:5.2,kraken:9.6,devourer:3.3,riftSmile:4.6});
  // Collision uses the visible central body; elongated tails/fins remain non-solid.
- const BODY_CORE=Object.freeze({drifter:.8,stinger:.65,brute:.95,lurker:.7,whiteShark:.82,whiteSharkBoss:.82,boss:1,angler:1,maw:1,leviathan:.8,kraken:.76,devourer:1.3,riftSmile:1});
- const SKIN_SPAN=Object.freeze({reefshark:3.1,hammerhead:2.7,tigershark:3.2,abysscroc:3.3,gharial:3.6,goblin:3.4,frilled:3.7,greenland:3.2,saltcroc:3.7,blackcaiman:3.7,greensnake:4.4,electriceellegacy:4.4,ribbonmoray:4.4,sawtootheel:4.4,zebramoray:4.4,dogtootheel:4.4,leviathan:5.2,maw:4.5,kraken:9.6,devourer:3.3,aberration:5.5,riftSmileRelic:5.4,phantomjelly:4.5,siphonophore:5.5});
+ const BODY_CORE=Object.freeze({drifter:.8,stinger:.65,brute:.95,lurker:.7,whiteShark:.84,whiteSharkBoss:.84,boss:1,angler:1,maw:1,leviathan:.8,kraken:.76,devourer:1.3,riftSmile:1});
+ const SKIN_SPAN=Object.freeze({reefshark:3.1,hammerhead:2.7,abysscroc:3.3,gharial:3.6,goblin:3.4,frilled:3.7,greenland:3.2,saltcroc:3.7,blackcaiman:3.7,greensnake:4.4,electriceellegacy:4.4,ribbonmoray:4.4,sawtootheel:4.4,zebramoray:4.4,dogtootheel:4.4,leviathan:5.2,maw:4.5,kraken:9.6,devourer:3.3,aberration:5.5,riftSmileRelic:5.4,phantomjelly:4.5,siphonophore:5.5});
  const FAMILY_SPAN=Object.freeze({shark:3.2,eel:4.4,ray:3.5,octopus:5.5,squid:5.5,jelly:3.5,crustacean:3.2,mollusc:2.8,reptile:3.7,benthic:2.8,fish:3.1,signature:3.0});
  const sizeOf=id=>ADULT_METERS[String(id)]||null;
  const skinFamily=id=>curated?.byId?.[id]?.family||null;
@@ -55,9 +55,9 @@
  function riftVisualRadius(kind,base=10,skinId=null){return monsterVisualRadius(kind,base,skinId);}
  function creatureCollisionRadius(base=10,skinId=null,kind=null){
   if(!kind&&!skinId)return Math.max(2,Number(base)||10);
-  return monsterVisualRadius(kind,base,skinId)*(skinId==='tigershark'?.8:skinId? .82 : (BODY_CORE[kind]||.82));
+  return monsterVisualRadius(kind,base,skinId)*(skinId ? .82 : (BODY_CORE[kind]||.82));
  }
- function companionCollisionRadius(id){return visualRadius(id)*(id==='tigershark'?.8:.82);}
+ function companionCollisionRadius(id){return visualRadius(id)*.82;}
  // The classic Abyssary displays these full, unscaled HP values.
  const CLASSIC_HP=Object.freeze({drifter:72,stinger:65,brute:115,lurker:165,whiteShark:600,boss:5640,angler:6520,maw:7500,leviathan:9400,whiteSharkBoss:13200,kraken:18400,devourer:30000,riftSmile:52000});
  function healthStep(seconds){return clamp(Math.floor(Math.max(0,Number(seconds)||0)/120),0,8);}

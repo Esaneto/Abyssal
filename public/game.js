@@ -363,7 +363,6 @@ const SKIN_TAXONOMY=Object.freeze({
   electriceellegacy:{family:'eel',collections:['shop']},
  reefshark:{family:'shark',collections:['shop']},
  hammerhead:{family:'shark',collections:['shop']},
- tigershark:{family:'shark',collections:['shop']},
  abysscroc:{family:'shark',collections:['shop']},
  armoredgator:{family:'crustacean',collections:['shop']},
  leviathan:{family:'fish',collections:['relic']},
@@ -398,8 +397,7 @@ const skinData=[
 {id:'blackcaiman',name:'Jacaré-Açu',color:'#425b68',price:499,paid:true,shape:'alligator',desc:'Focinho largo em U, crânio robusto e placas negras iluminadas pelas águas profundas.'},
 {id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:199,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.'},
 {id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:199,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.'},
-{id:'tigershark',name:'Tubarão-Tigre',color:'#345f94',price:5000,paid:false,shape:'tigershark',desc:'Predador listrado de águas profundas. Seu Projétil Hipotérmico provoca dano e lentidão; a habilidade conserva os valores originais do sistema.'},
-{id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#bb4651',price:499,paid:true,shape:'alligator',desc:'Tubarão costeiro robusto inspirado no tubarão-touro, adaptado a canais rasos, estuários e água turva.'},
+{id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Tubarão costeiro robusto inspirado no tubarão-touro, adaptado a canais rasos, estuários e água turva.'},
 {id:'armoredgator',name:'Caranguejo-Ferradura Couraçado',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Artrópode marinho blindado inspirado no caranguejo-ferradura, com carapaça mineralizada e télson longo.'},
 {id:'greensnake',name:'Moréia Esmeralda Colossal',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Moréia oceânica colossal de pele verde-jade, corpo sinuoso e mandíbula dupla inspirada nas faringes das moréias.'},
   {id:'electriceel',name:'Raia-Elétrica Abissal',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Raia marinha inspirada nas torpediniformes, com disco muscular e órgãos bioelétricos pulsando em ciano.'},
@@ -614,7 +612,7 @@ function soloHullContact(e,now){
  const hit=soloHullInReach(e,e.submarineHoldSection?4:0);if(!hit)return false;
  e.submarineAttackAt=now+1000;
  const impact=soloHullImpactPoint(e,hit),angle=Math.atan2(impact.y-e.y,impact.x-e.x);
- e.hostileBite={startedAt:now,duration:e.kind==='whiteShark'?300:480,phaseStart:e.kind==='whiteShark'?.44:0,angle};
+ e.hostileBite={startedAt:now,duration:480,angle};
  if(typeof renderHostileContactAbility==='function')renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,enemyX:e.x,enemyY:e.y,enemyRadius:e.r,angle,enemyColor:e.color,playerX:impact.x,playerY:impact.y,submarine:true});
  damageSoloHull(hit,Math.max(5,Number(e.damage)||8));return true;
 }
@@ -1398,7 +1396,7 @@ function renderHostileContactAbility(data){
  if(skill!=='tentacle-strike'){
   const enemy=d.enemy||(d.enemyId!=null?enemies.find(e=>String(e.id)===String(d.enemyId)):null);
   const angle=Math.atan2(py-y,px-x);
-  if(enemy)enemy.hostileBite={startedAt:performance.now(),duration:enemy.kind==='whiteShark'?300:480,phaseStart:enemy.kind==='whiteShark'?.44:0,angle};
+  if(enemy)enemy.hostileBite={startedAt:performance.now(),duration:480,angle};
   queueEffect({type:'bite-jaws',x:px,y:py,angle,max:Math.max(21/GAME_WORLD_ZOOM,Math.min(48/GAME_WORLD_ZOOM,(Number(d.enemyRadius)||player?.r||20)*.85)),life:.48,maxLife:.48,color:'#ffddd4'});
  }
  const radius=Math.max(34/GAME_WORLD_ZOOM,Number(d.enemyRadius)||42/GAME_WORLD_ZOOM);
@@ -1981,7 +1979,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  const openSeaSkin=!map&&isOpenSeaRun()&&!isBossType?(options.species||OPEN_SEA_ECOLOGY?.speciesAt?.(point.x,point.y,Math.random)):null;
  if(openSeaSkin){
   const nature=OPEN_SEA_ECOLOGY.temperament(openSeaSkin);
-  kind=['reefshark','tigershark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
+  kind=['reefshark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
  }
  let data=ai?.statsForKind(kind)||({
   boss:{r:40,hp:5640,speed:52,damage:25,color:'#338cff',value:55},
@@ -3084,7 +3082,7 @@ function updateSpecimenRuntime(dt){
  const threats=specimenNearbyEnemies,collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range'),now=performance.now();
  if(!s.tacticalChoice||now>=(s.nextTacticsAt||0)||s.tacticalChoice.type==='orb'&&!orbs.includes(s.tacticalChoice.orb)||s.tacticalChoice.type==='enemy'&&(s.tacticalChoice.enemy.hp<=0||!enemies.includes(s.tacticalChoice.enemy))){
   const candidates=orbs.filter(o=>Math.hypot(o.x-player.x,o.y-player.y)<=collectionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
-  s.tacticalChoice=(!onlineMode||isClassicCavernRun())?PET_TACTICS?.choose?.({mode:petHabit,pet:pos,player,enemies:threats,orbs:candidates,collectionRange,attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM,preferredOrbId:s.tacticalChoice?.orb?.id,preferredEnemyId:s.attackTargetId,routeCost:o=>{if(o.id===s.unreachableOrbId&&now<(s.unreachableUntil||0))return Infinity;if(!soloCave)return Math.hypot(o.x-pos.x,o.y-pos.y);const safe=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,o.x,o.y,pad);if(!safe)return Infinity;const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,safe.x,safe.y,pad);return nav.blocked?Infinity:Math.hypot(safe.x-pos.x,safe.y-pos.y)*(nav.direct?1:1.65);}}):null;s.nextTacticsAt=now+220;
+  s.tacticalChoice=(!onlineMode||isClassicCavernRun())?PET_TACTICS?.choose?.({mode:petHabit,pet:pos,player,enemies:threats,orbs:candidates,collectionRange,attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM,preferredOrbId:s.tacticalChoice?.orb?.id,routeCost:o=>{if(o.id===s.unreachableOrbId&&now<(s.unreachableUntil||0))return Infinity;if(!soloCave)return Math.hypot(o.x-pos.x,o.y-pos.y);const safe=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,o.x,o.y,pad);if(!safe)return Infinity;const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,safe.x,safe.y,pad);return nav.blocked?Infinity:Math.hypot(safe.x-pos.x,safe.y-pos.y)*(nav.direct?1:1.65);}}):null;s.nextTacticsAt=now+220;
  }
  const tactics=s.tacticalChoice,combatTarget=tactics?.type==='enemy'&&tactics.enemy?.hp>0&&enemies.includes(tactics.enemy)?tactics.enemy:null;
  const orb=tactics?(tactics.type==='orb'?tactics.orb:null):SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
@@ -3106,7 +3104,7 @@ function updateSpecimenRuntime(dt){
   const facing=s.facingAngle,phase=now*.0018,clear=pveTerrainClear(s.x,s.y,combatTarget.x,combatTarget.y,2),contact=clear&&PET_TACTICS.attackContact(s,combatTarget,profile,facing,phase,window.AbyssalEnemyAI?.touchesKrakenTentacle);
   if(contact)s.attackHoldUntil=Math.max(Number(s.attackHoldUntil)||0,now+180);
   const distanceToTarget=Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y),holdBand=Math.max(7/GAME_WORLD_ZOOM,profile.slack*1.8);
-  attackHolding=contact||(now<(Number(s.attackHoldUntil)||0)&&distanceToTarget>=strikeGoal.stop-4&&distanceToTarget<=strikeGoal.stop+holdBand);if(attackHolding)target=pos;
+  attackHolding=now<(Number(s.attackHoldUntil)||0)&&distanceToTarget>=strikeGoal.stop-1&&distanceToTarget<=strikeGoal.stop+holdBand;if(attackHolding)target=pos;
   if(contact&&!profile.body&&now>=(s.nextTacticalAttack||0)){const damage=(SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage*RES_BAL.petAttack(upgrades.petAttack));s.nextTacticalAttack=now+RES_BAL.petInterval(upgrades.petCadence);s.visualAttackUntil=now+390;s.biteAnimation={startedAt:now,duration:360,reach:profile.reach};playWorldSound('bite',s,750,.9,{owner:'local-pet',local:true});s.pendingBite={enemy:combatTarget,profile,damage,hitAt:now+230};s.attackHoldUntil=Math.max(s.attackHoldUntil||0,now+360);attackHolding=true;target=pos;}
   if(profile.body&&now>=(s.nextBodyAttackCheck||0)){
    s.nextBodyAttackCheck=now+90;s.bodyAttackCooldowns ||= new Map();const damage=(SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage*RES_BAL.petAttack(upgrades.petAttack));
@@ -3624,10 +3622,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   e.attackCd=(e.attackCd||0)-dt;const charge=window.AbyssalEnemyAI.isChargeAttack(e),biteReach=window.AbyssalEnemyAI.biteReach(e.r,player.r),biteClear=activeMapLayout?(!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,e.x,e.y,player.x,player.y,2)):usesNaturalOceanTerrain()?(!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(e.x,e.y,player.x,player.y,2)):(!SOLO_CAVERN||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,player.x,player.y,2));
   const tentacleAttack=window.AbyssalEnemyAI.tentacleAttacker(e,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId)),tentacleHit=tentacleAttack&&window.AbyssalEnemyAI.tentacleContact(e,player,e.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId));
   const attackReach=tentacleAttack?tentacleHit:charge?(e.sharkCharging&&(e.kind==='whiteShark'||!e.sharkChargeHit)&&(e.kind==='whiteShark'?td<=window.AbyssalEnemyAI.sharkBiteReach(e.r,Math.max(player.r,20),soloEnemyMovementOptions.sharkVisualRadius):pointSegmentDistance(player.x,player.y,beforeEnemyX,beforeEnemyY,e.x,e.y)<=e.r+player.r)):td<=biteReach;
-  const whiteSharkClose=e.kind==='whiteShark'&&e.attackCd<=0&&!enemyParalyzedNow(e)&&biteClear&&target.local&&attackReach&&player.invuln<=0&&
-   (activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack));
-  const whiteSharkPhase=e.kind==='whiteShark'?window.AbyssalEnemyAI.whiteSharkBiteWindow(e,'local-player',Boolean(whiteSharkClose),performance.now()):null;
-  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach&&(e.kind!=='whiteShark'||whiteSharkPhase?.ready)){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:100},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];e.visualBiteStartedAt=performance.now();e.visualBiteUntil=e.visualBiteStartedAt+380;if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;}renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:100},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;}renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Predation decisions are sampled at 10 Hz; locomotion and visuals remain per-frame.
  if(!onlineMode&&isOpenSeaRun()&&OPEN_SEA_ECOLOGY?.simulatePredation){
@@ -3961,26 +3956,6 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  // Do not use attack-aim angle when its movement is in another direction.
  const movingEnemyHeading=!playerCreature&&renderContext===ctx&&kind!==RIFT_HARDCORE?.FINAL_KIND
   ?(Number.isFinite(visualMotion?.heading)?visualMotion.heading:(Number(angle)||0)):null;
- // All animated shark and octopus artwork goes through the same drawing path:
- // player Eco, other players' Ecos, shop preview, wild specimen and boss.
- // This changes pixels only. AI/collision/damage/ability ownership stays intact.
- const spriteId=playerCreature?skin?.id:kind==='whiteShark'||kind==='whiteSharkBoss'||kind==='boss'?kind:null;
- const atlas=window.AbyssalAnimatedSprites;
- if(spriteId&&atlas?.has(spriteId)){
-  const attacking=atlas.isBiting?.(enemyState,performance.now())===true;
-  c.save();c.translate(x,y);
-  if(!enemyState?.__sprite){
-   if(spriteId==='whiteShark'||spriteId==='whiteSharkBoss'||spriteId==='reefshark'){
-     // The head and torso stay rigid; only the shark atlas articulates tail/jaw.
-     const stableHeading=(liveSkinHeading??movingEnemyHeading??Number(angle))||0;
-     c.rotate(Number(stableHeading)||0);
-    }
-   else applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading??movingEnemyHeading);
-  }
-  const painted=atlas.drawAtOrigin(c,spriteId,r,animationTime,attacking,hit,enemyState);
-  c.restore();
-  if(painted)return;
- }
  if(kind===RIFT_HARDCORE?.FINAL_KIND){
   c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r);
   finalBossVisualState.r=r;RIFT_HARDCORE.drawFinalBoss(c,finalBossVisualState,animationTime);c.restore();return;
@@ -4605,7 +4580,7 @@ window.addEventListener('abyssal-room-left',()=>clearRemoteVisualState());
 window.addEventListener('abyssal-online-disconnected',()=>clearRemoteVisualState());
 // Shared sprite atlas for enemy specimens summoned from the shop in Fossas.
 // A refresh budget avoids redrawing complex skin anatomy for every hostile each frame.
-const OCEAN_SHARK_HEIGHTS=Object.freeze({reefshark:2.8,hammerhead:3,tigershark:3,goblin:2.6,frilled:2.1,greenland:3,abysscroc:2.9});
+const OCEAN_SHARK_HEIGHTS=Object.freeze({reefshark:2.8,hammerhead:3,goblin:2.6,frilled:2.1,greenland:3,abysscroc:2.9});
 const riftSpecimenSpriteCache=new Map();
 let riftSpecimenSpriteFrame=-1,riftSpecimenSpritePaints=0;
 function drawRiftShopSpecimen(enemy,skin,time){
@@ -4614,21 +4589,6 @@ function drawRiftShopSpecimen(enemy,skin,time){
  const normalRadius=CREATURE_SCALE?.riftVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||Math.max(4,Number(enemy.r)||8);
  // Preserve shop skin identity and a species-specific 3 m maximum visual body envelope.
  const radius=normalRadius;
- // Animated species must draw individually: a species-wide sprite cache leaks
- // one creature's attack frame into all other creatures of the same species.
- const atlas=window.AbyssalAnimatedSprites;
- if(atlas?.has(skin.id)){
-  const motion=creatureVisualMotion(skin,'player',enemy,enemy.x,enemy.y,Number(enemy.angle)||0,time,false);
-  const biting=atlas.isBiting?.(enemy,performance.now())===true;
-  const heading=biting&&Number.isFinite(enemy.hostileBite?.angle)?enemy.hostileBite.angle:
-   Number.isFinite(motion?.heading)?motion.heading:(Number(enemy.angle)||0);
-  ctx.save();ctx.translate(enemy.x,enemy.y);
-  if(skin.id==='reefshark')ctx.rotate(Number(heading)||0);
-  else applyCreatureVisualTransform(ctx,motion,radius,heading);
-  const painted=atlas.drawAtOrigin(ctx,skin.id,radius,Number(motion?.phaseTime)||time,biting,enemy.hit||0,enemy);
-  ctx.restore();
-  if(painted)return;
- }
  // Render at the actual display density; oversized creatures use the vector fallback.
  const bucket=Math.max(4,Math.round(radius*2)/2);
  const renderScale=radius/bucket;
@@ -4644,12 +4604,10 @@ function drawRiftShopSpecimen(enemy,skin,time){
  const stale=time-sprite.lastPaint>=(mobileViewport?125:83);
  if(stale&&(sprite.lastPaint===-Infinity||riftSpecimenSpritePaints<3)){
   sprite.c.clearRect(0,0,sprite.side,sprite.side);
-  drawCreature(sprite.side*.5,sprite.side*.5,bucket,0,skin.color,'player',time,true,0,sprite.c,skin,{__sprite:true,phase:Number(enemy.phase)||0,hostileBite:enemy.hostileBite,visualAttackUntil:enemy.visualAttackUntil,visualBiteStartedAt:enemy.visualBiteStartedAt,visualBiteUntil:enemy.visualBiteUntil});
+  drawCreature(sprite.side*.5,sprite.side*.5,bucket,0,skin.color,'player',time,true,0,sprite.c,skin,{__sprite:true,phase:Number(enemy.phase)||0});
   sprite.lastPaint=time;riftSpecimenSpritePaints++;
  }
- const swimMotion=creatureVisualMotion(skin,'player',enemy,enemy.x,enemy.y,Number(enemy.angle)||0,time,false);
- const swimHeading=Number.isFinite(swimMotion?.heading)?swimMotion.heading:Number(enemy.angle)||0;
- ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate(swimHeading);
+ ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate(Number(enemy.angle)||0);
  let organicSeed=0;for(const ch of String(enemy.streamId||enemy.id||skin.id))organicSeed=(Math.imul(organicSeed,33)+ch.charCodeAt(0))>>>0;
  const organicX=.96+(organicSeed%9)*.01,organicY=.94+((organicSeed>>>5)%13)*.01,organicShear=((organicSeed>>>11)%9-4)*.006;
  ctx.transform(renderScale*organicX,organicShear,organicShear*.45,renderScale*organicY,0,0);
@@ -4925,7 +4883,7 @@ function draw(t){
  const particleShadowBlur=0;let particleDrawIndex=0;for(const p of particles){if(adaptiveQualityLevel===0&&particleDrawIndex++%3!==0)continue;if(adaptiveQualityLevel===1&&particleDrawIndex++%3===2)continue;if(p.x<cameraX-20/worldZoom||p.x>cameraX+viewW/worldZoom+20/worldZoom||p.y<cameraY-20/worldZoom||p.y>cameraY+viewH/worldZoom+20/worldZoom)continue;ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();const pr=p.r*(.4+.6*p.life/p.max);ctx.arc(p.x,p.y,pr,0,Math.PI*2);if(p.bubble){ctx.fillStyle='rgba(215,250,255,.16)';ctx.fill();ctx.strokeStyle=p.color;ctx.lineWidth=.75/worldZoom;ctx.stroke();if(pr>1.2/worldZoom){ctx.fillStyle='rgba(255,255,255,.65)';ctx.beginPath();ctx.arc(p.x-pr*.32,p.y-pr*.32,pr*.25,0,Math.PI*2);ctx.fill();}}else ctx.fill()}ctx.globalAlpha=1;
  if(player){if((!isClassicCavernRun()||soloSubmarine.spawnFx<=1.25||player.y>=soloSubmarine.y+86/GAME_WORLD_ZOOM)&&(damageFlash<=0||Math.floor(t/60)%2===0)){drawDiver(player.x,player.y,player.r,player.bodyAngle||0,t,false,player.weaponAngle??player.angle??0,diverGender,isOpenSeaRun()?explorationHeldItem:'abyssWeapon');
   if(!player.propulsorEquipped&&(!isOpenSeaRun()||explorationHeldItem==='abyssWeapon')&&performance.now()<Number(player.skinWeaponBuffUntil||0))drawWeaponInfusion(player.x,player.y,player.r,player.weaponAngle??player.angle??0,t,player.skinWeaponBuffKind);
-  if(Date.now()<(Number(player.skinParalyzedUntil)||0)){ctx.save();ctx.strokeStyle='#8ceeff';ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.shadowColor='#42caff';ctx.shadowBlur=8/GAME_WORLD_ZOOM;for(let j=0;j<5;j++){const a=j*Math.PI*2/5+t*.004,rr=player.r*1.7;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*rr*.45,player.y+Math.sin(a)*rr*.45);ctx.lineTo(player.x+Math.cos(a+.26)*rr,player.y+Math.sin(a+.26)*rr);ctx.lineTo(player.x+Math.cos(a)*rr*1.35,player.y+Math.sin(a)*rr*1.35);ctx.stroke();}ctx.restore();}if(player.specimen?.alive!==false){const specimenSkin=skinData.find(s=>s.id===equippedSkin)||skinData[0],sa=player.specimen.facingAngle??player.bodyAngle??0;drawCreature(player.specimen.x,player.specimen.y,CREATURE_SCALE?.visualRadius?.(equippedSkin,player.specimen.r)||player.specimen.r,sa,specimenSkin.color,'player',t,true,0,ctx,specimenSkin,{visualId:onlineMode?'specimen:self':'specimen:solo',moveSpeed:player.moveSpeed,visualAttackUntil:Number(player.specimen.visualAttackUntil)||0,biteAnimation:player.specimen.biteAnimation,vx:Number(player.specimen.vx)||0,vy:Number(player.specimen.vy)||0,specimenCombatPhase:performance.now()*.0018});
+  if(Date.now()<(Number(player.skinParalyzedUntil)||0)){ctx.save();ctx.strokeStyle='#8ceeff';ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.shadowColor='#42caff';ctx.shadowBlur=8/GAME_WORLD_ZOOM;for(let j=0;j<5;j++){const a=j*Math.PI*2/5+t*.004,rr=player.r*1.7;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*rr*.45,player.y+Math.sin(a)*rr*.45);ctx.lineTo(player.x+Math.cos(a+.26)*rr,player.y+Math.sin(a+.26)*rr);ctx.lineTo(player.x+Math.cos(a)*rr*1.35,player.y+Math.sin(a)*rr*1.35);ctx.stroke();}ctx.restore();}if(player.specimen?.alive!==false){const specimenSkin=skinData.find(s=>s.id===equippedSkin)||skinData[0],sa=player.specimen.facingAngle??player.bodyAngle??0;drawCreature(player.specimen.x,player.specimen.y,CREATURE_SCALE?.visualRadius?.(equippedSkin,player.specimen.r)||player.specimen.r,sa,specimenSkin.color,'player',t,true,0,ctx,specimenSkin,{visualId:onlineMode?'specimen:self':'specimen:solo',moveSpeed:player.moveSpeed,visualAttackUntil:Number(player.specimen.visualAttackUntil)||0,vx:Number(player.specimen.vx)||0,vy:Number(player.specimen.vy)||0,specimenCombatPhase:performance.now()*.0018});
   const bite=player.specimen.biteAnimation;if(bite){const q=clamp((performance.now()-bite.startedAt)/bite.duration,0,1);if(q>=1)player.specimen.biteAnimation=null;else drawSpecimenBite(player.specimen,sa,bite,q);}
   if(player.specimen.dash){const progress=clamp((performance.now()-player.specimen.dash.startedAt)/player.specimen.dash.durationMs,0,1);drawSpecimenDashArc(player.specimen.x,player.specimen.y,player.specimen.r,sa,t,progress);}
   // If the companion crosses the diver, keep the diver in the foreground.
@@ -5310,24 +5268,6 @@ window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Num
 window.addEventListener('abyssal-hit-synergy-visual',event=>{const d=event.detail||{},x1=Number(d.x1)*W,y1=Number(d.y1)*H,x2=Number(d.x2)*W,y2=Number(d.y2)*H;if(![x1,y1,x2,y2].every(Number.isFinite))return;if(d.type==='ricochet-line')queueEffect({type:'ricochet-line',x1,y1,x2,y2,life:.18,maxLife:.18,color:'#f7ff19',width:3.4/GAME_WORLD_ZOOM});else if(d.type==='electric-arc')queueEffect({type:'electric-arc',x1,y1,x2,y2,seed:Number(d.seed)||performance.now(),life:.22,maxLife:.22,color:'#31eaff',width:4.2/GAME_WORLD_ZOOM});});
 window.addEventListener('abyssal-remote-photon-stop',event=>{const fromId=String(event.detail?.fromId||'');if(!fromId)return;stopAudioLoop('beam','remote:'+fromId);for(const fx of effects)if(fx.type==='photon-ray'&&fx.remoteBeamKey===fromId)fx.life=Math.min(fx.life,.06);});
 window.AbyssalGameHooks={
- applySharkBiteCue:data=>{
-  if(!data||data.enemyId==null)return false;
-  const enemy=enemies.find(e=>String(e.id)===String(data.enemyId)&&e.kind==='whiteShark');
-  if(!enemy)return false;
-  const at=performance.now();
-  if(data.action==='start'){
-   enemy.whiteSharkBiteWindup={startedAt:at,duration:Math.max(100,Number(data.duration)||180),targetId:'remote'};
-   enemy.whiteSharkBiteCancel=null;
-  }else if(data.action==='cancel'){
-   const p=enemy.whiteSharkBiteWindup;
-   enemy.whiteSharkBiteCancel=p?{startedAt:at,duration:145,progress:Math.min(.44,Math.max(0,(at-p.startedAt)/Math.max(1,p.duration))*.44)}:null;
-   enemy.whiteSharkBiteWindup=null;
-  }else if(data.action==='impact'){
-   enemy.whiteSharkBiteWindup=null;enemy.whiteSharkBiteCancel=null;
-   enemy.hostileBite={startedAt:at,duration:Math.max(200,Number(data.duration)||300),phaseStart:.44,angle:enemy.angle};
-  }else return false;
-  return true;
- },
  // The Android multi-touch bridge passes the original trusted pointer event.
  // R must never be invoked through button.click(): that creates an untrusted event.
  activateSkinAbilityFromPointer:event=>Boolean(event?.isTrusted===true&&event.type==='pointerdown'&&

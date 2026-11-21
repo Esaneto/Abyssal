@@ -614,7 +614,6 @@ socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeou
  socket.on('world-enemies-spawned',data=>{if(window.AbyssalGameHooks?.applySpawn)window.AbyssalGameHooks.applySpawn(data);});
  socket.on('enemy-contact-source',data=>{if(window.AbyssalGameHooks?.registerContactSnapshot)window.AbyssalGameHooks.registerContactSnapshot(data);});
  socket.on('enemy-motion',data=>{if(window.AbyssalGameHooks?.applyMotion)window.AbyssalGameHooks.applyMotion(data);});
- socket.on('world-shark-bite-cue',data=>{window.AbyssalGameHooks?.applySharkBiteCue?.(data);});
  socket.on('shared-damage',data=>{if(window.AbyssalGameHooks?.sharedDamage)window.AbyssalGameHooks.sharedDamage(data);});
  socket.on('shared-xp-award',data=>{if(window.AbyssalGameHooks?.sharedXp)window.AbyssalGameHooks.sharedXp(data);});
   socket.on('world-orb-spawned',data=>window.dispatchEvent(new CustomEvent('abyssal-orb-spawn',{detail:data})));

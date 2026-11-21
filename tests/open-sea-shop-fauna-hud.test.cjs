@@ -16,7 +16,7 @@ test('predators only spawn in deep western water or shallow eastern water',()=>{
  }
 });
 test('streamed fauna uses shop IDs and safe predator spawn positions',()=>{
- const known=new Set([...Object.keys(curated.byId),'reefshark','hammerhead','tigershark','abysscroc','leviathan','angler']);
+ const known=new Set([...Object.keys(curated.byId),'reefshark','hammerhead','abysscroc','leviathan','angler']);
  for(const [cx,cy] of [[0,0],[1,0],[7,0],[1,1],[2,4],[14,3]]){
   const sector=ocean.generate('regression',cx,cy,ecology);
   for(const a of sector.animals){

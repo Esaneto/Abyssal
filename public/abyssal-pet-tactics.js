@@ -22,7 +22,7 @@
   }
   return cost;
  }
- function choose({mode,pet,player,enemies=[],orbs=[],collectionRange=300,attackRange=350,guardRange=255,routeCost=null,preferredOrbId=null,preferredEnemyId=null}){
+ function choose({mode,pet,player,enemies=[],orbs=[],collectionRange=300,attackRange=350,guardRange=255,routeCost=null,preferredOrbId=null}){
   mode=normalize(mode);
   if(!pet||!player)return {type:'follow',target:player||pet||{x:0,y:0}};
   const threats=enemies.filter(live);
@@ -39,7 +39,7 @@
   if(mode==='aggressive'){
    for(const e of threats){
     const d=distance(e,pet);
-    if(d<attackRange&&(d<enemyDistance-8||String(e.id)===String(preferredEnemyId)&&d<=enemyDistance+55)){enemy=e;enemyDistance=d;}
+    if(d<attackRange&&d<enemyDistance){enemy=e;enemyDistance=d;}
    }
   }else if(mode==='guardian'){
    for(const e of threats){
@@ -50,11 +50,9 @@
    }
   }
   if(enemy){
-   // Nearby combat and an engaged target take priority over XP to stop
-   // attack/orb/attack thrashing every decision interval.
-   const closeThreat=enemyDistance<=Math.min(attackRange,135);
-   const ongoing=preferredEnemyId!=null&&String(enemy.id)===String(preferredEnemyId);
-   if(mode==='guardian'||closeThreat||ongoing||!orb||enemyDistance<=orbDistance*1.15)
+   // Aggressive pet makes a proximity choice between a threat and reachable XP.
+   // Guardian treats the protected area as the highest priority.
+   if(mode==='guardian'||!orb||enemyDistance<=orbDistance*1.15)
     return {type:'enemy',target:enemy,enemy,mode};
   }
   if(orb)return {type:'orb',target:orb,orb,mode};
@@ -88,8 +86,7 @@
   const travelAngle=Number.isFinite(approachAngle)?approachAngle:directAngle;
   const er=attackTargetRadius(enemy);
   // Body contact is an ellipse, not a bite with extra slack. Stay inside its actual reach.
-  const effectiveReach=profile.kraken?Math.min(profile.reach,profile.r*1.8):profile.reach;
-  const stop=er+effectiveReach-Math.max(2,profile.slack*(profile.body ? .65 : .8));
+  const stop=er+profile.reach+(profile.body?-Math.max(1,profile.slack*.5):profile.slack*.35);
   return {x:enemy.x-Math.cos(travelAngle)*stop,y:enemy.y-Math.sin(travelAngle)*stop,angle:directAngle,approachAngle:travelAngle,stop,distance:d};
  }
  function attackContact(pet,enemy,p,angle,phase,krakenTouch){
@@ -99,8 +96,7 @@
    // Use actual animated arm paths, plus mantle/core.
    const localX=dx*Math.cos(angle)+dy*Math.sin(angle),localY=-dx*Math.sin(angle)+dy*Math.cos(angle);
    const mantle=(localX/(p.r*.82+er))**2+((localY+p.r*.55)/(p.r*1.18+er))**2<=1;
-   return mantle||Boolean(krakenTouch?.({kind:'kraken',x:pet.x,y:pet.y,r:p.r,angle,phase},enemy,1))||
-    (d<=p.r*1.95+er&&localX>-p.r*.8);
+   return mantle||Boolean(krakenTouch?.({kind:'kraken',x:pet.x,y:pet.y,r:p.r,angle,phase},enemy,1));
   }
   if(p.body){
    const x=dx*Math.cos(angle)+dy*Math.sin(angle),y=-dx*Math.sin(angle)+dy*Math.cos(angle);
@@ -108,10 +104,7 @@
    return (x/rx)**2+(y/ry)**2<=1;
   }
   const mouthX=pet.x+Math.cos(angle)*p.reach,mouthY=pet.y+Math.sin(angle)*p.reach;
-  // Slight directional allowance for visual jaw lag, never a hit behind the Eco.
-  const jawContact=Math.hypot(enemy.x-mouthX,enemy.y-mouthY)<=er+p.slack*1.25;
-  const forward=dx*Math.cos(angle)+dy*Math.sin(angle);
-  return jawContact||(forward>=0&&d<=er+p.reach-Math.max(1,p.slack*.25));
+  return Math.hypot(enemy.x-mouthX,enemy.y-mouthY)<=er+p.slack;
  }
  return Object.freeze({MODES,normalize,choose,orbRisk,attackProfile,attackTargetRadius,limitApproach,attackGoal,attackContact});
 });

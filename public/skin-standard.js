@@ -37,7 +37,7 @@
  const legacy=[
   'default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral',
   'bloodmoon','voidwing','abyssaleye','deepwarden','riftSmileRelic','kraken','aberration','angler',
-  'maw','devourer','saltcroc','blackcaiman','reefshark','hammerhead','tigershark','abysscroc','armoredgator',
+  'maw','devourer','saltcroc','blackcaiman','reefshark','hammerhead','abysscroc','armoredgator',
   'greensnake','electriceel','electriceellegacy'
  ];
  const curated=[
@@ -54,8 +54,6 @@
  const promo=new Set(['electriceel']);
 
  function tierFor(id){
-  // The new tiger Eco uses Energy; no unregistered Google Play product SKU.
-  if(id==='tigershark')return 'coins';
   if(bossPaid.has(id))return 'brl999';
   if(paid499.has(id))return 'brl499';
   if(paid199.has(id))return 'brl199';
@@ -66,7 +64,6 @@
  }
  function coinRarityFor(id){
   if(id==='default')return 'common';
-  if(id==='tigershark')return 'uncommon';
   let h=2166136261;for(const ch of String(id||'')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
   const n=(h>>>0)%100;return n<40?'common':n<70?'uncommon':n<85?'rare':n<95?'epic':'legendary';
  }
@@ -95,7 +92,6 @@
   blackcaiman:['shield','movement'],
   reefshark:['trail','movement'],
   hammerhead:['pulse','energy'],
-  tigershark:['slowShot','range'],
   abysscroc:['dash','defense'],
   armoredgator:['push','defense'],
   greensnake:['poison','damage'],
@@ -178,7 +174,7 @@
   for(const p of Object.values(profiles)){
    if(p.active==='paralysis'&&!['electriceel','electriceellegacy'].includes(p.id))throw new Error('Paralysis is electric-only: '+p.id);
    const key=p.active+'|'+p.attribute;
-   if(pairs.has(key)&&p.id!=='tigershark')throw new Error('Duplicate active + attribute pair: '+key); // New cosmetic shark reuses the existing hypothermic-range profile.
+   if(pairs.has(key))throw new Error('Duplicate active + attribute pair: '+key);
    pairs.add(key);
   }
   return true;
