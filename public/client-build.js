@@ -2,6 +2,7 @@
  'use strict';
  root.ABYSSAL_CLIENT_BUILD=Object.freeze({
   version:'3.6.143',
-  channel:'stable'
+  channel:'stable',
+  revision:'eco-stance-v306'
  });
 })(window);

@@ -1546,7 +1546,15 @@ function tickRoom(room, now) {
     peer.specimenAttackId=combatTarget.id;const goal=PetTactics.attackGoal(pos,combatTarget,profile,peer.specimenApproachAngle);target=goal;combatStop=goal.stop;
     const angle=goal.angle,phase=now*.0018,clear=!ClassicCavern.segmentBlocked(specimenClassicRocks,pos.x,pos.y,combatTarget.x,combatTarget.y,2),contact=clear&&PetTactics.attackContact(pos,combatTarget,profile,angle,phase,EnemyAI.touchesKrakenTentacle);
     if(contact){peer.specimenAttackHoldUntil=now+180;if(now>=(Number(peer.nextSpecimenAttackAt)||0)){const live=(room.world?.enemies||[]).find(e=>e.id===combatTarget.id&&e.hp>0),owner=io.sockets.sockets.get(peer.id);if(live&&owner){peer.nextSpecimenAttackAt=now+ResBalance.petInterval(peer.petCadence);peer.skinActiveServerResolving=true;peer.skinActiveDamageOrigin=pos;let result;try{result=processWorldDamage(owner,Number(live.id),(SpecimenSystem.effectiveStats(peer.skinId,peer.specimenPoints).damage*ResBalance.petAttack(peer.petAttack)),profile.body?'specimen-body-contact':'specimen-bite');}finally{peer.skinActiveServerResolving=false;peer.skinActiveDamageOrigin=null;}if(result?.ok)io.to(channelFor(room)).emit('specimen-attack',{fromId:peer.id,x:pos.x,y:pos.y,angle});}}}
-    attackHolding=now<(Number(peer.specimenAttackHoldUntil)||0)&&goal.distance>=goal.stop-1&&goal.distance<=goal.stop+Math.max(7/WORLD_ZOOM,profile.slack*1.8);if(attackHolding){peer.specimenEvasionHeading=angle;continue;}
+    // A strike stance is stable even while waiting for a mouth/tentacle frame.
+    // Never let nearby enemies force the companion to retreat between hits.
+    attackHolding=clear&&(contact||PetTactics.attackStance(pos,combatTarget,profile));
+    if(attackHolding){
+     peer.specimenAttackHoldUntil=Math.max(Number(peer.specimenAttackHoldUntil)||0,now+180);
+     const current=Number(peer.specimenEvasionHeading)||0,turn=Math.atan2(Math.sin(angle-current),Math.cos(angle-current));
+     peer.specimenEvasionHeading=current+clamp(turn,-Math.max(.04,dt*6),Math.max(.04,dt*6));
+     continue;
+    }
    }else{peer.specimenAttackId=null;peer.specimenAttackHoldUntil=0;}
    if(ClassicCavern.isBlocked(specimenClassicRocks,target.x,target.y,radius+1/WORLD_ZOOM)&&!combatTarget)target={x:peer.x,y:peer.y};
    const actor={...pos,angle:peer.specimenEvasionHeading,caveRoute:peer.specimenRoute},route=ClassicCavern.pursuitTarget(specimenClassicRocks,roomWorldWidth(room),roomWorldHeight(room),actor,target,radius+1/WORLD_ZOOM,now);peer.specimenRoute=actor.caveRoute;if(route&&!route.blocked)target=route;
@@ -1559,7 +1567,7 @@ function tickRoom(room, now) {
   const avoidSq=(280/WORLD_ZOOM)**2;
    const nearbyHostile=hostile.filter(e=>e.id!==combatTarget?.id&&(e.x-pos.x)**2+(e.y-pos.y)**2<avoidSq);
    const move=SpecimenEvasion.steer({position:pos,target,enemies:nearbyHostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
-   heading:Number(peer.specimenEvasionHeading)||0,intent:combatTarget?'combat':orb?'collect':'follow',
+   heading:Number(peer.specimenEvasionHeading)||0,intent:combatTarget?'combat':orb?'collect':'follow',state:peer,
    resolve:specimenCaveLayout?(x,y)=>AbyssalMap.resolveMove(specimenCaveLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):specimenClassicRocks?(x,y)=>ClassicCavern.resolve(specimenClassicRocks,pos.x,pos.y,x,y,radius+1/WORLD_ZOOM,roomWorldWidth(room),roomWorldHeight(room)):(x,y)=>({x:clamp(x,18/WORLD_ZOOM,roomWorldWidth(room)-18/WORLD_ZOOM),y:clamp(y,18/WORLD_ZOOM,roomWorldHeight(room)-18/WORLD_ZOOM)})});
   const spaced=combatTarget?PetTactics.limitApproach(pos,move,combatTarget,combatStop-1):move;
   peer.specimenX=spaced.x;peer.specimenY=spaced.y;
@@ -2350,7 +2358,7 @@ io.on('connection', socket => {
   p.clientCombatRange=clamp(Number(meta.combatRange)||294/WORLD_ZOOM,294/WORLD_ZOOM,2000/WORLD_ZOOM);
   p.clientEnemyCount=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(meta.clientEnemyCount)||0)));p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(meta.clientMovingEnemies)||0)));
   const nextPetHabit=PetTactics.normalize(meta.petHabit);
-  if(nextPetHabit!==p.petHabit){p.specimenChoiceType=null;p.specimenChoiceEnemyId=null;p.specimenChoiceOrbId=null;p.specimenNextTacticsAt=0;p.specimenAttackId=null;p.specimenAttackHoldUntil=0;}
+  if(nextPetHabit!==p.petHabit){p.specimenChoiceType=null;p.specimenChoiceEnemyId=null;p.specimenChoiceOrbId=null;p.specimenNextTacticsAt=0;p.specimenAttackId=null;p.specimenAttackHoldUntil=0;p.ecoFollowing=false;}
   p.petHabit=nextPetHabit;p.clientPredicting=Boolean(meta.clientPredicting);p.clientGameState=String(meta.clientGameState||'unknown').slice(0,24);p.clientHidden=Boolean(meta.clientHidden);p.clientMotionAt=Date.now();
  });
  socket.on('player-build', payload => {
