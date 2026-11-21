@@ -43,7 +43,12 @@
   for(const p of players||[]){
    if(!p||p.alive===false)continue;
    const dx=p.x-enemy.x,dy=p.y-enemy.y,d= Math.hypot(dx,dy);
-   if(d<nearest&&canSee(enemy,p,map,layout)){visible=p;nearest=d;}
+   const visibleInCone=canSee(enemy,p,map,layout);
+   // Contact-range predators can turn around; terrain still blocks acquisition.
+   const contactRange=Math.max(42,(Number(enemy.r)||12)+(Number(p.r)||13)+24);
+   const contactClear=!layout||!map?.segmentWalkable||map.segmentWalkable(layout,enemy.x,enemy.y,p.x,p.y,3);
+   const closeAggressor=(mode==='aggressive'||(Number(enemy.provokedUntil)||0)>now)&&d<=contactRange&&contactClear;
+   if(d<nearest&&(visibleInCone||closeAggressor)){visible=p;nearest=d;}
   }
   if(visible){enemy.lastSeenX=visible.x;enemy.lastSeenY=visible.y;enemy.lastSeenAt=now;}
   const provoked=(Number(enemy.provokedUntil)||0)>now;

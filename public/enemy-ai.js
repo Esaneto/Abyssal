@@ -360,7 +360,12 @@
       result.moved=Math.hypot(enemy.x-x,enemy.y-y)>1e-8;result.target=target;result.distance=distance;result.dx=dx;result.dy=dy;return result;
     }
 
-    enemy.angle = Math.atan2(dy, dx);
+    // Face the actual target without snapping across tiny position corrections.
+    if(distance>0.1){
+      const wanted=Math.atan2(dy,dx),current=Number.isFinite(enemy.angle)?enemy.angle:wanted;
+      const limit=Math.min(Math.PI,Math.max(.05,dt*7.5));
+      enemy.angle=current+clamp(angleDelta(wanted,current),-limit,limit);
+    }
     enemy.phase = (Number(enemy.phase) || 0) + dt * (enemy.kind === 'stinger' ? 7 : enemy.kind === 'kraken' ? 0.42 : 3);
     const baseSpeed = Math.max(0, Number(enemy.speed) || 0);
     let pursuitSpeed = baseSpeed;
@@ -385,60 +390,26 @@
       return result;
     }
     let x = oldX, y = oldY;
-    if (speed > 0 && distance > stopDistance + 0.5) {
-      const desiredVx = (dx / (distance || 1)) * speed;
-      const desiredVy = (dy / (distance || 1)) * speed;
-      // Exponential steering smooths direction changes and remains frame-rate independent.
-      // This shared integrator is used by solo and authoritative online simulation.
-      const response = 1 - Math.exp(-Math.min(dt, 0.1) * 8.6);
-      let velocityX = (Number(enemy.vx) || 0) + (desiredVx - (Number(enemy.vx) || 0)) * response;
-      let velocityY = (Number(enemy.vy) || 0) + (desiredVy - (Number(enemy.vy) || 0)) * response;
-      const velocityMagnitude = Math.hypot(velocityX, velocityY);
-      if (velocityMagnitude > speed && speed > 0) { velocityX *= speed / velocityMagnitude; velocityY *= speed / velocityMagnitude; }
-      const stepX = velocityX * dt, stepY = velocityY * dt;
-      const projected = Math.hypot(stepX, stepY);
-      const step = Math.min(distance - stopDistance, projected);
-      if (projected > 1e-8) { x += stepX / projected * step; y += stepY / projected * step; }
-      enemy.vx = velocityX; enemy.vy = velocityY;
-    } else if (speed > 0 && stopDistance > 0) {
-      const id = Math.abs(Math.floor(Number(enemy.id) || 1));
-      const lane = id % 6;
-      const orbitRadius = stopDistance * (1 + lane * 0.025);
-      let theta = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
-      if (!Number.isFinite(theta) || distance < 0.001) theta = (Number(enemy.angle) || 0) + Math.PI;
-      let direction = Number(enemy.orbitDirection);
-      if (!direction) direction = (id % 2) ? 1 : -1;
-      enemy.orbitDirection = direction;
-      const angularSpeed = clamp((speed * 0.62) / Math.max(orbitRadius, 12), 0.35, 1.8);
-      theta += direction * angularSpeed * dt;
-      const desiredX = Number(target.x) + Math.cos(theta) * orbitRadius;
-      const desiredY = Number(target.y) + Math.sin(theta) * orbitRadius;
-      const ox = desiredX - oldX, oy = desiredY - oldY, od = Math.hypot(ox, oy);
-      const orbitStep = Math.min(od, speed * dt);
-      if (od > 1e-8) { x += ox / od * orbitStep; y += oy / od * orbitStep; }
-      enemy.angle = Math.atan2(Number(target.y) - y, Number(target.x) - x);
+    // Once inside strike range, settle instead of endlessly orbiting or nudging.
+    const strikingBand=stopDistance>0?Math.min(2.5,Math.max(1,stopDistance*.025)):0;
+    if(distance<=stopDistance+strikingBand){
+      enemy.vx=0;enemy.vy=0;
+    }else if(speed>0&&distance>1e-8){
+      const desiredVx=dx/distance*speed,desiredVy=dy/distance*speed;
+      const response=1-Math.exp(-Math.min(dt,.1)*10.5);
+      let velocityX=(Number(enemy.vx)||0)+(desiredVx-(Number(enemy.vx)||0))*response;
+      let velocityY=(Number(enemy.vy)||0)+(desiredVy-(Number(enemy.vy)||0))*response;
+      const magnitude=Math.hypot(velocityX,velocityY);
+      if(magnitude>speed){velocityX*=speed/magnitude;velocityY*=speed/magnitude;}
+      const projected=Math.hypot(velocityX,velocityY)*dt;
+      const step=Math.min(Math.max(0,distance-stopDistance),projected);
+      if(projected>1e-8){x+=velocityX*dt/projected*step;y+=velocityY*dt/projected*step;}
     }
-    const minX = Number.isFinite(options.minX) ? options.minX : 0;
-    const maxX = Number.isFinite(options.maxX) ? options.maxX : WORLD_WIDTH;
-    const minY = Number.isFinite(options.minY) ? options.minY : 0;
-    const maxY = Number.isFinite(options.maxY) ? options.maxY : WORLD_HEIGHT;
-    x = clamp(x, minX, maxX);
-    y = clamp(y, minY, maxY);
-    if (speed > 0 && Math.hypot(x - oldX, y - oldY) < 0.05) {
-      const id = Math.abs(Math.floor(Number(enemy.id) || 1));
-      const radial = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
-      const direction = (id % 2) ? 1 : -1;
-      const step = Math.max(0.25, Math.min(speed * dt, 5));
-      const firstAngle = radial + direction * Math.PI / 2;
-      const secondAngle = Math.atan2(dy, dx);
-      let nx = clamp(oldX + Math.cos(firstAngle) * step, minX, maxX);
-      let ny = clamp(oldY + Math.sin(firstAngle) * step, minY, maxY);
-      if (Math.hypot(nx - oldX, ny - oldY) < 0.05) {
-        nx = clamp(oldX + Math.cos(secondAngle) * step, minX, maxX);
-        ny = clamp(oldY + Math.sin(secondAngle) * step, minY, maxY);
-      }
-      if (Math.hypot(nx - oldX, ny - oldY) >= 0.05) { x = nx; y = ny; }
-    }
+    const minX=Number.isFinite(options.minX)?options.minX:0;
+    const maxX=Number.isFinite(options.maxX)?options.maxX:WORLD_WIDTH;
+    const minY=Number.isFinite(options.minY)?options.minY:0;
+    const maxY=Number.isFinite(options.maxY)?options.maxY:WORLD_HEIGHT;
+    x=clamp(x,minX,maxX);y=clamp(y,minY,maxY);
     enemy.x = x; enemy.y = y;
     enemy.vx = (x - oldX) / Math.max(dt, 0.001);
     enemy.vy = (y - oldY) / Math.max(dt, 0.001);
@@ -466,7 +437,7 @@
     return Boolean(enemy&&(enemy.kind==='kraken'||enemy.kind==='devourer'||['octopus','squid','jelly'].includes(family)||['toxic','coral','riftSmileRelic'].includes(enemy.specimenSkinId)));
   }
   function tentacleStopDistance(enemy,radius,targetRadius,family){
-    return tentacleAttacker(enemy,family)?Math.max(1,radius)*(enemy.kind==='kraken'?(Number(enemy.fullHp)>0?3.1/.76:3.1):enemy.kind==='devourer'?1.8:1.55)+Math.max(1,targetRadius):biteDistance(radius,targetRadius);
+    return tentacleAttacker(enemy,family)?Math.max(1,radius)*(enemy.kind==='kraken'?(Number(enemy.fullHp)>0?3.1/.76:3.1):enemy.kind==='devourer'?1.8:1.55)+Math.max(1,targetRadius):Math.max(1,biteDistance(radius,targetRadius)-8/WORLD_ZOOM);
   }
   function tentacleContact(enemy,target,radius,family){
     if(!tentacleAttacker(enemy,family)||!target)return false;
