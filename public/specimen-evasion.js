@@ -43,21 +43,46 @@
   }
   return best;
  }
- function steer({position,target,enemies=[],speed=100,dt=.05,radius=10,clearance=28,heading=0,resolve=null,intent='travel'}){
+ function steer({position,target,enemies=[],speed=100,dt=.05,radius=10,clearance=28,heading=0,resolve=null,intent='travel',state=null}){
   const x=Number(position?.x)||0,y=Number(position?.y)||0;
-  const gx=Number.isFinite(target?.x)?target.x:x,gy=Number.isFinite(target?.y)?target.y:y;
-  const distance=Math.hypot(gx-x,gy-y);
+  let gx=Number.isFinite(target?.x)?target.x:x,gy=Number.isFinite(target?.y)?target.y:y;
   const maxStep=Math.max(0,speed*dt);
   if(maxStep<=0)return {x,y,angle:heading,evading:false};
   const combat=intent==='combat',follow=intent==='follow';
+  // Follow a safe point on the near side of the blocking monster rather than
+  // returning into an occupied player offset, retreating, and repeating.
+  if(follow){
+   const goalThreats=threatsNear(gx,gy,enemies,Math.max(120,radius+clearance*3),12);
+   let blocker=null,penetration=0;
+   for(const e of goalThreats){
+    const safe=Math.max(3,Number(e.r)||8)+radius+Math.max(6,clearance*.65);
+    const inside=safe-Math.hypot(gx-e.x,gy-e.y);
+    if(inside>penetration){penetration=inside;blocker=e;}
+   }
+   if(blocker){
+    const safe=Math.max(3,Number(blocker.r)||8)+radius+Math.max(6,clearance*.65)+2;
+    let ax=x-blocker.x,ay=y-blocker.y,mag=Math.hypot(ax,ay);
+    if(mag<.01){ax=Math.cos(heading+Math.PI);ay=Math.sin(heading+Math.PI);mag=1;}
+    gx=blocker.x+ax/mag*safe;gy=blocker.y+ay/mag*safe;
+   }
+  }
+  const distance=Math.hypot(gx-x,gy-y);
   const threats=threatsNear(x,y,enemies,Math.max(150,maxStep*3+radius+clearance),combat?8:14);
-  // Following uses a wider arrival radius so tiny player movements do not make
-  // the Eco reverse every frame. Combat keeps a tighter endpoint.
-  const goalTolerance=follow?Math.max(5,Math.min(12,radius*.85)):Math.max(1,Math.min(3,radius*.15));
+  // Hysteresis avoids start/stop oscillation as the player's offset drifts by
+  // a few pixels per tick. A persistent state belongs to each individual Eco.
+  const goalTolerance=follow?Math.max(5,Math.min(12,radius*.65)):Math.max(1,Math.min(3,radius*.15));
   let emergency=false,nearestEmergency=null,nearestEmergencyDistance=Infinity;
   for(const e of threats){
    const d=Math.hypot(x-e.x,y-e.y),physical=radius+Math.max(3,Number(e.r)||8)+Math.min(4,clearance*.15);
    if(d<physical){emergency=true;if(d<nearestEmergencyDistance){nearestEmergencyDistance=d;nearestEmergency=e;}}
+  }
+  if(state&&typeof state==='object'){
+   if(follow&&!emergency){
+    const start=Math.max(goalTolerance*2.2,radius*1.55,14);
+    if(state.ecoFollowing===true&&distance<=goalTolerance)state.ecoFollowing=false;
+    else if(state.ecoFollowing!==true&&distance>=start)state.ecoFollowing=true;
+    if(state.ecoFollowing!==true)return {x,y,angle:heading,evading:false};
+   }else if(!follow)state.ecoFollowing=false;
   }
   if(distance<=goalTolerance&&!emergency)return {x,y,angle:heading,evading:false};
   // Never overshoot a nearby destination just because an unrelated threat exists.
@@ -70,7 +95,7 @@
    if(!resolve||Math.hypot(moved.x-x,moved.y-y)>=Math.min(distance,step)*.35||distance<.1)return {x:moved.x,y:moved.y,angle:a,evading:false};
    let best=null,bestScore=-Infinity;for(const off of [-.45,.45,-.9,.9,-1.57,1.57,Math.PI]){const q=a+off,p=resolve(x+Math.cos(q)*step,y+Math.sin(q)*step),travel=Math.hypot(p.x-x,p.y-y);if(travel<step*.25)continue;const value=travel+distance-Math.hypot(gx-p.x,gy-p.y)+Math.cos(q-heading)*step*.3;if(value>bestScore){bestScore=value;best={x:p.x,y:p.y,angle:q,evading:true};}}return best||{x:moved.x,y:moved.y,angle:a,evading:true};
   }
-  const direct=emergency&&distance<=goalTolerance&&nearestEmergency?
+  const direct=emergency&&nearestEmergency?
    Math.atan2(y-nearestEmergency.y,x-nearestEmergency.x):Math.atan2(gy-y,gx-x);
   // In combat, local avoidance may bend the approach but cannot turn the Eco
   // around and make it flee from the selected target. Terrain routing already
