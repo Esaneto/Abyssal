@@ -43,21 +43,26 @@
   }
   return best;
  }
- function steer({position,target,enemies=[],speed=100,dt=.05,radius=10,clearance=28,heading=0,resolve=null}){
+ function steer({position,target,enemies=[],speed=100,dt=.05,radius=10,clearance=28,heading=0,resolve=null,intent='travel'}){
   const x=Number(position?.x)||0,y=Number(position?.y)||0;
   const gx=Number.isFinite(target?.x)?target.x:x,gy=Number.isFinite(target?.y)?target.y:y;
   const distance=Math.hypot(gx-x,gy-y);
   const maxStep=Math.max(0,speed*dt);
   if(maxStep<=0)return {x,y,angle:heading,evading:false};
-  const threats=threatsNear(x,y,enemies,Math.max(150,maxStep*3+radius+clearance),14);
-  // Do not invent side-to-side movement while waiting at an already reached goal.
-  // Only a true collision/imminent overlap may force an emergency separation.
-  const goalTolerance=Math.max(1,Math.min(3,radius*.15));
-  if(distance<=goalTolerance){
-   const emergency=threats.some(e=>Math.hypot(x-e.x,y-e.y)<radius+Math.max(3,Number(e.r)||8)+Math.min(6,clearance*.25));
-   if(!emergency)return {x,y,angle:heading,evading:false};
+  const combat=intent==='combat',follow=intent==='follow';
+  const threats=threatsNear(x,y,enemies,Math.max(150,maxStep*3+radius+clearance),combat?8:14);
+  // Following uses a wider arrival radius so tiny player movements do not make
+  // the Eco reverse every frame. Combat keeps a tighter endpoint.
+  const goalTolerance=follow?Math.max(5,Math.min(12,radius*.85)):Math.max(1,Math.min(3,radius*.15));
+  let emergency=false,nearestEmergency=null,nearestEmergencyDistance=Infinity;
+  for(const e of threats){
+   const d=Math.hypot(x-e.x,y-e.y),physical=radius+Math.max(3,Number(e.r)||8)+Math.min(4,clearance*.15);
+   if(d<physical){emergency=true;if(d<nearestEmergencyDistance){nearestEmergencyDistance=d;nearestEmergency=e;}}
   }
-  const step=threats.length?maxStep:Math.min(maxStep,distance);
+  if(distance<=goalTolerance&&!emergency)return {x,y,angle:heading,evading:false};
+  // Never overshoot a nearby destination just because an unrelated threat exists.
+  // This was the main source of the visible follow-player trembling.
+  const step=distance>goalTolerance?Math.min(maxStep,distance):maxStep;
   if(!threats.length){
    const a=Math.atan2(gy-y,gx-x);
    const nx=x+Math.cos(a)*Math.min(distance,step),ny=y+Math.sin(a)*Math.min(distance,step);
@@ -65,14 +70,23 @@
    if(!resolve||Math.hypot(moved.x-x,moved.y-y)>=Math.min(distance,step)*.35||distance<.1)return {x:moved.x,y:moved.y,angle:a,evading:false};
    let best=null,bestScore=-Infinity;for(const off of [-.45,.45,-.9,.9,-1.57,1.57,Math.PI]){const q=a+off,p=resolve(x+Math.cos(q)*step,y+Math.sin(q)*step),travel=Math.hypot(p.x-x,p.y-y);if(travel<step*.25)continue;const value=travel+distance-Math.hypot(gx-p.x,gy-p.y)+Math.cos(q-heading)*step*.3;if(value>bestScore){bestScore=value;best={x:p.x,y:p.y,angle:q,evading:true};}}return best||{x:moved.x,y:moved.y,angle:a,evading:true};
   }
-  const direct=Math.atan2(gy-y,gx-x);
-  const angles=[0,-.3,.3,-.65,.65,-1.05,1.05,-1.57,1.57,-2.25,2.25,Math.PI];
+  const direct=emergency&&distance<=goalTolerance&&nearestEmergency?
+   Math.atan2(y-nearestEmergency.y,x-nearestEmergency.x):Math.atan2(gy-y,gx-x);
+  // In combat, local avoidance may bend the approach but cannot turn the Eco
+  // around and make it flee from the selected target. Terrain routing already
+  // handles large detours before this local steering pass.
+  const fullAngles=[0,-.3,.3,-.65,.65,-1.05,1.05,-1.57,1.57,-2.25,2.25,Math.PI];
+  const angles=emergency?fullAngles:combat?[0,-.22,.22,-.45,.45,-.72,.72,-1.02,1.02]:
+   follow?[0,-.22,.22,-.48,.48,-.82,.82,-1.05,1.05]:fullAngles;
   let best=null,bestScore=-Infinity;
-  const advancing=threats.map(e=>({x:e.x+(Number(e.vx)||0)*.42,y:e.y+(Number(e.vy)||0)*.42,r:e.r,hp:e.hp}));
+  const lookahead=combat?.22:.42;
+  const advancing=threats.map(e=>({x:e.x+(Number(e.vx)||0)*lookahead,y:e.y+(Number(e.vy)||0)*lookahead,r:e.r,hp:e.hp}));
+  const localClearance=combat?Math.max(4,clearance*.32):follow?Math.max(5,clearance*.55):clearance;
   for(const offset of angles){
    const angle=direct+offset;
-   const rawX=x+Math.cos(angle)*Math.max(step,Math.min(speed*dt,6));
-   const rawY=y+Math.sin(angle)*Math.max(step,Math.min(speed*dt,6));
+   const localStep=step;
+   const rawX=x+Math.cos(angle)*localStep;
+   const rawY=y+Math.sin(angle)*localStep;
    const moved=resolve?resolve(rawX,rawY):{x:rawX,y:rawY};
    if(!moved||!Number.isFinite(moved.x)||!Number.isFinite(moved.y))continue;
    const nx=moved.x,ny=moved.y,travel=Math.hypot(nx-x,ny-y);
@@ -80,13 +94,18 @@
    // Score two steps ahead. Crossing a hostile hitbox costs far more than losing an orb.
    const projectedX=x+(nx-x)*Math.max(1,.55/Math.max(dt,.016));
    const projectedY=y+(ny-y)*Math.max(1,.55/Math.max(dt,.016));
-   let danger=risk(nx,ny,threats,radius,clearance);
-   danger+=risk(projectedX,projectedY,advancing,radius,clearance)*.65;
+   let danger=risk(nx,ny,threats,radius,localClearance);
+   danger+=risk(projectedX,projectedY,advancing,radius,localClearance)*(combat?.30:.65);
+   // Hard physical overlap still matters in combat, but a dense group must not
+   // create effectively infinite "fear" that prevents any forward progress.
+   if(combat)danger=Math.min(danger,300);
    const goalProgress=distance-Math.hypot(gx-nx,gy-ny);
    const turn=Math.abs(Math.atan2(Math.sin(angle-heading),Math.cos(angle-heading)));
    const momentum=Math.cos(angle-heading)*Math.max(.35,step*.18);
-   const score=goalProgress*2.3-danger+momentum-turn*Math.max(.8,step*.32);
-   if(score>bestScore){bestScore=score;best={x:nx,y:ny,angle,evading:Math.abs(offset)>.35||danger>40};}
+   const progressWeight=combat?7.2:follow?3.6:2.3,dangerWeight=combat?.22:follow?.55:1,
+    turnWeight=combat?Math.max(.35,step*.10):follow?Math.max(.9,step*.42):Math.max(.8,step*.32);
+   const score=goalProgress*progressWeight-danger*dangerWeight+momentum-turn*turnWeight;
+   if(score>bestScore){bestScore=score;best={x:nx,y:ny,angle,evading:Math.abs(offset)>.35||danger>(combat?120:40)};}
   }
   return best||{x,y,angle:heading,evading:true};
  }

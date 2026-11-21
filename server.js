@@ -1559,7 +1559,7 @@ function tickRoom(room, now) {
   const avoidSq=(280/WORLD_ZOOM)**2;
    const nearbyHostile=hostile.filter(e=>e.id!==combatTarget?.id&&(e.x-pos.x)**2+(e.y-pos.y)**2<avoidSq);
    const move=SpecimenEvasion.steer({position:pos,target,enemies:nearbyHostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
-   heading:Number(peer.specimenEvasionHeading)||0,
+   heading:Number(peer.specimenEvasionHeading)||0,intent:combatTarget?'combat':orb?'collect':'follow',
    resolve:specimenCaveLayout?(x,y)=>AbyssalMap.resolveMove(specimenCaveLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):specimenClassicRocks?(x,y)=>ClassicCavern.resolve(specimenClassicRocks,pos.x,pos.y,x,y,radius+1/WORLD_ZOOM,roomWorldWidth(room),roomWorldHeight(room)):(x,y)=>({x:clamp(x,18/WORLD_ZOOM,roomWorldWidth(room)-18/WORLD_ZOOM),y:clamp(y,18/WORLD_ZOOM,roomWorldHeight(room)-18/WORLD_ZOOM)})});
   const spaced=combatTarget?PetTactics.limitApproach(pos,move,combatTarget,combatStop-1):move;
   peer.specimenX=spaced.x;peer.specimenY=spaced.y;
