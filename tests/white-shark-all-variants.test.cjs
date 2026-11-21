@@ -21,7 +21,8 @@ test('wild white shark, boss and catalogue Eco share identical atlas URLs',()=>{
   const radius=id==='whiteSharkBoss'?62:22;frames=[];
   assert.equal(api.drawAtOrigin(renderer,id,radius,330,false),true);
   assert.equal(frames.length,1);assert.match(frames[0][0].url,/abyssal-white-shark-swim/);
-  assert.equal(frames[0][8],radius*3.1);
+  assert.equal(frames[0][7],radius*3.1);
+  assert.equal(frames[0][8],radius*3.1*168/320);
   frames=[];const state={hostileBite:{startedAt:1100,duration:380,phaseStart:.44}};
   assert.equal(api.drawAtOrigin(renderer,id,radius,330,true,0,state),true);
   assert.equal(frames.length,1);assert.match(frames[0][0].url,/abyssal-white-shark-attack/);
