@@ -88,7 +88,8 @@
   const travelAngle=Number.isFinite(approachAngle)?approachAngle:directAngle;
   const er=attackTargetRadius(enemy);
   // Body contact is an ellipse, not a bite with extra slack. Stay inside its actual reach.
-  const stop=er+profile.reach-Math.max(2,profile.slack*(profile.body ? .65 : .8));
+  const effectiveReach=profile.kraken?Math.min(profile.reach,profile.r*1.8):profile.reach;
+  const stop=er+effectiveReach-Math.max(2,profile.slack*(profile.body ? .65 : .8));
   return {x:enemy.x-Math.cos(travelAngle)*stop,y:enemy.y-Math.sin(travelAngle)*stop,angle:directAngle,approachAngle:travelAngle,stop,distance:d};
  }
  function attackContact(pet,enemy,p,angle,phase,krakenTouch){
@@ -99,7 +100,7 @@
    const localX=dx*Math.cos(angle)+dy*Math.sin(angle),localY=-dx*Math.sin(angle)+dy*Math.cos(angle);
    const mantle=(localX/(p.r*.82+er))**2+((localY+p.r*.55)/(p.r*1.18+er))**2<=1;
    return mantle||Boolean(krakenTouch?.({kind:'kraken',x:pet.x,y:pet.y,r:p.r,angle,phase},enemy,1))||
-    (d<=p.r*1.4+er&&localX>-p.r*.8);
+    (d<=p.r*1.95+er&&localX>-p.r*.8);
   }
   if(p.body){
    const x=dx*Math.cos(angle)+dy*Math.sin(angle),y=-dx*Math.sin(angle)+dy*Math.cos(angle);
