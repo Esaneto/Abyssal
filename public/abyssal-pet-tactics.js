@@ -66,8 +66,10 @@
    // but may still collect a clearly safer/closer orb when not yet engaged.
    const committed=preferredType==='enemy'&&preferredEnemyId!=null&&String(enemy.id)===String(preferredEnemyId);
    const immediate=mode==='aggressive'&&distance(enemy,pet)<=Math.min(attackRange,130);
-   if(mode==='guardian'||committed||immediate||!orb||enemyDistance<=orbDistance*(preferredType==='orb'?.90:1.10))
-    return {type:'enemy',target:enemy,enemy,mode};
+   if(mode==='guardian'||committed||immediate||!orb||enemyDistance<=orbDistance*(preferredType==='orb'?.90:1.10)){
+    const front=frontlineTarget(pet,enemy,threats,mode,player,attackRange,guardRange);
+    return {type:'enemy',target:front,enemy:front,mode};
+   }
   }
   if(orb)return {type:'orb',target:orb,orb,mode};
   return {type:'follow',target:{x:player.x,y:player.y-35},mode};
@@ -100,8 +102,40 @@
   const travelAngle=Number.isFinite(approachAngle)?approachAngle:directAngle;
   const er=attackTargetRadius(enemy);
   // Body contact is an ellipse, not a bite with extra slack. Stay inside its actual reach.
-  const stop=er+profile.reach+(profile.body?-Math.max(1,profile.slack*.5):profile.slack*.35);
+  // The previous goal sat on the outermost contact pixel. Tiny heading and
+  // animation changes could make an Eco stop *outside* its actual hitbox.
+  // The Kraken's animation is shorter than its theoretical maximum reach.
+  const reliableReach=profile.kraken?Math.min(profile.reach,profile.r*1.95):profile.reach;
+  const stop=Math.max(er+profile.core*.40,er+reliableReach-Math.max(3,profile.slack*(profile.body?.90:.75)));
   return {x:enemy.x-Math.cos(travelAngle)*stop,y:enemy.y-Math.sin(travelAngle)*stop,angle:directAngle,approachAngle:travelAngle,stop,distance:d};
+ }
+ // A creature in a valid strike envelope must hold its position while aiming
+ // or waiting for cadence. Local avoidance must not push it away between bites.
+ function attackStance(pet,enemy,profile){
+  if(!pet||!enemy||!profile)return false;
+  const d=distance(pet,enemy),ideal=attackGoal(pet,enemy,profile).stop;
+  const inner=attackTargetRadius(enemy)+Math.max(1,profile.core*.35);
+  const outer=ideal+Math.max(4,profile.slack*1.5);
+  return d>=inner&&d<=outer;
+ }
+ // If a selected enemy is behind other valid enemies, engage the frontline
+ // blocker instead of trying to steer through the whole crowd.
+ function frontlineTarget(pet,enemy,enemies,mode='aggressive',player=null,attackRange=350,guardRange=255){
+  if(!pet||!enemy||mode==='passive')return enemy;
+  const dx=enemy.x-pet.x,dy=enemy.y-pet.y,d=Math.hypot(dx,dy);
+  if(d<Math.max(65,(Number(enemy.r)||12)*2.2))return enemy;
+  const ux=dx/d,uy=dy/d;
+  let blocker=null,bestAlong=Infinity;
+  for(const e of enemies||[]){
+   if(!live(e)||e===enemy||String(e.id)===String(enemy.id))continue;
+   const ex=e.x-pet.x,ey=e.y-pet.y,along=ex*ux+ey*uy,lateral=Math.abs(ex*uy-ey*ux);
+   const er=Math.max(4,Number(e.r)||12);
+   if(along<=0||along>=d-er*.55||lateral>er+12)continue;
+   if(mode==='guardian'&&(!player||distance(e,player)>guardRange))continue;
+   if(mode==='aggressive'&&Math.hypot(ex,ey)>attackRange)continue;
+   if(along<bestAlong){bestAlong=along;blocker=e;}
+  }
+  return blocker||enemy;
  }
  function attackContact(pet,enemy,p,angle,phase,krakenTouch){
   const er=attackTargetRadius(enemy),dx=enemy.x-pet.x,dy=enemy.y-pet.y,d=Math.hypot(dx,dy);
@@ -120,5 +154,5 @@
   const mouthX=pet.x+Math.cos(angle)*p.reach,mouthY=pet.y+Math.sin(angle)*p.reach;
   return Math.hypot(enemy.x-mouthX,enemy.y-mouthY)<=er+p.slack;
  }
- return Object.freeze({MODES,normalize,choose,orbRisk,attackProfile,attackTargetRadius,limitApproach,attackGoal,attackContact});
+ return Object.freeze({MODES,normalize,choose,orbRisk,attackProfile,attackTargetRadius,limitApproach,attackGoal,attackStance,frontlineTarget,attackContact});
 });
