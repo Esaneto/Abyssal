@@ -130,7 +130,7 @@
    if(!live(e)||e===enemy||String(e.id)===String(enemy.id))continue;
    const ex=e.x-pet.x,ey=e.y-pet.y,along=ex*ux+ey*uy,lateral=Math.abs(ex*uy-ey*ux);
    const er=Math.max(4,Number(e.r)||12);
-   if(along<=0||along>=d-er*.55||lateral>er+12)continue;
+   if(along<=0||along>=d-Math.max(24,er*2.2)||lateral>er+12)continue;
    if(mode==='guardian'&&(!player||distance(e,player)>guardRange))continue;
    if(mode==='aggressive'&&Math.hypot(ex,ey)>attackRange)continue;
    if(along<bestAlong){bestAlong=along;blocker=e;}
