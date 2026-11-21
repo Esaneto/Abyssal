@@ -33,3 +33,8 @@ test('purple orbs and short paralysis are configured at the source',()=>{
  assert.match(game,/ctx\.fillStyle='#bc79ff'/);
  assert.match(server,/enemy\.paralyzedUntil=Math\.max\(Number\(enemy\.paralyzedUntil\)\|\|0,now\+100\)/);
 });
+
+test('companion stays still at a reached goal when a non-overlapping threat is merely nearby',()=>{
+ const move=Evasion.steer({position:{x:0,y:0},target:{x:0,y:0},enemies:[{x:35,y:0,r:8,hp:100}],speed:80,dt:.1,radius:7,clearance:14,heading:0});
+ assert.equal(move.x,0);assert.equal(move.y,0);assert.equal(move.evading,false);
+});

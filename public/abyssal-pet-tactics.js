@@ -22,7 +22,7 @@
   }
   return cost;
  }
- function choose({mode,pet,player,enemies=[],orbs=[],collectionRange=300,attackRange=350,guardRange=255,routeCost=null,preferredOrbId=null}){
+ function choose({mode,pet,player,enemies=[],orbs=[],collectionRange=300,attackRange=350,guardRange=255,routeCost=null,preferredOrbId=null,preferredEnemyId=null,preferredType=null}){
   mode=normalize(mode);
   if(!pet||!player)return {type:'follow',target:player||pet||{x:0,y:0}};
   const threats=enemies.filter(live);
@@ -32,27 +32,41 @@
    if(distance(o,player)>collectionRange)continue;
    const d=distance(o,pet),cost=routeCost?routeCost(o):d;if(!Number.isFinite(cost))continue;
    // A nearby enemy may make a close orb less attractive than a safe one.
-   const score=cost+orbRisk(o,pet,threats)*(mode==='passive'?3.4:1.25)-(o.id===preferredOrbId?35:0);
+   const score=cost+orbRisk(o,pet,threats)*(mode==='passive'?3.4:1.25)-(o.id===preferredOrbId?(preferredType==='orb'?70:35):0);
    if(score<orbScore){orbScore=score;orbDistance=d;orb=o;}
   }
   let enemy=null,enemyDistance=Infinity;
+  const preferred=preferredEnemyId==null?null:threats.find(e=>String(e.id)===String(preferredEnemyId));
   if(mode==='aggressive'){
+   if(preferred){
+    const d=distance(preferred,pet);
+    if(d<attackRange*1.12){enemy=preferred;enemyDistance=d;}
+   }
    for(const e of threats){
     const d=distance(e,pet);
-    if(d<attackRange&&d<enemyDistance){enemy=e;enemyDistance=d;}
+    // Keep the current target unless a different threat is meaningfully closer.
+    if(d<attackRange&&(!enemy||d<enemyDistance-Math.max(10,(Number(e.r)||10)*.55))){
+     enemy=e;enemyDistance=d;
+    }
    }
   }else if(mode==='guardian'){
+   if(preferred){
+    const d=distance(preferred,player);
+    if(d<guardRange*1.10){enemy=preferred;enemyDistance=d;}
+   }
    for(const e of threats){
     const distanceToPlayer=distance(e,player);
-    if(distanceToPlayer<guardRange&&distanceToPlayer<enemyDistance){
+    if(distanceToPlayer<guardRange&&(!enemy||distanceToPlayer<enemyDistance-Math.max(10,(Number(e.r)||10)*.55))){
      enemy=e;enemyDistance=distanceToPlayer;
     }
    }
   }
   if(enemy){
-   // Aggressive pet makes a proximity choice between a threat and reachable XP.
-   // Guardian treats the protected area as the highest priority.
-   if(mode==='guardian'||!orb||enemyDistance<=orbDistance*1.15)
+   // Guardian always defends its radius. Aggressive keeps a committed fight stable
+   // but may still collect a clearly safer/closer orb when not yet engaged.
+   const committed=preferredType==='enemy'&&preferredEnemyId!=null&&String(enemy.id)===String(preferredEnemyId);
+   const immediate=mode==='aggressive'&&distance(enemy,pet)<=Math.min(attackRange,130);
+   if(mode==='guardian'||committed||immediate||!orb||enemyDistance<=orbDistance*(preferredType==='orb'?.90:1.10))
     return {type:'enemy',target:enemy,enemy,mode};
   }
   if(orb)return {type:'orb',target:orb,orb,mode};

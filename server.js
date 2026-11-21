@@ -1518,7 +1518,26 @@ function tickRoom(room, now) {
   if(specimenClassicRocks){
    const habit=PetTactics.normalize(peer.petHabit),threats=hostile.filter(e=>Math.hypot(e.x-pos.x,e.y-pos.y)<360/WORLD_ZOOM);
    const candidates=(room.world?.orbs||[]).filter(o=>Math.hypot(o.x-peer.x,o.y-peer.y)<=acquisitionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
-   const choice=PetTactics.choose({mode:habit,pet:pos,player:peer,enemies:threats,orbs:candidates,collectionRange:acquisitionRange,attackRange:350/WORLD_ZOOM,guardRange:265/WORLD_ZOOM,preferredOrbId:peer.specimenOrbId,routeCost:o=>{const safe=ClassicCavern.orbWaterPoint(specimenClassicRocks,roomWorldWidth(room),roomWorldHeight(room),o.x,o.y,radius+1/WORLD_ZOOM);if(!safe)return Infinity;const blocked=ClassicCavern.segmentBlocked(specimenClassicRocks,pos.x,pos.y,safe.x,safe.y,radius+1/WORLD_ZOOM);return Math.hypot(safe.x-pos.x,safe.y-pos.y)*(blocked?1.65:1);}});
+   const attackRange=350/WORLD_ZOOM,guardRange=265/WORLD_ZOOM;
+   let choice=null;
+   if(now<(Number(peer.specimenNextTacticsAt)||0)&&peer.specimenChoiceHabit===habit){
+    if(peer.specimenChoiceType==='enemy'){
+     const kept=threats.find(e=>String(e.id)===String(peer.specimenChoiceEnemyId));
+     const valid=kept&&(habit==='aggressive'?Math.hypot(kept.x-pos.x,kept.y-pos.y)<=attackRange*1.12:
+      habit==='guardian'?Math.hypot(kept.x-peer.x,kept.y-peer.y)<=guardRange*1.10:false);
+     if(valid)choice={type:'enemy',target:kept,enemy:kept,mode:habit};
+    }else if(peer.specimenChoiceType==='orb'){
+     const kept=candidates.find(o=>String(o.id)===String(peer.specimenChoiceOrbId));
+     if(kept)choice={type:'orb',target:kept,orb:kept,mode:habit};
+    }else if(peer.specimenChoiceType==='follow')choice={type:'follow',target:{x:peer.x,y:peer.y-35},mode:habit};
+   }
+   if(!choice){
+    choice=PetTactics.choose({mode:habit,pet:pos,player:peer,enemies:threats,orbs:candidates,collectionRange:acquisitionRange,attackRange,guardRange,
+     preferredOrbId:peer.specimenChoiceOrbId,preferredEnemyId:peer.specimenChoiceEnemyId,preferredType:peer.specimenChoiceType,
+     routeCost:o=>{const safe=ClassicCavern.orbWaterPoint(specimenClassicRocks,roomWorldWidth(room),roomWorldHeight(room),o.x,o.y,radius+1/WORLD_ZOOM);if(!safe)return Infinity;const blocked=ClassicCavern.segmentBlocked(specimenClassicRocks,pos.x,pos.y,safe.x,safe.y,radius+1/WORLD_ZOOM);return Math.hypot(safe.x-pos.x,safe.y-pos.y)*(blocked?1.65:1);}});
+    peer.specimenChoiceType=choice.type;peer.specimenChoiceEnemyId=choice.enemy?.id??null;peer.specimenChoiceOrbId=choice.orb?.id??null;
+    peer.specimenChoiceHabit=habit;peer.specimenNextTacticsAt=now+280;
+   }
    peer.specimenOrbId=choice.type==='orb'?choice.orb.id:null;
    if(choice.type==='orb'){const o=choice.orb,safe=ClassicCavern.orbWaterPoint(specimenClassicRocks,roomWorldWidth(room),roomWorldHeight(room),o.x,o.y,radius+1/WORLD_ZOOM);if(ClassicCavern.orbNeedsRelocation(specimenClassicRocks,o,safe,radius,12/WORLD_ZOOM)){o.x=safe.x;o.y=safe.y;io.to(channelFor(room)).emit('world-orb-spawned',{...o,relocated:true});}target=safe||o;}
    else if(choice.type==='enemy'){
@@ -1543,7 +1562,9 @@ function tickRoom(room, now) {
    heading:Number(peer.specimenEvasionHeading)||0,
    resolve:specimenCaveLayout?(x,y)=>AbyssalMap.resolveMove(specimenCaveLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):specimenClassicRocks?(x,y)=>ClassicCavern.resolve(specimenClassicRocks,pos.x,pos.y,x,y,radius+1/WORLD_ZOOM,roomWorldWidth(room),roomWorldHeight(room)):(x,y)=>({x:clamp(x,18/WORLD_ZOOM,roomWorldWidth(room)-18/WORLD_ZOOM),y:clamp(y,18/WORLD_ZOOM,roomWorldHeight(room)-18/WORLD_ZOOM)})});
   const spaced=combatTarget?PetTactics.limitApproach(pos,move,combatTarget,combatStop-1):move;
-  peer.specimenX=spaced.x;peer.specimenY=spaced.y;peer.specimenEvasionHeading=move.angle;
+  peer.specimenX=spaced.x;peer.specimenY=spaced.y;
+  const currentHeading=Number(peer.specimenEvasionHeading)||0,turn=Math.atan2(Math.sin(move.angle-currentHeading),Math.cos(move.angle-currentHeading));
+  peer.specimenEvasionHeading=currentHeading+clamp(turn,-Math.max(.05,dt*5.5),Math.max(.05,dt*5.5));
  }
  if(activePlayers.length)io.to(channelFor(room)).volatile.emit('specimen-motion',{serverTime:now,rows:activePlayers.map(p=>[p.id,p.specimenX,p.specimenY,Number(p.specimenEvasionHeading)||0,p.specimenAlive!==false,ResBalance.rank(p.magneticField)])});
  const w = room.world;
@@ -2328,7 +2349,9 @@ io.on('connection', socket => {
   p.viewportWidth=windowWidthSafe(meta.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(meta.viewportHeight,p.viewportHeight||700);p.worldZoom=clamp(Number(meta.worldZoom)||p.worldZoom||WORLD_ZOOM,.18,1.5);
   p.clientCombatRange=clamp(Number(meta.combatRange)||294/WORLD_ZOOM,294/WORLD_ZOOM,2000/WORLD_ZOOM);
   p.clientEnemyCount=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(meta.clientEnemyCount)||0)));p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(meta.clientMovingEnemies)||0)));
-  p.petHabit=PetTactics.normalize(meta.petHabit);p.clientPredicting=Boolean(meta.clientPredicting);p.clientGameState=String(meta.clientGameState||'unknown').slice(0,24);p.clientHidden=Boolean(meta.clientHidden);p.clientMotionAt=Date.now();
+  const nextPetHabit=PetTactics.normalize(meta.petHabit);
+  if(nextPetHabit!==p.petHabit){p.specimenChoiceType=null;p.specimenChoiceEnemyId=null;p.specimenChoiceOrbId=null;p.specimenNextTacticsAt=0;p.specimenAttackId=null;p.specimenAttackHoldUntil=0;}
+  p.petHabit=nextPetHabit;p.clientPredicting=Boolean(meta.clientPredicting);p.clientGameState=String(meta.clientGameState||'unknown').slice(0,24);p.clientHidden=Boolean(meta.clientHidden);p.clientMotionAt=Date.now();
  });
  socket.on('player-build', payload => {
   const room = socketRoom(socket), p = room?.players.get(socket.id);
