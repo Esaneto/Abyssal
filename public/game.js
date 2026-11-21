@@ -3970,7 +3970,11 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   const attacking=atlas.isBiting?.(enemyState,performance.now())===true;
   c.save();c.translate(x,y);
   if(!enemyState?.__sprite){
-   if(spriteId==='whiteShark'&&!playerCreature)c.rotate(Number(movingEnemyHeading)||0);
+   if(spriteId==='whiteShark'||spriteId==='whiteSharkBoss'||spriteId==='reefshark'){
+     // The head and torso stay rigid; only the shark atlas articulates tail/jaw.
+     const stableHeading=(liveSkinHeading??movingEnemyHeading??Number(angle))||0;
+     c.rotate(Number(stableHeading)||0);
+    }
    else applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading??movingEnemyHeading);
   }
   const painted=atlas.drawAtOrigin(c,spriteId,r,animationTime,attacking,hit,enemyState);
@@ -4619,7 +4623,8 @@ function drawRiftShopSpecimen(enemy,skin,time){
   const heading=biting&&Number.isFinite(enemy.hostileBite?.angle)?enemy.hostileBite.angle:
    Number.isFinite(motion?.heading)?motion.heading:(Number(enemy.angle)||0);
   ctx.save();ctx.translate(enemy.x,enemy.y);
-  applyCreatureVisualTransform(ctx,motion,radius,heading);
+  if(skin.id==='reefshark')ctx.rotate(Number(heading)||0);
+  else applyCreatureVisualTransform(ctx,motion,radius,heading);
   const painted=atlas.drawAtOrigin(ctx,skin.id,radius,Number(motion?.phaseTime)||time,biting,enemy.hit||0,enemy);
   ctx.restore();
   if(painted)return;

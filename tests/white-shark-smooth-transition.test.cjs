@@ -41,6 +41,6 @@ test('one drawImage on the game canvas per shark frame, without render-time buff
 });
 test('only the ordinary white shark disables whole-body sway',()=>{
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
- assert.match(game,/if\(spriteId==='whiteShark'&&!playerCreature\)/);
- assert.match(game,/c\.rotate\(Number\(movingEnemyHeading\)\|\|0\)/);
+ assert.match(game,/spriteId==='whiteShark'\|\|spriteId==='whiteSharkBoss'\|\|spriteId==='reefshark'/);
+ assert.match(game,/c\.rotate\(Number\(stableHeading\)\|\|0\)/);
 });

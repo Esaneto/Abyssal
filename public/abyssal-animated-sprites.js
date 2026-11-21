@@ -137,7 +137,7 @@
  function drawAtOrigin(c,id,r,t,attack,hit=0,state=null){
   const cfg=SPECIES[String(id||'')];
   if(!cfg||!c||!(Number(r)>0))return false;
-  const useWhiteShark=String(id)==='whiteShark'&&whiteSharkReady;
+  const useWhiteShark=whiteSharkReady&&(id==='whiteShark'||id==='whiteSharkBoss'||id==='reefshark');
   const useHd=!useWhiteShark&&hdReady&&cfg.art!==undefined;
   if(!ready&&!useHd&&!useWhiteShark)return false;
   const time=Number(t)||0,phase=time*(cfg.octopus?.0037:.0059);
