@@ -41,3 +41,17 @@ test('Passive ignores preferred enemy state and never attacks',()=>{
  const e={id:'old',...enemy(15,0)};
  assert.notEqual(ai.choose({mode:'passive',pet,player,enemies:[e],preferredEnemyId:'old',preferredType:'enemy'}).type,'enemy');
 });
+
+test('Guardian engages a blocking frontline enemy instead of chasing through the group',()=>{
+ const front={id:'front',x:90,y:0,r:14,hp:100},rear={id:'rear',x:175,y:0,r:14,hp:100};
+ const c=ai.choose({mode:'guardian',pet:{x:0,y:0},player:{x:175,y:0},enemies:[front,rear],guardRange:255});
+ assert.equal(c.type,'enemy');assert.equal(c.enemy.id,'front');
+ assert.equal(ai.choose({mode:'passive',pet:{x:0,y:0},player:{x:175,y:0},enemies:[front,rear]}).type,'follow');
+});
+test('Shark attack position is inside reliable mouth contact and allows stable combat',()=>{
+ const enemy={id:1,x:100,y:0,r:15,kind:'drifter',hp:100},profile=ai.attackProfile('reefshark','shark',41);
+ const goal=ai.attackGoal({x:0,y:0},enemy,profile),at={x:goal.x,y:goal.y};
+ assert.equal(ai.attackContact(at,enemy,profile,0,0),true);
+ assert.equal(ai.attackStance(at,enemy,profile),true);
+ assert.equal(ai.attackStance({x:0,y:0},enemy,profile),false);
+});

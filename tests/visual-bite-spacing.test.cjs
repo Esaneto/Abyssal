@@ -19,7 +19,9 @@ test('ordinary shark stops outside visible snout and backs out of overlap',()=>{
 test('mascot uses visible shark geometry and clips approach without entering target',()=>{
  const enemy={kind:'whiteShark',x:300,y:300,r:24},pet={x:150,y:300};
  const p=Pet.attackProfile('reefshark','fish',25),goal=Pet.attackGoal(pet,enemy,p);
- assert.ok(goal.stop>1.28*Scale.monsterVisualRadius('whiteShark',24)+p.reach);
+ assert.ok(goal.stop>=Pet.attackTargetRadius(enemy)+p.core*.4,'strike distance respects body clearance');
+ assert.ok(goal.stop<=Pet.attackTargetRadius(enemy)+p.reach,'strike distance must be inside the bite envelope');
+ assert.ok(Pet.attackStance({x:goal.x,y:goal.y},enemy,p),'reached strike goal is a stable stance');
  assert.ok(Pet.attackContact({x:goal.x,y:goal.y},enemy,p,0,0));
  const clipped=Pet.limitApproach(pet,{x:290,y:300},enemy,goal.stop-1);
  assert.ok(Math.abs(Math.hypot(clipped.x-enemy.x,clipped.y-enemy.y)-(goal.stop-1))<1e-6);

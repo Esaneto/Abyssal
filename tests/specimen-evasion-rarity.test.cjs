@@ -53,3 +53,30 @@ test('following a nearby player target never overshoots because enemies are in a
  const second=Evasion.steer({position:first,target:{x:5,y:0},enemies:[threat],speed:100,dt:.1,radius:7,clearance:14,heading:first.angle,intent:'follow'});
  assert.equal(second.x,first.x);assert.equal(second.y,first.y);
 });
+
+test('following a player beside a hostile does not oscillate into occupied destination',()=>{
+ const threat={id:'obstacle',x:5,y:0,r:12,hp:100},state={};
+ let pos={x:-40,y:0},min=Infinity,max=-Infinity;
+ for(let tick=0;tick<120;tick++){
+  const goal={x:5+Math.sin(tick*.12)*2,y:Math.sin(tick*.09)};
+  const next=Evasion.steer({position:pos,target:goal,enemies:[threat],speed:190,dt:.05,
+   radius:7,clearance:14,heading:0,intent:'follow',state});
+  pos={x:next.x,y:next.y};
+  if(tick>20){min=Math.min(min,pos.x);max=Math.max(max,pos.x);}
+ }
+ assert.ok(pos.x < -20,'Eco must wait on the safe side of an occupied player anchor');
+ assert.ok(max-min < 3,'Eco must not repeatedly chase and retreat near the obstacle');
+});
+test('following a moving player starts and stops with hysteresis, not frame-to-frame toggling',()=>{
+ const state={},enemies=[],positions=[];
+ let p={x:0,y:0};
+ for(let i=0;i<100;i++){
+  const target={x:18+i*.65,y:0};
+  const move=Evasion.steer({position:p,target,enemies,speed:70,dt:.05,radius:9,heading:0,intent:'follow',state});
+  p={x:move.x,y:move.y};positions.push(p.x);
+ }
+ let changes=0;
+ for(let i=2;i<positions.length;i++)if((positions[i]-positions[i-1])*(positions[i-1]-positions[i-2])<-.01)changes++;
+ assert.equal(changes,0,'following cannot reverse direction with a steadily moving player');
+ assert.ok(p.x>25,'Eco must actually catch up when the player moves away');
+});
