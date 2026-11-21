@@ -412,7 +412,7 @@ const PET_HABIT_KEY='abyssalPetHabit';
 let petHabit=PET_TACTICS?.normalize?.(localStorage.getItem(PET_HABIT_KEY))||'passive';
 function setPetHabit(mode){
  petHabit=PET_TACTICS?.normalize?.(mode)||'passive';
- if(player?.specimen){player.specimen.tacticalChoice=null;player.specimen.nextTacticsAt=0;player.specimen.pendingBite=null;player.specimen.attackHoldUntil=0;}
+ if(player?.specimen){player.specimen.tacticalChoice=null;player.specimen.nextTacticsAt=0;player.specimen.pendingBite=null;player.specimen.attackHoldUntil=0;player.specimen.ecoFollowing=false;}
  try{localStorage.setItem(PET_HABIT_KEY,petHabit);}catch(_){}
  document.querySelectorAll('[data-pet-habit]').forEach(button=>{
   const selected=button.dataset.petHabit===petHabit;
@@ -3072,7 +3072,15 @@ function updateSpecimenRuntime(dt){
   if(progress>=1)s.dash=null;return;
  }
  if(onlineMode&&isClassicCavernRun()){
-  const sync=window.AbyssalOnline?.getSpecimenMotion?.();if(sync){const dx=sync.x-s.x,dy=sync.y-s.y,blend=1-Math.exp(-dt*18);s.x+=dx*blend;s.y+=dy*blend;s.vx=dx*blend/Math.max(.001,dt);s.vy=dy*blend/Math.max(.001,dt);const a=Number(sync.angle)||0;s.facingAngle=(s.facingAngle||0)+Math.atan2(Math.sin(a-(s.facingAngle||0)),Math.cos(a-(s.facingAngle||0)))*blend;s.alive=sync.alive!==false;}return;
+  const sync=window.AbyssalOnline?.getSpecimenMotion?.();if(sync){
+   const dx=sync.x-s.x,dy=sync.y-s.y,blend=1-Math.exp(-dt*18);
+   const drift=Math.hypot(dx,dy),deadzone=Math.max(.25/GAME_WORLD_ZOOM,(Number(s.r)||5)*.04);
+   if(drift<=deadzone){s.x=sync.x;s.y=sync.y;s.vx=0;s.vy=0;}
+   else{s.x+=dx*blend;s.y+=dy*blend;s.vx=dx*blend/Math.max(.001,dt);s.vy=dy*blend/Math.max(.001,dt);}
+   const a=Number(sync.angle)||0,delta=Math.atan2(Math.sin(a-(s.facingAngle||0)),Math.cos(a-(s.facingAngle||0)));
+   if(Math.abs(delta)>.012)s.facingAngle=(s.facingAngle||0)+delta*blend;
+   s.alive=sync.alive!==false;
+  }return;
  }
  const radius=CREATURE_SCALE?.companionCollisionRadius?.(equippedSkin)||11/GAME_WORLD_ZOOM;s.r=radius;const soloCave=isClassicCavernRun()&&SOLO_CAVERN,pad=radius+1/GAME_WORLD_ZOOM;
  if(soloCave&&(s.x<pad||s.y<pad||s.x>W-pad||s.y>H-pad||SOLO_CAVERN.isBlocked(arenaRocks,s.x,s.y,pad))){const water=SOLO_CAVERN.nearestWater(arenaRocks,W,H,s.x,s.y,pad);if(water){s.x=water.x;s.y=water.y;s.vx=0;s.vy=0;s.navGoal=null;}}
@@ -3104,7 +3112,11 @@ function updateSpecimenRuntime(dt){
   const facing=s.facingAngle,phase=now*.0018,clear=pveTerrainClear(s.x,s.y,combatTarget.x,combatTarget.y,2),contact=clear&&PET_TACTICS.attackContact(s,combatTarget,profile,facing,phase,window.AbyssalEnemyAI?.touchesKrakenTentacle);
   if(contact)s.attackHoldUntil=Math.max(Number(s.attackHoldUntil)||0,now+180);
   const distanceToTarget=Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y),holdBand=Math.max(7/GAME_WORLD_ZOOM,profile.slack*1.8);
-  attackHolding=now<(Number(s.attackHoldUntil)||0)&&distanceToTarget>=strikeGoal.stop-1&&distanceToTarget<=strikeGoal.stop+holdBand;if(attackHolding)target=pos;
+  // HOLD a geometrically valid attacking stance even on frames where jaw or
+  // tentacle animation briefly misses its hitbox. Otherwise crowd avoidance
+  // pushes the Eco back and the next frame pulls it forward forever.
+  attackHolding=clear&&(contact||PET_TACTICS.attackStance(s,combatTarget,profile));
+  if(attackHolding){s.attackHoldUntil=Math.max(Number(s.attackHoldUntil)||0,now+180);target=pos;}
   if(contact&&!profile.body&&now>=(s.nextTacticalAttack||0)){const damage=(SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage*RES_BAL.petAttack(upgrades.petAttack));s.nextTacticalAttack=now+RES_BAL.petInterval(upgrades.petCadence);s.visualAttackUntil=now+390;s.biteAnimation={startedAt:now,duration:360,reach:profile.reach};playWorldSound('bite',s,750,.9,{owner:'local-pet',local:true});s.pendingBite={enemy:combatTarget,profile,damage,hitAt:now+230};s.attackHoldUntil=Math.max(s.attackHoldUntil||0,now+360);attackHolding=true;target=pos;}
   if(profile.body&&now>=(s.nextBodyAttackCheck||0)){
    s.nextBodyAttackCheck=now+90;s.bodyAttackCooldowns ||= new Map();const damage=(SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage*RES_BAL.petAttack(upgrades.petAttack));
@@ -3124,13 +3136,16 @@ function updateSpecimenRuntime(dt){
  const toxin=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1,slowed=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1,normalSpeed=Math.max(0,(SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).speed*RES_BAL.petSpeed(upgrades.petSpeed)/GAME_WORLD_ZOOM)*toxin*slowed);
  if(attackHolding){const decay=Math.exp(-dt*14);s.vx=(Number(s.vx)||0)*decay;s.vy=(Number(s.vy)||0)*decay;s.stuckSeconds=Math.max(0,(s.stuckSeconds||0)-dt*3);}
  else{
-  const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:navigationThreats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,heading:Number(s.facingAngle)||0,intent:combatTarget?'combat':orb?'collect':'follow',resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(isClassicCavernRun()&&SOLO_CAVERN?(x,y)=>SOLO_CAVERN.resolve(arenaRocks,pos.x,pos.y,x,y,pad,W,H):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)}))});
+  const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:navigationThreats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,heading:Number(s.facingAngle)||0,intent:combatTarget?'combat':orb?'collect':'follow',state:s,resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(isClassicCavernRun()&&SOLO_CAVERN?(x,y)=>SOLO_CAVERN.resolve(arenaRocks,pos.x,pos.y,x,y,pad,W,H):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)}))});
   if(move){
    if(combatTarget){const min=strikeGoal.stop-1,oldDistance=Math.hypot(pos.x-combatTarget.x,pos.y-combatTarget.y),newDistance=Math.hypot(move.x-combatTarget.x,move.y-combatTarget.y);if(newDistance<min&&newDistance<oldDistance){const corrected=PET_TACTICS.limitApproach(pos,move,combatTarget,min);move.x=corrected.x;move.y=corrected.y;}}
    if(soloCave){const safe=SOLO_CAVERN.boundedPoint(W,H,move.x,move.y,pad);move.x=safe.x;move.y=safe.y;}
     s.x=move.x;s.y=move.y;const dx=move.x-pos.x,dy=move.y-pos.y,travelled=Math.hypot(dx,dy),velocityBlend=1-Math.exp(-dt*10);s.vx=(Number(s.vx)||0)+((dx/Math.max(.001,dt))-(Number(s.vx)||0))*velocityBlend;s.vy=(Number(s.vy)||0)+((dy/Math.max(.001,dt))-(Number(s.vy)||0))*velocityBlend;
    s.stuckSeconds=Math.hypot(target.x-pos.x,target.y-pos.y)>radius+4&&travelled<normalSpeed*dt*.2?(s.stuckSeconds||0)+dt:Math.max(0,(s.stuckSeconds||0)-dt*2);
-   if(travelled>.01&&!combatTarget){const heading=Math.atan2(s.vy||dy,s.vx||dx),diff=Math.atan2(Math.sin(heading-(s.facingAngle||0)),Math.cos(heading-(s.facingAngle||0)));s.facingAngle=(s.facingAngle||0)+diff*(1-Math.exp(-dt*9));}
+   if(travelled>Math.max(.2,normalSpeed*dt*.045)&&!combatTarget){
+    const heading=Math.atan2(dy,dx),diff=Math.atan2(Math.sin(heading-(s.facingAngle||0)),Math.cos(heading-(s.facingAngle||0)));
+    s.facingAngle=(s.facingAngle||0)+diff*(1-Math.exp(-dt*9));
+   }else if(travelled<=.05){const damping=Math.exp(-dt*18);s.vx*=damping;s.vy*=damping;if(Math.abs(s.vx)<.12)s.vx=0;if(Math.abs(s.vy)<.12)s.vy=0;}
   }
  }
 }
