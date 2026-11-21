@@ -12,3 +12,9 @@
 Follow the existing engineering guidance in .agent/rules/GEMINI.md and .agent/workflows/feature-development.md.
 
 - UI cleanup is not complete until the actual rendered UI passes browser visual regression checks: measure its geometry, interaction hit targets, and capture screenshots before assertions so failures are inspectable. A unit-test pass alone is insufficient. Do not remove or rewrite combined CSS selectors without checking the retained selector targets the real DOM.
+
+## Planejamento do novo modo Expedição (ainda não implementado)
+
+- Leia **docs/EXPEDITION_MODE_AGENT_FRAMEWORK.md** ao receber qualquer pedido sobre o novo botão Expedição, sala de quatro funções, bots, mapa Solo expandido, cavernas e missões.
+- **Não implemente o modo nem altere gameplay enquanto o usuário não autorizar explicitamente.** O framework documenta requisitos do usuário, ideias propostas, ambiguidades e fases de execução.
+- Diferencie o novo modo Expedição dos sistemas legados de Fossas/Expedição, mantenha Solo/Online existentes e atualize o documento de continuidade quando o usuário aprovar novas decisões.
