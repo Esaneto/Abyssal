@@ -431,3 +431,35 @@ html.abyssal-handheld body:not(.game-active) #submarineWorkshop:not(.abyss-visor
   display:none!important;
  }
 }
+
+/* Three-slot station selector remains available while cabin contents expand.
+   Older handheld styles hid the whole control deck in detailed panels. */
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .submarine-workshop-grid{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:minmax(0,1fr) auto!important;
+ gap:5px!important;
+ align-items:stretch!important;
+ min-height:0!important;height:100%!important;
+}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-cockpit-visor{
+ flex:none!important;height:auto!important;min-height:0!important;max-height:100%!important;
+}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-control-deck.abyss-station-deck,
+html.abyssal-handheld.abyssal-handheld-landscape body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-control-deck.abyss-station-deck{
+ display:grid!important;visibility:visible!important;pointer-events:auto!important;
+ grid-column:1!important;grid-row:2!important;
+ grid-template-columns:32px minmax(0,1fr) 32px!important;
+ grid-template-rows:auto!important;
+ width:100%!important;min-height:58px!important;max-height:none!important;
+ gap:3px!important;flex:none!important;margin:0!important;padding:0!important;
+}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-station-arrow{
+ width:32px!important;min-width:32px!important;max-width:32px!important;
+ min-height:43px!important;padding:0!important;
+}
+@media(orientation:landscape) and (max-height:550px){
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-control-deck.abyss-station-deck{
+  min-height:50px!important;
+ }
+}
