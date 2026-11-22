@@ -5,6 +5,11 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const TAU=Math.PI*2;
+ // The diver's unmodified, pre-upgrade swim speed in world units.
+ // Both Solo and the authoritative Online server use the same zoom scale.
+ const DIVER_BASE_SPEED=150;
+ const playerBaseSpeed=zoom=>DIVER_BASE_SPEED/Math.max(.001,Number(zoom)||1);
+ const speedMultiplierForIntent=intent=>intent==='combat'||intent==='collect'?2:.9;
  function risk(x,y,enemies,radius,clearance=28){
   let score=0;
   for(const enemy of enemies||[]){
@@ -76,11 +81,11 @@
    }else if(state)state.ecoBlockerId=null;
   }
   const distance=Math.hypot(gx-x,gy-y);
-  // Slow cruising while following the diver; faster pursuit for a selected
-  // enemy or orb. Catch-up is gradual when the diver outruns the companion.
-  const catchup=follow?Math.min(1,Math.max(0,(distance-Math.max(12,radius*1.7))/Math.max(70,radius*5))):0;
-  const speedFactor=combat?1.18:collect?1.10:follow?.56+.54*catchup:1;
-  const desiredSpeed=baseSpeed*speedFactor;
+  // A companion cruises at 90% of the diver's base speed. When its selected
+  // behavior acquires a valid enemy/orb, it approaches at 200% of that base.
+  // The caller may still apply the companion's own resonance bonus; the
+  // diver's movement upgrades and temporary speed boosts are excluded.
+  const desiredSpeed=baseSpeed*speedMultiplierForIntent(intent);
   let actualSpeed=desiredSpeed;
   if(state&&typeof state==='object'){
    const previous=Number.isFinite(state.ecoMotionSpeed)?state.ecoMotionSpeed:desiredSpeed;
@@ -167,5 +172,5 @@
   }
   return best||{x,y,angle:heading,evading:true};
  }
- return Object.freeze({risk,threatsNear,bestOrb,steer});
+ return Object.freeze({DIVER_BASE_SPEED,playerBaseSpeed,speedMultiplierForIntent,risk,threatsNear,bestOrb,steer});
 });
