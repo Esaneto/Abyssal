@@ -261,61 +261,51 @@
    b.addEventListener('click',()=>selectRelativeStation(n));return b;
   };
   const prev=step(-1,'‹','Estação anterior'),next=step(1,'›','Próxima estação');
-  const mobileLoop=document.documentElement.classList.contains('abyssal-handheld');
-  const createStationKey=(option,copy=false)=>{
+  // Circular cockpit spotlight: one prominent page selector, two faded neighbors.
+  const count=CONSOLE_BUTTONS.length,centerIndex=Math.max(0,stationIndex(selectedStation));
+  const createStationKey=(option,index)=>{
    const key=document.createElement('button');key.type='button';
-   const selected=option.station===selectedStation;
-   key.className='abyss-control-key '+(copy?'abyss-station-loop-copy':'abyss-station-key')+' abyss-control-'+option.id+(!copy&&selected?' is-active':'');
+   const distance=(index-centerIndex+count)%count;
+   const state=distance===0?'is-active':distance===1?'is-next':distance===count-1?'is-prev':'is-distant';
+   key.className='abyss-control-key abyss-station-key abyss-control-'+option.id+' '+state;
    key.dataset.station=option.station;
-   if(copy){
-    // Carousel copies are visual and tappable, but do not duplicate tab stops.
-    key.setAttribute('aria-hidden','true');key.tabIndex=-1;
-   }else{
-    key.setAttribute('aria-label',option.title);
-    key.setAttribute('aria-pressed',String(selected));
-   }
+   key.setAttribute('aria-label',option.title);
+   key.setAttribute('aria-pressed',String(state==='is-active'));
+   if(state==='is-distant'){key.hidden=true;key.tabIndex=-1;key.setAttribute('aria-hidden','true');}
    const symbol=document.createElement('span');symbol.className='abyss-control-icon';symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
    const name=document.createElement('span');name.className='abyss-station-key-name';name.textContent=option.name;
    key.append(symbol,name);key.addEventListener('click',()=>selectStation(option.station));
    return key;
   };
-  // Native horizontal touch-scrolling, with matching visual copies on either
-  // side. Recenter seamlessly after crossing the first or last station.
-  if(mobileLoop)for(const option of CONSOLE_BUTTONS)rail.append(createStationKey(option,true));
-  for(const option of CONSOLE_BUTTONS)rail.append(createStationKey(option));
-  if(mobileLoop)for(const option of CONSOLE_BUTTONS)rail.append(createStationKey(option,true));
-  if(mobileLoop){
-   rail.dataset.infinite='true';
-   let adjusting=false;
-   rail.addEventListener('scroll',()=>{
-    if(adjusting||!rail.isConnected||rail.clientWidth<=0)return;
-    const firstReal=rail.children[CONSOLE_BUTTONS.length];
-    const firstCopy=rail.children[0];
-    const rightCopy=rail.children[CONSOLE_BUTTONS.length*2];
-    if(!firstReal||!firstCopy||!rightCopy)return;
-    const period=firstReal.offsetLeft-firstCopy.offsetLeft;
-    const left=firstReal.offsetLeft-rail.offsetLeft;
-    const right=rightCopy.offsetLeft-rail.offsetLeft;
-    const center=rail.scrollLeft+rail.clientWidth/2;
-    if(period<=0||(center>=left&&center<right))return;
-    adjusting=true;
-    rail.scrollLeft+=center<left?period:-period;
-    adjusting=false;
-   },{passive:true});
-  }
-  // Touch/trackpad scrolling stays native. Keyboard controls select a station.
+  CONSOLE_BUTTONS.forEach((option,index)=>rail.append(createStationKey(option,index)));
+  // One swipe advances one station, without cloned DOM or scroll recentering.
+  let swipe=null;
+  rail.addEventListener('touchstart',event=>{
+   const touch=event.touches[0];if(touch)swipe={x:touch.clientX,y:touch.clientY};
+  },{passive:true});
+  rail.addEventListener('touchend',event=>{
+   if(!swipe)return;
+   const touch=event.changedTouches[0],dx=touch?touch.clientX-swipe.x:0,dy=touch?touch.clientY-swipe.y:0;
+   swipe=null;
+   if(Math.abs(dx)>42&&Math.abs(dx)>Math.abs(dy)*1.2)selectRelativeStation(dx<0?1:-1);
+  },{passive:true});
+  rail.addEventListener('touchcancel',()=>{swipe=null;},{passive:true});
+  let wheelCooldown=0;
+  rail.addEventListener('wheel',event=>{
+   if(Math.abs(event.deltaX)<18||Math.abs(event.deltaX)<Math.abs(event.deltaY))return;
+   event.preventDefault();
+   const now=performance.now();
+   if(now-wheelCooldown>280){wheelCooldown=now;selectRelativeStation(event.deltaX>0?1:-1);}
+  },{passive:false});
+  // Arrow-key navigation retains a reachable focus target across page changes.
   rail.addEventListener('keydown',e=>{
    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
     e.preventDefault();selectRelativeStation(e.key==='ArrowLeft'?-1:1);
+    requestAnimationFrame(()=>workshopGrid.querySelector('.abyss-station-rail')?.focus());
    }
   });
   keys.append(prev,rail,next);
   workshop.dataset.station=selectedStation;
-  requestAnimationFrame(()=>{
-   if(!rail.isConnected)return;
-   const active=rail.querySelector('.abyss-station-key.is-active');if(!active)return;
-   rail.scrollLeft=Math.max(0,active.offsetLeft-rail.offsetLeft-(rail.clientWidth-active.clientWidth)/2);
-  });
   // Show scrolling guidance only when the actual monitor contains hidden rows.
   const hint=document.createElement('span');
   hint.className='abyss-visor-scroll-hint';

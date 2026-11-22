@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-22-dual-rank-v310';
+const VERSION = '2026-11-22-dual-rank-v310-bravery-cabin-v311';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -94,7 +94,7 @@ const GAME_FILES = [
   'abyssal-tutorials.css',
   'enemy-netcode.js',
   'abyssal-sample-audio.js',
-  'audio/music/musica.mp3',
+  'audio/music/bravery_demon_bpm210.ogg',
   'audio/effects/bite.wav',
   'audio/effects/morte_jogador.ogg','audio/effects/dano.wav',
   'audio/effects/pulsos.wav',

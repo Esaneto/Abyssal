@@ -2,46 +2,39 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const path=require('node:path');
 const vm=require('node:vm');
-const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
+const read=p=>fs.readFileSync(p,'utf8');
 
-test('five real cockpit stations support native horizontal touch scrolling and infinite copies on Android',()=>{
- const runtime=read('public/abyssal-exploration-runtime.js');
- const mobile=read('public/mobile-portrait.css');
- const stations=read('public/abyssal-cockpit-stations.css');
+test('spotlight shows one centered menu with only adjacent faded choices',()=>{
+ const runtime=read('public/abyssal-exploration-runtime.js'),css=read('public/abyssal-cockpit-stations.css');
  new vm.Script(runtime,{filename:'abyssal-exploration-runtime.js'});
- assert.match(runtime,/const mobileLoop=document\.documentElement\.classList\.contains\('abyssal-handheld'\)/);
- assert.match(runtime,/if\(mobileLoop\)for\(const option of CONSOLE_BUTTONS\)rail\.append\(createStationKey\(option,true\)\)/);
- assert.match(runtime,/rail\.dataset\.infinite='true'/);
- assert.match(runtime,/const period=firstReal\.offsetLeft-firstCopy\.offsetLeft/);
- assert.match(runtime,/rail\.scrollLeft\+=center<left\?period:-period/);
- assert.match(runtime,/key\.setAttribute\('aria-hidden','true'\);key\.tabIndex=-1/);
- assert.doesNotMatch(runtime,/rail\.setPointerCapture/);
- assert.match(mobile,/\.abyss-station-deck>\.abyss-station-rail\{/);
- assert.match(mobile,/touch-action:pan-x!important/);
- assert.match(stations,/touch-action:pan-x/);
- assert.doesNotMatch(stations,/touch-action:pan-y/);
+ assert.match(runtime,/const state=distance===0\?'is-active':distance===1\?'is-next':distance===count-1\?'is-prev':'is-distant'/);
+ assert.match(runtime,/CONSOLE_BUTTONS\.forEach\(\(option,index\)=>rail\.append\(createStationKey\(option,index\)\)\)/);
+ assert.match(runtime,/key\.setAttribute\('aria-pressed',String\(state==='is-active'\)\)/);
+ assert.match(runtime,/if\(state==='is-distant'\)\{key\.hidden=true;key\.tabIndex=-1/);
+ assert.doesNotMatch(runtime,/abyss-station-loop-copy|const mobileLoop=|rail\.dataset\.infinite/);
+ assert.match(css,/\.abyss-station-key\.is-prev/);
+ assert.match(css,/\.abyss-station-key\.is-next/);
+ assert.match(css,/\.abyss-station-key\.is-active/);
+ assert.match(css,/\.abyss-station-key\.is-distant\{display:none!important\}/);
 });
-
-test('arrow and keyboard navigation wrap on both ends without disabling the buttons',()=>{
+test('touch swipes, horizontal wheel, arrows and keyboard navigate circularly',()=>{
  const runtime=read('public/abyssal-exploration-runtime.js');
  assert.match(runtime,/CONSOLE_BUTTONS\[\(\(i\+offset\)%count\+count\)%count\]\.station/);
  assert.match(runtime,/const prev=step\(-1,'‹','Estação anterior'\),next=step\(1,'›','Próxima estação'\)/);
- assert.doesNotMatch(runtime,/b\.disabled=stationIndex/);
+ assert.match(runtime,/touchstart/);assert.match(runtime,/touchend/);
+ assert.match(runtime,/passive:false/);
  assert.match(runtime,/e\.key==='ArrowLeft'\|\|e\.key==='ArrowRight'/);
 });
-
-test('Android portrait and landscape overrides prevent old four-column station deck layout',()=>{
- const mobile=read('public/mobile-portrait.css');
+test('mobile and landscape retain cockpit visor and selector simultaneously',()=>{
+ const mobile=read('public/mobile-portrait.css'),css=read('public/abyssal-cockpit-stations.css');
  const html=read('public/index.html');
- const sw=read('public/offline-sw.js');
  assert.match(mobile,/Android station navigation v303/);
  assert.match(mobile,/grid-template-columns:44px minmax\(0,1fr\) 44px!important/);
- assert.match(mobile,/overflow-x:auto!important;overflow-y:hidden!important/);
- assert.match(mobile,/@media\(orientation:portrait\)/);
- assert.match(mobile,/@media\(orientation:landscape\)/);
+ assert.doesNotMatch(mobile,/rail\.dataset\.infinite/);
+ assert.match(css,/grid-template-columns:minmax\(0,\.78fr\) minmax\(0,1\.42fr\) minmax\(0,\.78fr\)/);
+ assert.match(css,/abyss-visor-expanded/);
+ assert.match(css,/prefers-reduced-motion/);
  assert.match(html,/abyssal-exploration-runtime\.js\?v=3\.6\.154\.loop/);
  assert.match(html,/mobile-portrait\.css\?v=3\.6\.154\.loop/);
- assert.match(sw,/dual-rank-v310/);
 });

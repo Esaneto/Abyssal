@@ -7,7 +7,7 @@
  'use strict';
  const ASSETS=Object.freeze({
   playerDeath:{file:'effects/morte_jogador.ogg',group:'critical',priority:103,max:.424},
-  music:{file:'music/musica.mp3',gain:.72,group:'music'},
+  music:{file:'music/bravery_demon_bpm210.ogg',gain:.72,group:'music'},
   damage:{file:'effects/dano.wav',group:'combat',priority:68,max:.85},
   pulse:{file:'effects/pulsos.wav',group:'shot',priority:84,max:1.6},
   dash:{file:'effects/investida.ogg',group:'shot',priority:80,max:1.5},
@@ -127,7 +127,6 @@
   const sr=source.sampleRate,period=Math.max(32,Math.round(sr*.42)),length=period*8;
   const out=ctx.createBuffer(2,length,sr),grain=Math.round(period*1.8),offset=Math.min(Math.round(sr*.38),Math.floor(source.length*.26));
   const rate=.94,alpha=1-Math.exp(-2*Math.PI*1450/sr);
-  let seed=24681357;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
   for(let ch=0;ch<2;ch++){
    const input=source.getChannelData(Math.min(ch,source.numberOfChannels-1)),dst=out.getChannelData(ch),weights=new Float32Array(length);
    for(let start=0;start<length;start+=period){
@@ -139,10 +138,7 @@
    }
    for(let i=0;i<length;i++)dst[i]=dst[i]/Math.max(.0001,weights[i])*.72;
    let low=0;for(let pass=0;pass<2;pass++)for(let i=0;i<length;i++){low+=alpha*(dst[i]-low);if(pass===1)dst[i]=low;}
-   for(let start=0;start<length;start+=Math.max(1,Math.round(sr*(.036+rand()*.045)))){
-    const hz=250+rand()*1050,dur=.025+rand()*.055,n=Math.max(1,Math.round(sr*dur)),amp=.035+rand()*.055;
-    for(let j=0;j<n;j++){const t=j/sr;dst[(start+j)%length]+=amp*Math.sin(Math.PI*j/n)**2*Math.sin(2*Math.PI*hz*(t+2*t*t));}
-   }
+   // Pure sample-based motor loop: no added cavitation hiss or random chirps.
    for(let i=0;i<length;i++)dst[i]=clamp(dst[i],-.9,.9);
   }
   return out;
@@ -189,9 +185,9 @@
   }
   async function prewarm(){
    if(warm)return;warm=true;
-   // Short high-frequency samples and the selected music first; the large
+   // Preload only short effects; the long soundtrack streams independently. The large
    // continuous beam is last. No synchronous decode or wait in the game loop.
-   const order=['playerDeath','electric','photon','pierce','echo','nova','beam','damage','pulse','music','bite','orb','kill','dash','propulsorStart','propulsor','cloud','boss','destroyed','repair'];
+   const order=['playerDeath','electric','photon','pierce','echo','nova','beam','damage','pulse','bite','orb','kill','dash','propulsorStart','propulsor','cloud','boss','destroyed','repair'];
    for(let i=0;i<order.length;i+=2)await Promise.all(order.slice(i,i+2).map(load));
   }
   function cleanVoice(v){if(v.done)return;v.done=true;voices.delete(v);if(v.key&&loops.get(v.key)===v)loops.delete(v.key);for(const n of [v.source,v.gain,v.pan,v.filter])try{n?.disconnect();}catch{}}
@@ -301,7 +297,27 @@
   function stopLoop(id,key){const v=loops.get(id+':'+String(key));if(v)stopVoice(v,id==='propulsor'?.28:.045);}
   function stopEffects(){epoch++;pending.clear();for(const v of voices)stopVoice(v);recent.clear();}
   async function startMusic(){
-   if(!ctx||ctx.state!=='running'||musicVoice||hidden||muted)return;
+   if(!ctx||ctx.state!=='running'||hidden||muted)return;
+   if(!musicVoice&&typeof ctx.createMediaElementSource==='function'&&env.document?.createElement){
+    // Stream long menu/gameplay music. Avoid decoding ~39 MB on every menu load.
+    // Keep it inside the same musicBus for player volume and combat ducking.
+    const element=env.document.createElement('audio');
+    element.src=new URL('audio/'+ASSETS.music.file,env.document.baseURI||env.location?.href||'http://localhost/').href;
+    element.loop=true;element.preload='auto';
+    try{
+     const source=ctx.createMediaElementSource(element),gain=ctx.createGain();
+     gain.gain.value=ASSETS.music.gain;
+     source.connect(gain);gain.connect(musicBus);
+     musicVoice={element,source,gain};
+    }catch(error){metrics.errors++;env.console?.warn?.('[AbyssalAudio] streaming fallback',error.message);}
+   }
+   if(musicVoice?.element){
+    if(!musicVoice.element.paused)return;
+    try{await musicVoice.element.play();}catch{/* Autoplay policy: retry on the next user interaction. */}
+    return;
+   }
+   // Web Audio fallback for environments without MediaElementAudioSourceNode.
+   if(musicVoice)return;
    const buffer=await load('music');if(!buffer||musicVoice||hidden||muted||ctx.state!=='running')return;
    const source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;source.loop=true;gain.gain.value=ASSETS.music.gain;source.connect(gain);gain.connect(musicBus);musicVoice={source,gain};source.onended=()=>{if(musicVoice?.source===source)musicVoice=null;try{source.disconnect();gain.disconnect();}catch{}};source.start();
   }
@@ -312,7 +328,10 @@
   function setVolume(channel,value){value=clamp(Number(value)||0,0,1);if(channel==='abyssalMusicVolume'){musicVolume=value;if(ctx&&ctx.currentTime<duckUntil)duck(duckUntil-ctx.currentTime);else smooth(musicBus?.gain,value);}else if(channel==='abyssalSfxVolume'){sfxVolume=value;smooth(sfx?.gain,value*deviceSfxHeadroom);if(!value)stopEffects();}}
   function setMuted(value){muted=Boolean(value);smooth(master?.gain,muted||hidden?0:1);if(muted)stopEffects();else if(started)startMusic();}
   function setHidden(value){hidden=Boolean(value);smooth(master?.gain,hidden||muted?0:1);if(hidden)stopEffects();else if(started){if(ctx?.state==='suspended')ctx.resume().catch(()=>{});startMusic();}}
-  function inspect(){return {...metrics,active:voices.size,loops:loops.size,decoded:buffers.size,decodedBytes:[...buffers.values()].reduce((n,b)=>n+b.length*b.numberOfChannels*4,0),loading:loading.size,musicPlaying:Boolean(musicVoice),sfxVolume,musicVolume,mobile,deviceSfxHeadroom,state:ctx?.state||'locked'};}
+  function inspect(){return {...metrics,active:voices.size,loops:loops.size,decoded:buffers.size,decodedBytes:[...buffers.values()].reduce((n,b)=>n+b.length*b.numberOfChannels*4,0),loading:loading.size,musicPlaying:Boolean(musicVoice&&(!musicVoice.element||!musicVoice.element.paused)),sfxVolume,musicVolume,mobile,deviceSfxHeadroom,state:ctx?.state||'locked'};}
+  // Attempt immediate boot playback; retry on first gesture if autoplay is blocked.
+  if(env.document?.readyState==='loading')env.addEventListener?.('DOMContentLoaded',()=>{void unlock();},{once:true});
+  else if(env.document)Promise.resolve().then(()=>unlock());
   env.addEventListener?.('pointerdown',unlock,{capture:true,passive:true});env.addEventListener?.('keydown',unlock,{capture:true});env.addEventListener?.('touchstart',unlock,{capture:true,passive:true});
   env.addEventListener?.('abyssal-volume-change',e=>setVolume(e.detail?.channel,e.detail?.value));
   env.document?.addEventListener?.('visibilitychange',()=>setHidden(env.document.hidden));
