@@ -80,7 +80,11 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
    {id:'abyssal-conqueror',name:'Conquistador Abyssal',icon:'☬',rarity:'TRANSCENDENTAL',color:'#2ee88a',description:'Você desafiou e conquistou o abismo em seu limite supremo (+100% fortalecimento).',goal:'Complete todos os ciclos de progressão até o nível máximo de 100%.',kind:'conqueror',required:1}
  ];
  const HALL_COLORS=['#ffd66b','#dce8f3','#d79a63','#a5dfff','#a5dfff','#a5dfff','#a5dfff','#a5dfff','#a5dfff','#a5dfff'];
- for(let rank=1;rank<=10;rank++)PROFILE_TITLES.push({id:'hall-top-'+rank,name:'Top '+rank,icon:'♛',rarity:'EXCLUSIVO',color:HALL_COLORS[rank-1],description:'Título temporário do Hall Eterno.',goal:'Ocupe exatamente a posição '+rank+' no Hall Eterno.',kind:'hallRank',required:1,rank});
+ for(let rank=1;rank<=10;rank++)PROFILE_TITLES.push({id:'hall-top-'+rank,name:'Top '+rank,icon:'♛',rarity:'EXCLUSIVO',color:HALL_COLORS[rank-1],description:'Título temporário do Hall Eterno Online.',goal:'Ocupe exatamente a posição '+rank+' no Hall Eterno Online.',kind:'hallRank',required:1,rank});
+ for(const [i,name] of ['Rei Solitário','Príncipe Solitário','Valete Solitário'].entries()){
+  const rank=i+1;
+  PROFILE_TITLES.push({id:'solo-hall-top-'+rank,name,icon:'♛',rarity:'EXCLUSIVO',color:HALL_COLORS[i],description:'Título temporário do Hall Eterno Solo.',goal:'Ocupe a posição '+rank+' do Hall Eterno Solo. O título é removido ao perder a colocação.',kind:'soloHallRank',required:1,rank});
+ }
  const TITLE_ARTWORK={
   'abyss-drifter':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="32" cy="32" r="24" opacity=".55"/><path d="M9 35c7-7 13 7 21 0s14 7 25 0M13 43c6-4 11 4 17 0s12 4 21 0"/><path d="m32 12 3.2 7 7.5.8-5.6 5 1.6 7.2-6.7-3.8-6.7 3.8 1.6-7.2-5.6-5 7.5-.8z" fill="currentColor" fill-opacity=".18"/></svg>',
   'abyss-spark':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M32 5 38 24 57 32 38 38 32 59 25 39 7 32 25 25z" fill="currentColor" fill-opacity=".14"/><path d="m32 17 4.5 10.5L47 32l-10.5 4.5L32 47l-4.5-10.5L17 32l10.5-4.5z"/><circle cx="32" cy="32" r="3" fill="currentColor"/></svg>',
@@ -90,7 +94,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   'sovereign-abyss':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="32" cy="35" r="15" fill="currentColor" fill-opacity=".13"/><path d="M11 20 20 27 24 12 32 23 40 12 44 27 53 20 48 38M11 20l4 23 17 12 17-12 4-23"/><path d="M25 35c4-5 10-5 14 0-4 5-10 5-14 0z"/><circle cx="32" cy="35" r="3" fill="currentColor"/><path d="M8 49c5-2 7 2 11 0m26 0c4 2 6-2 11 0"/></svg>',
    'abyssal-conqueror':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="32" cy="32" r="22" stroke="#2ee88a" stroke-width="2" fill="#2ee88a" fill-opacity=".15"/><path d="M16 42 Q32 18 48 42 M20 30 Q32 10 44 30 M32 8 L32 56" stroke="#4efca0" stroke-width="2.6"/><circle cx="32" cy="20" r="4" fill="#2ee88a"/><circle cx="32" cy="44" r="3" fill="#ffd078"/></svg>'
  };
- function titleArtwork(id){const rank=Number(String(id).match(/^hall-top-(10|[1-9])$/)?.[1]);if(rank)return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 18 20 25 32 9 44 25 56 18 49 46 32 56 15 46Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2"/><text x="32" y="39" fill="currentColor" text-anchor="middle" font-size="24" font-weight="900">'+rank+'</text></svg>';return TITLE_ARTWORK[id]||TITLE_ARTWORK[id.includes('boss')||id.includes('titan')||id.includes('predator')?'leviathan-hunter':id.includes('rift')||id.includes('hadal')||id.includes('sonar')?'abyss-spark':'current-hunter'];}
+ function titleArtwork(id){const soloRank=Number(String(id).match(/^solo-hall-top-([1-3])$/)?.[1]);if(soloRank)return titleArtwork('hall-top-'+soloRank);const rank=Number(String(id).match(/^hall-top-(10|[1-9])$/)?.[1]);if(rank)return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 18 20 25 32 9 44 25 56 18 49 46 32 56 15 46Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2"/><text x="32" y="39" fill="currentColor" text-anchor="middle" font-size="24" font-weight="900">'+rank+'</text></svg>';return TITLE_ARTWORK[id]||TITLE_ARTWORK[id.includes('boss')||id.includes('titan')||id.includes('predator')?'leviathan-hunter':id.includes('rift')||id.includes('hadal')||id.includes('sonar')?'abyss-spark':'current-hunter'];}
  const profileNumber=n=>Math.max(0,Number(n)||0);
  function renderSpecimenProfile(user={}){
   const id=String(user.equippedSkin||'default'),map=user.specimenProficiency||{},points=window.AbyssalSpecimenSystem?.pointsFor?.(map,id)||0,stats=window.AbyssalSpecimenSystem?.stats?.(points)||{percent:0,cooldown:10,attributeBonus:0,rangeBonus:0,respawnSeconds:20};
@@ -118,7 +122,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
    button.disabled=Boolean(user.isSelf===false);
   });
   const received=profileNumber(user.likesReceived),given=profileNumber(user.likesGiven),created=profileNumber(stats.cardumesCreated);
-  const progressFor=t=>t.kind==='hallRank'?(Number(user.hallPosition)===t.rank?1:0):t.kind==='kills'?kills:t.kind==='bosses'?bosses:t.kind==='likesReceived'?received:t.kind==='likesGiven'?given:t.kind==='cardumesCreated'?created:(t.kind==='storeSupporter'||t.kind==='bossAbyssal'||t.kind==='conqueror')?(Array.isArray(user.unlockedTitles)&&user.unlockedTitles.includes(t.id)?1:0):profileNumber(stats[t.kind]);
+  const progressFor=t=>t.kind==='soloHallRank'?(Number(user.soloHallPosition)===t.rank?1:0):t.kind==='hallRank'?(Number(user.hallPosition)===t.rank?1:0):t.kind==='kills'?kills:t.kind==='bosses'?bosses:t.kind==='likesReceived'?received:t.kind==='likesGiven'?given:t.kind==='cardumesCreated'?created:(t.kind==='storeSupporter'||t.kind==='bossAbyssal'||t.kind==='conqueror')?(Array.isArray(user.unlockedTitles)&&user.unlockedTitles.includes(t.id)?1:0):profileNumber(stats[t.kind]);
   const equipped=user.equippedTitle||'abyss-drifter';
   const unlockedIds=new Set(Array.isArray(user.unlockedTitles)?user.unlockedTitles:PROFILE_TITLES.filter(t=>t.kind==='starter'||progressFor(t)>=t.required).map(t=>t.id));
   // Notificar títulos desbloqueados recém-detectados
@@ -153,7 +157,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   root.innerHTML=PROFILE_TITLES.map(t=>{
    const progress=progressFor(t),owned=unlockedIds.has(t.id),isEquipped=equipped===t.id;
    const percent=t.kind==='starter'?100:Math.min(100,Math.floor(progress/t.required*100));
-    const detail=t.kind==='hallRank'?t.goal:t.kind==='starter'?t.goal:owned?'Conquista concluída':percent+'% · '+progress.toLocaleString('pt-BR')+'/'+t.required.toLocaleString('pt-BR');
+    const detail=(t.kind==='hallRank'||t.kind==='soloHallRank')?t.goal:t.kind==='starter'?t.goal:owned?'Conquista concluída':percent+'% · '+progress.toLocaleString('pt-BR')+'/'+t.required.toLocaleString('pt-BR');
    return '<article class="profile-title-card '+(owned?'':'is-locked')+' '+(isEquipped?'is-equipped':'')+'" style="--title-color:'+t.color+'"><div class="profile-title-icon" aria-hidden="true">'+titleArtwork(t.id)+'</div><div class="profile-title-copy"><h4 class="profile-title-name">'+escapeHtml(t.name)+'</h4><p class="profile-title-desc">'+escapeHtml(t.description)+'</p><div class="profile-title-meta"><span>'+t.rarity+'</span><span>·</span><span class="profile-title-state '+(owned?'':'locked')+'">'+(owned?'✓ DESBLOQUEADO':'⌑ BLOQUEADO')+'</span></div><p class="profile-title-desc" style="margin-top:7px">'+escapeHtml(owned?t.goal:detail)+'</p><div class="profile-title-progressbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><span style="width:'+percent+'%"></span></div><button class="profile-title-action" data-equip-title="'+t.id+'" '+(!owned||isEquipped||!window.AbyssalOnline?.isAuthenticated()?'disabled':'')+'>'+(isEquipped?'EQUIPADO':owned?'EQUIPAR TÍTULO':window.AbyssalOnline?.isAuthenticated()?'AINDA BLOQUEADO':'ENTRE PARA EQUIPAR')+'</button></div></article>';
   }).join('');
  }
@@ -1132,10 +1136,26 @@ function rankingRewardBadge(key,rewards){
  const orb='<svg class="ranking-energy-orb" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="#8a3bff" opacity=".22"/><circle cx="12" cy="12" r="6.6" fill="#bc79ff" stroke="#f3dfff" stroke-width="1.6"/><circle cx="9.7" cy="9.4" r="2.2" fill="#fff2ff" opacity=".9"/></svg>';
  return '<span class="ranking-reward" aria-label="Recompensa para os dez primeiros: '+formatted+' de Energia">'+orb+'<strong>+'+formatted+'</strong><span class="ranking-reward-label">ENERGIA</span></span>';
 }
-function renderRankings(data){try{localStorage.setItem('abyssalRankingsCache',JSON.stringify(data));}catch{}
+let activeRankingMode='online',latestRankingsData=null;
+const SOLO_HALL_NAMES=Object.freeze(['Rei Solitário','Príncipe Solitário','Valete Solitário']);
+function renderRankings(data){
+ latestRankingsData=data;
+ try{localStorage.setItem('abyssalRankingsCache',JSON.stringify(data));}catch{}
  const root=$('rankingContent'),screen=$('rankingsScreen');if(!root||!data||screen?.hidden)return;
- const resets=data.resets||{},rewards=data.rewards||{daily:100,weekly:1000,monthly:5000},sections=[['eternal','HALL ETERNO','Marca histórica: quantidade de bosses derrotados por mergulho. Os títulos Top 1 a Top 10 exigem a posição exata e são removidos ao perdê-la.'],['monthly','RANKING MENSAL','Top 10 recebe '+Number(rewards.monthly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['weekly','RANKING SEMANAL','Top 10 recebe '+Number(rewards.weekly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['daily','RANKING DIÁRIO','Top 10 recebe '+Number(rewards.daily).toLocaleString('pt-BR')+' de energia quando o período fechar.']];
- root.innerHTML=sections.map(([key,title,note])=>{const list=data[key]||[],timer=key==='eternal'?'PERMANENTE':`RECOMPENSA EM <strong class="ranking-countdown" data-reset="${Number(resets[key])||0}">${rankingCountdown(resets[key])}</strong>`;return `<section class="ranking-section ranking-${key}"><header class="ranking-section-head"><div class="ranking-title-line"><h3>${title}</h3>${rankingRewardBadge(key,rewards)}</div><span class="ranking-reset">${timer}</span></header>${list.length?list.map((p,i)=>`<div class="ranking-row"><span class="rank-place">#${i+1}</span><span class="rank-name${String(p.nickname||'').toLowerCase()==='gamemaster'?' developer-nickname':''}">${escapeHtml(p.nickname||'Mergulhador')}</span><span class="rank-time">${Number(p.bossesKilled)||0} BOSS${Number(p.bossesKilled)===1?'':'ES'} · ${Math.round(Number(p.score??p.damage)||0).toLocaleString('pt-BR')} DANO</span></div>`).join(''):'<div class="ranking-row"><span class="rank-place">·</span><span class="rank-name">Nenhum mergulho registrado</span><span class="rank-time">0 BOSSES</span></div>'}<p class="ranking-note">${note} Desempate: maior dano e depois maior tempo de mergulho.</p></section>`}).join('');
+ const resets=data.resets||{},rewards=data.rewards||{daily:100,weekly:1000,monthly:5000};
+ const mode=activeRankingMode==='solo'?'solo':'online';
+ const board=data[mode]||(mode==='online'?data:{});
+ const note=mode==='solo'?'Títulos exclusivos e temporários: #1 Rei Solitário, #2 Príncipe Solitário, #3 Valete Solitário. Só podem ser equipados enquanto o jogador ocupar a posição.':'Os títulos Top 1 a Top 10 exigem a posição exata no Hall Eterno e são removidos ao perdê-la.';
+ const sections=[['eternal','HALL ETERNO','Marca histórica: bosses derrotados por mergulho. '+note],['monthly','RANKING MENSAL','Top 10 recebe '+Number(rewards.monthly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['weekly','RANKING SEMANAL','Top 10 recebe '+Number(rewards.weekly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['daily','RANKING DIÁRIO','Top 10 recebe '+Number(rewards.daily).toLocaleString('pt-BR')+' de energia quando o período fechar.']];
+ document.querySelectorAll('#rankingsScreen [data-ranking-mode]').forEach(button=>{const selected=button.dataset.rankingMode===mode;button.classList.toggle('is-active',selected);button.setAttribute('aria-pressed',String(selected));});
+ root.innerHTML=sections.map(([key,title,description])=>{
+  const list=board[key]||[],timer=key==='eternal'?'PERMANENTE':`RECOMPENSA EM <strong class="ranking-countdown" data-reset="${Number(resets[key])||0}">${rankingCountdown(resets[key])}</strong>`;
+  const rows=list.length?list.map((p,i)=>{
+   const soloTitle=mode==='solo'&&key==='eternal'&&i<3?'<span class="ranking-solo-hall-title">'+escapeHtml(SOLO_HALL_NAMES[i])+'</span>':'';
+   return `<div class="ranking-row"><span class="rank-place">#${i+1}</span><span class="rank-name${String(p.nickname||'').toLowerCase()==='gamemaster'?' developer-nickname':''}">${escapeHtml(p.nickname||'Mergulhador')}${soloTitle}</span><span class="rank-time">${Number(p.bossesKilled)||0} BOSS${Number(p.bossesKilled)===1?'':'ES'} · ${Math.round(Number(p.score??p.damage)||0).toLocaleString('pt-BR')} DANO</span></div>`;
+  }).join(''):'<div class="ranking-row"><span class="rank-place">·</span><span class="rank-name">Nenhum mergulho registrado</span><span class="rank-time">0 BOSSES</span></div>';
+  return `<section class="ranking-section ranking-${key}"><header class="ranking-section-head"><div class="ranking-title-line"><h3>${title}</h3>${rankingRewardBadge(key,rewards)}</div><span class="ranking-reset">${timer}</span></header>${rows}<p class="ranking-note">${description} Desempate: maior dano e depois maior tempo de mergulho.</p></section>`;
+ }).join('');
  clearInterval(window.__abyssalRankingTimer);
  const updateRankingCountdown=()=>{
   if(!root.isConnected||!root.getClientRects().length){clearInterval(window.__abyssalRankingTimer);window.__abyssalRankingTimer=null;return;}
@@ -1143,6 +1163,16 @@ function renderRankings(data){try{localStorage.setItem('abyssalRankingsCache',JS
  };
  if(root.getClientRects().length){updateRankingCountdown();window.__abyssalRankingTimer=setInterval(updateRankingCountdown,1000);}
 }
+$('rankingsScreen')?.addEventListener('click',event=>{
+ const button=event.target?.closest?.('[data-ranking-mode]');
+ if(!button)return;
+ const next=button.dataset.rankingMode;
+ if(next!=='solo'&&next!=='online')return;
+ activeRankingMode=next;
+ let cached=latestRankingsData;
+ if(!cached)try{cached=JSON.parse(localStorage.getItem('abyssalRankingsCache')||'null');}catch{}
+ if(cached)renderRankings(cached);
+});
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function pushPeerMotionSample(peer,x,y,serverTime,receivedAt){
  if(!peer||![x,y,serverTime,receivedAt].every(Number.isFinite))return false;
