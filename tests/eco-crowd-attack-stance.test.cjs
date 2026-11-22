@@ -53,7 +53,7 @@ test('the same attack stance and per-Eco follow state run in Solo and Online',()
  assert.match(server,/room\.mode==='open-sea'\?OceanGeography\.segmentClear/);
  assert.match(server,/room\.mode==='open-sea'\?\(x,y\)=>OceanGeography\.resolveMove/);
 
- assert.match(sw,/2026-11-21-eco-stance-v306/);
+ assert.match(sw,/2026-11-21-squad-terrain-v307/);
  assert.match(client,/revision:'eco-stance-v306'/);
 });
 
