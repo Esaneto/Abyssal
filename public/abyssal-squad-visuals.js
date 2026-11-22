@@ -142,6 +142,8 @@ function paintTrap(c,trap,state,t){
  c.restore();
 }
 function paintDiver(c,p,t){
+ // Use the actual animated Abyssal diver art when available.
+ if(root.AbyssalDiverArt?.draw){try{root.AbyssalDiverArt.draw(c,p.x,p.y,15,p.aim||0,p.aim||0,t*1000,{gender:root.AbyssalDiverGender||'male',moving:true});return;}catch(_error){/* procedural fallback */}}
  c.save();c.translate(p.x,p.y);c.rotate(p.aim||0);
  c.shadowColor='#60e8e9';c.shadowBlur=12;
  c.strokeStyle='#72e7ee';c.fillStyle='#102c3c';c.lineWidth=2.2;
