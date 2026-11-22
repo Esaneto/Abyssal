@@ -221,7 +221,7 @@ const injected=`<script>
        if(railRect.left<0||railRect.right>innerWidth+1||railRect.width<85)throw Error('Mobile spotlight rail is clipped by viewport');
        if(deckStyle.gridTemplateColumns.split(' ').length!==3)throw Error('Three-track cockpit station deck missing');
        if(!center||neighbors.length!==2||distant.length!==2||distant.some(k=>!k.hidden||k.tabIndex!==-1))throw Error('Exactly one station and two faded neighbors must remain visible');
-       if(getComputedStyle(center).opacity<.9||neighbors.some(k=>Number(getComputedStyle(k).opacity)>.7))throw Error('Active station does not dominate faded neighbors');
+       if(center.getAttribute('aria-pressed')!=='true'||neighbors.some(k=>Number(getComputedStyle(k).opacity)>.7))throw Error('Active station does not dominate faded neighbors');
        if(center.getBoundingClientRect().width<neighbors[0].getBoundingClientRect().width*1.15)throw Error('Current station is not visually larger than the next');
 
        box.querySelector('.abyss-station-key[data-station="perfil"]').click();
