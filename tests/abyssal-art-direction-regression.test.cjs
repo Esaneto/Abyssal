@@ -20,7 +20,10 @@ test('cockpit and diver retain genuine art geometry',()=>{
  assert.match(cabin,/function exteriorReef\(/);
  assert.match(cabin,/function reflectedWater\(/);
  assert.match(diver,/const visorGlass=c\.createLinearGradient/);
- assert.match(diver,/const tankVolume=c\.createLinearGradient/);
+ const body=read('public/abyssal-realistic-body.js');
+ assert.match(body,/function drawScubaBackpack\(\)/);
+ assert.match(body,/const metal=grad\(/);
+ assert.match(diver,/const metal=c\.createLinearGradient/);
 });
 test('cockpit integrates real marine silhouettes and partial physical seats without a competing pilot overlay',()=>{
  const source=read('public/abyssal-submarine-cockpit.js');
@@ -39,7 +42,8 @@ test('diver keeps the server-matched rifle and readable animated hair',()=>{
  assert.equal(art.BARREL_TIP_X,69);assert.equal(art.GUN_OFFSET_Y,12);
  const source=read('public/diver-art.js');
  assert.match(source,/const step=longHair\?4:5/);
- assert.match(source,/Paired metal oxygen tanks/);
+ assert.match(read('public/abyssal-realistic-body.js'),/External breathing-gas backpack/);
+ assert.match(source,/Legacy fallback: compressed-gas cylinders are external/);
 });
 test('shared geography retains its depth provinces',()=>{
  const geo=require('../public/abyssal-ocean-geography.js');

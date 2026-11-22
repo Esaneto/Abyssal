@@ -157,22 +157,28 @@ function rifleTop(c,id,alpha){
     c.lineTo(-73,ankle[1]+finSwing+(rib-1)*3.5);c.stroke();}c.restore();
    line(-57,ankle[1],-76,ankle[1]+finSwing,'rgba(168,206,217,.56)',.8);
   }
-  // Paired metal oxygen tanks with separate valves and illuminated gauges.
-  for(const tank of [-1,1]){
-   const ty=tank<0?-23:-14;
-   c.save();c.globalAlpha=tank<0?.79:1;
-   c.fillStyle='#0b1b2b';c.strokeStyle='#88acbb';c.lineWidth=1.4;
-   c.beginPath();c.roundRect(-19,ty,38,10,4);c.fill();c.stroke();
-   const tankVolume=c.createLinearGradient(-18,ty,18,ty+10);
-   tankVolume.addColorStop(0,tankColors?.[0]||'#0a1b2b');tankVolume.addColorStop(.28,tankColors?.[1]||'#4c8095');
-   tankVolume.addColorStop(.49,tankColors?.[2]||'#23495f');tankVolume.addColorStop(.80,tankColors?.[3]||'#102c42');tankVolume.addColorStop(1,tankColors?.[4]||'#081a27');
-   c.fillStyle=tankVolume;c.beginPath();c.roundRect(-14,ty+1.8,27,6.4,2.5);c.fill();
-   c.fillStyle='rgba(195,236,237,.37)';c.fillRect(-9,ty+2.4,1.2,4.5);
-   line(-3,ty+2,-3,ty+8,'#83dbe5',1.1);
-   c.fillStyle='#a5b7b7';c.fillRect(17,ty+3,5,4);c.restore();
+  // Legacy fallback: compressed-gas cylinders are external to the torso.
+  // Share the exact dorsal geometry with the primary body renderer.
+  if(options.showBackpack!==false){
+   const mounts=rig?.tankMounts?.(view,options.motion?.roll||0)||[];
+   c.save();if(view)c.transform(1,view.shear,0,view.width,0,0);
+   for(const {y,w,len,x0} of mounts){
+    c.fillStyle='#10222c';c.strokeStyle='#91b4be';c.lineWidth=.95;
+    c.beginPath();c.roundRect(x0,y,len,w,Math.min(w/2,3.5));c.fill();c.stroke();
+    const metal=c.createLinearGradient(x0,y,x0,y+w);
+    metal.addColorStop(0,tankColors?.[0]||'#0a1b2b');
+    metal.addColorStop(.30,tankColors?.[1]||'#4c8095');
+    metal.addColorStop(.62,tankColors?.[2]||'#23495f');
+    metal.addColorStop(1,tankColors?.[4]||'#081a27');
+    c.fillStyle=metal;c.beginPath();c.roundRect(x0+1,y+1,len-2,w-2,Math.min(w/2,2.7));c.fill();
+    for(const strapX of [x0+7,x0+len-9]){
+     c.fillStyle='#14252d';c.strokeStyle='#819da6';c.lineWidth=.6;
+     c.beginPath();c.roundRect(strapX,y+.2,3,w-.4,.7);c.fill();c.stroke();
+    }
+    c.fillStyle='#95acaf';c.fillRect(x0+len-1,y+w*.25,3.3,w*.5);
+   }
+   c.restore();
   }
-  line(-10,-22,-8,-5,'#b0c6cc',1.6);
-  line(11,-20,13,-5,'#b0c6cc',1.6);
   // Black/graphite diving suit with deep abyss-blue armour and small cyan nodes.
   const suit=c.createLinearGradient(-20,-10,24,11);
   suit.addColorStop(0,suitTone('#040c16',0));suit.addColorStop(.33,suitTone('#1c2834',1));

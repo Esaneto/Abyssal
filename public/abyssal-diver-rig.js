@@ -31,12 +31,33 @@
   const p=Math.abs(x),blend=p*p*(3-2*p),side=x===0?(lastSide===-1?-1:1):(x<0?-1:1);
   return {yaw:blend,profile:blend,facing:side,width:(1-.32*blend)*side,shear:.045*blend*(1-blend)*side,headTilt:-.72*blend,rear:Math.max(0,y)**2,front:Math.max(0,-y)**2,directional:true};
  }
- // Exactly two physical cylinders; every viewpoint projects these same mounts.
+ // Separate the HUMAN skeletal frame from SCUBA equipment. No cylinder mount
+ // can ever be an anatomical shoulder, pelvis or elbow reference.
+ const HUMAN_FRAME=Object.freeze({
+  neck:Object.freeze([22,0]),shoulderX:13,shoulderHalfWidth:13,
+  hipX:-19,hipHalfWidth:7.3,torsoDorsalEdge:-13
+ });
+ function humanLandmarks(view=null){
+  const side=view?.directional?(view.facing||1):1;
+  return {neck:project(HUMAN_FRAME.neck,view),shoulders:[-1,1].map(s=>project([HUMAN_FRAME.shoulderX,s*HUMAN_FRAME.shoulderHalfWidth*side],view)),
+   pelvis:project([HUMAN_FRAME.hipX,0],view),hips:[-1,1].map(s=>project([HUMAN_FRAME.hipX,s*HUMAN_FRAME.hipHalfWidth],view))};
+ }
+ // Twin cylinders are EXTERNAL BACK-MOUNT EQUIPMENT. Side-view geometry is
+ // entirely dorsal of the anatomical suit outline (not inside the rib cage).
+ // In a rear view both tanks sit on an external backplate; viewed from the
+ // front, the torso occludes their central surfaces.
  function tankMounts(view,roll=0){
   const profile=clamp(finite(view?.profile),0,1),yaw=clamp(finite(view?.yaw),0,1),rear=clamp(finite(view?.rear),0,1),mix=(a,b,t)=>a+(b-a)*t;
   roll=clamp(finite(roll),-1,1);
-  return [-1,1].map(side=>{const far=side<0,frontY=side*13.3-4.2+(far?2.2:1.1)*yaw,sideY=far?-23+roll*.6:-21+roll*.6;
-   return {far,y:mix(mix(frontY,sideY,profile),far?-10:1,rear),w:mix(8.4+(far?-1.6:1.7)*yaw+roll*(far?-.65:.65)*profile,9,rear),len:mix(34+(far?-3:2)*yaw,32,rear),x0:mix(-17+(far?1.5:-1)*yaw,-16,rear)};
+  return [-1,1].map(side=>{
+   const far=side<0,frontY=side*10.5-3.0+(far?1.3:0)*yaw;
+   const sideY=(far?-29:-22)+roll*.4;
+   const rearY=far?-11.5:2.5;
+   const y=mix(mix(frontY,sideY,profile),rearY,rear);
+   const w=mix(mix(8.0,far?6.5:8.2,profile),8.8,rear);
+   const len=mix(mix(32,far?29:32.5,profile),32.5,rear);
+   const x0=mix(-17+(far?1:-.5)*yaw,-16.5,rear);
+   return {kind:'external-scuba-cylinder',far,mount:'backplate',side,y,w,len,x0};
   });
  }
  // Gameplay stays in one swimming profile at every heading. Vertical travel
@@ -99,7 +120,7 @@
  // Convert actual shoulder into the weapon-local space, then solve a bent
  // two-link arm toward the fixed grip. The barrel and tool anchors never move.
  function armCandidates(side,relativeAim,offset,grip,profile='standard',view=null,projectedTotal=null){
-  const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),torch=profile==='welder',[sx,sy]=project([13,side*13*(view?.directional?view.facing:1)],view);
+  const a=finite(relativeAim),ca=Math.cos(a),sa=Math.sin(a),torch=profile==='welder',[sx,sy]=humanLandmarks(view).shoulders[side<0?0:1];
   const shoulder=[sx*ca+sy*sa,-sx*sa+sy*ca-offset],dx=grip[0]-shoulder[0],dy=grip[1]-shoulder[1];
   // Extend projected reach only when independent rearward aim would otherwise
   // detach a wrist. A 2.5D projection may foreshorten a limb during turning.
@@ -241,7 +262,7 @@
  }
  function idleArm(side,phase=0,weight=0,motion=null,view=null,mode='free'){
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
-  const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.directional){const mix=view.profile,sideView=idleArm(side,phase,weight,motion,{...view,directional:false,profile:1},mode),frontView=idleArm(side*view.facing,phase,weight,motion,{...view,directional:false,profile:0},mode);return Object.fromEntries(['shoulder','elbow','hand'].map(k=>[k,frontView[k].map((v,i)=>v+(sideView[k][i]-v)*mix)]));}if(view?.profile>.5){const tucked=mode==='tool';return {shoulder:project([13,side*13],view),elbow:project([tucked?-5:0,side<0?2:19+brake*2],view),hand:project([tucked?-26:18-brake*3,side<0?8:16+sway*.35+brake*2],view)};}return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
+  const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.directional){const mix=view.profile,sideView=idleArm(side,phase,weight,motion,{...view,directional:false,profile:1},mode),frontView=idleArm(side*view.facing,phase,weight,motion,{...view,directional:false,profile:0},mode);return Object.fromEntries(['shoulder','elbow','hand'].map(k=>[k,frontView[k].map((v,i)=>v+(sideView[k][i]-v)*mix)]));}if(view?.profile>.5){const tucked=mode==='tool';return {shoulder:humanLandmarks(view).shoulders[side<0?0:1],elbow:project([tucked?-5:0,side<0?2:19+brake*2],view),hand:project([tucked?-26:18-brake*3,side<0?8:16+sway*.35+brake*2],view)};}return {shoulder:humanLandmarks(view).shoulders[side<0?0:1],elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
- return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,swimView,tankMounts,project,advance,angleDelta,riflePoseAim,rifleReady,turnRifleBody,leg,arm,armPair,stabilizeArmPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleContacts,rifleGrips,toolGrips});
+ return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,swimView,HUMAN_FRAME,humanLandmarks,tankMounts,project,advance,angleDelta,riflePoseAim,rifleReady,turnRifleBody,leg,arm,armPair,stabilizeArmPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleContacts,rifleGrips,toolGrips});
 });

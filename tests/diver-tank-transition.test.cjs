@@ -7,7 +7,7 @@ test('the actual renderer paints exactly two oxygen cylinders at every gameplay 
  for(let i=0;i<72;i++){
   const heading=i*Math.PI/36,view=Rig.gameplayView(heading);
   let cylinders=0;const state={globalAlpha:1},stack=[];
-  const c=new Proxy(state,{get(o,k){if(k==='stroke')return ()=>{if(o.strokeStyle==='#0a1821')cylinders++;};if(k==='save')return ()=>stack.push({...o});if(k==='restore')return ()=>Object.assign(o,stack.pop());if(k==='createLinearGradient'||k==='createRadialGradient')return ()=>({addColorStop(){}});return k in o?o[k]:()=>{};},set(o,k,v){o[k]=v;return true;}});
+  const c=new Proxy(state,{get(o,k){if(k==='stroke')return ()=>{if(o.strokeStyle==='#9ab2b9')cylinders++;};if(k==='save')return ()=>stack.push({...o});if(k==='restore')return ()=>Object.assign(o,stack.pop());if(k==='createLinearGradient'||k==='createRadialGradient')return ()=>({addColorStop(){}});return k in o?o[k]:()=>{};},set(o,k,v){o[k]=v;return true;}});
   sandbox.AbyssalRealisticBody.draw(c,0,{heading,view,moving:false},{hairStyle:'shaved'});
   assert.equal(cylinders,2,'heading '+heading);
  }
@@ -42,7 +42,7 @@ test('descending pair occupies only the backplate, no side mounts or duplicate c
   const view=Rig.gameplayView(angle);
   const tanks=Rig.tankMounts(view,.8);
   assert.equal(tanks.length,2);
-  assert.deepEqual(tanks.map(v=>[v.x0,v.y,v.w,v.len]),[[-16,-10,9,32],[-16,1,9,32]]);
+  assert.deepEqual(tanks.map(v=>[v.x0,v.y,v.w,v.len]),[[-16.5,-11.5,8.8,32.5],[-16.5,2.5,8.8,32.5]]);
   assert.ok(tanks.every(v=>v.y>=-12&&v.y+v.w<=12));
  }
 });
@@ -58,4 +58,33 @@ test('transition smoothly moves same two mounts between front, side and back',()
  }
  assert.equal(pose.viewHeading,Math.PI/2);
  assert.equal(Rig.gameplayView(pose.viewHeading).rear,1);
+});
+
+test('the human skeleton remains distinct from the mounted breathing cylinders',()=>{
+ const profile=Rig.gameplayView(0),rear=Rig.gameplayView(Math.PI/2),front=Rig.gameplayView(-Math.PI/2);
+ const human=Rig.humanLandmarks(profile),mounts=Rig.tankMounts(profile);
+ assert.deepEqual(human.shoulders.map(p=>p[0]),[13,13]);
+ assert.deepEqual(human.pelvis,[-19,0]);
+ assert.ok(mounts.every(m=>m.kind==='external-scuba-cylinder'&&m.mount==='backplate'));
+ assert.ok(mounts[0].y+mounts[0].w<mounts[1].y,'two cylinders must be separate on the back');
+ assert.ok(mounts[1].y+mounts[1].w<Rig.HUMAN_FRAME.torsoDorsalEdge-.5,'nearest tank must not invade the dorsal suit silhouette');
+ assert.ok(Rig.tankMounts(rear).every(m=>m.y>=-12&&m.y+m.w<=12),'back-mounted in rear view');
+ for(const v of [profile,rear,front]){
+  const before=Rig.humanLandmarks(v);
+  for(const roll of [-1,-.5,0,.5,1]){
+   assert.equal(Rig.tankMounts(v,roll).length,2);
+   assert.deepEqual(Rig.humanLandmarks(v),before,'external gear cannot drive shoulder or pelvis geometry');
+  }
+ }
+});
+test('removing SCUBA equipment does not erase human torso, arms or legs',()=>{
+ const sandbox={AbyssalDiverRig:Rig};vm.createContext(sandbox);vm.runInContext(source,sandbox);
+ let cylinders=0,otherStrokes=0;
+ const state={globalAlpha:1},stack=[];
+ const c=new Proxy(state,{get(o,k){if(k==='stroke')return ()=>{otherStrokes++;if(o.strokeStyle==='#9ab2b9')cylinders++;};if(k==='save')return ()=>stack.push({...o});if(k==='restore')return ()=>Object.assign(o,stack.pop());if(k==='createLinearGradient'||k==='createRadialGradient')return ()=>({addColorStop(){}});return k in o?o[k]:()=>{};},set(o,k,v){o[k]=v;return true;}});
+ sandbox.AbyssalRealisticBody.draw(c,0,{heading:0,view:Rig.gameplayView(0),moving:false,showBackpack:false},{hairStyle:'shaved'});
+ assert.equal(cylinders,0,'the SCUBA pack must be independently removable from the rendered body');
+ assert.ok(otherStrokes>10,'human silhouette must still be drawn without the tanks');
+ const rig=Rig.humanLandmarks(Rig.gameplayView(0));
+ assert.equal(rig.shoulders.length,2);
 });
