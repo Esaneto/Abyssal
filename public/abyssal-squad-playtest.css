@@ -19,3 +19,8 @@
 .squad-play-hint{font-size:8px;bottom:4px;padding:4px;max-width:90vw}.squad-play-head #squadPlayBoss{display:none}
 }
 @media(max-width:390px){.squad-play-meters span:nth-child(2){display:none}.squad-play-head strong{font-size:11px}}
+/* Match the chart with the same Abyssal font hierarchy, and make the boss briefing readable. */
+.abyss-squad-chart .squad-chart-titles h2,.abyss-squad-chart .squad-chart-sidebar h3{font-family:Cinzel,Georgia,serif!important}
+.abyss-squad-chart .squad-chart-mark{font-family:Cinzel,Georgia,serif!important}
+.abyss-squad-chart .squad-chart-label,.abyss-squad-chart .squad-chart-eyebrow{font-family:Inter,system-ui,sans-serif}
+.squad-chart-danger{font-weight:700!important;color:#f0c694!important;font-size:12px!important;letter-spacing:.035em}
