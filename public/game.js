@@ -3331,6 +3331,9 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
    if(nearest){const targetAngle=aimAtEnemy(nearest);aimAngle=Number(player.weaponAngle)||0;hasAim=weaponAligned(aimAngle,targetAngle)||Boolean(player.photonRayActive);}
   }
+  // A continuous ray starts only after the diver has visually turned to face
+  // the beam: the rifle must never appear to project light from behind.
+  if(hasAim&&player.swimPose&&!window.AbyssalDiverRig?.rifleReady?.(player.swimPose.aimBodyHeading,aimAngle,.20))hasAim=false;
   if(!hasAim){stopAudioLoop('beam','local-player');if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
   const ux=Math.cos(aimAngle),uy=Math.sin(aimAngle);
   const gunOrigin=DIVER_ART?.muzzle?.(player.x,player.y,player.r,aimAngle)||{x:player.x,y:player.y};
