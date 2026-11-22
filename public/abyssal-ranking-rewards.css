@@ -1,5 +1,25 @@
 /* Game reward badge follows the actual in-world XP orb (#bc79ff / #8a3bff).
  * Place payout directly after each period title, with responsive wrapping. */
+#rankingsScreen .ranking-mode-switch{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+ padding:5px;margin:16px 0 18px;border:1px solid rgba(129,194,204,.32);
+ background:linear-gradient(120deg,rgba(6,25,36,.94),rgba(19,30,50,.92));
+ border-radius:12px;
+}
+#rankingsScreen .ranking-mode-btn{
+ min-height:43px;padding:9px 12px;cursor:pointer;
+ font:700 12px/1.2 'Inter',system-ui,sans-serif;letter-spacing:.13em;
+ border:1px solid transparent;border-radius:9px;color:#b9cdd8;background:transparent;
+ transition:background .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease;
+}
+#rankingsScreen .ranking-mode-btn.is-active,
+#rankingsScreen .ranking-mode-btn[aria-pressed="true"]{
+ color:#f0ffff;border-color:#5fb3c6;
+ background:linear-gradient(125deg,rgba(19,80,105,.86),rgba(13,38,65,.9));
+ box-shadow:0 0 14px rgba(53,171,199,.18),inset 0 0 18px rgba(53,171,199,.13);
+}
+#rankingsScreen .ranking-mode-btn:focus-visible{outline:2px solid #9aebfc;outline-offset:3px}
+#rankingContent .ranking-solo-hall-title{display:block;margin-top:3px;font:700 10px/1.35 'Inter',system-ui,sans-serif;letter-spacing:.06em;color:#e4c88d}
 #rankingContent .ranking-section-head{flex-wrap:wrap;row-gap:8px;min-width:0}
 #rankingContent .ranking-title-line{display:flex;flex-wrap:wrap;align-items:center;gap:7px 12px;min-width:0;flex:1 1 210px}
 #rankingContent .ranking-title-line h3{margin:0!important;line-height:1.25}
