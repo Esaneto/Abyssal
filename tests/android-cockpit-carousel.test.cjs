@@ -43,5 +43,5 @@ test('Android portrait and landscape overrides prevent old four-column station d
  assert.match(mobile,/@media\(orientation:landscape\)/);
  assert.match(html,/abyssal-exploration-runtime\.js\?v=3\.6\.154\.loop/);
  assert.match(html,/mobile-portrait\.css\?v=3\.6\.154\.loop/);
- assert.match(sw,/expedition-visual-v308/);
+ assert.match(sw,/eco-stance-v306/);
 });
