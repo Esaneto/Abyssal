@@ -469,6 +469,19 @@ function settlePeriods(persist=true) {
   board.daily[d] ||= {};board.weekly[w] ||= {};board.monthly[m] ||= {};
   board.settled={day:d,week:w,month:m};
  }
+ // The archived mixed board still owes rewards for its final open periods.
+ // Settle those once at rollover; never promote old mixed scores to either new hall.
+ const legacy=rankings.legacy;
+ if(legacy?.settled){
+  const cycles=[['day','daily',d,RANKING_ENERGY_REWARDS.daily],['week','weekly',w,RANKING_ENERGY_REWARDS.weekly],['month','monthly',m,RANKING_ENERGY_REWARDS.monthly]];
+  for(const [period,field,current,amount] of cycles){
+   const previous=legacy.settled[period];
+   if(previous&&previous!==current){
+    awardBoard(legacy[field]?.[previous],amount,'legado '+field);
+    legacy.settled[period]=current; // Idempotent across subsequent settlements.
+   }
+  }
+ }
  if(persist){saveUsers();saveRanks();}
 }
 function onlineCount() { return io.engine.clientsCount; }
