@@ -8,11 +8,16 @@ function init(){
  if(!world||!P||!chart||document.getElementById('squadPlaytest'))return;
  const entry=document.createElement('button');entry.id='squadMapEnterWorld';entry.type='button';entry.textContent='EXPLORAR TERRENO';
  chart.querySelector('.squad-chart-footer')?.prepend(entry);
+ // Show per-biome danger and boss data in the cartographic panel.
+ const dangerLine=document.createElement('p');dangerLine.id='squadChartDanger';dangerLine.className='squad-chart-danger';
+ chart.querySelector('#squadZoneDesc')?.insertAdjacentElement('afterend',dangerLine);
+ const updateDanger=()=>{const name=chart.querySelector('#squadZoneName')?.textContent;const zone=world.zones.find(z=>z.name===name);const data=zone&&P.DIFFICULTY[zone.id];dangerLine.textContent=data?'PERIGO '+data.tier+' · BOSS: '+data.bossName.toUpperCase()+(zone.id==='crystals'?' · 8 ARMADILHAS DE TENTÁCULO':''):'PONTO DE PARTIDA / SUBMARINO';};
+ new MutationObserver(updateDanger).observe(chart.querySelector('#squadZoneName'),{childList:true,characterData:true,subtree:true});updateDanger();
  const scene=document.createElement('section');scene.id='squadPlaytest';scene.hidden=true;scene.setAttribute('aria-label','Mapa jogável da Expedição');
  scene.innerHTML='<header class="squad-play-head"><div><span class="squad-play-kicker">ABYSSAL / EXPEDIÇÃO / TESTE DE TERRENO</span><strong id="squadPlayZone">MAR ORIGINAL</strong></div><div class="squad-play-meters"><span id="squadPlayHealth">VIDA 100/100</span><span id="squadPlayRisk">PERIGO 0</span><span id="squadPlayBoss">EXPLORANDO</span></div><button type="button" id="squadPlayReturn">VOLTAR AO MAPA</button></header><canvas id="squadPlayCanvas" aria-label="Mapa explorável com rochas, cavernas, perigos e chefes"></canvas><div class="squad-play-hint">WASD / SETAS: MOVER · MOUSE / ESPAÇO: ATACAR · E: LANTERNA · M: MAPA</div><div class="squad-play-pad"><button data-x="0" data-y="-1" aria-label="Nadar para cima">▲</button><div><button data-x="-1" data-y="0" aria-label="Nadar para a esquerda">◀</button><button data-x="0" data-y="1" aria-label="Nadar para baixo">▼</button><button data-x="1" data-y="0" aria-label="Nadar para a direita">▶</button></div></div><button id="squadPlayFire" type="button" aria-label="Atacar">ATACAR</button><div id="squadPlayNotice" role="status" aria-live="polite"></div>';
  document.body.appendChild(scene);
  const canvas=scene.querySelector('canvas'),ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return;
- const encounters=P.createEncounters(world).map(e=>({...e,maxHp:e.hp,alive:true,alertUntil:0,respawnAt:0,attackAt:0}));
+ const encounters=P.createEncounters(world).map(e=>({...e,maxHp:e.hp,spawnX:e.x,spawnY:e.y,alive:true,alertUntil:0,respawnAt:0,attackAt:0}));
  const traps=encounters.flatMap(e=>e.traps.map(t=>({...t,owner:e})));
  const orig=world.submarine,player={x:orig.x,y:orig.y,hp:100,lastHit:0,aim:0,light:true,lastShot:0};
  let playing=false,raf=0,last=0,elapsed=0,w=900,h=540,dpr=1,zoom=1,camX=0,camY=0,shot=null,noticeUntil=0;
@@ -33,7 +38,7 @@ function init(){
  }
  function update(dt){elapsed+=dt;const m=moveInput(),speed=270,step=P.move(world,player.x,player.y,m.x*dt*speed,m.y*dt*speed,15);player.x=step.x;player.y=step.y;if(m.x||m.y)player.aim=Math.atan2(m.y,m.x);
   if(pressed.has(' ')||pressed.has('f'))fire();
-  for(const enemy of encounters){if(!enemy.alive){if(elapsed>=enemy.respawnAt){enemy.hp=enemy.maxHp;enemy.alive=true;enemy.alertUntil=0;}else continue;}
+  for(const enemy of encounters){if(!enemy.alive){if(elapsed>=enemy.respawnAt){enemy.hp=enemy.maxHp;enemy.x=enemy.spawnX;enemy.y=enemy.spawnY;enemy.alive=true;enemy.alertUntil=0;}else continue;}
    const cave=world.caves.find(c=>c.id===enemy.id),dist=Math.hypot(player.x-enemy.x,player.y-enemy.y);
    if(dist<325&&P.visible(world,enemy.x,enemy.y,player.x,player.y))enemy.alertUntil=elapsed+2;
    if(elapsed<enemy.alertUntil&&dist>enemy.r+24&&dist<cave.r*.88){const dx=(player.x-enemy.x)/(dist||1),dy=(player.y-enemy.y)/(dist||1);const p=P.move(world,enemy.x,enemy.y,dx*dt*(22+enemy.tier*9),dy*dt*(22+enemy.tier*9),enemy.r*.65);if(Math.hypot(p.x-cave.x,p.y-cave.y)<cave.r*.59){enemy.x=p.x;enemy.y=p.y;}}
