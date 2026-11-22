@@ -70,7 +70,7 @@
   const nextView=prevView+viewDelta*(1-Math.exp(-dt*16)),remaining=angleDelta(viewTarget,nextView);
   const viewHeading=Math.abs(remaining)<.012?viewTarget:nextView;
   const swimSide=swimView(heading,old.swimSide).facing;
-  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,viewHeading,swimSide,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath,aimBodyHeading,rifleTurnError:armed?angleDelta(sample.aim,aimBodyHeading):0,frameDt:dt,armBodyElbows:old.armBodyElbows,armPoseHeld:old.armPoseHeld};
+  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,viewHeading,swimSide,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath,aimBodyHeading,aimingRifle:armed,rifleTurnError:armed?angleDelta(sample.aim,aimBodyHeading):0,frameDt:dt,armBodyElbows:old.armBodyElbows,armPoseHeld:old.armPoseHeld};
  }
  function leg(side,phase,weight=1,powered=false,motion=null,view=null){
   const a=clamp(finite(weight),0,1)*(powered?.23:1);
@@ -168,8 +168,36 @@
    if(distance<=maxStep||!maxStep)return goal;
    return [old[0]+dx*maxStep/distance,old[1]+dy*maxStep/distance];
   });
-  motion.armBodyElbows=current;motion.armPoseHeld=held;
-  return pair.map((p,i)=>({...p,elbow:toTool(current[i])}));
+  // A screen-space elbow blend can stretch the arm while the entire body
+  // turns. Limit the *projected* upper/forearm deviation to 8.5%; if the
+  // smoothed position is outside that reachable region, select the closest
+  // physically plausible point toward the exact IK solution.
+  // Original motion paths without an armed aim turn remain unchanged.
+  const realistic=motion.aimingRifle?current.map((candidate,i)=>{
+   const p=pair[i],shoulder=toBody(p.shoulder),hand=toBody(p.hand);
+   const upper=p.projectedTotal*.53,forearm=p.projectedTotal*.47;
+   const deviation=q=>Math.max(
+    Math.abs(Math.hypot(q[0]-shoulder[0],q[1]-shoulder[1])/upper-1),
+    Math.abs(Math.hypot(q[0]-hand[0],q[1]-hand[1])/forearm-1)
+   );
+   if(deviation(candidate)<=.085)return candidate;
+   const previous=prev[i],targetElbow=target[i],
+    dx=targetElbow[0]-previous[0],dy=targetElbow[1]-previous[1],
+    pathLength=Math.hypot(dx,dy);
+   const desiredStep=Math.hypot(candidate[0]-previous[0],candidate[1]-previous[1]);
+   let chosen=targetElbow,best=Infinity;
+   // The exact IK target is always feasible; minimize temporal movement
+   // among anatomical solutions without re-solving or changing hand contacts.
+   for(let k=0;k<=24;k++){
+    const t=k/24,point=[previous[0]+dx*t,previous[1]+dy*t];
+    if(deviation(point)>.085)continue;
+    const travelled=pathLength*t,cost=Math.abs(travelled-desiredStep)+.05*(pathLength-travelled);
+    if(cost<best){chosen=point;best=cost;}
+   }
+   return chosen;
+  }):current;
+  motion.armBodyElbows=realistic;motion.armPoseHeld=held;
+  return pair.map((p,i)=>({...p,elbow:toTool(realistic[i])}));
  }
  // Bounds in renderer coordinates; fit the same playable art, not a replacement sprite.
  function previewFrame(width,height,heading=0,aim=heading,held='none',powered=false,hairStyle='classic'){
