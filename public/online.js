@@ -1138,9 +1138,8 @@ function rankingRewardBadge(key,rewards){
 }
 let activeRankingMode='online',latestRankingsData=null;
 const SOLO_HALL_NAMES=Object.freeze(['Rei Solitário','Príncipe Solitário','Valete Solitário']);
-function renderRankings(data){
+function renderRankings(data){try{localStorage.setItem('abyssalRankingsCache',JSON.stringify(data));}catch{}
  latestRankingsData=data;
- try{localStorage.setItem('abyssalRankingsCache',JSON.stringify(data));}catch{}
  const root=$('rankingContent'),screen=$('rankingsScreen');if(!root||!data||screen?.hidden)return;
  const resets=data.resets||{},rewards=data.rewards||{daily:100,weekly:1000,monthly:5000};
  const mode=activeRankingMode==='solo'?'solo':'online';
