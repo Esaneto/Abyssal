@@ -1565,15 +1565,19 @@ function tickRoom(room, now) {
   let combatTarget=null,attackHolding=false,combatStop=0;
   // Every PVE map uses the selected Eco habit, not only the classic co-op cave.
   if(room.mode!=='pvp'){
-   const habit=PetTactics.normalize(peer.petHabit),threats=hostile.filter(e=>Math.hypot(e.x-pos.x,e.y-pos.y)<360/WORLD_ZOOM);
-   const candidates=(room.world?.orbs||[]).filter(o=>Math.hypot(o.x-peer.x,o.y-peer.y)<=acquisitionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
+   const habit=PetTactics.normalize(peer.petHabit),threats=hostile.filter(e=>
+    Math.hypot(e.x-pos.x,e.y-pos.y)<360/WORLD_ZOOM||
+    habit==='guardian'&&(Math.hypot(e.x-peer.x,e.y-peer.y)<265/WORLD_ZOOM||
+      String(e.id)===String(peer.specimenChoiceEnemyId)));
+   const candidates=(room.world?.orbs||[]).filter(o=>Number.isFinite(o?.x)&&Number.isFinite(o?.y))
+    .sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
    const attackRange=350/WORLD_ZOOM,guardRange=265/WORLD_ZOOM;
    let choice=null;
    if(now<(Number(peer.specimenNextTacticsAt)||0)&&peer.specimenChoiceHabit===habit){
     if(peer.specimenChoiceType==='enemy'){
      const kept=threats.find(e=>String(e.id)===String(peer.specimenChoiceEnemyId));
      const valid=kept&&(habit==='aggressive'?Math.hypot(kept.x-pos.x,kept.y-pos.y)<=attackRange*1.12:
-      habit==='guardian'?Math.hypot(kept.x-peer.x,kept.y-peer.y)<=guardRange*1.10:false);
+      habit==='guardian'?true:false);
      if(valid)choice={type:'enemy',target:kept,enemy:kept,mode:habit};
     }else if(peer.specimenChoiceType==='orb'){
      const kept=candidates.find(o=>String(o.id)===String(peer.specimenChoiceOrbId));
