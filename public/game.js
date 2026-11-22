@@ -3087,9 +3087,16 @@ function updateSpecimenRuntime(dt){
  const pos={x:s.x,y:s.y},threatRadius=360/GAME_WORLD_ZOOM,threatRadiusSq=threatRadius*threatRadius;
  collectEnemyCandidatesNear(pos.x,pos.y,threatRadius,specimenNearbyEnemies);
  let kept=0;for(const e of specimenNearbyEnemies)if(e&&e.hp>0&&(e.x-pos.x)**2+(e.y-pos.y)**2<threatRadiusSq)specimenNearbyEnemies[kept++]=e;specimenNearbyEnemies.length=kept;
- const threats=specimenNearbyEnemies,collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range'),now=performance.now();
+ const collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range'),now=performance.now();
+ const guardRange=265/GAME_WORLD_ZOOM;
+ const threats=petHabit==='guardian'?enemies.filter(e=>e&&e.hp>0&&(
+  (e.x-pos.x)**2+(e.y-pos.y)**2<threatRadiusSq||
+  (e.x-player.x)**2+(e.y-player.y)**2<guardRange*guardRange||
+  String(e.id)===String(s.tacticalChoice?.enemy?.id)
+ )):specimenNearbyEnemies;
  if(!s.tacticalChoice||now>=(s.nextTacticsAt||0)||s.tacticalChoice.type==='orb'&&!orbs.includes(s.tacticalChoice.orb)||s.tacticalChoice.type==='enemy'&&(s.tacticalChoice.enemy.hp<=0||!enemies.includes(s.tacticalChoice.enemy))){
-  const candidates=orbs.filter(o=>Math.hypot(o.x-player.x,o.y-player.y)<=collectionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
+  const candidates=orbs.filter(o=>Number.isFinite(o?.x)&&Number.isFinite(o?.y))
+   .sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
   s.tacticalChoice=(!onlineMode||isClassicCavernRun())?PET_TACTICS?.choose?.({mode:petHabit,pet:pos,player,enemies:threats,orbs:candidates,collectionRange,attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM,preferredOrbId:s.tacticalChoice?.orb?.id,preferredEnemyId:s.tacticalChoice?.enemy?.id,preferredType:s.tacticalChoice?.type,routeCost:o=>{if(o.id===s.unreachableOrbId&&now<(s.unreachableUntil||0))return Infinity;if(!soloCave)return Math.hypot(o.x-pos.x,o.y-pos.y);const safe=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,o.x,o.y,pad);if(!safe)return Infinity;const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,safe.x,safe.y,pad);return nav.blocked?Infinity:Math.hypot(safe.x-pos.x,safe.y-pos.y)*(nav.direct?1:1.65);}}):null;s.nextTacticsAt=now+280;
  }
  const tactics=s.tacticalChoice,combatTarget=tactics?.type==='enemy'&&tactics.enemy?.hp>0&&enemies.includes(tactics.enemy)?tactics.enemy:null;
