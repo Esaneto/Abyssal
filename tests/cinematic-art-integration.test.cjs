@@ -49,7 +49,7 @@ test('bridge has original moving water and separate cached structural render pas
  assert.match(source,/function visualStatus\(\)/);
  const smoke=read('scripts/browser-smoke.cjs');
  assert.match(smoke,/Original animated bridge did not render/);
- assert.match(smoke,/Cockpit hardware buttons are hidden or detached/);
+ assert.match(smoke,/Cockpit spotlight buttons are hidden or detached/);
  assert.match(smoke,/cockpit-tablet/);
  assert.match(smoke,/cockpit-wide/);
  assert.match(smoke,/cockpit-shop/);
