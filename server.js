@@ -1605,10 +1605,10 @@ function tickRoom(room, now) {
    const route=OceanGeography.steer(pos.x,pos.y,target.x,target.y,radius+1/WORLD_ZOOM,0);
    if(route)target={x:route.x,y:route.y};
   }
-  const speed=SpecimenEvasion.playerBaseSpeed(WORLD_ZOOM)*ResBalance.petSpeed(peer.petSpeed);
+  const speed=SpecimenEvasion.playerBaseSpeed(WORLD_ZOOM);
   const avoidSq=(280/WORLD_ZOOM)**2;
    const nearbyHostile=hostile.filter(e=>e.id!==combatTarget?.id&&(e.x-pos.x)**2+(e.y-pos.y)**2<avoidSq);
-   const move=SpecimenEvasion.steer({position:pos,target,enemies:nearbyHostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
+   const move=SpecimenEvasion.steer({position:pos,target,enemies:nearbyHostile,speed,actionSpeedMultiplier:ResBalance.petSpeed(peer.petSpeed),dt,radius,clearance:28/WORLD_ZOOM,
    heading:Number(peer.specimenEvasionHeading)||0,intent:combatTarget?'combat':orb?'collect':'follow',state:peer,
    resolve:specimenCaveLayout?(x,y)=>AbyssalMap.resolveMove(specimenCaveLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):
     specimenClassicRocks?(x,y)=>ClassicCavern.resolve(specimenClassicRocks,pos.x,pos.y,x,y,radius+1/WORLD_ZOOM,roomWorldWidth(room),roomWorldHeight(room)):
