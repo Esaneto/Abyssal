@@ -65,6 +65,17 @@ test('legacy mixed rankings are archived; new Solo and Online start independentl
  h.funcs.migrateRankingBoards();assert.equal(h.rankings.online.eternal.alice.bossesKilled,5);
 });
 
+test('legacy mixed results retain unpaid closing-period rewards without entering new halls',()=>{
+ const old={eternal:{alice:entry('alice',8)},daily:{old:{alice:entry('alice',8)}},weekly:{old:{alice:entry('alice',8)}},monthly:{old:{alice:entry('alice',8)}},settled:{day:'old',week:'old',month:'old'}};
+ const h=boardHarness(old);h.funcs.migrateRankingBoards();
+ h.funcs.settlePeriods(true);
+ assert.equal(h.users.alice.energy,100+1000+5000);
+ assert.deepEqual(h.rankings.online.eternal,{});
+ assert.deepEqual(h.rankings.solo.eternal,{});
+ h.funcs.settlePeriods(true);
+ assert.equal(h.users.alice.energy,100+1000+5000);
+});
+
 test('Solo and Online pay identical period rewards independently, one payment per rollover',()=>{
  const h=boardHarness();h.funcs.migrateRankingBoards();
  for(const mode of ['online','solo']){
