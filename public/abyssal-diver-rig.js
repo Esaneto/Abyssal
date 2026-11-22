@@ -14,7 +14,8 @@
   heading=finite(heading);aim=finite(aim,heading);dt=clamp(finite(dt),0,.10);
   const original=finite(previous,heading),destination=armed?aim:heading;
   const delta=angleDelta(destination,original),turn=dt*(armed?10.5:13);
-  if(!dt||Math.abs(delta)<=.006)return destination;
+  if(!dt)return original;
+  if(Math.abs(delta)<=.006)return destination;
   return original+clamp(delta,-turn,turn);
  }
 
