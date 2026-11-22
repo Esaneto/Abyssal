@@ -78,7 +78,7 @@ test('browser and offline cache use the new shared Eco speed revision',()=>{
  const sw=fs.readFileSync(path.join(ROOT,'public/offline-sw.js'),'utf8');
  const build=fs.readFileSync(path.join(ROOT,'public/client-build.js'),'utf8');
  assert.match(html,/specimen-evasion\.js\?v=2026\.11\.22\.eco-velocity-v309/);
- assert.match(html,/game\.js\?v=2026\.11\.22\.eco-velocity-v309/);
- assert.match(sw,/2026-11-22-eco-velocity-v309/);
- assert.match(build,/revision:'eco-velocity-v309'/);
+ assert.match(html,/game\.js\?v=2026\.11\.22\.dual-rank-v310/);
+ assert.match(sw,/2026-11-22-dual-rank-v310/);
+ assert.match(build,/revision:'dual-rank-v310'/);
 });

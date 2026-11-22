@@ -35,5 +35,5 @@ test('mobile versions and offline cache refresh after navigation correction',()=
  const html=read('public/index.html'),sw=read('public/offline-sw.js');
  assert.match(html,/mobile-portrait\.css\?v=3\.6\.154\.loop/);
  assert.match(html,/abyssal-exploration-runtime\.js\?v=3\.6\.154\.loop/);
- assert.match(sw,/2026-11-22-eco-velocity-v309/);
+ assert.match(sw,/2026-11-22-dual-rank-v310/);
 });

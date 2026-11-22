@@ -393,16 +393,37 @@ const TITLE_DEFINITIONS=[
  ];
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.reviewAccount||u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  const HALL_TITLE_PATTERN=/^hall-top-(10|[1-9])$/;
- let hallPositions=new Map();
- function hallPosition(u){return hallPositions.get(String(u?.nickname||'').toLowerCase())||0;}
- function normalizeHallTitle(u){if(!u)return false;const equipped=String(u.equippedTitle||'');if(HALL_TITLE_PATTERN.test(equipped)&&equipped!=='hall-top-'+hallPosition(u)){u.equippedTitle='abyss-drifter';return true;}return false;}
- function unlockedTitleIds(u){const ids=TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id);const pos=hallPosition(u);if(pos)ids.push('hall-top-'+pos);return ids;}
+ const SOLO_HALL_TITLE_PATTERN=/^solo-hall-top-([1-3])$/;
+ let hallPositions=new Map(),soloHallPositions=new Map();
+ function hallPosition(u,mode='online'){return (mode==='solo'?soloHallPositions:hallPositions).get(String(u?.nickname||'').toLowerCase())||0;}
+ function normalizeHallTitle(u){
+  if(!u)return false;
+  const equipped=String(u.equippedTitle||'');
+  const invalidOnline=HALL_TITLE_PATTERN.test(equipped)&&equipped!=='hall-top-'+hallPosition(u);
+  const invalidSolo=SOLO_HALL_TITLE_PATTERN.test(equipped)&&equipped!=='solo-hall-top-'+hallPosition(u,'solo');
+  if(invalidOnline||invalidSolo){u.equippedTitle='abyss-drifter';return true;}
+  return false;
+ }
+ function unlockedTitleIds(u){
+  const ids=TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id);
+  const onlineRank=hallPosition(u),soloRank=hallPosition(u,'solo');
+  if(onlineRank)ids.push('hall-top-'+onlineRank);
+  if(soloRank>0&&soloRank<=3)ids.push('solo-hall-top-'+soloRank);
+  return ids;
+ }
  function reconcileHallTitles({startup=false,persist=true}={}){
-  const previous=hallPositions;hallPositions=new Map(rankedEntries(rankings.eternal).map((entry,index)=>[String(entry.key),index+1]));
-  const affected=new Set([...previous.keys(),...hallPositions.keys()]);
-  if(startup)for(const [key,u] of Object.entries(users))if(HALL_TITLE_PATTERN.test(String(u.equippedTitle||'')))affected.add(key);
+  const previous=hallPositions,previousSolo=soloHallPositions;
+  hallPositions=new Map(rankedEntries(rankings.online?.eternal).map((entry,index)=>[String(entry.key),index+1]));
+  soloHallPositions=new Map(rankedEntries(rankings.solo?.eternal).map((entry,index)=>[String(entry.key),index+1]));
+  const affected=new Set([...previous.keys(),...hallPositions.keys(),...previousSolo.keys(),...soloHallPositions.keys()]);
+  if(startup)for(const [key,u] of Object.entries(users))
+   if(HALL_TITLE_PATTERN.test(String(u.equippedTitle||''))||SOLO_HALL_TITLE_PATTERN.test(String(u.equippedTitle||'')))affected.add(key);
   const changed=new Set();
-  for(const key of affected){const u=users[key];if(!u)continue;const removed=normalizeHallTitle(u);if(removed||previous.get(key)!==hallPositions.get(key))changed.add(key);}
+  for(const key of affected){
+   const u=users[key];if(!u)continue;
+   const removed=normalizeHallTitle(u);
+   if(removed||previous.get(key)!==hallPositions.get(key)||previousSolo.get(key)!==soloHallPositions.get(key))changed.add(key);
+  }
   if(!changed.size)return;
   const dirtyRooms=new Set();
   for(const room of rooms.values())for(const p of room.players.values())if(changed.has(p.userKey)){const next=users[p.userKey]?.equippedTitle||'abyss-drifter';if(p.titleId!==next){p.titleId=next;dirtyRooms.add(room);}}
@@ -413,24 +434,55 @@ const TITLE_DEFINITIONS=[
  }
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
  function migrateEnergy(u){if(!u)return;if(!Number.isFinite(Number(u.energy)))u.energy=Math.max(0,Math.floor((Number(u.coins)||0)/10));else u.energy=Math.max(0,Math.floor(Number(u.energy)));delete u.coins;}
- function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return {googleLinked:Boolean(u.googleSub),adminNotices:GMAdmin.notices(u), cardumeInvites:CardumeInvites.publicInvites(u,users,cardumes,{blocked:GMAdmin.blocked}), likedProfiles:u.likedProfiles.slice(), canInviteCardume:Boolean(cardumes[u.cardumeId]?.open&&cardumes[u.cardumeId]?.leader===u.nickname&&!GMAdmin.blocked(u)&&!u.chatBanned&&!(Number(u.chatMutedUntil)>Date.now())), wheel:wheelDailyStatus(u), nickname: u.nickname, ageBand:['teen','adult'].includes(u.ageBand)?u.ageBand:'unknown', role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), hudLayout:HudLayout.normalize(u.hudLayout),hudLayoutRevision:Math.max(0,Number(u.hudLayoutRevision)||0), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), alphaFinCredits:Math.max(0,Math.min(1,Number(u.alphaFinCredits)||0)), metaUpgrades: ResearchSystem.sanitizeLegacyActives(u.metaUpgrades), researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';normalizeHallTitle(u);return {googleLinked:Boolean(u.googleSub),adminNotices:GMAdmin.notices(u), cardumeInvites:CardumeInvites.publicInvites(u,users,cardumes,{blocked:GMAdmin.blocked}), likedProfiles:u.likedProfiles.slice(), canInviteCardume:Boolean(cardumes[u.cardumeId]?.open&&cardumes[u.cardumeId]?.leader===u.nickname&&!GMAdmin.blocked(u)&&!u.chatBanned&&!(Number(u.chatMutedUntil)>Date.now())), wheel:wheelDailyStatus(u), nickname: u.nickname, ageBand:['teen','adult'].includes(u.ageBand)?u.ageBand:'unknown', role:isDeveloperUser(u)?'developer':'player', isDeveloper:isDeveloperUser(u), discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)), hudLayout:HudLayout.normalize(u.hudLayout),hudLayoutRevision:Math.max(0,Number(u.hudLayoutRevision)||0), ownedAvatarCosmetics:AvatarBase.normalizeOwned(u.ownedAvatarCosmetics), alphaFinCredits:Math.max(0,Math.min(1,Number(u.alphaFinCredits)||0)), metaUpgrades: ResearchSystem.sanitizeLegacyActives(u.metaUpgrades), researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, hallPosition:hallPosition(u), soloHallPosition:hallPosition(u,'solo'), unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
- function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];normalizeHallTitle(u);return {nickname:u.nickname,isDeveloper:isDeveloperUser(u),hallPosition:hallPosition(u),equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)),hudLayout:viewerKey&&(viewer?.blockedUsers.includes(key)||u.blockedUsers.includes(viewerKey))?null:HudLayout.normalize(u.hudLayout),specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
+ function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];normalizeHallTitle(u);return {nickname:u.nickname,isDeveloper:isDeveloperUser(u),hallPosition:hallPosition(u),soloHallPosition:hallPosition(u,'solo'),equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',avatarAppearance:AvatarBase.authorized(u.avatarAppearance,AvatarBase.normalizeOwned(u.ownedAvatarCosmetics)),hudLayout:viewerKey&&(viewer?.blockedUsers.includes(key)||u.blockedUsers.includes(viewerKey))?null:HudLayout.normalize(u.hudLayout),specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,isDeveloper:isDeveloperUser(users[key]),online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
  function emitCardumeRoster(c){if(!c)return;for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
  function broadcastCardumeRosters(){for(const c of Object.values(cardumes))emitCardumeRoster(c);}
 function rankedEntries(board) { return Object.values(board || {}).filter(entry=>!users[entry.key]?.reviewAccount&&!isDeveloperUser(users[entry.key])&&!users[entry.key]?.adminRankingExcluded&&!GMAdmin.blocked(users[entry.key])).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
+// Historical rankings mixed Solo and Online without recording their source.
+// Archive them instead of misclassifying old Solo performances as Online.
+function freshRankingBoard(){return {eternal:{},daily:{},weekly:{},monthly:{},settled:{day:'',week:'',month:''}};}
+function migrateRankingBoards(){
+ if(!rankings||typeof rankings!=='object')rankings={};
+ if(rankings.version!==2||!rankings.online||!rankings.solo){
+  rankings.legacy ||= {eternal:rankings.eternal||{},daily:rankings.daily||{},weekly:rankings.weekly||{},monthly:rankings.monthly||{},settled:rankings.settled||{}};
+  rankings.online ||= freshRankingBoard();rankings.solo ||= freshRankingBoard();rankings.version=2;
+ }
+ for(const mode of ['online','solo']){
+  const board=rankings[mode];board.eternal ||= {};board.daily ||= {};board.weekly ||= {};board.monthly ||= {};
+  board.settled ||= {day:'',week:'',month:''};
+ }
+}
 const RANKING_ENERGY_REWARDS=Object.freeze({daily:100,weekly:1000,monthly:5000});
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.energy = (user.energy || 0) + amount; } }
 function settlePeriods(persist=true) {
- const d = dayKey(), w = weekKey(), m = monthKey();
- rankings.monthly ||= {};
- if (rankings.settled.day && rankings.settled.day !== d) awardBoard(rankings.daily[rankings.settled.day], RANKING_ENERGY_REWARDS.daily, 'diário');
- if (rankings.settled.week && rankings.settled.week !== w) awardBoard(rankings.weekly[rankings.settled.week], RANKING_ENERGY_REWARDS.weekly, 'semanal');
- if (rankings.settled.month && rankings.settled.month !== m) awardBoard(rankings.monthly[rankings.settled.month], RANKING_ENERGY_REWARDS.monthly, 'mensal');
- rankings.daily[d] ||= {}; rankings.weekly[w] ||= {}; rankings.monthly[m] ||= {};
- rankings.settled = { day: d, week: w, month: m }; if(persist){saveUsers();saveRanks();}
+ const d=dayKey(),w=weekKey(),m=monthKey();
+ for(const mode of ['online','solo']){
+  const board=rankings[mode];board.monthly ||= {};board.daily ||= {};board.weekly ||= {};
+  board.settled ||= {day:'',week:'',month:''};
+  if(board.settled.day&&board.settled.day!==d)awardBoard(board.daily[board.settled.day],RANKING_ENERGY_REWARDS.daily,'diário '+mode);
+  if(board.settled.week&&board.settled.week!==w)awardBoard(board.weekly[board.settled.week],RANKING_ENERGY_REWARDS.weekly,'semanal '+mode);
+  if(board.settled.month&&board.settled.month!==m)awardBoard(board.monthly[board.settled.month],RANKING_ENERGY_REWARDS.monthly,'mensal '+mode);
+  board.daily[d] ||= {};board.weekly[w] ||= {};board.monthly[m] ||= {};
+  board.settled={day:d,week:w,month:m};
+ }
+ // The archived mixed board still owes rewards for its final open periods.
+ // Settle those once at rollover; never promote old mixed scores to either new hall.
+ const legacy=rankings.legacy;
+ if(legacy?.settled){
+  const cycles=[['day','daily',d,RANKING_ENERGY_REWARDS.daily],['week','weekly',w,RANKING_ENERGY_REWARDS.weekly],['month','monthly',m,RANKING_ENERGY_REWARDS.monthly]];
+  for(const [period,field,current,amount] of cycles){
+   const previous=legacy.settled[period];
+   if(previous&&previous!==current){
+    awardBoard(legacy[field]?.[previous],amount,'legado '+field);
+    legacy.settled[period]=current; // Idempotent across subsequent settlements.
+   }
+  }
+ }
+ if(persist){saveUsers();saveRanks();}
 }
 function onlineCount() { return io.engine.clientsCount; }
 function broadcastOnline() { io.emit('online-count', onlineCount()); }
@@ -440,7 +492,14 @@ function rankingResetTimes(now=new Date()){
  const nextMonth=Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,1);
  return {daily:nextDay,weekly:nextWeek,monthly:nextMonth};
 }
-function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]), resets:rankingResetTimes(), rewards:RANKING_ENERGY_REWARDS, metric:'bossesKilled',tieBreakers:['score','survival'] }; }
+function rankingPayload(){
+ const view=(mode)=>{const b=rankings[mode]||freshRankingBoard();return {
+  eternal:rankedEntries(b.eternal),daily:rankedEntries(b.daily?.[dayKey()]),
+  weekly:rankedEntries(b.weekly?.[weekKey()]),monthly:rankedEntries(b.monthly?.[monthKey()])
+ };};
+ const online=view('online'),solo=view('solo');
+ return {...online,online,solo,resets:rankingResetTimes(),rewards:RANKING_ENERGY_REWARDS,metric:'bossesKilled',tieBreakers:['score','survival']};
+}
 app.use((req, res, next) => {
  res.set('X-Content-Type-Options','nosniff');
  res.set('X-Frame-Options','DENY');
@@ -1320,7 +1379,9 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
 async function finishRunForSocket(socket,payload={},isolatedRun=null){
  const key=socket.data.userKey,user=users[key];if(!key||!user)return {ok:false,message:'Entre em uma conta para registrar este mergulho.'};
  if(payload.expedition===true||['rift','rift-solo','open-sea','pvp'].includes(payload.mode))return {ok:false,message:'Modo em desenvolvimento.'};
- const room=isolatedRun?null:socketRoom(socket),member=room?.players.get(socket.id),run=isolatedRun||member?.runStats||socket.data.runStats||makeRunStats();
+ const room=isolatedRun?null:socketRoom(socket),member=room?.players.get(socket.id);
+ if(!isolatedRun&&!member)return {ok:false,message:'Partida Online não encontrada. Entre em uma sala válida para registrar o ranking.'};
+ const run=isolatedRun||member.runStats||socket.data.runStats||makeRunStats();
  if(run.settled)return {ok:true,duplicate:true,energyBonus:Number(run.energyBonus)||0,energyBonusPercent:Number(run.energyBonusPercent)||0,specimenEnergyBonusPercent:Number(run.specimenEnergyBonusPercent)||0,earned:Number(run.completionCoins)||0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*10,totalRunCoins:Number(run.totalRunCoins)||0,survival:Number(run.finalSurvival)||0,damageDealt:Number(run.damageDealt)||0,monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,runId:run.id,account:publicUser(user),rankings:rankingPayload()};
  const now=Date.now();
  const survival=Math.max(0,Math.min(86400,Math.floor((now-(Number(run.startedAt)||now))/1000)));
@@ -1333,9 +1394,11 @@ async function finishRunForSocket(socket,payload={},isolatedRun=null){
  const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(run.finalSurvival),updatedAt:new Date().toISOString()};
  const better=(old)=>!old||bossesKilled>(Number(old.bossesKilled)||0)||(bossesKilled===(Number(old.bossesKilled)||0)&&(score>(Number(old.score??old.damage)||0)||(score===(Number(old.score??old.damage)||0)&&run.finalSurvival>(Number(old.survival)||0))));
  const put=board=>{if(!user.reviewAccount&&!isDeveloperUser(user)&&!user.adminRankingExcluded&&!GMAdmin.blocked(user)&&better(board[key]))board[key]=entry;};
- rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
- rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
- put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);reconcileHallTitles({persist:!isolatedRun});
+ const board=rankings[isolatedRun?'solo':'online']; // Source of the run is server-verified.
+ board.eternal ||= {};board.daily ||= {};board.weekly ||= {};board.monthly ||= {};
+ board.daily[dayKey()] ||= {};board.weekly[weekKey()] ||= {};board.monthly[monthKey()] ||= {};
+ put(board.eternal);put(board.daily[dayKey()]);put(board.weekly[weekKey()]);put(board.monthly[monthKey()]);
+ reconcileHallTitles({persist:!isolatedRun});
  const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionBonus=0;const specimenBonus=SkinAbilities.endDiveEnergyBonus(run.energySkinId||member?.skinId||user.equippedSkin||'default');const expeditionMultiplier=1+expeditionBonus+specimenBonus;const baseEnergy=Math.floor(Math.min(50000,Math.max(3,baseEarned))/10);const energyBonus=Math.floor(Number(run.energyCollected||0)*specimenBonus);const earned=baseEnergy+energyBonus;const bossCoins=bossesKilled*10;const unpaidBossCoins=member?0:bossCoins;user.energy=(Number(user.energy)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;run.energyBonus=energyBonus;run.energyBonusPercent=Math.round((expeditionBonus+specimenBonus)*100);run.specimenEnergyBonusPercent=Math.round(specimenBonus*100);
  if(isolatedRun){user.offlineRunReceipts ||= {};user.offlineRunReceipts[run.id]={earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,energyBonus,energyBonusPercent:run.energyBonusPercent,specimenEnergyBonusPercent:run.specimenEnergyBonusPercent,runId:run.id,survival:run.finalSurvival,damageDealt:run.damageDealt,monstersKilled:run.monstersKilled,energyCollected:run.energyCollected,level,score};}
  if(isolatedRun)await persistSoloSettlement();else{saveRanks();saveUsers();await flushPersistence();}
@@ -1517,15 +1580,19 @@ function tickRoom(room, now) {
   let combatTarget=null,attackHolding=false,combatStop=0;
   // Every PVE map uses the selected Eco habit, not only the classic co-op cave.
   if(room.mode!=='pvp'){
-   const habit=PetTactics.normalize(peer.petHabit),threats=hostile.filter(e=>Math.hypot(e.x-pos.x,e.y-pos.y)<360/WORLD_ZOOM);
-   const candidates=(room.world?.orbs||[]).filter(o=>Math.hypot(o.x-peer.x,o.y-peer.y)<=acquisitionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
+   const habit=PetTactics.normalize(peer.petHabit),threats=hostile.filter(e=>
+    Math.hypot(e.x-pos.x,e.y-pos.y)<360/WORLD_ZOOM||
+    habit==='guardian'&&(Math.hypot(e.x-peer.x,e.y-peer.y)<265/WORLD_ZOOM||
+      String(e.id)===String(peer.specimenChoiceEnemyId)));
+   const candidates=(room.world?.orbs||[]).filter(o=>Number.isFinite(o?.x)&&Number.isFinite(o?.y)&&(habit!=='guardian'||Math.hypot(o.x-peer.x,o.y-peer.y)<=acquisitionRange))
+    .sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
    const attackRange=350/WORLD_ZOOM,guardRange=265/WORLD_ZOOM;
    let choice=null;
    if(now<(Number(peer.specimenNextTacticsAt)||0)&&peer.specimenChoiceHabit===habit){
     if(peer.specimenChoiceType==='enemy'){
      const kept=threats.find(e=>String(e.id)===String(peer.specimenChoiceEnemyId));
      const valid=kept&&(habit==='aggressive'?Math.hypot(kept.x-pos.x,kept.y-pos.y)<=attackRange*1.12:
-      habit==='guardian'?Math.hypot(kept.x-peer.x,kept.y-peer.y)<=guardRange*1.10:false);
+      habit==='guardian'?true:false);
      if(valid)choice={type:'enemy',target:kept,enemy:kept,mode:habit};
     }else if(peer.specimenChoiceType==='orb'){
      const kept=candidates.find(o=>String(o.id)===String(peer.specimenChoiceOrbId));
@@ -3467,6 +3534,7 @@ setInterval(settlePeriods, 60 * 60 * 1000).unref();
 setInterval(()=>heartbeatRoomDirectory().catch(err=>console.error('[rooms] heartbeat falhou:',err.message)),5000).unref();
 async function boot() {
  await initializePersistence();
+ migrateRankingBoards();
  await ensureGameMasterAccount();
  await ensureReviewAccounts();
  await initializeRoomRegistry();

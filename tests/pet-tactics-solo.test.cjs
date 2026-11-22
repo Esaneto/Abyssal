@@ -42,10 +42,10 @@ test('Passive ignores preferred enemy state and never attacks',()=>{
  assert.notEqual(ai.choose({mode:'passive',pet,player,enemies:[e],preferredEnemyId:'old',preferredType:'enemy'}).type,'enemy');
 });
 
-test('Guardian engages a blocking frontline enemy instead of chasing through the group',()=>{
+test('Guardian chooses the nearest threat to the diver even when another enemy blocks the route',()=>{
  const front={id:'front',x:90,y:0,r:14,hp:100},rear={id:'rear',x:175,y:0,r:14,hp:100};
  const c=ai.choose({mode:'guardian',pet:{x:0,y:0},player:{x:175,y:0},enemies:[front,rear],guardRange:255});
- assert.equal(c.type,'enemy');assert.equal(c.enemy.id,'front');
+ assert.equal(c.type,'enemy');assert.equal(c.enemy.id,'rear'); // The defender acquires the nearest threat to the diver.
  assert.equal(ai.choose({mode:'passive',pet:{x:0,y:0},player:{x:175,y:0},enemies:[front,rear]}).type,'follow');
 });
 test('Shark attack position is inside reliable mouth contact and allows stable combat',()=>{
