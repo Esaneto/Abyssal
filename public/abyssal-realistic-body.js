@@ -229,8 +229,8 @@ function fantasyFin(id,pose,side){
  limb.joint=(p,r)=>{oval(p[0],p[1],r*.83,r*.72,grad([p[0]-r,p[1]-r],[p[0]+r,p[1]+r],[[0,s[2]],[.55,s[1]],[1,s[0]]]),'#16252e',.35);};
  // Flattened palms, thumb and fingers follow the forearm; hand center is
  // shared with the equipment grip. Resting fingers are longer than a fist.
- limb.glove=(hand,wrist,gripping=false)=>{const angle=Math.atan2(hand[1]-wrist[1],hand[0]-wrist[0]);c.save();c.translate(...hand);c.rotate(angle);
-  const g=grad([-3,-2.5],[3,2.5],[[0,'#657d83'],[.32,'#344a55'],[.68,'#1c303b'],[1,'#0b1720']]),end=gripping?3.4:5.2;
+ limb.glove=(hand,wrist,gripping=false,role='generic')=>{const angle=Math.atan2(hand[1]-wrist[1],hand[0]-wrist[0]);c.save();c.translate(...hand);c.rotate(angle);
+  const g=grad([-3,-2.5],[3,2.5],[[0,'#657d83'],[.32,'#344a55'],[.68,'#1c303b'],[1,'#0b1720']]),end=role==='trigger'?2.6:gripping?3.4:5.2;
   path(()=>{c.moveTo(-4,-1.8);c.quadraticCurveTo(-2,-2.8,.7,-2.4);c.quadraticCurveTo(end,-2.5,end,0);c.quadraticCurveTo(end,2.4,1,2.6);c.lineTo(-3,1.9);c.closePath();},g,'#0b1720',.55);
   path(()=>{c.moveTo(-1,1.8);c.quadraticCurveTo(0,3.5,2.2,2.4);c.lineTo(gripping?1.2:3.4,1.3);},null,'#81979a',.5);
   for(const x of [1.4,2.6,3.6])line([x,-1.7],[x,gripping?.3:1.3],'#a9c0c14c',.35);

@@ -42,7 +42,7 @@ function rifleShell(c,id='standard'){
  box(1,-5,3,11,1.2,'#0d1820',mid);line([[5,-3],[16,-1]],edge,.65);
  poly([[18,3],[25,4],[24,9],[22,16],[17,15],[17,11],[19,6]],metal);
  for(const y of [9,11,13])line([[19,y],[22,y+.7]],'#0b1720',.85);
- // Guard and trigger, kept clear of the support hand at x=34.
+ // Guard and trigger finger at (27,8); opposite hand braces the fore-end at (40,4.5).
  path(()=>{c.moveTo(25,4);c.lineTo(31,5);c.quadraticCurveTo(31,12,26,12);c.lineTo(23,10);},null,edge,1.1);
  path(()=>{c.moveTo(27,5);c.quadraticCurveTo(28,8,25.7,8.5);},null,mid,1.0);
  // Recessed common receiver and load-bearing front hand contact.
@@ -105,8 +105,8 @@ function rifleTop(c,id,alpha){
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
   const held=String(options.heldItem||'abyssWeapon'),relativeAim=(held==='abyssPropulsor'||held==='abyssPropulsorIdle')?0:(Number(aim)||0)-a,rig=globalThis.AbyssalDiverRig,view=options.gameplay&&options.viewYaw==null?rig?.gameplayView?.(options.motion?.viewHeading??a,options.motion?.swimSide):rig?.viewFor?.(options.viewYaw??.65,a),itemSide=weaponSide(a+relativeAim),gunRoll=held==='abyssWeapon'?weaponRoll(a+relativeAim):itemSide;
   const offset=(held==='abyssWeapon'?GUN_OFFSET_Y:5)*gunRoll,tool=rig?.toolPose(held,Number(options.swing)||0,view)||{swingAngle:0,objectAngle:0,grips:[[27,-2],[27,3]]},co=Math.cos(tool.swingAngle),si=Math.sin(tool.swingAngle);
-  const grips=(held==='abyssWeapon'?(rig?.rifleGrips||[[34,2],[22,11]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co])).map(([x,y])=>[x,y*gunRoll]);
-  const rawPair=(held!=='abyssWelder'&&held!=='none'?rig?.armPair?.(relativeAim,offset,grips,'standard',view):null)||grips.map((g,i)=>rig?.arm(i?1:-1,relativeAim,offset,g,held==='abyssWelder'?'welder':'standard',view)||{shoulder:[6,i?7:-7],elbow:[16,i?12:-12],hand:g});
+  const grips=(held==='abyssWeapon'?(rig?.rifleGrips||[[40,4.5],[27,8]]):tool.grips.map(([x,y])=>[x*co-y*si,x*si+y*co])).map(([x,y])=>[x,y*gunRoll]);
+  const rawPair=(held!=='abyssWelder'&&held!=='none'?rig?.armPair?.(relativeAim,offset,grips,'standard',view,options.motion,held):null)||grips.map((g,i)=>rig?.arm(i?1:-1,relativeAim,offset,g,held==='abyssWelder'?'welder':'standard',view)||{shoulder:[6,i?7:-7],elbow:[16,i?12:-12],hand:g});
   const pair=(held!=='abyssWelder'&&held!=='none'?rig?.stabilizeArmPair?.(rawPair,options.motion,relativeAim,offset,held):null)||rawPair;
   const idle=side=>rig?.idleArm(side,options.motion?.phase||phase,options.motion?.weight||0,options.motion,view,held==='abyssWelder'?'tool':'free')||{shoulder:[11,side*8],elbow:[-3,side*14],hand:[-18,side*12]};
   let farPainted=false;
@@ -272,7 +272,7 @@ function rifleTop(c,id,alpha){
   // composited behind it; only its gripping hand appears on the equipment.
   const gripHands=[];
   const drawGripArms=(indices=[0,1])=>{gripHands.length=0;for(const i of indices){const p=pair[i];if(i!==0||!farPainted)paintArm(limb,p,i,true);gripHands.push(p);}};
-  const drawGloves=()=>{if(limb.glove)for(const p of gripHands)limb.glove(p.hand,p.elbow,true);};
+  const drawGloves=()=>{if(limb.glove)for(const [i,p] of gripHands.entries())limb.glove(p.hand,p.elbow,true,held==='abyssWeapon'?(i===0?'support':'trigger'):undefined);};
   if(held==='abyssWelder'&&!farPainted)paintArm(limb,idle(-1),0);
   c.save();c.rotate(held==='none'?0:relativeAim);
   if(held==='none'){if(!farPainted)paintArm(limb,idle(-1),0);paintArm(limb,idle(1),1);c.restore();c.restore();return;}
@@ -343,8 +343,11 @@ function rifleTop(c,id,alpha){
   rifleShell(c,look.weaponId);
   // Gloves settle on two separate contact points, never doubling the arm.
   c.restore();rifleTop(c,look.weaponId,1-Math.abs(gunRoll));if(limb.glove)drawGloves();else{c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
-  c.beginPath();c.ellipse(34,2*gunRoll,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
-  c.beginPath();c.ellipse(22,11*gunRoll,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
+  c.beginPath();c.ellipse(40,4.5*gunRoll,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
+  c.beginPath();c.ellipse(27,8*gunRoll,3.1,2.5,.12,0,TAU);c.fill();c.stroke();}
+  // Dedicated index finger presses into the trigger guard, not the receiver.
+  if(Math.abs(gunRoll)>.16){c.save();c.strokeStyle='#9db9bd';c.lineWidth=1.05;c.beginPath();
+   c.moveTo(26,9.1*gunRoll);c.quadraticCurveTo(28.2,9.4*gunRoll,27.2,7.1*gunRoll);c.stroke();c.restore();}
   c.restore();c.restore();
  }
  return Object.freeze({draw,rifleShell,muzzle,weaponSide,weaponRoll,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});
