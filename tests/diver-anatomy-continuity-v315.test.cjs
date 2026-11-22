@@ -46,3 +46,24 @@ test('switching tools resets smoothing and preserves exact hand grips',()=>{
  assert.deepEqual(rig.stabilizeArmPair(next,pose,.6,5,'abyssPickaxe'),next);
  assert.equal(pose.armPoseHeld,'abyssPickaxe');
 });
+test('propulsor, pickaxe and cylinders keep stable joints through a full body turn',()=>{
+ const gear=['abyssPropulsor','abyssPickaxe','emptyCylinder','gasCylinder','oilCylinder'];
+ for(const held of gear){
+  let pose=null,previous=null,maxJump=0;
+  for(let i=0;i<=720;i++){
+   const heading=-Math.PI+i*Math.PI/360,view=rig.gameplayView(heading);
+   const sign=Math.cos(heading)<-1e-9?-1:1,relative=0,offset=5*sign;
+   const contact=rig.toolPose(held,0,view).grips.map(([x,y])=>[x,y*sign]);
+   pose=rig.advance(pose,1,1/60,held==='abyssPropulsor',{heading});
+   const raw=rig.armPair(relative,offset,contact,'standard',view);
+   const stable=rig.stabilizeArmPair(raw,pose,relative,offset,held);
+   for(let j=0;j<2;j++){
+    assert.deepEqual(stable[j].hand,raw[j].hand,'detached hand on '+held);
+    assert.deepEqual(stable[j].shoulder,raw[j].shoulder,'detached shoulder on '+held);
+    if(previous)maxJump=Math.max(maxJump,distance(body(stable[j].elbow,relative,offset),previous[j]));
+   }
+   previous=stable.map(p=>body(p.elbow,relative,offset));
+  }
+  assert.ok(maxJump<5,'sudden elbow jump with '+held+': '+maxJump);
+ }
+});
