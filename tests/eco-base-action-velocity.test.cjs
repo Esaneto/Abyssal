@@ -30,10 +30,10 @@ test('all equipped Ecos cruise at 90% and act at 200% of the diver base speed',(
  }
 });
 
-test('Eco speed resonance boosts 200% action velocity but not 90% following',()=>{
+test('Eco resonance and adaptation increase the 200% action speed, not 90% following',()=>{
  const base=Evasion.playerBaseSpeed(.78);
- const bonus=Balance.petSpeed(3);
- assert.ok(approx(bonus,1.36));
+ const bonus=Balance.petSpeed(3)*(1+Specimen.stats(5000).attributeBonus);
+ assert.ok(approx(bonus,1.496));
  const args={position:{x:0,y:0},target:{x:1000,y:0},enemies:[],speed:base,actionSpeedMultiplier:bonus,dt:.05,radius:9,heading:0};
  const follow=Evasion.steer({...args,intent:'follow'});
  const combat=Evasion.steer({...args,intent:'combat'});
@@ -44,7 +44,7 @@ test('Eco speed resonance boosts 200% action velocity but not 90% following',()=
 });
 
 test('transition from cruising to boosted action accelerates without a stop or teleport',()=>{
- const base=Evasion.playerBaseSpeed(.78),bonus=Balance.petSpeed(3),state={};
+ const base=Evasion.playerBaseSpeed(.78),bonus=Balance.petSpeed(3)*(1+Specimen.stats(5000).attributeBonus),state={};
  let p={x:0,y:0},before=0;
  for(let frame=0;frame<15;frame++){
   const moved=Evasion.steer({position:p,target:{x:600,y:0},speed:base,actionSpeedMultiplier:bonus,dt:.05,radius:9,intent:'follow',state,heading:0});
@@ -67,8 +67,8 @@ test('Solo and Online use identical pre-bonus diver base and action-only Eco res
  const server=fs.readFileSync(path.join(ROOT,'server.js'),'utf8');
  assert.match(game,/SPECIMEN_EVASION\.playerBaseSpeed\(GAME_WORLD_ZOOM\)\*toxin\*slowed/);
  assert.match(server,/const speed=SpecimenEvasion\.playerBaseSpeed\(WORLD_ZOOM\)/);
- assert.match(game,/actionSpeedMultiplier:RES_BAL\.petSpeed\(upgrades\.petSpeed\)/);
- assert.match(server,/actionSpeedMultiplier:ResBalance\.petSpeed\(peer\.petSpeed\)/);
+ assert.match(game,/actionSpeedMultiplier:RES_BAL\.petSpeed\(upgrades\.petSpeed\)\*\(1\+SPECIMEN_SYSTEM\.stats\(specimenPoints\(\)\)\.attributeBonus\)/);
+ assert.match(server,/actionSpeedMultiplier:ResBalance\.petSpeed\(peer\.petSpeed\)\*\(1\+SpecimenSystem\.stats\(peer\.specimenPoints\)\.attributeBonus\)/);
  assert.doesNotMatch(game,/effectiveStats\(equippedSkin,specimenPoints\(\)\)\.speed\*RES_BAL\.petSpeed/);
  assert.doesNotMatch(server,/effectiveStats\(peer\.skinId,peer\.specimenPoints\)\.speed\*ResBalance\.petSpeed/);
 });
