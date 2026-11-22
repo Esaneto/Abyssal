@@ -29,8 +29,9 @@
   let orb=null,orbScore=Infinity,orbDistance=Infinity;
   for(const o of orbs){
    if(!o||!Number.isFinite(o.x)||!Number.isFinite(o.y))continue;
-   // Passive/Aggressive collection has no player-distance cap.
-   // Routing and danger checks still decide whether an orb is reachable.
+   // Only Passive and Aggressive collect without the old acquisition radius.
+   // Guardian retains the previous nearby-orb behavior when no threat is active.
+   if(mode==='guardian'&&distance(o,player)>collectionRange)continue;
    const d=distance(o,pet),cost=routeCost?routeCost(o):d;if(!Number.isFinite(cost))continue;
    // A nearby enemy may make a close orb less attractive than a safe one.
    const score=cost+orbRisk(o,pet,threats)*(mode==='passive'?3.4:1.25)-(o.id===preferredOrbId?(preferredType==='orb'?70:35):0);
