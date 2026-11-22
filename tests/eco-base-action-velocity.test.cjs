@@ -47,15 +47,15 @@ test('transition from cruising to boosted action accelerates without a stop or t
  const base=Evasion.playerBaseSpeed(.78),bonus=Balance.petSpeed(3)*(1+Specimen.stats(5000).attributeBonus),state={};
  let p={x:0,y:0},before=0;
  for(let frame=0;frame<15;frame++){
-  const moved=Evasion.steer({position:p,target:{x:600,y:0},speed:base,actionSpeedMultiplier:bonus,dt:.05,radius:9,intent:'follow',state,heading:0});
+  const moved=Evasion.steer({position:p,target:{x:6000,y:0},speed:base,actionSpeedMultiplier:bonus,dt:.05,radius:9,intent:'follow',state,heading:0});
   before=moved.x-p.x;p={x:moved.x,y:moved.y};
  }
- const first=Evasion.steer({position:p,target:{x:600,y:0},speed:base,actionSpeedMultiplier:bonus,dt:.05,radius:9,intent:'combat',state,heading:0});
+ const first=Evasion.steer({position:p,target:{x:6000,y:0},speed:base,actionSpeedMultiplier:bonus,dt:.05,radius:9,intent:'combat',state,heading:0});
  assert.ok(first.x-p.x>before,'entering action must accelerate');
  assert.ok(first.x-p.x<=base*2*bonus*.05+.001,'must not jump faster than the boosted action speed');
  p={x:first.x,y:first.y};
  for(let frame=0;frame<40;frame++){
-  const moved=Evasion.steer({position:p,target:{x:600,y:0},speed:base,actionSpeedMultiplier:bonus,dt:.05,radius:9,intent:'combat',state,heading:0});
+  const moved=Evasion.steer({position:p,target:{x:6000,y:0},speed:base,actionSpeedMultiplier:bonus,dt:.05,radius:9,intent:'combat',state,heading:0});
   assert.ok(moved.x>p.x,'chasing must not stall');
   p={x:moved.x,y:moved.y};
  }
