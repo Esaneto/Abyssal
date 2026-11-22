@@ -29,7 +29,8 @@
   let orb=null,orbScore=Infinity,orbDistance=Infinity;
   for(const o of orbs){
    if(!o||!Number.isFinite(o.x)||!Number.isFinite(o.y))continue;
-   if(distance(o,player)>collectionRange)continue;
+   // Passive/Aggressive collection has no player-distance cap.
+   // Routing and danger checks still decide whether an orb is reachable.
    const d=distance(o,pet),cost=routeCost?routeCost(o):d;if(!Number.isFinite(cost))continue;
    // A nearby enemy may make a close orb less attractive than a safe one.
    const score=cost+orbRisk(o,pet,threats)*(mode==='passive'?3.4:1.25)-(o.id===preferredOrbId?(preferredType==='orb'?70:35):0);
@@ -50,13 +51,13 @@
     }
    }
   }else if(mode==='guardian'){
-   if(preferred){
-    const d=distance(preferred,player);
-    if(d<guardRange*1.10){enemy=preferred;enemyDistance=d;}
-   }
-   for(const e of threats){
+   // The defender first acquires the threat closest to the diver, then
+   // remains committed even if it leaves the guard radius. A new target
+   // can only be chosen after the current enemy dies/disappears.
+   if(preferred){enemy=preferred;enemyDistance=distance(preferred,player);}
+   else for(const e of threats){
     const distanceToPlayer=distance(e,player);
-    if(distanceToPlayer<guardRange&&(!enemy||distanceToPlayer<enemyDistance-Math.max(10,(Number(e.r)||10)*.55))){
+    if(distanceToPlayer<guardRange&&distanceToPlayer<enemyDistance){
      enemy=e;enemyDistance=distanceToPlayer;
     }
    }
@@ -67,7 +68,7 @@
    const committed=preferredType==='enemy'&&preferredEnemyId!=null&&String(enemy.id)===String(preferredEnemyId);
    const immediate=mode==='aggressive'&&distance(enemy,pet)<=Math.min(attackRange,130);
    if(mode==='guardian'||committed||immediate||!orb||enemyDistance<=orbDistance*(preferredType==='orb'?.90:1.10)){
-    const front=frontlineTarget(pet,enemy,threats,mode,player,attackRange,guardRange);
+    const front=mode==='guardian'?enemy:frontlineTarget(pet,enemy,threats,mode,player,attackRange,guardRange);
     return {type:'enemy',target:front,enemy:front,mode};
    }
   }
