@@ -2797,6 +2797,9 @@ function fire(){
  // All projectiles in a spread share the physical muzzle origin.
  let a=aimedMode?controlAimAngle:aimAtEnemy(target);
  if(!aimedMode&&!weaponAligned(Number(player.weaponAngle)||0,a))return false;
+ // Complete the visual turn before shooting. Keep authoritative projectile
+ // angle, muzzle and damage independent of the animation.
+ if(player.swimPose&&!window.AbyssalDiverRig?.rifleReady?.(player.swimPose.aimBodyHeading,a,.20))return false;
  setWeaponHeading(a);
  const gunTip=DIVER_ART?.muzzle?.(player.x,player.y,player.r,a)||{x:player.x+Math.cos(a)*15,y:player.y+Math.sin(a)*15};
  const activeShot=getActiveShotId()||'electric',shotLevel=Math.max(1,Number(upgradeLevels[activeShot])||1);
@@ -3228,13 +3231,25 @@ function update(dt){
      particles.push(p);
     }
    }}else{player.propulsorEnergy=prop.step(player.propulsorEnergy,dt,player.propulsorEquipped,false);}
-   player.swimPose=window.AbyssalDiverRig?.advance(player.swimPose,swimVisualSpeed,dt,player.propulsorMoving,{x:player.x,y:player.y,heading:player.bodyAngle,unit:150/GAME_WORLD_ZOOM});
-   player.swimming=swimVisualSpeed>.045;
    if(soloSubmarine.repair)updateSoloHullRepair(dt);else updateAutomaticWeaponAim(dt);
+   const rifleHeld=!soloSubmarine.repair&&!player.propulsorEquipped&&(!isOpenSeaRun()||explorationHeldItem==='abyssWeapon');
+   // Visual-only turn: retain the actual swim trajectory and physics heading.
+   player.swimPose=window.AbyssalDiverRig?.advance(player.swimPose,swimVisualSpeed,dt,player.propulsorMoving,{
+    x:player.x,y:player.y,heading:player.bodyAngle,aim:player.weaponAngle,
+    held:rifleHeld?'abyssWeapon':player.propulsorEquipped?'abyssPropulsor':'none',unit:150/GAME_WORLD_ZOOM
+   });
+   player.swimming=swimVisualSpeed>.045;
+   // Preserve a short mobile shot tap until an abrupt turn completes.
+   if(rifleHeld&&isManualFiringMode()&&manualFireDown())player.manualFireQueuedUntil=performance.now()+550;
+   else if(!rifleHeld)player.manualFireQueuedUntil=0;
    // No pointer/touch event may reset this timer. Upgrades alone increase cadence.
    player.fireTimer=Math.max(0,(Number(player.fireTimer)||0)-dt);
-   if(!soloSubmarine.repair&&player.fireTimer<=0&&(!isManualFiringMode()||manualFireDown())&&(!isClassicCavernRun()||soloSubmarine.spawnFx<=1.25)){
-    if(fire())player.fireTimer=Math.max(.12,BASE_SHOT_INTERVAL/((upgrades.rate||1)*specimenPassiveMultiplier('fireRate')));
+   const manualShotRequested=manualFireDown()||Number(player.manualFireQueuedUntil)>performance.now();
+   if(!soloSubmarine.repair&&player.fireTimer<=0&&(!isManualFiringMode()||manualShotRequested)&&(!isClassicCavernRun()||soloSubmarine.spawnFx<=1.25)){
+    if(fire()){
+     player.manualFireQueuedUntil=0;
+     player.fireTimer=Math.max(.12,BASE_SHOT_INTERVAL/((upgrades.rate||1)*specimenPassiveMultiplier('fireRate')));
+    }
    }
  }
  // Companion sim runs even if diver is not moving.
@@ -3316,6 +3331,9 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
    if(nearest){const targetAngle=aimAtEnemy(nearest);aimAngle=Number(player.weaponAngle)||0;hasAim=weaponAligned(aimAngle,targetAngle)||Boolean(player.photonRayActive);}
   }
+  // A continuous ray starts only after the diver has visually turned to face
+  // the beam: the rifle must never appear to project light from behind.
+  if(hasAim&&player.swimPose&&!window.AbyssalDiverRig?.rifleReady?.(player.swimPose.aimBodyHeading,aimAngle,.20))hasAim=false;
   if(!hasAim){stopAudioLoop('beam','local-player');if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
   const ux=Math.cos(aimAngle),uy=Math.sin(aimAngle);
   const gunOrigin=DIVER_ART?.muzzle?.(player.x,player.y,player.r,aimAngle)||{x:player.x,y:player.y};
@@ -4950,7 +4968,10 @@ function draw(t){
        if(progress>=1)remoteSpecimenDashes.delete(peerVisualId);
       }
       const remoteSpeed=dtRemote>0?Math.hypot(vx,vy)/dtRemote/(150/GAME_WORLD_ZOOM):0;
-      const motion=window.AbyssalDiverRig?.advance(previous.motion,remoteSpeed,dtRemote,Boolean(peer.propulsorMoving),{x:px,y:py,heading,unit:150/GAME_WORLD_ZOOM});
+      const motion=window.AbyssalDiverRig?.advance(previous.motion,remoteSpeed,dtRemote,Boolean(peer.propulsorMoving),{
+       x:px,y:py,heading,aim:Number.isFinite(peer.angle)?peer.angle:heading,
+       held:peer.propulsorEquipped?'abyssPropulsor':'abyssWeapon',unit:150/GAME_WORLD_ZOOM
+      });
       remoteDiverMotion.set(peerVisualId,{x:px,y:py,angle:heading,sx,sy,lastAt:t,motion});
       remoteDiveLights.push({x:px,y:py,active:true,radius:285,strength:.84,color:'#78dfff',diver:true,heading,r:12/GAME_WORLD_ZOOM,lampLevel:1});
       drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,Number.isFinite(peer.angle)?peer.angle:heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon',peer.avatarAppearance,motion);

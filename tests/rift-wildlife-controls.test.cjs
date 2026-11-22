@@ -52,7 +52,8 @@ test('Fossas population prewarms in capped batches both clients',()=>{
 test('manual firing: aim mode never autofires and mobile uses the reticle as trigger',()=>{
  const game=src('public/game.js'),html=src('public/index.html'),style=src('public/style.css');
  assert.match(game,/if\(isRiftRun\(\)\|\|isOpenSeaRun\(\)\)\{controlSettings\.pc='wasd-aim';controlSettings\.mobile='dual-stick';\}/);
- assert.match(game,/fireTimer<=0&&\(!isManualFiringMode\(\)\|\|manualFireDown\(\)\)/);
+ assert.match(game,/fireTimer<=0&&\(!isManualFiringMode\(\)\|\|manualShotRequested\)/);
+ assert.match(game,/const manualShotRequested=manualFireDown\(\)\|\|Number\(player\.manualFireQueuedUntil\)>performance\.now\(\)/);
  assert.match(game,/stick\.addEventListener\('pointerdown'/);assert.match(game,/mobileFireHeld=true;mobileFireTap=true/);
  assert.doesNotMatch(html,/id="mobileFireBtn"/);assert.match(html,/aria-label="Mirar e disparar"/);
  assert.doesNotMatch(style,/\.abyss-mobile-fire/);
