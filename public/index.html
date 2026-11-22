@@ -34,7 +34,7 @@
 <link rel="stylesheet" href="abyssal-discord-community.css?v=3.6.126">
 <link rel="stylesheet" href="abyssal-review.css?v=3.6.130">
 <link rel="stylesheet" href="abyssal-state-signals.css?v=3.6.131">
-<link rel="stylesheet" href="abyssal-ranking-rewards.css?v=3.6.131">
+<link rel="stylesheet" href="abyssal-ranking-rewards.css?v=2026.11.22.dual-rank-v310">
 <link rel="stylesheet" href="cardume-comms.css?v=3.6.120">
 <link rel="stylesheet" href="abyssal-inventory-ui.css?v=2026.11.10.7">
 <link rel="stylesheet" href="abyssal-rebuild.css?v=2">
@@ -589,7 +589,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       <div class="modal-card codex-modal abyss-journal" role="dialog" aria-modal="true" aria-labelledby="abyssJournalTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar Abyssário">×</button><div class="eyebrow">BANCO DE DADOS BIOLÓGICOS · TERMINAL 07</div><h2 id="abyssJournalTitle">ABYSSÁRIO</h2><p class="journal-intro">Consulte criaturas, ecos e seus atributos. Novos registros são identificados conforme suas descobertas durante os mergulhos.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn" data-close-screen="catalogScreen">VOLTAR AO MENU</button></div>
     </section>
     <section id="rankingsScreen" class="screen modal-screen" hidden>
-      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="rankingsScreen" aria-label="Fechar ranking">×</button><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn" data-close-screen="rankingsScreen">VOLTAR AO MENU</button></div>
+      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="rankingsScreen" aria-label="Fechar ranking">×</button><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; dano e tempo servem como desempate. Solo e Online possuem resultados e recompensas independentes.</p><div class="ranking-mode-switch" role="group" aria-label="Tipo de ranking"><button type="button" class="ranking-mode-btn is-active" data-ranking-mode="online" aria-pressed="true">ONLINE</button><button type="button" class="ranking-mode-btn" data-ranking-mode="solo" aria-pressed="false">SOLO</button></div><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn" data-close-screen="rankingsScreen">VOLTAR AO MENU</button></div>
     </section>
     <section id="profileScreen" class="screen modal-screen" hidden>
       <div class="modal-card profile-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="profileScreen" aria-label="Fechar perfil">×</button>
@@ -811,7 +811,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="diver-hitbox.js?v=2026.11.13.playable-v216"></script>
 <script src="gravity-cone.js?v=2026.11.8.1"></script>
 <script src="specimen-evasion.js?v=2026.11.22.eco-velocity-v309"></script>
-<script src="abyssal-pet-tactics.js?v=2026.11.21.eco-stance3"></script>
+<script src="abyssal-pet-tactics.js?v=2026.11.22.dual-rank-v310"></script>
 <script src="abyssal-solo-cavern.js?v=3.6.126"></script>
 <script src="abyssal-solo-progress.js?v=2026.11.12.8"></script>
 <script src="abyssal-solo-base.js?v=3.6.110"></script>
@@ -820,10 +820,10 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
  <script src="abyssal-sample-audio.js?v=3.6.133"></script>
  <script src="abyssal-research-tree.js?v=3.6.118"></script>
 <script src="abyssal-hud-editor.js?v=3.6.134"></script>
- <script src="game.js?v=2026.11.22.eco-velocity-v309"></script>
+ <script src="game.js?v=2026.11.22.dual-rank-v310"></script>
  <script src="abyssal-mobile-multitouch.js?v=3.6.129"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=3.6.151.native-google"></script>
+<script src="online.js?v=2026.11.22.dual-rank-v310"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.14.playable-v220"></script>
 <script src="abyssal-rebuild.js?v=2026.11.13.playable-v216"></script>
