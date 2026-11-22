@@ -33,7 +33,8 @@ test('specimen biology always exposes gameplay HP speed and damage with rarity s
  assert.ok(specimens.biologicalStats('toxic').hp>0);
  const game=read('public/game.js');
  assert.match(game,/SPECIMEN_SYSTEM\.effectiveStats\(equippedSkin,specimenPoints\(\)\)\.damage/);
- assert.match(game,/SPECIMEN_SYSTEM\.effectiveStats\(equippedSkin,specimenPoints\(\)\)\.speed/);
+ assert.match(game,/SPECIMEN_EVASION\.playerBaseSpeed\(GAME_WORLD_ZOOM\)/);
+ assert.match(game,/actionSpeedMultiplier:RES_BAL\.petSpeed\(upgrades\.petSpeed\)\*\(1\+SPECIMEN_SYSTEM\.stats\(specimenPoints\(\)\)\.attributeBonus\)/);
  assert.match(game,/SPECIMEN_SYSTEM\.effectiveStats\(equippedSkin,specimenPoints\(\)\)\.hp/);
 });
 
