@@ -48,7 +48,7 @@
   }
   return best;
  }
- function steer({position,target,enemies=[],speed=100,dt=.05,radius=10,clearance=28,heading=0,resolve=null,intent='travel',state=null}){
+ function steer({position,target,enemies=[],speed=100,actionSpeedMultiplier=1,dt=.05,radius=10,clearance=28,heading=0,resolve=null,intent='travel',state=null}){
   const x=Number(position?.x)||0,y=Number(position?.y)||0;
   let gx=Number.isFinite(target?.x)?target.x:x,gy=Number.isFinite(target?.y)?target.y:y;
   const combat=intent==='combat',follow=intent==='follow',collect=intent==='collect';
@@ -81,11 +81,13 @@
    }else if(state)state.ecoBlockerId=null;
   }
   const distance=Math.hypot(gx-x,gy-y);
-  // A companion cruises at 90% of the diver's base speed. When its selected
-  // behavior acquires a valid enemy/orb, it approaches at 200% of that base.
-  // The caller may still apply the companion's own resonance bonus; the
-  // diver's movement upgrades and temporary speed boosts are excluded.
-  const desiredSpeed=baseSpeed*speedMultiplierForIntent(intent);
+  // Follow is always 90% of the diver's pre-bonus base speed.
+  // During an action (enemy or orb), the Eco reaches 200% of that base,
+  // then receives only its own speed resonance bonus on top of the 200%.
+  // Diver upgrades, propulsor and temporary boosts never scale this speed.
+  const acting=combat||collect;
+  const ownActionBonus=Math.max(.1,Math.min(3,Number(actionSpeedMultiplier)||1));
+  const desiredSpeed=baseSpeed*speedMultiplierForIntent(intent)*(acting?ownActionBonus:1);
   let actualSpeed=desiredSpeed;
   if(state&&typeof state==='object'){
    const previous=Number.isFinite(state.ecoMotionSpeed)?state.ecoMotionSpeed:desiredSpeed;
