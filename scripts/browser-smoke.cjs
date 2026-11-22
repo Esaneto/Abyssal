@@ -211,14 +211,19 @@ const injected=`<script>
       const isHandheld=document.documentElement.classList.contains('abyssal-handheld');
       const carousel=box.querySelector('.abyss-station-rail');
       if(isHandheld){
-       const copies=carousel.querySelectorAll('.abyss-station-loop-copy');
        const railStyle=getComputedStyle(carousel),railRect=carousel.getBoundingClientRect();
        const deckStyle=getComputedStyle(carousel.parentElement);
-       if(copies.length!==10||carousel.children.length!==15||carousel.dataset.infinite!=='true')throw Error('Five accessible stations require ten loop-only carousel copies');
-       if(railStyle.touchAction!=='pan-x'||railStyle.overflowX!=='auto'||carousel.scrollWidth<=carousel.clientWidth)throw Error('Mobile station rail cannot scroll natively to the side');
-       if(railRect.left<0||railRect.right>innerWidth+1||railRect.width<85)throw Error('Mobile station rail is clipped by viewport');
-       if(deckStyle.gridTemplateColumns.split(' ').length!==3)throw Error('Landscape four-key grid override broke three-track station carousel');
-       if([...copies].some(k=>k.tabIndex!==-1||k.getAttribute('aria-hidden')!=='true'))throw Error('Carousel copies create duplicate keyboard navigation');
+       const center=carousel.querySelector('.abyss-station-key.is-active');
+       const neighbors=[...carousel.querySelectorAll('.abyss-station-key.is-prev,.abyss-station-key.is-next')];
+       const distant=[...carousel.querySelectorAll('.abyss-station-key.is-distant')];
+       if(carousel.children.length!==5||carousel.querySelector('.abyss-station-loop-copy')||carousel.dataset.infinite)throw Error('Spotlight must use five unique buttons without loop copies');
+       if(railStyle.display!=='grid'||railStyle.overflowX!=='hidden')throw Error('Mobile spotlight rail is not a centered three-column selector');
+       if(railRect.left<0||railRect.right>innerWidth+1||railRect.width<85)throw Error('Mobile spotlight rail is clipped by viewport');
+       if(deckStyle.gridTemplateColumns.split(' ').length!==3)throw Error('Three-track cockpit station deck missing');
+       if(!center||neighbors.length!==2||distant.length!==2||distant.some(k=>!k.hidden||k.tabIndex!==-1))throw Error('Exactly one station and two faded neighbors must remain visible');
+       if(getComputedStyle(center).opacity<.9||neighbors.some(k=>Number(getComputedStyle(k).opacity)>.7))throw Error('Active station does not dominate faded neighbors');
+       if(center.getBoundingClientRect().width<neighbors[0].getBoundingClientRect().width*1.15)throw Error('Current station is not visually larger than the next');
+
        box.querySelector('.abyss-station-key[data-station="perfil"]').click();
        box.querySelector('.abyss-station-arrow:last-child').click();
        if(box.dataset.station!=='social')throw Error('Next arrow failed to wrap PERFIL to SOCIAL');
@@ -244,9 +249,9 @@ const injected=`<script>
       const pulse=research.querySelector('[data-research-id="pulse"]'),dash=research.querySelector('[data-research-id="dash"]');pulse.click();dash.dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'}));dash.focus();if(pulse.getAttribute('aria-pressed')!=='true'||!box.querySelector('.abyss-tree-detail-title')?.textContent.includes('Pulso de Maré'))throw Error('Research selection changed without click');dash.click();if(dash.getAttribute('aria-pressed')!=='true'||!box.querySelector('.abyss-tree-detail-title')?.textContent.includes('Propulsor Abissal'))throw Error('Research selection did not change on click');
       const monitor=box.querySelector('.abyss-cockpit-visor'),deck=box.querySelector('.abyss-control-deck');
       if(box.dataset.station!=='laboratorio')throw Error('Station selection did not update camera');
-      if(!deck.querySelector('.abyss-station-rail'))throw Error('Horizontal station rail missing');
+      if(!deck.querySelector('.abyss-station-rail'))throw Error('Spotlight station rail missing');
       const monitorRect=monitor?.getBoundingClientRect(),deckRect=deck?.getBoundingClientRect();
-      const currentKeys=[...box.querySelectorAll('.abyss-station-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
+      const currentKeys=[...box.querySelectorAll('.abyss-station-key')],keyRects=currentKeys.filter(key=>!key.hidden).map(key=>key.getBoundingClientRect());
       const handheld=document.documentElement.classList.contains('abyssal-handheld');
       if(handheld){
        const close=box.querySelector('.abyss-window-floating-close:not([hidden])'),c=close?.getBoundingClientRect();
@@ -260,11 +265,11 @@ const injected=`<script>
        viewport.scrollTop=0;
       }
       else{
-      if(currentKeys.length!==5||keyRects.some(r=>r.width<25||r.height<25))throw Error('Cockpit hardware buttons are hidden or detached');
+      if(currentKeys.length!==5||keyRects.length!==3||keyRects.some(r=>r.width<25||r.height<25))throw Error('Cockpit spotlight buttons are hidden or detached');
       if(!monitorRect||!deckRect)throw Error('Cockpit monitor/deck missing');
       if(deckRect.top<monitorRect.bottom-4)throw Error('Console deck overlaps monitor or sits alongside it');
       if(Math.abs(deckRect.left-monitorRect.left)>8||Math.abs(deckRect.width-monitorRect.width)>18)throw Error('Console keys are not aligned with the main monitor');
-      if(keyRects.some(r=>r.height>(innerWidth>700?100:72)))throw Error('Oversized vertically stretched console key');
+      if(keyRects.some(r=>r.height>(innerWidth>700?110:82)))throw Error('Oversized vertically stretched console key');
       if(monitorRect.height<deckRect.height*1.5)throw Error('The central monitor must dominate the physical key deck');
       if(monitorRect.width<210||monitorRect.height<(innerWidth>700?180:150))throw Error('Central cockpit display is too small');
       }
