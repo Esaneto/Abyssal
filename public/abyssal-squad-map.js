@@ -28,7 +28,9 @@ function makeWorld(){const rocks=[],caves=[],features=[],seed=172907;for(const z
  // Preserve classic geometry by generating at its ORIGINAL 4800x3000 dimensions, then only translate its origin.
  const orig=root.AbyssalSoloCavern?.buildRocks?.(4800,3000)||[];
  for(const p of orig){const c=Math.cos(p.angle||0),s=Math.sin(p.angle||0),points=p.vertices.map(v=>[CENTER.x+p.x+v[0]*c-v[1]*s,CENTER.y+p.y+v[0]*s+v[1]*c]);rocks.push({zone:'origin',points,x:CENTER.x+p.x,y:CENTER.y+p.y,rx:p.rx,ry:p.ry,classic:true});}
- return {width:W,height:H,center:CENTER,zones:ZONES,rocks,caves,features,submarine:{x:CENTER.x+2400,y:CENTER.y+1170},sourceRocks:orig.length,seed};
+ // Remove visual rocks that intersect a traversable cave. The collision system uses the same list.
+ const walkableRocks=rocks.filter(rock=>rock.classic||!caves.some(c=>Math.hypot(rock.x-c.x,rock.y-c.y)<c.r*1.48+Math.max(rock.rx||0,rock.ry||0)));
+ return {width:W,height:H,center:CENTER,zones:ZONES,rocks:walkableRocks,caves,features,submarine:{x:CENTER.x+2400,y:CENTER.y+1170},sourceRocks:orig.length,seed};
 }
 const world=makeWorld();
 function setup(){const chooser=document.getElementById('abyssalDiveChoicePanel');if(!chooser||document.getElementById('abyssDiveExpeditionChoice'))return;
