@@ -403,24 +403,29 @@ html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-sc
  animation:none!important;
  will-change:left,transform,opacity;
 }
-body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-station-key[data-slot="-2"]{
+body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="-2"],
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="-2"]{
  left:-28%!important;opacity:0!important;visibility:hidden!important;
  transform:translate(-50%,-50%) scale(.65)!important;pointer-events:none!important;
 }
-body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-station-key[data-slot="-1"]{
+body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="-1"],
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="-1"]{
  left:17%!important;opacity:.4!important;visibility:visible!important;
  transform:translate(-50%,-50%) scale(.73)!important;pointer-events:auto!important;
 }
-body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-station-key[data-slot="0"]{
+body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="0"],
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="0"]{
  left:50%!important;opacity:1!important;visibility:visible!important;
  transform:translate(-50%,-50%) scale(1.075)!important;pointer-events:auto!important;
  z-index:2!important;box-shadow:inset 0 1px 0 rgba(255,239,197,.42),0 3px 0 #5c4224,0 0 16px rgba(238,174,82,.29)!important;
 }
-body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-station-key[data-slot="1"]{
+body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="1"],
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="1"]{
  left:83%!important;opacity:.4!important;visibility:visible!important;
  transform:translate(-50%,-50%) scale(.73)!important;pointer-events:auto!important;
 }
-body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-station-key[data-slot="2"]{
+body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="2"],
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key[data-slot="2"]{
  left:128%!important;opacity:0!important;visibility:hidden!important;
  transform:translate(-50%,-50%) scale(.65)!important;pointer-events:none!important;
 }
