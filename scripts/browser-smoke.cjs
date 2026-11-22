@@ -217,14 +217,17 @@ const injected=`<script>
        const neighbors=[...carousel.querySelectorAll('.abyss-station-key.is-prev,.abyss-station-key.is-next')];
        const distant=[...carousel.querySelectorAll('.abyss-station-key.is-distant')];
        if(carousel.children.length!==5||carousel.querySelector('.abyss-station-loop-copy')||carousel.dataset.infinite)throw Error('Spotlight must use five unique buttons without loop copies');
-       if(railStyle.display!=='grid'||railStyle.overflowX!=='hidden')throw Error('Mobile spotlight rail is not a centered three-column selector');
+       if(railStyle.display!=='block'||railStyle.position!=='relative'||railStyle.overflowX!=='hidden')throw Error('Mobile spotlight must be a clipped sliding track');
        if(railRect.left<0||railRect.right>innerWidth+1||railRect.width<85)throw Error('Mobile spotlight rail is clipped by viewport');
        if(deckStyle.gridTemplateColumns.split(' ').length!==3)throw Error('Three-track cockpit station deck missing');
-       if(!center||neighbors.length!==2||distant.length!==2||distant.some(k=>!k.hidden||k.tabIndex!==-1))throw Error('Exactly one station and two faded neighbors must remain visible');
+       if(!center||neighbors.length!==2||distant.length!==2||distant.some(k=>k.tabIndex!==-1||k.getAttribute('aria-hidden')!=='true'||getComputedStyle(k).visibility!=='hidden'))throw Error('Only the central station and immediate neighbors may be visible');
        if(center.getAttribute('aria-pressed')!=='true'||neighbors.some(k=>Number(getComputedStyle(k).opacity)>.7))throw Error('Active station does not dominate faded neighbors');
        if(center.getBoundingClientRect().width<neighbors[0].getBoundingClientRect().width*1.15)throw Error('Current station is not visually larger than the next');
+       if(!getComputedStyle(center).transitionProperty.includes('left'))throw Error('Spotlight must animate horizontal position, not just opacity');
 
        box.querySelector('.abyss-station-key[data-station="perfil"]').click();
+       const expandedDeck=box.querySelector('.abyss-station-deck');
+       if(getComputedStyle(expandedDeck).display==='none'||expandedDeck.getBoundingClientRect().height<40)throw Error('Expanded mobile visor hid the station selector');
        box.querySelector('.abyss-station-arrow:last-child').click();
        if(box.dataset.station!=='social')throw Error('Next arrow failed to wrap PERFIL to SOCIAL');
        box.querySelector('.abyss-station-arrow:first-child').click();
@@ -251,7 +254,7 @@ const injected=`<script>
       if(box.dataset.station!=='laboratorio')throw Error('Station selection did not update camera');
       if(!deck.querySelector('.abyss-station-rail'))throw Error('Spotlight station rail missing');
       const monitorRect=monitor?.getBoundingClientRect(),deckRect=deck?.getBoundingClientRect();
-      const currentKeys=[...box.querySelectorAll('.abyss-station-key')],keyRects=currentKeys.filter(key=>!key.hidden).map(key=>key.getBoundingClientRect());
+      const currentKeys=[...box.querySelectorAll('.abyss-station-key')],keyRects=currentKeys.filter(key=>Math.abs(Number(key.dataset.slot))<=1).map(key=>key.getBoundingClientRect());
       const handheld=document.documentElement.classList.contains('abyssal-handheld');
       if(handheld){
        const close=box.querySelector('.abyss-window-floating-close:not([hidden])'),c=close?.getBoundingClientRect();

@@ -209,6 +209,25 @@
   {id:'profileHub',station:'perfil',name:'PERFIL',symbol:'♙',title:'MEU MERGULHADOR'}
  ]);
  const stationIndex=id=>CONSOLE_BUTTONS.findIndex(item=>item.station===id);
+ // Keep the last station through a monitor re-render so the selector can
+ // interpolate every key from its old slot to the new one.
+ let lastSpotlightStation='cabine';
+ const spotlightSlot=(index,center)=>{
+  const distance=(index-center+CONSOLE_BUTTONS.length)%CONSOLE_BUTTONS.length;
+  return [0,1,2,-2,-1][distance];
+ };
+ function setSpotlightSlot(key,index,center){
+  const slot=spotlightSlot(index,center),active=slot===0,offscreen=Math.abs(slot)===2;
+  key.dataset.slot=String(slot);
+  key.classList.toggle('is-active',active);
+  key.classList.toggle('is-prev',slot===-1);
+  key.classList.toggle('is-next',slot===1);
+  key.classList.toggle('is-distant',offscreen);
+  key.setAttribute('aria-pressed',String(active));
+  if(offscreen){key.tabIndex=-1;key.setAttribute('aria-hidden','true');}
+  else{key.tabIndex=0;key.removeAttribute('aria-hidden');}
+ }
+
  function selectStation(id){
   if(!workshop||workshop.hidden)return false;
   const option=CONSOLE_BUTTONS.find(item=>item.station===id);if(!option)return false;
@@ -261,20 +280,21 @@
    b.addEventListener('click',()=>selectRelativeStation(n));return b;
   };
   const prev=step(-1,'‹','Estação anterior'),next=step(1,'›','Próxima estação');
-  // Circular cockpit spotlight: one prominent page selector, two faded neighbors.
-  const count=CONSOLE_BUTTONS.length,centerIndex=Math.max(0,stationIndex(selectedStation));
+  // Five unique controls, with the two distant buttons outside a clipped
+  // track. The current choice is enlarged; neighbors have reduced opacity.
+  const currentIndex=Math.max(0,stationIndex(selectedStation));
+  const previousIndex=Math.max(0,stationIndex(lastSpotlightStation));
+  const changed=previousIndex!==currentIndex;
   const createStationKey=(option,index)=>{
    const key=document.createElement('button');key.type='button';
-   const distance=(index-centerIndex+count)%count;
-   const state=distance===0?'is-active':distance===1?'is-next':distance===count-1?'is-prev':'is-distant';
-   key.className='abyss-control-key abyss-station-key abyss-control-'+option.id+' '+state;
+   key.className='abyss-control-key abyss-station-key abyss-control-'+option.id;
    key.dataset.station=option.station;
    key.setAttribute('aria-label',option.title);
-   key.setAttribute('aria-pressed',String(state==='is-active'));
-   if(state==='is-distant'){key.hidden=true;key.tabIndex=-1;key.setAttribute('aria-hidden','true');}
    const symbol=document.createElement('span');symbol.className='abyss-control-icon';symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
    const name=document.createElement('span');name.className='abyss-station-key-name';name.textContent=option.name;
-   key.append(symbol,name);key.addEventListener('click',()=>selectStation(option.station));
+   key.append(symbol,name);
+   setSpotlightSlot(key,index,changed?previousIndex:currentIndex);
+   key.addEventListener('click',()=>{if(option.station!==selectedStation)selectStation(option.station);});
    return key;
   };
   CONSOLE_BUTTONS.forEach((option,index)=>rail.append(createStationKey(option,index)));
@@ -316,6 +336,16 @@
   body.addEventListener('scroll',refreshHint,{passive:true});
   requestAnimationFrame(refreshHint);
   workshopGrid.replaceChildren(visor,keys);
+  if(changed){
+   // Force the initial geometry while attached, then smoothly slide the five
+   // positions in the following frame. No opacity-only fade or sudden swap.
+   for(const button of rail.children)getComputedStyle(button).left;
+   requestAnimationFrame(()=>{
+    if(!rail.isConnected)return;
+    [...rail.children].forEach((button,index)=>setSpotlightSlot(button,index,currentIndex));
+   });
+  }
+  lastSpotlightStation=selectedStation;
   for(const [id,page] of [['cockpitProfileBtn','profile'],['cockpitCardumesBtn','cardumes'],['cockpitWheelBtn','wheel'],['cockpitRankingBtn','ranking']])$(id)?.setAttribute('aria-pressed',String(activeConsoleSection===page));
   workshop.querySelectorAll('[data-cockpit-setting],[data-cockpit-proxy]').forEach(button=>{const page=button.dataset.cockpitSetting||({notifBtn:'notices',mobileDownloadTopBtn:'download',fullscreenBtn:'fullscreen'})[button.dataset.cockpitProxy];button.setAttribute('aria-pressed',String(page===activeConsoleSection));});
   if(embeddedPages[activeConsoleSection])embedCatalog(body,embeddedPages[activeConsoleSection]);

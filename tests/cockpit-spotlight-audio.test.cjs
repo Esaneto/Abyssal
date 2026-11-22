@@ -35,7 +35,8 @@ test('cockpit keeps one selected station, with small faded neighbors and accessi
  assert.match(runtime,/\bis-prev\b/);
  assert.match(runtime,/\bis-active\b/);
  assert.match(runtime,/\bis-next\b/);
- assert.match(runtime,/if\(state==='is-distant'\)\{key\.hidden=true/);
+ assert.match(runtime,/if\(offscreen\)\{key\.tabIndex=-1;key\.setAttribute\('aria-hidden','true'\)/);
+ assert.match(runtime,/\[\.\.\.rail\.children\]\.forEach\(\(button,index\)=>setSpotlightSlot\(button,index,currentIndex\)\)/);
  assert.match(runtime,/keys\.append\(prev,rail,next\)/);
  assert.match(runtime,/workshopGrid\.replaceChildren\(visor,keys\)/);
  assert.match(css,/@keyframes abyss-visor-enter/);
