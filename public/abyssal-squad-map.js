@@ -49,7 +49,7 @@ function setup(){const chooser=document.getElementById('abyssalDiveChoicePanel')
  function draw(){if(wrap.hidden)return;const rect=canvas.getBoundingClientRect(),cw=Math.max(300,rect.width),ch=Math.max(220,rect.height),dpr=Math.min(2,window.devicePixelRatio||1);if(canvas.width!==Math.round(cw*dpr)||canvas.height!==Math.round(ch*dpr)){canvas.width=Math.round(cw*dpr);canvas.height=Math.round(ch*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#071927';ctx.fillRect(0,0,cw,ch);
  ctx.save();ctx.beginPath();ctx.rect(0,0,cw,ch);ctx.clip();
  // terrain: organic colored bathymetric cells, not a single stock background
- for(const z of ZONES){const [x,y]=cxy(z.x,z.y);let w=z.w*scale,h=z.h*scale;ctx.fillStyle=z.color;ctx.fillRect(x,y,w,h);
+ for(const z of ZONES){const [x,y]=cxy(z.x,z.y);let w=z.w*scale,h=z.h*scale;ctx.fillStyle=z.color;ctx.fillRect(x,y,w,h);if(root.AbyssalSquadVisuals)root.AbyssalSquadVisuals.paintChartDetail(ctx,z,x,y,w,h,performance.now()/1000);
   let g=ctx.createRadialGradient(x+w*.52,y+h*.45,0,x+w*.5,y+h*.5,Math.max(w,h)*.70);g.addColorStop(0,z.accent+'25');g.addColorStop(1,'#04121d15');ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
   ctx.strokeStyle='#a6d6e518';ctx.lineWidth=.7;for(let l=1;l<=4;l++){ctx.beginPath();for(let i=0;i<=55;i++){let xx=x+w*i/55,yy=y+h*(l/5)+Math.sin(i*.33+l*1.7)*15*scale+Math.sin(i*.13+l)*20*scale;i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);}ctx.stroke();}
  }
