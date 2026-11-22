@@ -1366,7 +1366,9 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
 async function finishRunForSocket(socket,payload={},isolatedRun=null){
  const key=socket.data.userKey,user=users[key];if(!key||!user)return {ok:false,message:'Entre em uma conta para registrar este mergulho.'};
  if(payload.expedition===true||['rift','rift-solo','open-sea','pvp'].includes(payload.mode))return {ok:false,message:'Modo em desenvolvimento.'};
- const room=isolatedRun?null:socketRoom(socket),member=room?.players.get(socket.id),run=isolatedRun||member?.runStats||socket.data.runStats||makeRunStats();
+ const room=isolatedRun?null:socketRoom(socket),member=room?.players.get(socket.id);
+ if(!isolatedRun&&!member)return {ok:false,message:'Partida Online não encontrada. Entre em uma sala válida para registrar o ranking.'};
+ const run=isolatedRun||member.runStats||socket.data.runStats||makeRunStats();
  if(run.settled)return {ok:true,duplicate:true,energyBonus:Number(run.energyBonus)||0,energyBonusPercent:Number(run.energyBonusPercent)||0,specimenEnergyBonusPercent:Number(run.specimenEnergyBonusPercent)||0,earned:Number(run.completionCoins)||0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*10,totalRunCoins:Number(run.totalRunCoins)||0,survival:Number(run.finalSurvival)||0,damageDealt:Number(run.damageDealt)||0,monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,runId:run.id,account:publicUser(user),rankings:rankingPayload()};
  const now=Date.now();
  const survival=Math.max(0,Math.min(86400,Math.floor((now-(Number(run.startedAt)||now))/1000)));
