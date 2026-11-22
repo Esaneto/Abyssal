@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-21-squad-terrain-v307';
+const VERSION = '2026-11-22-expedition-visual-v308';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -63,7 +63,7 @@ const GAME_FILES = [
   'gravity-cone.js',
   'abyssal-curated-skins.js',
   'abyssal-menu-ocean.js',
-  'abyssal-squad-map.js','abyssal-squad-physics.js','abyssal-squad-playtest.js',
+  'abyssal-squad-visuals.js','abyssal-squad-map.js','abyssal-squad-physics.js','abyssal-squad-playtest.js',
   'abyssal-submarine-cockpit.js',
   'abyssal-ocean-geography.js',
   'abyssal-open-sea-ecology.js',
