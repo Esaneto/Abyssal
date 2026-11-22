@@ -1605,7 +1605,7 @@ function tickRoom(room, now) {
    const route=OceanGeography.steer(pos.x,pos.y,target.x,target.y,radius+1/WORLD_ZOOM,0);
    if(route)target={x:route.x,y:route.y};
   }
-  const speed=SpecimenSystem.effectiveStats(peer.skinId,peer.specimenPoints).speed*ResBalance.petSpeed(peer.petSpeed)/WORLD_ZOOM;
+  const speed=SpecimenEvasion.playerBaseSpeed(WORLD_ZOOM)*ResBalance.petSpeed(peer.petSpeed);
   const avoidSq=(280/WORLD_ZOOM)**2;
    const nearbyHostile=hostile.filter(e=>e.id!==combatTarget?.id&&(e.x-pos.x)**2+(e.y-pos.y)**2<avoidSq);
    const move=SpecimenEvasion.steer({position:pos,target,enemies:nearbyHostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
