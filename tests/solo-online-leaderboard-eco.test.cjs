@@ -13,6 +13,8 @@ test('Passive and Aggressive collect orbs regardless of distance to diver',()=>{
   assert.equal(choice.type,'orb',mode);
   assert.equal(choice.orb.id,'distant-orb');
  }
+ const guardian=ai.choose({mode:'guardian',pet,player:diver,enemies:[],orbs:[{id:'distant-orb',x:4800,y:2500}],collectionRange:100});
+ assert.equal(guardian.type,'follow','Guardian must preserve its original acquisition distance for orbs');
  const solo=source('public/game.js'),server=source('server.js');
  assert.doesNotMatch(solo,/orbs\.filter\(o=>Math\.hypot\(o\.x-player\.x,o\.y-player\.y\)<=collectionRange\)/);
  assert.doesNotMatch(server,/orbs\|\|\[\]\)\.filter\(o=>Math\.hypot\(o\.x-peer\.x,o\.y-peer\.y\)<=acquisitionRange\)/);
