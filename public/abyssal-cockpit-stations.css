@@ -46,9 +46,9 @@
 }
 #submarineWorkshop .abyss-station-rail{
  display:flex;align-items:center;gap:8px;min-width:0;min-height:78px;
- overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;
- padding:6px 4px 9px;scrollbar-width:none;scroll-snap-type:x mandatory;
- touch-action:pan-x;-webkit-overflow-scrolling:touch;
+ overflow-x:hidden;overflow-y:hidden;
+ padding:6px 4px 9px;scrollbar-width:none;
+ touch-action:pan-y;
 }
 #submarineWorkshop .abyss-station-rail::-webkit-scrollbar{display:none}
 #submarineWorkshop .abyss-control-key.abyss-station-key{
@@ -200,15 +200,13 @@
   max-height:calc(100dvh - 60px)!important;
  }
 }
-#submarineWorkshop .abyss-station-rail{touch-action:pan-x}
+#submarineWorkshop .abyss-station-rail{touch-action:pan-y}
 #submarineWorkshop .abyss-station-key-name{display:block;font-weight:700;line-height:1.25}
 #submarineWorkshop .abyss-station-key[aria-pressed="true"]{outline-offset:1px}
 #submarineWorkshop .abyss-visor-body>.abyss-station-cards{width:100%;box-sizing:border-box}
 
 
-/* The old four-key cockpit uses body:not(.game-active) selectors with !important.
- * The station bar must override those selectors, rather than inherit 4/7 tracks.
- * Keep left/right arrows narrow and expose multiple stations at once. */
+/* The cockpit retains narrow arrow controls; spotlight owns the center station rail. */
 body:not(.game-active) #submarineWorkshop .abyss-control-deck.abyss-station-deck{
  display:grid!important;
  grid-template-columns:40px minmax(0,1fr) 40px!important;
@@ -366,4 +364,62 @@ body:not(.game-active) #submarineWorkshop .abyss-cockpit-top-actions>.cockpit-co
  html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-cockpit-top-actions{width:clamp(160px,42vw,240px)!important;min-height:34px!important;gap:3px!important}
  html.abyssal-handheld body:not(.game-active) #submarineWorkshop .abyss-cockpit-top-actions>.cockpit-command{padding:4px!important;min-height:34px!important}
  #submarineWorkshop .abyss-cockpit-top-actions>.cockpit-command svg{width:15px;height:15px}
+}
+
+/* Center spotlight: selected menu large, previous and next faded.
+   All detailed pages remain inside the expandable cockpit visor. */
+body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-deck>.abyss-station-rail,
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-deck>.abyss-station-rail{
+ display:grid!important;
+ grid-template-columns:minmax(0,.78fr) minmax(0,1.42fr) minmax(0,.78fr)!important;
+ grid-template-rows:minmax(66px,auto)!important;
+ align-items:center!important;justify-items:stretch!important;gap:5px!important;
+ overflow:hidden!important;scroll-snap-type:none!important;
+ touch-action:pan-y!important;min-width:0!important;width:100%!important;
+ max-height:none!important;min-height:76px!important;padding:5px 4px!important;
+ mask-image:linear-gradient(90deg,transparent 0%,#000 7%,#000 93%,transparent 100%);
+}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key,
+body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key{
+ display:flex!important;position:relative;box-sizing:border-box!important;
+ width:100%!important;min-width:0!important;max-width:none!important;
+ flex:none!important;min-height:60px!important;max-height:none!important;
+ padding:7px 4px!important;grid-row:1;
+ white-space:normal!important;touch-action:manipulation!important;
+ transition:opacity .3s ease,transform .3s ease,filter .3s ease!important;
+ animation:abyss-spotlight-arrive .3s ease both;
+}
+body:not(.game-active) #submarineWorkshop .abyss-station-rail>.abyss-station-key.is-prev{grid-column:1;opacity:.40!important;transform:scale(.82)!important;filter:saturate(.60)}
+body:not(.game-active) #submarineWorkshop .abyss-station-rail>.abyss-station-key.is-next{grid-column:3;opacity:.40!important;transform:scale(.82)!important;filter:saturate(.60)}
+body:not(.game-active) #submarineWorkshop .abyss-station-rail>.abyss-station-key.is-active{
+ grid-column:2;z-index:2;opacity:1!important;transform:scale(1.06)!important;
+ filter:none!important;min-height:71px!important;
+ box-shadow:inset 0 1px 0 rgba(255,239,197,.42),0 4px 0 #5c4224,0 0 18px rgba(238,174,82,.32)!important;
+}
+html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-station-key.is-distant,
+body:not(.game-active) #submarineWorkshop .abyss-station-rail>.abyss-station-key.is-distant{display:none!important}
+#submarineWorkshop .abyss-station-rail>.abyss-station-key.is-prev:focus-visible,
+#submarineWorkshop .abyss-station-rail>.abyss-station-key.is-next:focus-visible{opacity:1!important;outline:2px solid #a3e6ed;outline-offset:-2px}
+#submarineWorkshop .abyss-cockpit-visor{animation:abyss-visor-enter .25s ease both}
+@keyframes abyss-visor-enter{from{opacity:.42;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes abyss-spotlight-arrive{from{opacity:.15}to{opacity:1}}
+@media(max-width:700px){
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-deck>.abyss-station-rail,
+ body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-deck>.abyss-station-rail{
+  grid-template-columns:minmax(0,.67fr) minmax(0,1.56fr) minmax(0,.67fr)!important;
+  min-height:64px!important;grid-template-rows:minmax(58px,auto)!important;gap:3px!important;
+ }
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key,
+ body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-rail>.abyss-control-key.abyss-station-key{
+  min-height:51px!important;font-size:10px!important;padding:5px 2px!important;
+ }
+ body:not(.game-active) #submarineWorkshop .abyss-station-rail>.abyss-station-key.is-active{min-height:61px!important;transform:scale(1.04)!important}
+}
+@media(max-height:550px) and (orientation:landscape){
+ body:not(.game-active) #submarineWorkshop.abyss-cockpit-screen .abyss-station-deck>.abyss-station-rail{min-height:50px!important;grid-template-rows:minmax(45px,auto)!important}
+ body:not(.game-active) #submarineWorkshop .abyss-station-rail>.abyss-station-key.is-active{min-height:48px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #submarineWorkshop .abyss-cockpit-visor,
+ #submarineWorkshop .abyss-station-rail>.abyss-station-key{animation:none!important;transition:none!important}
 }
