@@ -463,3 +463,16 @@ html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expa
   min-height:50px!important;
  }
 }
+
+/* Compact landscape wardrobe: reserve a genuine character preview height,
+   even when the cabin's three-station selector remains visible. */
+@media(orientation:landscape) and (max-height:500px){
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-wardrobe>.aw-stage{
+  min-height:76px!important;
+ }
+ html.abyssal-handheld body:not(.game-active) #submarineWorkshop.abyss-visor-expanded .abyss-wardrobe .aw-canvas{
+  min-height:60px!important;
+  height:auto!important;
+  flex:1 1 auto!important;
+ }
+}
