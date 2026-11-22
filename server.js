@@ -1571,7 +1571,7 @@ function tickRoom(room, now) {
     Math.hypot(e.x-pos.x,e.y-pos.y)<360/WORLD_ZOOM||
     habit==='guardian'&&(Math.hypot(e.x-peer.x,e.y-peer.y)<265/WORLD_ZOOM||
       String(e.id)===String(peer.specimenChoiceEnemyId)));
-   const candidates=(room.world?.orbs||[]).filter(o=>Number.isFinite(o?.x)&&Number.isFinite(o?.y))
+   const candidates=(room.world?.orbs||[]).filter(o=>Number.isFinite(o?.x)&&Number.isFinite(o?.y)&&(habit!=='guardian'||Math.hypot(o.x-peer.x,o.y-peer.y)<=acquisitionRange))
     .sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
    const attackRange=350/WORLD_ZOOM,guardRange=265/WORLD_ZOOM;
    let choice=null;
