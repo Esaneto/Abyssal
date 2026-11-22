@@ -11,6 +11,9 @@ test('Bravery Demon is the sole soundtrack, looped and precached for offline use
  new vm.Script(audio);
  assert.match(audio,/music:\{file:'music\/bravery_demon_bpm210\.ogg'/);
  assert.match(audio,/source\.loop=true/);
+ assert.match(audio,/createMediaElementSource/);
+ assert.match(audio,/element\.loop=true/);
+ assert.match(audio,/element\.preload='auto'/);
  assert.match(audio,/DOMContentLoaded/);
  assert.match(audio,/pointerdown',unlock/);
  assert.match(sw,/audio\/music\/bravery_demon_bpm210\.ogg/);
