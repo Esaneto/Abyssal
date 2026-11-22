@@ -12,7 +12,7 @@ test('a 180-degree reversal turns the entire visible torso smoothly, not the rif
  for(let i=0;i<50;i++){
   pose=rig.advance(pose,0,1/60,false,{heading,aim,held:'abyssWeapon'});
   const moved=Math.abs(rig.angleDelta(pose.aimBodyHeading,last));
-  assert.ok(moved<=10.5/60+1e-8,'instant upper-body snap');
+  assert.ok(moved<=8/60+1e-8,'instant upper-body snap');
   assert.ok(Math.abs(rig.angleDelta(rig.riflePoseAim(pose.aimBodyHeading,aim),pose.aimBodyHeading))<=.86+1e-8,'rifle passes through back');
   if(rig.rifleReady(pose.aimBodyHeading,aim,.20))break;
   steps++;last=pose.aimBodyHeading;
