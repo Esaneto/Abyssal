@@ -185,9 +185,9 @@
   }
   async function prewarm(){
    if(warm)return;warm=true;
-   // Short high-frequency samples and the selected music first; the large
+   // Preload only short effects; the long soundtrack streams independently. The large
    // continuous beam is last. No synchronous decode or wait in the game loop.
-   const order=['playerDeath','electric','photon','pierce','echo','nova','beam','damage','pulse','music','bite','orb','kill','dash','propulsorStart','propulsor','cloud','boss','destroyed','repair'];
+   const order=['playerDeath','electric','photon','pierce','echo','nova','beam','damage','pulse','bite','orb','kill','dash','propulsorStart','propulsor','cloud','boss','destroyed','repair'];
    for(let i=0;i<order.length;i+=2)await Promise.all(order.slice(i,i+2).map(load));
   }
   function cleanVoice(v){if(v.done)return;v.done=true;voices.delete(v);if(v.key&&loops.get(v.key)===v)loops.delete(v.key);for(const n of [v.source,v.gain,v.pan,v.filter])try{n?.disconnect();}catch{}}
@@ -297,7 +297,27 @@
   function stopLoop(id,key){const v=loops.get(id+':'+String(key));if(v)stopVoice(v,id==='propulsor'?.28:.045);}
   function stopEffects(){epoch++;pending.clear();for(const v of voices)stopVoice(v);recent.clear();}
   async function startMusic(){
-   if(!ctx||ctx.state!=='running'||musicVoice||hidden||muted)return;
+   if(!ctx||ctx.state!=='running'||hidden||muted)return;
+   if(!musicVoice&&typeof ctx.createMediaElementSource==='function'&&env.document?.createElement){
+    // Stream long menu/gameplay music. Avoid decoding ~39 MB on every menu load.
+    // Keep it inside the same musicBus for player volume and combat ducking.
+    const element=env.document.createElement('audio');
+    element.src=new URL('audio/'+ASSETS.music.file,env.document.baseURI||env.location?.href||'http://localhost/').href;
+    element.loop=true;element.preload='auto';
+    try{
+     const source=ctx.createMediaElementSource(element),gain=ctx.createGain();
+     gain.gain.value=ASSETS.music.gain;
+     source.connect(gain);gain.connect(musicBus);
+     musicVoice={element,source,gain};
+    }catch(error){metrics.errors++;env.console?.warn?.('[AbyssalAudio] streaming fallback',error.message);}
+   }
+   if(musicVoice?.element){
+    if(!musicVoice.element.paused)return;
+    try{await musicVoice.element.play();}catch{/* Autoplay policy: retry on the next user interaction. */}
+    return;
+   }
+   // Web Audio fallback for environments without MediaElementAudioSourceNode.
+   if(musicVoice)return;
    const buffer=await load('music');if(!buffer||musicVoice||hidden||muted||ctx.state!=='running')return;
    const source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;source.loop=true;gain.gain.value=ASSETS.music.gain;source.connect(gain);gain.connect(musicBus);musicVoice={source,gain};source.onended=()=>{if(musicVoice?.source===source)musicVoice=null;try{source.disconnect();gain.disconnect();}catch{}};source.start();
   }
@@ -308,7 +328,7 @@
   function setVolume(channel,value){value=clamp(Number(value)||0,0,1);if(channel==='abyssalMusicVolume'){musicVolume=value;if(ctx&&ctx.currentTime<duckUntil)duck(duckUntil-ctx.currentTime);else smooth(musicBus?.gain,value);}else if(channel==='abyssalSfxVolume'){sfxVolume=value;smooth(sfx?.gain,value*deviceSfxHeadroom);if(!value)stopEffects();}}
   function setMuted(value){muted=Boolean(value);smooth(master?.gain,muted||hidden?0:1);if(muted)stopEffects();else if(started)startMusic();}
   function setHidden(value){hidden=Boolean(value);smooth(master?.gain,hidden||muted?0:1);if(hidden)stopEffects();else if(started){if(ctx?.state==='suspended')ctx.resume().catch(()=>{});startMusic();}}
-  function inspect(){return {...metrics,active:voices.size,loops:loops.size,decoded:buffers.size,decodedBytes:[...buffers.values()].reduce((n,b)=>n+b.length*b.numberOfChannels*4,0),loading:loading.size,musicPlaying:Boolean(musicVoice),sfxVolume,musicVolume,mobile,deviceSfxHeadroom,state:ctx?.state||'locked'};}
+  function inspect(){return {...metrics,active:voices.size,loops:loops.size,decoded:buffers.size,decodedBytes:[...buffers.values()].reduce((n,b)=>n+b.length*b.numberOfChannels*4,0),loading:loading.size,musicPlaying:Boolean(musicVoice&&(!musicVoice.element||!musicVoice.element.paused)),sfxVolume,musicVolume,mobile,deviceSfxHeadroom,state:ctx?.state||'locked'};}
   // Attempt immediate boot playback; retry on first gesture if autoplay is blocked.
   if(env.document?.readyState==='loading')env.addEventListener?.('DOMContentLoaded',()=>{void unlock();},{once:true});
   else if(env.document)Promise.resolve().then(()=>unlock());
