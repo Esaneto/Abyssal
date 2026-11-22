@@ -64,3 +64,29 @@ test('rifle trigger, support hand, muzzle and gameplay shot geometry remain cano
  assert.match(artCode,/riflePoseAim\?\.\(a,requestedAim\)/);
  assert.match(game,/held:peer\.propulsorEquipped\?'abyssPropulsor':'abyssWeapon'/);
 });
+
+test('during an aim turn both elbows remain anatomical and the two arms never visibly cross',()=>{
+ const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+ for(let direction=0;direction<8;direction++){
+  const heading=direction*Math.PI/4;
+  for(let aimIndex=0;aimIndex<16;aimIndex++){
+   const aim=aimIndex*Math.PI/8;
+   let motion=rig.advance(null,1,1/60,false,{heading,aim:heading,held:'abyssWeapon'});
+   for(let frame=0;frame<20;frame++){
+    motion=rig.advance(motion,1,1/60,false,{heading,aim,held:'abyssWeapon'});
+    const body=motion.aimBodyHeading,visualAim=rig.riflePoseAim(body,aim),roll=Math.cos(visualAim);
+    const offset=12*roll,relative=rig.angleDelta(visualAim,body);
+    const grips=rig.rifleGrips.map(([x,y])=>[x,y*roll]);
+    const view=rig.gameplayView(motion.viewHeading);
+    const raw=rig.armPair(relative,offset,grips,'standard',view,motion,'abyssWeapon');
+    const arms=rig.stabilizeArmPair(raw,motion,relative,offset,'abyssWeapon');
+    for(let i=0;i<2;i++){
+     assert.deepEqual(arms[i].hand,grips[i]);
+     assert.ok(Math.abs(distance(arms[i].shoulder,arms[i].elbow)/(.53*arms[i].projectedTotal)-1)<.04,'upper arm mismatch');
+     assert.ok(Math.abs(distance(arms[i].elbow,arms[i].hand)/(.47*arms[i].projectedTotal)-1)<.04,'forearm mismatch');
+    }
+    assert.equal(rig.visibleCrossings(...arms,relative,offset,view),0,'exposed elbow crossover during body turn');
+   }
+  }
+ }
+});
