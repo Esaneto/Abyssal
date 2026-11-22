@@ -51,7 +51,7 @@
   const nextView=prevView+viewDelta*(1-Math.exp(-dt*16)),remaining=Math.atan2(Math.sin(heading-nextView),Math.cos(heading-nextView));
   const viewHeading=Math.abs(remaining)<.012?heading:nextView;
   const swimSide=swimView(heading,old.swimSide).facing;
-  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,viewHeading,swimSide,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath};
+  return {phase,weight,powered:Boolean(powered),hairFlow,flowX,flowY,heading,viewHeading,swimSide,x:sample?.x,y:sample?.y,hairState:old.hairState,speedSample:Math.hypot(vx,vy),drive,turn,roll,breath,frameDt:dt,armBodyElbows:old.armBodyElbows,armPoseHeld:old.armPoseHeld};
  }
  function leg(side,phase,weight=1,powered=false,motion=null,view=null){
   const a=clamp(finite(weight),0,1)*(powered?.23:1);
@@ -115,6 +115,29 @@
   const totals=[36,40,45,50,56],left=totals.flatMap(n=>armCandidates(-1,relativeAim,offset,grips[0],profile,view,n)),right=totals.flatMap(n=>armCandidates(1,relativeAim,offset,grips[1],profile,view,n));
   return evaluate(left,right);
  }
+ // The IK solver can switch between mirrored elbow solutions at near-equal
+ // scores. Retain elbow positions in BODY coordinates across frames so sudden
+ // aim changes don't teleport joints. Hands and shoulders remain on their
+ // canonical weapon/torso anchors. Collision geometry is unchanged.
+ function stabilizeArmPair(pair,motion,relativeAim=0,offset=0,held='abyssWeapon'){
+  if(!motion||!Array.isArray(pair)||pair.length!==2)return pair;
+  const a=finite(relativeAim),o=finite(offset),co=Math.cos(a),si=Math.sin(a);
+  const toBody=p=>[p[0]*co-(p[1]+o)*si,p[0]*si+(p[1]+o)*co];
+  const toTool=p=>[p[0]*co+p[1]*si,-p[0]*si+p[1]*co-o];
+  const target=pair.map(p=>toBody(p.elbow)),prev=motion.armBodyElbows;
+  const dt=clamp(finite(motion.frameDt,1/60),0,.10);
+  if(motion.armPoseHeld!==held||!Array.isArray(prev)||prev.length!==2||!dt||!prev.every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite))){
+   motion.armBodyElbows=target;motion.armPoseHeld=held;return pair;
+  }
+  const response=1-Math.exp(-dt*15),maxStep=245*dt;
+  const current=target.map((goal,i)=>{
+   const old=prev[i],dx=(goal[0]-old[0])*response,dy=(goal[1]-old[1])*response;
+   const dist=Math.hypot(dx,dy),cap=dist>maxStep?maxStep/dist:1;
+   return [old[0]+dx*cap,old[1]+dy*cap];
+  });
+  motion.armBodyElbows=current;motion.armPoseHeld=held;
+  return pair.map((p,i)=>({...p,elbow:toTool(current[i])}));
+ }
  // Bounds in renderer coordinates; fit the same playable art, not a replacement sprite.
  function previewFrame(width,height,heading=0,aim=heading,held='none',powered=false,hairStyle='classic'){
   width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));heading=finite(heading);aim=finite(aim,heading);
@@ -156,5 +179,5 @@
   const sway=Math.sin(finite(phase)*.5)*clamp(finite(weight),0,1)*1.5;
   const brake=clamp(-finite(motion?.drive)/5,0,1);if(view?.directional){const mix=view.profile,sideView=idleArm(side,phase,weight,motion,{...view,directional:false,profile:1},mode),frontView=idleArm(side*view.facing,phase,weight,motion,{...view,directional:false,profile:0},mode);return Object.fromEntries(['shoulder','elbow','hand'].map(k=>[k,frontView[k].map((v,i)=>v+(sideView[k][i]-v)*mix)]));}if(view?.profile>.5){const tucked=mode==='tool';return {shoulder:project([13,side*13],view),elbow:project([tucked?-5:0,side<0?2:19+brake*2],view),hand:project([tucked?-26:18-brake*3,side<0?8:16+sway*.35+brake*2],view)};}return {shoulder:project([13,side*13],view),elbow:project([-8+brake*3,side*(16+sway+brake*2)],view),hand:project([-30+brake*6,side*(13.4+sway*.5+brake*3)],view)};
  }
- return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,swimView,tankMounts,project,advance,leg,arm,armPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
+ return Object.freeze({GAMEPLAY_YAW,facing,headPoint,viewFor,gameplayView,swimView,tankMounts,project,advance,leg,arm,armPair,stabilizeArmPair,armCrossings,visibleCrossings,idleArm,gripsFor,toolPose,previewFrame,hairPortraitFrame,rifleGrips,toolGrips});
 });
