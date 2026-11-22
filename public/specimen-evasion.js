@@ -46,11 +46,12 @@
  function steer({position,target,enemies=[],speed=100,dt=.05,radius=10,clearance=28,heading=0,resolve=null,intent='travel',state=null}){
   const x=Number(position?.x)||0,y=Number(position?.y)||0;
   let gx=Number.isFinite(target?.x)?target.x:x,gy=Number.isFinite(target?.y)?target.y:y;
-  const maxStep=Math.max(0,speed*dt);
-  if(maxStep<=0)return {x,y,angle:heading,evading:false};
-  const combat=intent==='combat',follow=intent==='follow';
+  const combat=intent==='combat',follow=intent==='follow',collect=intent==='collect';
+  const baseSpeed=Math.max(0,Number(speed)||0);
+  if(baseSpeed<=0||dt<=0)return {x,y,angle:heading,evading:false};
   // Follow a safe point on the near side of the blocking monster rather than
   // returning into an occupied player offset, retreating, and repeating.
+  let blockedAnchor=false;
   if(follow){
    const goalThreats=threatsNear(gx,gy,enemies,Math.max(120,radius+clearance*3),12);
    let blocker=null,penetration=0;
@@ -60,29 +61,61 @@
     if(inside>penetration){penetration=inside;blocker=e;}
    }
    if(blocker){
+    blockedAnchor=true;
     const safe=Math.max(3,Number(blocker.r)||8)+radius+Math.max(6,clearance*.65)+2;
     let ax=x-blocker.x,ay=y-blocker.y,mag=Math.hypot(ax,ay);
-    if(mag<.01){ax=Math.cos(heading+Math.PI);ay=Math.sin(heading+Math.PI);mag=1;}
+    // Keep the same safe side of an occupied follow anchor. Recomputing this
+    // bearing from each new position used to drive Ecos around the blocker.
+    if(state&&state.ecoBlockerId===blocker.id&&Number.isFinite(state.ecoBlockerX)&&Number.isFinite(state.ecoBlockerY)){
+      ax=state.ecoBlockerX;ay=state.ecoBlockerY;mag=Math.hypot(ax,ay)||1;
+    }else{
+      if(mag<.01){ax=Math.cos(heading+Math.PI);ay=Math.sin(heading+Math.PI);mag=1;}
+      if(state){state.ecoBlockerId=blocker.id;state.ecoBlockerX=ax/mag;state.ecoBlockerY=ay/mag;}
+    }
     gx=blocker.x+ax/mag*safe;gy=blocker.y+ay/mag*safe;
-   }
+   }else if(state)state.ecoBlockerId=null;
   }
   const distance=Math.hypot(gx-x,gy-y);
+  // Slow cruising while following the diver; faster pursuit for a selected
+  // enemy or orb. Catch-up is gradual when the diver outruns the companion.
+  const catchup=follow?Math.min(1,Math.max(0,(distance-Math.max(12,radius*1.7))/Math.max(70,radius*5))):0;
+  const speedFactor=combat?1.18:collect?1.10:follow?.56+.54*catchup:1;
+  const desiredSpeed=baseSpeed*speedFactor;
+  let actualSpeed=desiredSpeed;
+  if(state&&typeof state==='object'){
+   const previous=Number.isFinite(state.ecoMotionSpeed)?state.ecoMotionSpeed:desiredSpeed;
+   const blend=1-Math.exp(-Math.min(dt,.12)*(desiredSpeed>previous?8:10));
+   actualSpeed=previous+(desiredSpeed-previous)*blend;
+   state.ecoMotionSpeed=actualSpeed;
+  }
+  const maxStep=Math.max(0,actualSpeed*dt);
   const threats=threatsNear(x,y,enemies,Math.max(150,maxStep*3+radius+clearance),combat?8:14);
-  // Hysteresis avoids start/stop oscillation as the player's offset drifts by
-  // a few pixels per tick. A persistent state belongs to each individual Eco.
-  const goalTolerance=follow?Math.max(5,Math.min(12,radius*.65)):Math.max(1,Math.min(3,radius*.15));
+  const goalTolerance=follow?Math.max(5,Math.min(10,radius*.55)):Math.max(1,Math.min(3,radius*.15));
   let emergency=false,nearestEmergency=null,nearestEmergencyDistance=Infinity;
   for(const e of threats){
    const d=Math.hypot(x-e.x,y-e.y),physical=radius+Math.max(3,Number(e.r)||8)+Math.min(4,clearance*.15);
    if(d<physical){emergency=true;if(d<nearestEmergencyDistance){nearestEmergencyDistance=d;nearestEmergency=e;}}
   }
+  let anchorDx=0,anchorDy=0,movingAnchor=false;
   if(state&&typeof state==='object'){
-   if(follow&&!emergency){
-    const start=Math.max(goalTolerance*2.2,radius*1.55,14);
-    if(state.ecoFollowing===true&&distance<=goalTolerance)state.ecoFollowing=false;
-    else if(state.ecoFollowing!==true&&distance>=start)state.ecoFollowing=true;
-    if(state.ecoFollowing!==true)return {x,y,angle:heading,evading:false};
-   }else if(!follow)state.ecoFollowing=false;
+   if(follow){
+    if(Number.isFinite(state.ecoFollowAnchorX)&&Number.isFinite(state.ecoFollowAnchorY)){
+     anchorDx=gx-state.ecoFollowAnchorX;anchorDy=gy-state.ecoFollowAnchorY;
+     movingAnchor=Math.hypot(anchorDx,anchorDy)>Math.max(.08,dt*.35);
+    }
+    state.ecoFollowAnchorX=gx;state.ecoFollowAnchorY=gy;
+    state.ecoFollowing=distance>goalTolerance||movingAnchor;
+   }else{
+    state.ecoFollowing=false;state.ecoFollowAnchorX=NaN;state.ecoFollowAnchorY=NaN;state.ecoBlockerId=null;
+   }
+  }
+  // Once close to a MOVING diver, match the anchor displacement through the
+  // same collision resolver instead of stopping for several frames and chasing.
+  if(follow&&movingAnchor&&!blockedAnchor&&!threats.length&&!emergency&&
+     distance<=goalTolerance+maxStep&&Math.hypot(anchorDx,anchorDy)<=maxStep){
+   const moved=resolve?resolve(x+anchorDx,y+anchorDy):{x:x+anchorDx,y:y+anchorDy};
+   if(moved&&Number.isFinite(moved.x)&&Number.isFinite(moved.y))
+    return {x:moved.x,y:moved.y,angle:Math.atan2(anchorDy,anchorDx),evading:false};
   }
   if(distance<=goalTolerance&&!emergency)return {x,y,angle:heading,evading:false};
   // Never overshoot a nearby destination just because an unrelated threat exists.
