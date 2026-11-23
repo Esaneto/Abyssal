@@ -23,7 +23,7 @@ async function browser(url,online){
   const port=await until(()=>{
    if(chromeSpawnError)throw Error('Chrome spawn: '+chromeSpawnError.message);
    const f=path.join(profile,'DevToolsActivePort');
-   if(fs.existsSync(f)){const port=Number(fs.readFileSync(f,'utf8').split(/\\r?\\n/)[0]);if(port)return port;}
+   if(fs.existsSync(f)){const port=Number(fs.readFileSync(f,'utf8').split('\n')[0]);if(port)return port;}
    if(chrome.exitCode!==null)throw Error('Chrome exited '+chrome.exitCode+': '+chromeError.slice(-1600));
    return false;
   },'CDP port ('+executable+') '+chromeError.slice(-400),20000);
