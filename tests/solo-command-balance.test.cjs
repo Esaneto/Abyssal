@@ -52,7 +52,8 @@ test('white shark detects only targets inside its forward vision cone',()=>{
 test('Control 1 projectiles originate from each rendered gun barrel',()=>{
  const game=read('public/game.js');
  assert.match(game,/const gunTip=DIVER_ART\?\.muzzle\?\.\(player\.x,player\.y,player\.r,a\)/); assert.match(game,/const shotMuzzle=gunTip/);
- assert.match(game,/projectiles\.push\(\{x:shotMuzzle\.x,y:shotMuzzle\.y/);
+ assert.match(game,/const shotVisual=\{x:shotMuzzle\.x,y:shotMuzzle\.y/);
+ assert.match(game,/projectiles\.push\(shotVisual\)/);
  assert.match(game,/sendShot\(\{x:shotMuzzle\.x\/W,y:shotMuzzle\.y\/H/);
 });
 

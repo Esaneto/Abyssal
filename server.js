@@ -1695,7 +1695,7 @@ function tickRoom(room, now) {
   if(room.pvpProjectiles?.length)PvpProjectiles.advance(room.pvpProjectiles,activePlayers,now,pvpRockAt,(shot,target,point,at)=>resolveMovingPvpShot(room,shot,target,point,at));
    const w=room.world;w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];
   for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=.50;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(!DiverHitbox.circleHit(target,bubble.x,bubble.y,bubble.r,now)||pvpSegmentHitsRock(bubble.x,bubble.y,target.x,target.y,1/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,5,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,bubble.ownerId);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/roomWorldWidth(room),y:Number(target.y)/roomWorldHeight(room),playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'skin-active-trail',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/roomWorldWidth(room),y:bubble.y/roomWorldHeight(room),targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:bubble.skinActive?'skin-active-trail':'reefshark-bubble'});}}
-  if(now-(Number(room.lastPlayersBroadcastAt)||0)>=40){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(getRoomPlayerMotion(room)));}
+  if(now-(Number(room.lastPlayersBroadcastAt)||0)>=25){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(getRoomPlayerMotion(room),now));}
   return;
  }
  // Boss difficulty scales to everyone occupying the room, including players who are
@@ -2399,7 +2399,7 @@ io.on('connection', socket => {
   p.skinId=allowedSkinIds.has(skinId)&&((account?.ownedSkins||['default']).includes(skinId))?skinId:'default';
   // Relay live player transforms independently of world-enemy snapshots. Throttle per room
   // so all clients see movement/skins without flooding Socket.IO with every heartbeat.
-  const playerMotionIntervalMs=1000/30;
+  const playerMotionIntervalMs=1000/40;
   if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=playerMotionIntervalMs){
    room.lastPlayersBroadcastAt=receivedAt;
    const motion=getRoomPlayerMotion(room);
@@ -2727,6 +2727,19 @@ io.on('connection', socket => {
    if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>12)return;shooter.lastShotVolleyPackets=volleyPackets;}
    else{shooter.lastShotAt=now;shooter.lastShotVolleyId=volleyId||null;shooter.lastShotVolleyPackets=1;shooter.lastShotVolleyTargets=new Set();}
   const shot={x,y,vx,vy,combined:payload.combined===true,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','photon','photonRay','nova','echoShot','prismShard'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
+  // Cosmetic-only parameters: bounds are validated here, but hits and damage
+  // continue to be simulated exclusively by the server.
+  if(shot.special!=='nova'&&shot.special!=='photonRay'){
+   const visual=payload.visual&&typeof payload.visual==='object'?payload.visual:{};
+   const maxVisualRange=shot.modifiers.abyssEye?Math.hypot(roomWorldWidth(room),shotWorldHeight):
+    294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*
+    SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false)/WORLD_ZOOM;
+   shot.visual={
+    radius:clamp(Number(visual.radius)||5.2/WORLD_ZOOM,1/WORLD_ZOOM,8/WORLD_ZOOM),
+    maxDistance:clamp(Number(visual.maxDistance)||maxVisualRange,1/WORLD_ZOOM,maxVisualRange),
+    life:clamp(Number(visual.life)||1.33,.25,shot.modifiers.abyssEye?18:3)
+   };
+  }
   if(shot.special==='nova'&&room.mode!=='pvp'){
    if(now<(Number(shooter.novaShotReadyAt)||0))return;
    const dx=vx*roomWorldWidth(room),dy=vy*shotWorldHeight,speed=Math.hypot(dx,dy);
@@ -2940,8 +2953,9 @@ io.on('connection', socket => {
     });
    }
   }
-  if(shot.special==='photonRay'||room.mode==='pvp')io.to(channelFor(room)).emit('shared-shot',shot);
-  else io.to(channelFor(room)).volatile.emit('shared-shot',shot);
+  // Every accepted attack is a reliable ordered event, even in cooperative rooms.
+  // Volatile packets remain appropriate for superseding player transforms only.
+  io.to(channelFor(room)).emit('shared-shot',shot);
  });
  socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false||player.tutorialActive)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
  socket.on('skin-ability',(payload,acknowledge)=>{

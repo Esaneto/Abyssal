@@ -8,7 +8,7 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 test('remote players use timestamped jitter buffer plus bounded fallback extrapolation',()=>{
  const online=read('public/online.js');
- assert.match(online,/interpDuration:Math\.max\(24,Math\.min\(isPvp\?45:55,sampleMs\*1\.05\)\)/);
+ assert.match(online,/interpDuration:Math\.max\(18,Math\.min\(isPvp\?38:42,sampleMs\*\.95\)\)/);
  assert.match(online,/peerExtrapolationMs:isPvp\?60:85/);
  assert.match(online,/function pushPeerMotionSample/);
  assert.match(online,/motionBufferMs=Math\.max/);

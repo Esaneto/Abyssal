@@ -20,7 +20,7 @@
   const page=document.createElement('section');page.className='abyss-console-info cockpit-settings-page';page.dataset.settingPage=name;
   if(name==='settings'){
    // Keep advanced options together in the visor instead of duplicating top controls.
-   for(const [label,key] of [['IDIOMA','language'],['CONTROLES','controls'],['ÁUDIO','volume'],['GRÁFICOS','filter'],['TELA CHEIA','fullscreen']]){
+   for(const [label,key] of [['IDIOMA','language'],['CONTROLES','controls'],['ÁUDIO','volume'],['DESEMPENHO VISUAL','performance'],['GRÁFICOS','filter'],['TELA CHEIA','fullscreen']]){
     const details=document.createElement('details');details.className='cockpit-setting-accordion';
     const summary=document.createElement('summary');summary.textContent=label;
     details.append(summary,createPage(key));page.append(details);
@@ -36,6 +36,13 @@
   }else if(name==='volume'){
    page.append(slider('Efeitos','abyssalSfxVolume','80'),slider('Música','abyssalMusicVolume','45'));
    note(page,'Ajuste música e efeitos. As preferências também são usadas durante o mergulho.');
+  }else if(name==='performance'){
+   const status=window.AbyssalAdaptivePerformance?.snapshot?.();
+   const mode=status?.automatic?'Adaptação automática':'Qualidade fixa';
+   const level=status?.name||'Padrão';
+   const fps=Number(status?.fps)||0;
+   note(page,'Renderização: '+mode+' · '+level+(fps>0?' · Última leitura: '+fps+' FPS':''));
+   note(page,'O desempenho visual ajusta o custo de renderização do dispositivo, sem alterar o movimento ou a sincronização dos jogadores. As opções de qualidade gráfica aparecem logo abaixo.');
   }else if(name==='filter'){
    const quality=window.AbyssalAdaptivePerformance;
    page.append(field('Qualidade gráfica',[['auto','Automática (recomendada)'],['0','Leve'],['1','Médio'],['2','Ultra']],String(quality?.snapshot().preference??'auto'),value=>quality?.setPreference(value)));
