@@ -830,11 +830,11 @@ $('nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('password
 function buildPositionPayload(player){return {x:Number(player.x),y:Number(player.y),angle:Number(player.angle)||0};}
 function buildNetMeta(){const motion=window.AbyssalGameHooks?.motionDiagnostics?.()||{};return {viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,worldZoom:window.AbyssalGameHooks?.worldZoom?.()||.78,combatRange:window.AbyssalGameHooks?.combatRange?.()||294/.78,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default',clientEnemyCount:motion.enemyCount||0,clientMovingEnemies:motion.movingEnemies||0,clientPredicting:Boolean(motion.predictingLocally),clientGameState:String(motion.gameState||'unknown'),clientHidden:Boolean(document.hidden),petHabit:window.AbyssalGameHooks?.petHabit?.()||'passive'};}
 // One sender for frame updates, heartbeat recovery and shot ordering.
-function flushPosition(force=false){
+function flushPosition(force=false,reliable=false){
  if(!socket?.connected||!authenticated||!currentRoom||!latestPositionPayload)return false;
  const now=performance.now(),roomKey=String(currentRoom?.id||currentRoom||''),lastSent=flushPosition.lastPayload||null;
  if(roomKey!==flushPosition.lastRoomKey){flushPosition.lastRoomKey=roomKey;flushPosition.lastPayload=null;flushPosition.lastInterest=null;lastPositionAt=0;}
- if(!force&&now-lastPositionAt<1000/30)return false;
+ if(!force&&now-lastPositionAt<1000/40)return false;
  const previous=flushPosition.lastPayload||lastSent;
  if(!force&&previous){
   const dx=latestPositionPayload.x-previous.x,dy=latestPositionPayload.y-previous.y;
@@ -842,10 +842,12 @@ function flushPosition(force=false){
   if(dx*dx+dy*dy<.04&&Math.abs(da)<.004&&now-lastPositionAt<250)return false;
  }
  // Never queue stale transforms when the transport is congested.
- if(socket.io?.engine?.transport?.writable===false)return false;
+ if(!reliable&&socket.io?.engine?.transport?.writable===false)return false;
  const seq=++positionSequence;
  pendingMotion.set(seq,{x:latestPositionPayload.x,y:latestPositionPayload.y,sentAt:now});if(pendingMotion.size>32)pendingMotion.delete(pendingMotion.keys().next().value);
- socket.volatile.emit('player-motion-input',window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle]);
+ const packet=window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle];
+ if(reliable)socket.emit('player-motion-input',packet);
+ else socket.volatile.emit('player-motion-input',packet);
  flushPosition.lastPayload={x:latestPositionPayload.x,y:latestPositionPayload.y,angle:latestPositionPayload.angle};
  lastPositionAt=now;positionPacketsSent++;
  const interestZoom=Number(window.AbyssalGameHooks?.worldZoom?.())||.78,interestRange=Number(window.AbyssalGameHooks?.combatRange?.())||294/.78;
@@ -886,9 +888,15 @@ function sendShot(shot){
  if(!socket?.connected||!authenticated||!currentRoom||!shot)return;
  const live=window.AbyssalGameHooks?.getPlayerPosition?.();
  if(live)latestPositionPayload=buildPositionPayload(live);
- // Preserve ordered position -> shot delivery without waiting for an acknowledgement.
- // Once per frame avoids multiplying input traffic for spread volleys.
- if(performance.now()-lastPositionAt>=8)flushPosition(true);
+ // Shot validation uses the server-authoritative position. Send one RELIABLE
+ // transform ahead of the whole volley: a dropped volatile motion frame must
+ // never hide a valid shot from other players.
+ const volleyKey=String(shot.volleyId||shot.actionId||'');
+ const now=performance.now();
+ if(volleyKey!==sendShot.lastVolleyKey||now-(sendShot.lastVolleyAt||0)>100){
+  flushPosition(true,true);
+  sendShot.lastVolleyKey=volleyKey;sendShot.lastVolleyAt=now;
+ }
  socket.emit('shared-shot',{...shot,at:Date.now()});
 }
 function sendPhotonRayStop(){if(socket?.connected&&authenticated&&currentRoom)socket.emit('photon-ray-stop');}
@@ -1185,8 +1193,8 @@ function pushPeerMotionSample(peer,x,y,serverTime,receivedAt){
   const jitter=Math.abs(arrivalSpacing-serverSpacing);
   peer.motionJitterMs=Number.isFinite(Number(peer.motionJitterMs))?Number(peer.motionJitterMs)*.82+jitter*.18:jitter;
   const isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
-  peer.motionBufferMs=Math.max(isPvp?45:42,Math.min(isPvp?90:85,(isPvp?50:45)+(Number(peer.motionJitterMs)||0)*1.1));
- }else peer.motionBufferMs=window.AbyssalGameHooks?.roomMode?.()==='pvp'?50:45;
+  peer.motionBufferMs=Math.max(isPvp?25:28,Math.min(isPvp?60:65,(isPvp?32:36)+(Number(peer.motionJitterMs)||0)*.85));
+ }else peer.motionBufferMs=window.AbyssalGameHooks?.roomMode?.()==='pvp'?32:36;
  if(before)window.AbyssalEnemyNetcode?.preserveMotionContinuity?.(peer,before,getInterpolatedPeerRaw(peer,receivedAt),receivedAt);
  return true;
 }
@@ -1224,7 +1232,7 @@ function storePlayer(incoming,frameServerTime=0){
  const sampleMs=old?Math.max(20,Math.min(250,now-(Number(old.sampleAt)||now))):(1000/30),oldX=old?Number(old.targetX):x,oldY=old?Number(old.targetY):y,maxSpeed=420;
  let velocityX=old&&Number.isFinite(oldX)?(x-oldX)/(sampleMs/1000):0,velocityY=old&&Number.isFinite(oldY)?(y-oldY)/(sampleMs/1000):0;
  const speed=Math.hypot(velocityX,velocityY);if(speed>maxSpeed){velocityX=velocityX/speed*maxSpeed;velocityY=velocityY/speed*maxSpeed;}
- const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:Math.max(24,Math.min(isPvp?45:55,sampleMs*1.05)),sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?60:85,motionSamples:Array.isArray(old?.motionSamples)?old.motionSamples:[]};
+ const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:Math.max(18,Math.min(isPvp?38:42,sampleMs*.95)),sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?60:85,motionSamples:Array.isArray(old?.motionSamples)?old.motionSamples:[]};
  pushPeerMotionSample(next,x,y,Number(frameServerTime)||Number(incoming.lastPositionAt)||Date.now(),now);
  players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
 }
