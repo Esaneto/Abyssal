@@ -6,10 +6,10 @@ function harness(){
  vm.runInContext(source.slice(source.indexOf('function flushPosition('),source.indexOf('function startPositionHeartbeat('))+source.slice(source.indexOf('function sendShot('),source.indexOf('function sendPhotonRayStop(')),box);
  return {box,packets,time:t=>time=t};
 }
-test('frame positions send immediately and remain capped at 30 Hz',()=>{
+test('frame positions send immediately and remain capped at 40 Hz',()=>{
  const {box,packets,time}=harness();const motion=()=>packets.filter(p=>p.event==='player-motion-input');box.sendPosition({x:1,y:2});assert.equal(packets[0].event,'player-motion-input');
- for(let t=101;t<133;t++){time(t);box.sendPosition({x:t,y:2});}assert.equal(motion().length,1);
- time(134);box.sendPosition({x:134,y:2});assert.equal(motion().length,2);assert.equal(motion()[1].payload[1],134);
+ for(let t=101;t<125;t++){time(t);box.sendPosition({x:t,y:2});}assert.equal(motion().length,1);
+ time(125);box.sendPosition({x:125,y:2});assert.equal(motion().length,2);assert.equal(motion()[1].payload[1],125);
 });
 test('shot refreshes live origin before firing without waiting for an ack',()=>{
  const {box,packets}=harness();box.sendShot({volleyId:'v'});assert.deepEqual(packets.filter(p=>p.event!=='player-net-meta').map(p=>p.event),['player-motion-input','shared-shot']);assert.equal(packets[0].payload[1],120);
