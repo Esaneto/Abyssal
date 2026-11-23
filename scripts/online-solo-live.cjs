@@ -9,13 +9,24 @@ const propulsorCheck=process.argv.includes('--propulsor');
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'abyssal-parity-'));
 fs.mkdirSync(out,{recursive:true});
 async function until(fn,label,timeout=30000){const end=Date.now()+timeout;let last;while(Date.now()<end){try{last=await fn();if(last)return last;}catch(e){last=e.message;}await sleep(150);}throw Error('Timeout '+label+': '+JSON.stringify(last));}
-const executable=process.env.CHROME_BIN||['google-chrome','chromium','chromium-browser'].find(x=>spawnSync('which',[x]).status===0);
+const executable=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(name=>spawnSync('which',[name],{encoding:'utf8'})).find(result=>result.status===0)?.stdout.trim();
 async function browser(url,online){
- const profile=path.join(temp,online?'online':'solo');fs.mkdirSync(profile,{recursive:true});
- const chrome=spawn(executable,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-background-timer-throttling','--disable-renderer-backgrounding','--remote-debugging-port=0','--remote-allow-origins=*','--window-size=1280,720','--user-data-dir='+profile,'about:blank'],{stdio:'ignore'});
- let ws;
+ const profile=fs.mkdtempSync(path.join(temp,online?'online-':'solo-'));
+ // Match the Chrome launch parameters used by the passing login/CDP smoke tests.
+ // stderr and exit status are mandatory when Chrome fails before DevTools starts.
+ const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--remote-debugging-port=0','--remote-allow-origins=*','--window-size=1280,720','--user-data-dir='+profile,'about:blank'];
+ const chrome=spawn(executable,flags,{stdio:['ignore','ignore','pipe']});
+ let chromeError='',chromeSpawnError=null,ws;
+ chrome.stderr?.on('data',part=>{chromeError+=String(part);if(chromeError.length>4000)chromeError=chromeError.slice(-4000);});
+ chrome.on('error',err=>{chromeSpawnError=err;});
  try{
-  const port=await until(()=>{const f=path.join(profile,'DevToolsActivePort');return fs.existsSync(f)&&Number(fs.readFileSync(f,'utf8').split('\n')[0]);},'CDP port');
+  const port=await until(()=>{
+   if(chromeSpawnError)throw Error('Chrome spawn: '+chromeSpawnError.message);
+   const f=path.join(profile,'DevToolsActivePort');
+   if(fs.existsSync(f)){const port=Number(fs.readFileSync(f,'utf8').split(/\\r?\\n/)[0]);if(port)return port;}
+   if(chrome.exitCode!==null)throw Error('Chrome exited '+chrome.exitCode+': '+chromeError.slice(-1600));
+   return false;
+  },'CDP port ('+executable+') '+chromeError.slice(-400),20000);
   const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
   ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);await new Promise((r,j)=>{ws.addEventListener('open',r,{once:true});ws.addEventListener('error',j,{once:true});});
   let seq=0;const pending=new Map();ws.addEventListener('message',e=>{const d=JSON.parse(e.data),p=pending.get(d.id);if(p){pending.delete(d.id);d.error?p[1](Error(d.error.message)):p[0](d.result);}});
@@ -102,7 +113,7 @@ async function browser(url,online){
    console.log('LIVE PROPULSOR '+(online?'online':'solo')+' '+JSON.stringify(propulsion));
   }
   return {choice,initial,moved,sample,propulsion};
- }finally{if(ws)ws.close();chrome.kill('SIGKILL');}
+ }finally{if(ws)ws.close();if(chrome.exitCode===null)chrome.kill('SIGKILL');await Promise.race([new Promise(resolve=>chrome.once('close',resolve)),sleep(1800)]);}
 }
 async function main(){
  assert.ok(executable,'Chromium required');
